@@ -1,0 +1,16 @@
+[project]
+name = "app-clinicaldbsannot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "opencv-python-headless>=4.12.0.88",
+    "pyinstaller>=6.15.0",
+    "pyqt5==5.15.10",
+    "pyqt5-qt5==5.15.2",
+    "pytz>=2025.2",
+]
+
+#"pyqt5==5.15.10",
+#    "pyqt5-qt5==5.15.2",
