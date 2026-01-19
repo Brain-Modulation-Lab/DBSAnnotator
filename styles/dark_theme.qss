@@ -3,7 +3,7 @@
    ============================================ */
 
 /* Base Colors:
-   Primary: #2563eb (Blue)
+   Primary: #b45309; (Orange)
    Accent: #f59e0b (Amber)
    Background: #1e293b (Slate 800)
    Surface: #334155 (Slate 700)
@@ -99,8 +99,8 @@ QComboBox QAbstractItemView {
     color: #f1f5f9;
     border: 1px solid #475569;
     border-radius: 6px;
-    alternate-background-color: #2b3648;
-    selection-background-color: #2563eb;
+    alternate-background-color: #808c9eff;
+    selection-background-color: #f59e0b;
     selection-color: white;
     padding: 4px;
     font-size: 11px;
@@ -118,7 +118,7 @@ QComboBox QAbstractItemView::item:hover {
 }
 
 QComboBox QAbstractItemView::item:selected {
-    background-color: #2563eb;
+    background-color: #f59e0b;
     color: white;
 }
 
@@ -137,13 +137,13 @@ QPushButton {
 
 QPushButton:hover {
     background-color: #475569;
-    border-color: #2563eb;
+    border-color: #f59e0b;
     color: #ffffff;
 }
 
 QPushButton:pressed {
-    background-color: #2563eb;
-    border-color: #1d4ed8;
+    background-color: #f59e0b;
+    border-color: #b45309;
     color: #ffffff;
 }
 
@@ -155,19 +155,19 @@ QPushButton:disabled {
 
 /* Primary Action Buttons */
 QPushButton#primaryButton, QPushButton#insert_button, QPushButton#close_button {
-    background-color: #2563eb;
-    border-color: #1d4ed8;
+    background-color: #f59e0b;
+    border-color: #b45309;
     color: white;
     font-weight: 700;
 }
 
 QPushButton#primaryButton:hover, QPushButton#insert_button:hover, QPushButton#close_button:hover {
-    background-color: #1d4ed8;
-    border-color: #1e40af;
+    background-color: #f59e0b;
+    border-color: #b45309;
 }
 
 QPushButton#primaryButton:pressed, QPushButton#insert_button:pressed, QPushButton#close_button:pressed {
-    background-color: #1e40af;
+    background-color: #b45309;
 }
 
 /* Preset Buttons - Pill Style */
@@ -208,13 +208,13 @@ QPushButton#full_mode_button, QPushButton#annotations_only_button {
 
 QPushButton#full_mode_button:hover, QPushButton#annotations_only_button:hover {
     background-color: #475569;
-    border-color: #2563eb;
+    border-color: #f59e0b;
     color: #ffffff;
 }
 
 QPushButton#full_mode_button:pressed, QPushButton#annotations_only_button:pressed {
-    background-color: #2563eb;
-    border-color: #1d4ed8;
+    background-color: #f59e0b;
+    border-color: #b45309;
     color: #ffffff;
 }
 
@@ -233,7 +233,7 @@ QGroupBox::title {
     subcontrol-position: top left;
     padding: 0 6px;
     margin-left: 8px;
-    color: #2563eb;
+    color: #f59e0b;
     font-size: 12px;
     font-weight: 700;
     background-color: #1e293b;
@@ -263,12 +263,12 @@ QRadioButton::indicator, QCheckBox::indicator {
 }
 
 QRadioButton::indicator:checked, QCheckBox::indicator:checked {
-    background-color: #2563eb;
-    border-color: #1d4ed8;
+    background-color: #f59e0b;
+    border-color: #b45309;
 }
 
 QRadioButton::indicator:hover, QCheckBox::indicator:hover {
-    border-color: #2563eb;
+    border-color: #f59e0b;
 }
 
 /* Scrollbars */

@@ -36,6 +36,7 @@ Thumbs.db
 # Directories to ignore
 docs/
 archive/
+prove/
 
 # Data files (optional - uncomment if you don't want to commit patient data)
 # *.tsv

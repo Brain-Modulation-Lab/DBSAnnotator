@@ -8,8 +8,8 @@ and automatic conflict resolution between mutually exclusive options.
 from typing import List
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QStandardItem, QStandardItemModel, QFont, QColor, QPalette
-from PyQt5.QtWidgets import QComboBox, QLineEdit, QHBoxLayout, QWidget, QStyle, QFrame, QApplication
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import QComboBox, QLineEdit, QHBoxLayout, QWidget
 
 
 class MultiSelectComboBox(QComboBox):
@@ -30,14 +30,11 @@ class MultiSelectComboBox(QComboBox):
 
         # Make combo box non-editable but keep lineEdit accessible for events
         self.setEditable(True)
-        # Make lineEdit read-only for better appearance
-        self.lineEdit().setReadOnly(True)
-        self.lineEdit().setPlaceholderText("Select contact")
+        # Don't set readOnly to allow proper popup behavior
+        # self.lineEdit().setReadOnly(True)
+        self.lineEdit().setPlaceholderText("Select")
         self.setEditText("")
-        
-        # Set minimum width and make it expandable
-        self.setMinimumWidth(150)
-        self.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.setFixedWidth(150)
 
         # Create model for items
         self.model_items = QStandardItemModel(self)
@@ -45,7 +42,6 @@ class MultiSelectComboBox(QComboBox):
 
         # Set view properties
         view = self.view()
-        view.setAlternatingRowColors(True)
 
         # Install event filter to detect clicks outside
         view.viewport().installEventFilter(self)
@@ -65,16 +61,7 @@ class MultiSelectComboBox(QComboBox):
             item = QStandardItem(item_text)
             item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
             item.setData(Qt.Unchecked, Qt.CheckStateRole)
-            
-            # Modern checkbox styling
-            font = QFont()
-            font.setPointSize(9)
-            item.setFont(font)
-            
             self.model_items.appendRow(item)
-        
-        # Ensure no selections are active by default
-        self.update_text()
 
     def on_item_pressed(self, index) -> None:
         """
@@ -105,7 +92,7 @@ class MultiSelectComboBox(QComboBox):
         Args:
             selected_item: The item that was just selected
         """
-        # Rule 1: 'case' is mutually exclusive with all other options
+        # # Rule 1: 
         if selected_item == "case":
             self._deselect_all_except("case")
         else:
@@ -149,11 +136,11 @@ class MultiSelectComboBox(QComboBox):
             if "2b" not in self.get_selected_items():
                 self._deselect_item("1b")
         
-        # Rule 4: 
+        # # Rule 4: 
         if selected_item == "1 ring":
             self._deselect_items(["1a", "1b", "1c","2a", "2b", "2c"])
         
-        # Rule 5:
+        # # Rule 5: 
         if selected_item == "2 ring":
             self._deselect_items(["1a", "1b", "1c","2a", "2b", "2c"])
 
@@ -193,32 +180,14 @@ class MultiSelectComboBox(QComboBox):
                 item.setCheckState(Qt.Unchecked)
 
     def update_text(self) -> None:
-        """Update the combo box display text with current selections and adjust width."""
+        """Update the combo box display text with current selections."""
         selected = self.get_selected_items()
         if selected:
             # Show selections with underscore separator
-            display_text = "_".join(selected)
-            self.setEditText(display_text)
-            
-            # Calculate required width based on text content
-            font_metrics = self.fontMetrics()
-            text_width = font_metrics.width(display_text)
-            # Add some padding for dropdown arrow and margins
-            required_width = text_width + 40
-            
-            # Set width to accommodate content, but respect minimum
-            current_width = self.width()
-            new_width = max(self.minimumWidth(), required_width)
-            
-            if new_width != current_width:
-                self.setMinimumWidth(new_width)
-                self.adjustSize()
+            self.setEditText("_".join(selected))
         else:
             # Show empty when no selections
             self.setEditText("")
-            # Reset to minimum width
-            self.setMinimumWidth(150)
-            self.adjustSize()
 
     def get_selected_items(self) -> List[str]:
         """

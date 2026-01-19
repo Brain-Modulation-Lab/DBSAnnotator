@@ -3,7 +3,7 @@
    ============================================ */
 
 /* Base Colors:
-   Primary: #2563eb (Blue)
+   Primary: #b45309 (Orange)
    Accent: #f59e0b (Amber)
    Background: #f8fafc (Slate 50)
    Surface: #ffffff (White)
@@ -36,7 +36,7 @@ QLineEdit, QTextEdit, QPlainTextEdit {
     border: 1px solid #cbd5e1;
     border-radius: 4px;
     padding: 3px 6px;
-    selection-background-color: #2563eb;
+    selection-background-color: #b45309;
     selection-color: white;
     font-size: 11px;
 }
@@ -47,7 +47,7 @@ QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover {
 }
 
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
-    border: 1px solid #2563eb;
+    border: 1px solid #b45309;
     background-color: #ffffff;
     outline: none;
 }
@@ -75,7 +75,7 @@ QComboBox:hover {
 }
 
 QComboBox:focus {
-    border: 1px solid #2563eb;
+    border: 1px solid #b45309;
     background-color: #ffffff;
     outline: none;
 }
@@ -90,7 +90,7 @@ QComboBox QAbstractItemView {
     color: #0f172a;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
-    selection-background-color: #2563eb;
+    selection-background-color: #b45309;
     selection-color: white;
     padding: 4px;
     font-size: 11px;
@@ -107,10 +107,70 @@ QComboBox QAbstractItemView::item:hover {
 }
 
 QComboBox QAbstractItemView::item:selected {
-    background-color: #2563eb;
+    background-color: #b45309;
     color: white;
 }
 
+/* MultiSelectComboBox - Enhanced styling */
+MultiSelectComboBox {
+    background-color: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+MultiSelectComboBox:hover {
+    border-color: #94a3b8;
+    background-color: #ffffff;
+}
+
+MultiSelectComboBox:focus {
+    border: 1px solid #b45309;
+    background-color: #ffffff;
+    outline: none;
+}
+
+MultiSelectComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+MultiSelectComboBox::down-arrow {
+    image: none;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #0f172a;
+    margin-right: 5px;
+}
+
+MultiSelectComboBox QAbstractItemView {
+    background-color: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    selection-background-color: #b45309;
+    selection-color: white;
+    padding: 4px;
+    font-size: 11px;
+}
+
+MultiSelectComboBox QAbstractItemView::item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    min-height: 20px;
+}
+
+MultiSelectComboBox QAbstractItemView::item:hover {
+    background-color: #f1f5f9;
+}
+
+MultiSelectComboBox QAbstractItemView::item:selected {
+    background-color: #b45309;
+    color: white;
+}
 
 /* Buttons - Modern Flat Design */
 QPushButton {
@@ -125,8 +185,8 @@ QPushButton {
 
 QPushButton:hover {
     background-color: #f1f5f9;
-    border-color: #2563eb;
-    color: #2563eb;
+    border-color: #b45309;
+    color: #b45309;
 }
 
 QPushButton:pressed {
@@ -143,8 +203,8 @@ QPushButton:disabled {
 
 /* Primary Action Buttons */
 QPushButton#primaryButton, QPushButton#insert_button, QPushButton#close_button {
-    background-color: #2563eb;
-    border-color: #2563eb;
+    background-color: #b45309;
+    border-color: #b45309;
     color: white;
     font-weight: 700;
 }
@@ -197,8 +257,8 @@ QPushButton#full_mode_button, QPushButton#annotations_only_button {
 
 QPushButton#full_mode_button:hover, QPushButton#annotations_only_button:hover {
     background-color: #f1f5f9;
-    border-color: #2563eb;
-    color: #2563eb;
+    border-color: #b45309;
+    color: #b45309;
 }
 
 QPushButton#full_mode_button:pressed, QPushButton#annotations_only_button:pressed {
@@ -222,7 +282,7 @@ QGroupBox::title {
     subcontrol-position: top left;
     padding: 0 6px;
     margin-left: 8px;
-    color: #2563eb;
+    color: #b45309;
     font-size: 12px;
     font-weight: 700;
     background-color: #ffffff;
@@ -252,12 +312,12 @@ QRadioButton::indicator, QCheckBox::indicator {
 }
 
 QRadioButton::indicator:checked, QCheckBox::indicator:checked {
-    background-color: #2563eb;
-    border-color: #2563eb;
+    background-color: #b45309;
+    border-color: #b45309;
 }
 
 QRadioButton::indicator:hover, QCheckBox::indicator:hover {
-    border-color: #2563eb;
+    border-color: #b45309;
 }
 
 /* Scrollbars */
