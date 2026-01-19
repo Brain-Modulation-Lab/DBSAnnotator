@@ -172,25 +172,28 @@ QPushButton#primaryButton:pressed, QPushButton#insert_button:pressed, QPushButto
 
 /* Preset Buttons - Pill Style */
 QPushButton#preset_OCD, QPushButton#preset_MDD, QPushButton#preset_PD, QPushButton#preset_ET,
-QPushButton#preset2_OCD, QPushButton#preset2_MDD, QPushButton#preset2_PD, QPushButton#preset2_ET {
+QPushButton#preset2_OCD, QPushButton#preset2_MDD, QPushButton#preset2_PD, QPushButton#preset2_ET,
+QPushButton[objectName^="preset_"], QPushButton[objectName^="preset2_"] {
     background-color: #f59e0b;
     color: #1e293b;
     border: none;
-    border-radius: 12px;
+    border-radius: 6px;
     min-width: 40px;
-    max-width: 60px;
-    padding: 4px 10px;
-    font-size: 10px;
+    max-width: 100px;
+    padding: 6px 12px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 QPushButton#preset_OCD:hover, QPushButton#preset_MDD:hover, QPushButton#preset_PD:hover, QPushButton#preset_ET:hover,
-QPushButton#preset2_OCD:hover, QPushButton#preset2_MDD:hover, QPushButton#preset2_PD:hover, QPushButton#preset2_ET:hover {
+QPushButton#preset2_OCD:hover, QPushButton#preset2_MDD:hover, QPushButton#preset2_PD:hover, QPushButton#preset2_ET:hover,
+QPushButton[objectName^="preset_"]:hover, QPushButton[objectName^="preset2_"]:hover {
     background-color: #d97706;
 }
 
 QPushButton#preset_OCD:pressed, QPushButton#preset_MDD:pressed, QPushButton#preset_PD:pressed, QPushButton#preset_ET:pressed,
-QPushButton#preset2_OCD:pressed, QPushButton#preset2_MDD:pressed, QPushButton#preset2_PD:pressed, QPushButton#preset2_ET:pressed {
+QPushButton#preset2_OCD:pressed, QPushButton#preset2_MDD:pressed, QPushButton#preset2_PD:pressed, QPushButton#preset2_ET:pressed,
+QPushButton[objectName^="preset_"]:pressed, QPushButton[objectName^="preset2_"]:pressed {
     background-color: #b45309;
 }
 

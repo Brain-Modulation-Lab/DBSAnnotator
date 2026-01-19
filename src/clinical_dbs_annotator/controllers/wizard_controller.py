@@ -61,7 +61,14 @@ class WizardController:
             preset_name: Name of the preset (e.g., "OCD", "MDD")
             view: The Step2View instance to update
         """
-        preset = SESSION_SCALES_PRESETS.get(preset_name, [])
+        preset = []
+        if hasattr(view, "session_presets"):
+            try:
+                preset = view.session_presets.get(preset_name, [])
+            except Exception:
+                preset = []
+        if not preset:
+            preset = SESSION_SCALES_PRESETS.get(preset_name, [])
         view.update_session_scales(
             preset,
             on_add_callback=lambda: self.on_add_session_scale(view),
@@ -227,16 +234,6 @@ class WizardController:
         Args:
             view: The Step2View instance
         """
-        # Connect preset buttons
-        for preset_name in CLINICAL_SCALES_PRESETS.keys():
-            btn = view.get_preset_button(preset_name)
-            if btn:
-                btn.clicked.connect(
-                    lambda checked, name=preset_name: self.apply_session_preset(
-                        name, view
-                    )
-                )
-
         # Initialize with empty scale
         view.update_session_scales(
             [],
