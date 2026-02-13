@@ -1,3 +1,10 @@
+"""
+Session scales settings dialog.
+
+Provides a dialog for creating, editing, and deleting session-scale presets
+(e.g. Mood 0-10, Anxiety 0-10). Presets are persisted to a JSON file.
+"""
+
 import json
 import os
 from typing import Dict, List, Tuple
@@ -22,6 +29,8 @@ from ..utils.resources import resource_path
 
 
 class SessionScalesSettingsDialog(QDialog):
+    """Dialog for managing session-scale presets (add / edit / delete)."""
+
     presets_changed = pyqtSignal(dict)
 
     def __init__(
@@ -30,6 +39,13 @@ class SessionScalesSettingsDialog(QDialog):
         parent=None,
         original_presets=None,
     ):
+        """Initialize the dialog with existing presets.
+
+        Args:
+            current_presets: Dict mapping preset name to list of (scale_name, min, max).
+            parent: Optional parent widget.
+            original_presets: Optional fallback presets list.
+        """
         super().__init__(parent)
         self.current_presets = {
             k: [tuple(x) for x in v] for k, v in (current_presets or {}).items()
@@ -45,6 +61,7 @@ class SessionScalesSettingsDialog(QDialog):
         self._load_presets()
 
     def _setup_ui(self):
+        """Build the dialog layout: presets list, edit form, and action buttons."""
         layout = QVBoxLayout(self)
 
         title = QLabel("Edit Session Scales Presets")
@@ -99,7 +116,8 @@ class SessionScalesSettingsDialog(QDialog):
         self.presets_list.itemSelectionChanged.connect(self._on_preset_selected)
         self.presets_list.viewport().installEventFilter(self)
 
-    def eventFilter(self, obj, event):
+    def eventFilter(self, obj, event):  # noqa: N802
+        """Deselect preset when clicking empty space in the list."""
         if obj == self.presets_list.viewport() and event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton:
                 item = self.presets_list.itemAt(event.pos())
@@ -107,7 +125,8 @@ class SessionScalesSettingsDialog(QDialog):
                     self._clear_selection()
         return super().eventFilter(obj, event)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event):  # noqa: N802
+        """Deselect preset when clicking outside the list widget."""
         if event.button() == Qt.LeftButton:
             list_rect = self.presets_list.geometry()
             if not list_rect.contains(event.pos()):
@@ -115,6 +134,7 @@ class SessionScalesSettingsDialog(QDialog):
         super().mousePressEvent(event)
 
     def _clear_selection(self):
+        """Clear list selection and reset edit fields."""
         self.presets_list.blockSignals(True)
         self.presets_list.clearSelection()
         self.presets_list.blockSignals(False)
@@ -122,6 +142,7 @@ class SessionScalesSettingsDialog(QDialog):
         self.scales_edit.clear()
 
     def _load_presets(self):
+        """Load presets from the JSON config file and merge with current."""
         file_presets = {}
         if os.path.exists(self.presets_file):
             try:
@@ -140,12 +161,14 @@ class SessionScalesSettingsDialog(QDialog):
         self._update_presets_list()
 
     def _format_scales(self, scales: List[Tuple[str, str, str]]) -> str:
+        """Format a list of (name, min, max) tuples into a readable string."""
         parts = []
         for n, mn, mx in scales:
             parts.append(f"{n}({mn}-{mx})")
         return ", ".join(parts)
 
     def _update_presets_list(self):
+        """Refresh the QListWidget with the current presets dictionary."""
         self.presets_list.clear()
         for name, scales in self.current_presets.items():
             item_text = f"{name}: {self._format_scales(scales)}"
@@ -154,6 +177,7 @@ class SessionScalesSettingsDialog(QDialog):
             self.presets_list.addItem(item)
 
     def _on_preset_selected(self):
+        """Populate edit fields when a preset is selected in the list."""
         selected_items = self.presets_list.selectedItems()
         if not selected_items:
             self.preset_name_edit.clear()
@@ -168,6 +192,7 @@ class SessionScalesSettingsDialog(QDialog):
         self.scales_edit.setText(", ".join([f"{n}:{mn}-{mx}" for n, mn, mx in scales]))
 
     def _parse_scales(self, text: str) -> List[Tuple[str, str, str]]:
+        """Parse user-entered text into a list of (name, min, max) tuples."""
         text = (text or "").strip()
         if not text:
             return []
@@ -201,6 +226,7 @@ class SessionScalesSettingsDialog(QDialog):
         return scales
 
     def _add_update_preset(self):
+        """Add a new preset or update an existing one from the edit fields."""
         name = self.preset_name_edit.text().strip()
         scales_text = self.scales_edit.text().strip()
 
@@ -224,6 +250,7 @@ class SessionScalesSettingsDialog(QDialog):
                 break
 
     def _delete_preset(self):
+        """Delete the currently selected preset after user confirmation."""
         selected_items = self.presets_list.selectedItems()
         if not selected_items:
             return
@@ -250,12 +277,14 @@ class SessionScalesSettingsDialog(QDialog):
             self.scales_edit.clear()
 
     def _save_presets_to_file(self):
+        """Persist all presets to the JSON configuration file."""
         os.makedirs(os.path.dirname(self.presets_file), exist_ok=True)
         serializable = {k: [list(x) for x in v] for k, v in self.current_presets.items()}
         with open(self.presets_file, "w", encoding="utf-8") as f:
             json.dump(serializable, f, indent=2, ensure_ascii=False)
 
     def _save_and_close(self):
+        """Save presets, emit signal, and close the dialog."""
         try:
             self._save_presets_to_file()
             self.presets_changed.emit(self.current_presets)
@@ -263,7 +292,8 @@ class SessionScalesSettingsDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error saving presets: {e}")
 
-    def closeEvent(self, event: QCloseEvent):
+    def closeEvent(self, event: QCloseEvent):  # noqa: N802
+        """Auto-save presets when the dialog is closed."""
         try:
             self._save_presets_to_file()
             self.presets_changed.emit(self.current_presets)

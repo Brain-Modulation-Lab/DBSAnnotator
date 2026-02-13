@@ -23,6 +23,13 @@ class ClinicalScalesSettingsDialog(QDialog):
     presets_changed = pyqtSignal(dict)
     
     def __init__(self, current_presets: Dict[str, List[str]], parent=None, original_presets=None):
+        """Initialize with existing presets.
+
+        Args:
+            current_presets: Dict mapping preset name to list of scale names.
+            parent: Optional parent widget.
+            original_presets: Optional fallback presets list.
+        """
         super().__init__(parent)
         self.current_presets = current_presets.copy()
         self.original_presets = original_presets or []
@@ -112,6 +119,7 @@ class ClinicalScalesSettingsDialog(QDialog):
         return super().eventFilter(obj, event)
 
     def mousePressEvent(self, event):
+        """Deselect preset when clicking outside the list widget."""
         # If user clicks outside the list, clear selection
         if event.button() == Qt.LeftButton:
             list_rect = self.presets_list.geometry()
@@ -120,6 +128,7 @@ class ClinicalScalesSettingsDialog(QDialog):
         super().mousePressEvent(event)
 
     def _clear_selection(self):
+        """Clear list selection and reset edit fields."""
         self.presets_list.blockSignals(True)
         self.presets_list.clearSelection()
         self.presets_list.blockSignals(False)

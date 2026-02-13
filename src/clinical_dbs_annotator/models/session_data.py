@@ -168,7 +168,7 @@ class SessionData:
         tz = pytz.timezone(TIMEZONE)
         now_et = datetime.now(tz)
         time_str = now_et.strftime("%H:%M:%S")
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().astimezone().strftime("%Y-%m-%d")
         stim_dict = stimulation.to_dict()
 
         # If no scales have values, write a single row with null scale data
@@ -232,7 +232,7 @@ class SessionData:
         tz = pytz.timezone(TIMEZONE)
         now_et = datetime.now(tz)
         time_str = now_et.strftime("%H:%M:%S")
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().astimezone().strftime("%Y-%m-%d")
         stim_dict = stimulation.to_dict()
 
         # If no scales have values, write a single row with null scale data
@@ -264,6 +264,7 @@ class SessionData:
                     "is_initial": 0,  # Session scales are from view3, so is_initial = 0
                     "scale_name": scale.name,
                     "scale_value": scale.current_value,
+                    "electrode_model": electrode_model,
                     "notes": notes,
                     **stim_dict,
                 }
@@ -306,19 +307,57 @@ class SessionData:
         if self.is_file_open():
             raise ValueError("A file is already open. Close it before initializing a new one.")
 
+        self.file_path = filepath
+
         # Create the file with headers
         self.tsv_file = open(filepath, "w", newline="", encoding="utf-8")
 
-        # Simple header: only time and annotation
-        fieldnames = ["time", "annotation"]
+        # Simple header: date, time, and annotation
+        fieldnames = ["date", "time", "annotation"]
 
         self.tsv_writer = csv.DictWriter(
             self.tsv_file,
             fieldnames=fieldnames,
-            delimiter="\t"
+            delimiter="\t",
+            extrasaction="ignore",
         )
         self.tsv_writer.writeheader()
         self.tsv_file.flush()
+
+    def open_simple_file_append(self, filepath: str) -> None:
+        """Open an existing annotations-only TSV file in append mode (or create if missing)."""
+        if self.is_file_open():
+            raise ValueError("A file is already open. Close it before opening another file.")
+
+        self.file_path = filepath
+
+        file_exists = Path(filepath).exists()
+        self.tsv_file = open(filepath, "a", newline="", encoding="utf-8")
+
+        fieldnames: Optional[List[str]] = None
+        if file_exists:
+            try:
+                with open(filepath, "r", newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f, delimiter="\t")
+                    fieldnames = reader.fieldnames
+            except Exception:
+                fieldnames = None
+
+        fieldnames = fieldnames or ["date", "time", "annotation"]
+
+        self.tsv_writer = csv.DictWriter(
+            self.tsv_file,
+            fieldnames=fieldnames,
+            delimiter="\t",
+            extrasaction="ignore",
+        )
+
+        try:
+            if (not file_exists) or Path(filepath).stat().st_size == 0:
+                self.tsv_writer.writeheader()
+                self.tsv_file.flush()
+        except Exception:
+            pass
 
     def write_simple_annotation(self, annotation: str) -> None:
         """
@@ -337,14 +376,13 @@ class SessionData:
         from datetime import datetime
         import pytz
 
-        time_str = datetime.now(pytz.timezone("Europe/Rome")).strftime("%H:%M:%S")
+        time_str = datetime.now().astimezone().strftime("%H:%M:%S")
+        date_str = datetime.now().astimezone().strftime("%Y-%m-%d")
 
         # Write row
         row = {
+            "date": date_str,
             "time": time_str,
-            "group_ID": "",  # Empty for simple annotations
-            "session_ID": self.session_id,
-            "is_initial": 0,  # Simple annotations are like session entries, so is_initial = 0
             "annotation": annotation,
         }
         self.tsv_writer.writerow(row)

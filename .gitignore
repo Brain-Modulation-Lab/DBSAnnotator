@@ -2,7 +2,7 @@
 __pycache__/
 *.py[oc]
 build/
-dist/
+#dist/
 wheels/
 *.egg-info
 *.docx
@@ -14,7 +14,7 @@ venv/
 env/
 
 # Testing
-tests/
+# tests/  # Uncommented to allow tests in version control
 
 .pytest_cache/
 .coverage
@@ -25,6 +25,7 @@ htmlcov/
 # IDEs
 .vscode/
 .idea/
+settings.json
 *.swp
 *.swo
 *~
@@ -38,6 +39,6 @@ docs/
 archive/
 prove/
 
-# Data files (optional - uncomment if you don't want to commit patient data)
+# Data files 
 # *.tsv
 # *.csv

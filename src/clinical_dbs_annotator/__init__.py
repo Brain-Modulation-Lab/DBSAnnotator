@@ -5,7 +5,8 @@ This package provides a PyQt5-based GUI application for recording and managing
 clinical data during Deep Brain Stimulation programming sessions.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3_testing"
+__app_name__ = "Clinical DBS Annotator"
 __author__ = "BML"
 
 from .models import ClinicalScale, SessionData, SessionScale, StimulationParameters

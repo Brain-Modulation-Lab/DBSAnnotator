@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple
 
 # Application metadata
 APP_NAME = "BML Annotator for DBS clinical programming sessions"
-APP_VERSION = "v0.2"
+APP_VERSION = "v0.3_testing"
 ORGANIZATION_NAME = "BML"
 
 # File paths (relative to executable)
@@ -82,9 +82,9 @@ TIMEZONE = "US/Eastern"
 
 # Validation limits
 STIMULATION_LIMITS = {
-    "frequency": {"min": 10, "max": 200, "step": 10},
+    "frequency": {"min": 10, "max": 200, "step1": 5, "step2": 10},
     "amplitude": {"min": 0.0, "max": 15.0, "decimals": 2, "step1": 1.0, "step2": 0.5},
-    "pulse_width": {"min": 10, "max": 200, "step": 10},
+    "pulse_width": {"min": 10, "max": 200, "step1": 5, "step2": 10},
 }
 
 SESSION_SCALE_LIMITS = {

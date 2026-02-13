@@ -29,7 +29,7 @@ class ThemeManager:
     """
 
     _instance: Optional["ThemeManager"] = None
-    _current_theme: Theme = Theme.DARK
+    _current_theme: Theme = Theme.LIGHT
 
     def __new__(cls):
         """Ensure singleton instance."""
@@ -47,8 +47,8 @@ class ThemeManager:
     def _load_saved_theme(self) -> None:
         """Load saved theme preference from settings."""
         # TODO: Load from QSettings or config file
-        # For now, default to dark theme
-        self._current_theme = Theme.DARK
+        # For now, default to light theme
+        self._current_theme = Theme.LIGHT
 
     def _save_theme(self) -> None:
         """Save current theme preference to settings."""
@@ -151,6 +151,30 @@ class ThemeManager:
             bool: True if dark mode, False if light mode
         """
         return self._current_theme == Theme.DARK
+
+    def get_theme_color(self, color_name: str) -> str:
+        """
+        Get a named color from the current theme's QSS file comments.
+
+        Parses the 'Base Colors' comment block for lines like:
+            Icon: #64748b (Slate 500 - for settings icon)
+
+        Args:
+            color_name: Name of the color (e.g. 'Icon', 'Primary', 'Text')
+
+        Returns:
+            str: Hex color string, or '#888888' as fallback
+        """
+        import re
+        try:
+            qss_content = self.load_stylesheet(self._current_theme)
+            pattern = rf'{color_name}\s*:\s*(#[0-9a-fA-F]{{6}})'
+            match = re.search(pattern, qss_content)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+        return '#888888'
 
     def get_theme_icon(self, theme: Theme) -> str:
         """

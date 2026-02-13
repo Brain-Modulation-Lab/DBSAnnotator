@@ -10,8 +10,9 @@ import os
 from typing import Callable, Dict, List, Tuple
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont, QPixmap, QIcon, QIntValidator, QDoubleValidator
 from PyQt5.QtWidgets import (
+    QButtonGroup,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -50,13 +51,40 @@ class Step2View(BaseStepView):
         self.parent_style = parent_style
         self.session_presets: Dict[str, List[Tuple[str, str, str]]] = self._load_session_presets()
         self.preset_buttons: List[QPushButton] = []
+        # Each row: (name_edit, min_edit, max_edit, row_layout, best_if_group, custom_edit)
         self.session_scales_rows: List[
-            Tuple[QLineEdit, QLineEdit, QLineEdit, QHBoxLayout]
+            Tuple[QLineEdit, QLineEdit, QLineEdit, QHBoxLayout, QButtonGroup, QLineEdit]
         ] = []
         self._setup_ui()
 
     def get_header_title(self) -> str:
+        """Return the wizard header title for Step 2."""
         return "Session Scale Configuration"
+
+    def _create_settings_icon(self) -> QIcon:
+        """Create an SVG gear icon coloured to match the current theme."""
+        # Get theme-appropriate icon color from theme definitions
+        fill_color = self._get_theme_icon_color()
+        
+        svg = f"""
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
+        </svg>
+        """
+        pixmap = QPixmap()
+        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
+        return QIcon(pixmap)
+    
+    def _get_theme_icon_color(self) -> str:
+        """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
+        from ..utils.theme_manager import get_theme_manager
+        return get_theme_manager().get_theme_color('Icon')
+
+    def refresh_theme_icons(self) -> None:
+        """Refresh icons that depend on the current theme (call after theme toggle)."""
+        btn = self.findChild(QPushButton, "settings_session_scales")
+        if btn:
+            btn.setIcon(self._create_settings_icon())
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
@@ -85,7 +113,8 @@ class Step2View(BaseStepView):
         preset_row = QHBoxLayout()
         preset_row.addStretch(1)
 
-        settings_btn = QPushButton("⚙️")
+        settings_btn = QPushButton()
+        settings_btn.setIcon(self._create_settings_icon())
         settings_btn.setObjectName("settings_session_scales")
         settings_btn.setToolTip("Settings session scales")
         settings_btn.clicked.connect(self._open_session_scales_settings)
@@ -104,6 +133,15 @@ class Step2View(BaseStepView):
 
         # Scrollable area - will only scroll when user resizes window smaller
         scroll_area = QScrollArea()
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QScrollArea.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -146,11 +184,13 @@ class Step2View(BaseStepView):
             return {k: list(v) for k, v in SESSION_SCALES_PRESETS.items()}
 
     def _open_session_scales_settings(self):
+        """Open the session scales settings dialog."""
         dialog = SessionScalesSettingsDialog(self.session_presets, self, PRESET_BUTTONS)
         dialog.presets_changed.connect(self._on_presets_changed)
         dialog.exec_()
 
     def _on_presets_changed(self, new_presets: Dict[str, List[Tuple[str, str, str]]]):
+        """Handle presets change from settings dialog and persist to JSON."""
         self.session_presets = new_presets
 
         try:
@@ -168,6 +208,7 @@ class Step2View(BaseStepView):
             self._connect_preset_buttons()
 
     def _refresh_preset_buttons(self):
+        """Rebuild the preset button row from the current presets dictionary."""
         for btn in self.preset_buttons:
             btn.setParent(None)
             btn.deleteLater()
@@ -235,6 +276,7 @@ class Step2View(BaseStepView):
             self._connect_preset_buttons()
 
     def _connect_preset_buttons(self):
+        """Wire each preset button to apply its scales on click."""
         for btn in self.preset_buttons:
             try:
                 btn.clicked.disconnect()
@@ -250,11 +292,13 @@ class Step2View(BaseStepView):
             btn.clicked.connect(create_handler(preset_scales))
 
     def _apply_preset_scales(self, scales: List[Tuple[str, str, str]]):
+        """Replace the current session scale rows with the given preset scales."""
         if not isinstance(scales, list):
             return
 
         if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
-            for _, _, _, row_layout in self.session_scales_rows:
+            for row_data in self.session_scales_rows:
+                row_layout = row_data[3]
                 while row_layout.count():
                     item = row_layout.takeAt(0)
                     widget = item.widget()
@@ -299,7 +343,8 @@ class Step2View(BaseStepView):
             on_remove_callback: Callback for remove button
         """
         # Clear existing rows
-        for _, _, _, row_layout in self.session_scales_rows:
+        for row_data in self.session_scales_rows:
+            row_layout = row_data[3]
             while row_layout.count():
                 item = row_layout.takeAt(0)
                 widget = item.widget()
@@ -324,6 +369,50 @@ class Step2View(BaseStepView):
         self.on_remove_callback = on_remove_callback
         self._connect_preset_buttons()
 
+    def get_scale_optimization_prefs(self) -> List[Tuple[str, str, str, str, str]]:
+        """
+        Get scale optimization preferences for each scale.
+
+        Returns:
+            List of (name, min, max, best_if_mode, custom_value) tuples
+            best_if_mode: "low", "high", "custom", or "ignore"
+        """
+        prefs = []
+        for row_data in self.session_scales_rows:
+            name_edit, min_edit, max_edit, _, best_if_group, custom_edit = row_data
+            name = name_edit.text().strip()
+            min_val = min_edit.text().strip()
+            max_val = max_edit.text().strip()
+
+            if not name or not min_val or not max_val:
+                continue
+
+            # Determine best_if mode
+            mode = "low"  # default
+            custom_value = ""
+            if best_if_group is not None:
+                checked_id = best_if_group.checkedId()
+                if checked_id == 0:
+                    mode = "low"
+                elif checked_id == 1:
+                    mode = "high"
+                elif checked_id == 2:
+                    mode = "custom"
+                    if custom_edit is not None:
+                        custom_value = custom_edit.text().strip()
+                        try:
+                            min_f = float(min_val)
+                            max_f = float(max_val)
+                            custom_edit.setValidator(QDoubleValidator(min_f, max_f, int(2)))
+                        except ValueError:
+                            pass
+                elif checked_id == 3:
+                    mode = "ignore"
+
+            prefs.append((name, min_val, max_val, mode, custom_value))
+
+        return prefs
+
     def _add_session_scale_row(
         self,
         name: str = "",
@@ -334,7 +423,7 @@ class Step2View(BaseStepView):
         on_add: Callable = None,
         on_remove: Callable = None,
     ) -> None:
-        """Add a single session scale row."""
+        """Add a single session scale row with 'Best if' options."""
         row = QHBoxLayout()
 
         name_edit = QLineEdit()
@@ -375,7 +464,65 @@ class Step2View(BaseStepView):
         row.addWidget(QLabel("Max:"))
         row.addWidget(scale2_edit)
         row.addWidget(btn)
+
+        # "Best if" options - only for actual scale rows (not the empty add row)
+        best_if_group = None
+        custom_edit = None
+        if with_minus and name:
+            row.addSpacing(15)
+            row.addWidget(QLabel("Best if:"))
+
+            best_if_group = QButtonGroup(self)
+            best_if_group.setExclusive(True)
+
+            btn_low = QPushButton("Low")
+            btn_low.setCheckable(True)
+            btn_low.setChecked(True)  # Default to "low"
+            btn_low.setMinimumWidth(55)
+            btn_low.setProperty("class", "best-if-btn")
+            btn_low.setToolTip("Lower values are better")
+            best_if_group.addButton(btn_low, 0)  # ID 0 = low
+
+            btn_high = QPushButton("High")
+            btn_high.setCheckable(True)
+            btn_high.setMinimumWidth(55)
+            btn_high.setProperty("class", "best-if-btn")
+            btn_high.setToolTip("Higher values are better")
+            best_if_group.addButton(btn_high, 1)  # ID 1 = high
+
+            btn_custom = QPushButton("Custom")
+            btn_custom.setCheckable(True)
+            btn_custom.setMinimumWidth(65)
+            btn_custom.setProperty("class", "best-if-btn")
+            btn_custom.setToolTip("Specify target value")
+            best_if_group.addButton(btn_custom, 2)  # ID 2 = custom
+
+            btn_ignore = QPushButton("Ignore")
+            btn_ignore.setCheckable(True)
+            btn_ignore.setMinimumWidth(60)
+            btn_ignore.setProperty("class", "best-if-btn")
+            btn_ignore.setToolTip("Do not consider this scale")
+            best_if_group.addButton(btn_ignore, 3)  # ID 3 = ignore
+
+            custom_edit = QLineEdit()
+            custom_edit.setPlaceholderText("target")
+            custom_edit.setMinimumWidth(55)
+            custom_edit.setMaximumWidth(60)
+            custom_edit.setVisible(False)
+            custom_edit.setValidator(QDoubleValidator())
+
+            def on_best_if_changed(button_id, ce=custom_edit):
+                ce.setVisible(button_id == 2)
+
+            best_if_group.idClicked.connect(on_best_if_changed)
+
+            row.addWidget(btn_low)
+            row.addWidget(btn_high)
+            row.addWidget(btn_custom)
+            row.addWidget(custom_edit)
+            row.addWidget(btn_ignore)
+
         row.addStretch(1)
 
         self.session_scales_container.addLayout(row)
-        self.session_scales_rows.append((name_edit, scale1_edit, scale2_edit, row))
+        self.session_scales_rows.append((name_edit, scale1_edit, scale2_edit, row, best_if_group, custom_edit))

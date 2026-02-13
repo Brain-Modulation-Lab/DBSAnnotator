@@ -27,4 +27,5 @@ class BaseStepView(QWidget):
         self.main_layout = QVBoxLayout(self)
 
     def get_header_title(self) -> str:
+        """Return the title displayed in the wizard header for this step."""
         return ""

@@ -9,6 +9,10 @@ import os
 import sys
 
 
+# Cache the package directory for faster lookups
+_PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def resource_path(relative_path: str) -> str:
     """
     Get the absolute path to a resource file.
@@ -26,5 +30,11 @@ def resource_path(relative_path: str) -> str:
     if hasattr(sys, "_MEIPASS"):
         # Running as PyInstaller bundle
         return os.path.join(sys._MEIPASS, relative_path)
-    # Running from source
+    
+    # First try package-relative path (for config inside src/clinical_dbs_annotator/)
+    pkg_path = os.path.join(_PACKAGE_DIR, relative_path)
+    if os.path.exists(pkg_path):
+        return pkg_path
+    
+    # Fallback to cwd-relative path (legacy)
     return os.path.join(os.path.abspath("."), relative_path)

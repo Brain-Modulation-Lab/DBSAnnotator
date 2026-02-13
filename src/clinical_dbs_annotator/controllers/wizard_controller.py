@@ -5,7 +5,7 @@ This module contains the main controller that coordinates between the
 views and models, handling user interactions and data flow.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from PyQt5.QtWidgets import QMessageBox
 
@@ -38,6 +38,9 @@ class WizardController:
         self.current_electrode_model_name: str = ""
         self.session_scales_names: List[str] = []
         self.session_scales_data: List[Tuple[str, str, str]] = []
+        # Scale optimization preferences: (name, min, max, mode, custom_value)
+        # mode: "low", "high", "custom", "ignore"
+        self.scale_optimization_prefs: List[Tuple[str, str, str, str, str]] = []
         self.workflow_mode: Optional[str] = None  # "full" or "annotations_only"
         self._session_exporter = None  # Lazy-loaded SessionExporter
 
@@ -278,7 +281,8 @@ class WizardController:
         # Collect session scale names and data
         self.session_scales_names = []
         self.session_scales_data = []
-        for name_edit, min_edit, max_edit, _ in view.session_scales_rows:
+        for row_data in view.session_scales_rows:
+            name_edit, min_edit, max_edit = row_data[0], row_data[1], row_data[2]
             name = name_edit.text().strip()
             min_val = min_edit.text().strip()
             max_val = max_edit.text().strip()
@@ -286,11 +290,17 @@ class WizardController:
                 self.session_scales_names.append(name)
                 self.session_scales_data.append((name, min_val, max_val))
 
+        # Collect optimization preferences
+        if hasattr(view, "get_scale_optimization_prefs"):
+            self.scale_optimization_prefs = view.get_scale_optimization_prefs()
+        else:
+            self.scale_optimization_prefs = []
+
         return True
 
     def prepare_step3(self, view) -> None:
         """
-        Prepare Step 3 view with initial data.
+        Prepare Step 3 view with initial data (first-time setup).
 
         Args:
             view: The Step3View instance
@@ -317,6 +327,19 @@ class WizardController:
         # Update session scales
         view.update_session_scales(self.session_scales_data)
 
+    def refresh_step3_scales(self, view) -> None:
+        """
+        Refresh only session scales in Step 3 if definitions changed.
+        Called when returning to step3 (not first time).
+
+        Args:
+            view: The Step3View instance
+        """
+        current_names = [name for name, _ in view.session_scale_value_edits] if hasattr(view, "session_scale_value_edits") else []
+        new_names = [n for n, _, _ in self.session_scales_data]
+        if current_names != new_names:
+            view.update_session_scales(self.session_scales_data)
+
     def insert_session_row(self, view) -> None:
         """
         Insert a session data row into the TSV file.
@@ -326,10 +349,17 @@ class WizardController:
         """
         # Collect session scales
         session_scales = []
-        for name, value_edit in view.session_scale_value_edits:
-            scale_value = value_edit.text().strip()
-            if name and scale_value:
-                scale = SessionScale(name=name, current_value=scale_value)
+        for name, value_widget in view.session_scale_value_edits:
+            scale_value = ""
+
+            if hasattr(value_widget, "value") and callable(getattr(value_widget, "value")):
+                try:
+                    scale_value = f"{float(value_widget.value()) / 4.0:.2f}"
+                except Exception:
+                    scale_value = ""
+
+            if name and scale_value != "":
+                scale = SessionScale(name=name, current_value=str(scale_value))
                 session_scales.append(scale)
 
         # Collect current stimulation parameters
@@ -381,6 +411,8 @@ class WizardController:
         Args:
             parent: The parent widget for dialogs
         """
+        # Pass scale optimization preferences to exporter
+        self.session_exporter.set_scale_optimization_prefs(self.scale_optimization_prefs)
         self.session_exporter.export_to_word(parent)
 
     def export_session_pdf(self, parent) -> None:
@@ -390,6 +422,8 @@ class WizardController:
         Args:
             parent: The parent widget for dialogs
         """
+        # Pass scale optimization preferences to exporter
+        self.session_exporter.set_scale_optimization_prefs(self.scale_optimization_prefs)
         self.session_exporter.export_to_pdf(parent)
 
     # ============================================
@@ -448,13 +482,27 @@ class WizardController:
             )
             return False
 
+        import os
+
+        mode = getattr(view, "current_file_mode", None)
+        file_exists = os.path.exists(file_path)
+
         # Initialize simple session file
         try:
-            self.session_data.initialize_simple_file(file_path)
+            if mode == "new":
+                self.session_data.initialize_simple_file(file_path)
+            elif mode == "existing":
+                self.session_data.open_simple_file_append(file_path)
+            else:
+                # Fallback: if the file already exists, append; otherwise create.
+                if file_exists:
+                    self.session_data.open_simple_file_append(file_path)
+                else:
+                    self.session_data.initialize_simple_file(file_path)
             return True
         except Exception as e:
             QMessageBox.critical(
-                parent, "Error", f"Failed to create file:\n{str(e)}"
+                parent, "Error", f"Failed to initialize file:\n{str(e)}"
             )
             return False
 
@@ -476,3 +524,11 @@ class WizardController:
         # Animate button and clear text
         animate_button(view.insert_button)
         view.clear_annotation()
+
+    def export_annotations_word(self, parent) -> None:
+        """Export annotations-only TSV to a simple Word report."""
+        self.session_exporter.export_annotations_to_word(parent)
+
+    def export_annotations_pdf(self, parent) -> None:
+        """Export annotations-only TSV to a simple PDF report (if available)."""
+        self.session_exporter.export_annotations_to_pdf(parent)

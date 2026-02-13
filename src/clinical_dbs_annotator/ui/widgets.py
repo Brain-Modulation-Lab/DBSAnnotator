@@ -224,6 +224,7 @@ class ScaleProgressWidget(QWidget):
     valueChanged = pyqtSignal(int)
 
     def __init__(self, parent=None):
+        """Initialize the scale progress widget with default range 0-10."""
         super().__init__(parent)
         self._is_dragging = False
         self._minimum = 0
@@ -232,6 +233,7 @@ class ScaleProgressWidget(QWidget):
         self._setup_ui()
 
     def _setup_ui(self) -> None:
+        """Build layout: left arrows, progress bar, right arrows, reset button."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
@@ -289,6 +291,7 @@ class ScaleProgressWidget(QWidget):
         self.progress_bar.installEventFilter(self)
 
     def _create_icon_button(self, icon: QIcon, w: int, h: int) -> QPushButton:
+        """Create a small transparent icon button."""
         btn = QPushButton()
         btn.setFixedSize(w, h)
         btn.setIcon(icon)
@@ -309,6 +312,7 @@ class ScaleProgressWidget(QWidget):
         return btn
 
     def _create_lr_arrow_icon(self, direction: str, double: bool) -> QIcon:
+        """Generate an SVG left/right arrow icon (single or double chevron)."""
         arrow_color = "#cccccc"
         if double:
             if direction == "left":
@@ -344,6 +348,7 @@ class ScaleProgressWidget(QWidget):
         return QIcon(pixmap)
 
     def _create_x_icon(self) -> QIcon:
+        """Generate an SVG 'x' (reset) icon."""
         color = "#cccccc"
         svg = f"""
         <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -356,6 +361,7 @@ class ScaleProgressWidget(QWidget):
         return QIcon(pixmap)
 
     def eventFilter(self, obj, event):
+        """Handle mouse press/move/release on the progress bar for drag interaction."""
         if obj == self.progress_bar:
             if event.type() == QEvent.MouseButtonPress:
                 self._is_dragging = True
@@ -370,10 +376,12 @@ class ScaleProgressWidget(QWidget):
         return super().eventFilter(obj, event)
 
     def _adjust_value(self, delta: int) -> None:
+        """Increment or decrement the current value by *delta* steps."""
         new_value = max(self._minimum, min(self._maximum, self._value + delta))
         self.setValue(new_value)
 
     def _update_value_from_position(self, x_position: int) -> None:
+        """Map a pixel x-position on the bar to the corresponding value."""
         rect = self.progress_bar.rect()
         if rect.width() > 0:
             relative_x = max(0, min(x_position, rect.width()))
@@ -381,6 +389,7 @@ class ScaleProgressWidget(QWidget):
             self.setValue(value)
 
     def _on_bar_value_changed(self, value: int) -> None:
+        """Sync internal state and update the display label."""
         self._value = value
         self.valueChanged.emit(value)
         actual_value = value / 4.0
@@ -388,28 +397,35 @@ class ScaleProgressWidget(QWidget):
 
     # Public API (mirrors old InteractiveProgressBar)
     def setMinimum(self, value: int) -> None:
+        """Set the minimum internal value."""
         self._minimum = int(value)
         self.progress_bar.setMinimum(int(value))
 
     def setMaximum(self, value: int) -> None:
+        """Set the maximum internal value."""
         self._maximum = int(value)
         self.progress_bar.setMaximum(int(value))
 
     def setValue(self, value: int) -> None:
+        """Set the current value and update the progress bar."""
         self._value = int(value)
         self.progress_bar.setValue(int(value))
 
     def setFormat(self, format_str: str) -> None:
+        """Set the text format displayed on the progress bar."""
         self.progress_bar.setFormat(format_str)
 
     def setFixedWidth(self, width: int) -> None:
+        """Override to allocate space for arrow buttons alongside the bar."""
         # Same reserve logic as previous implementation
         bar_width = width - 120
         self.progress_bar.setFixedWidth(bar_width)
         super().setFixedWidth(width)
 
     def setToolTip(self, tooltip: str) -> None:
+        """Forward the tooltip to the inner progress bar."""
         self.progress_bar.setToolTip(tooltip)
 
     def value(self) -> int:
+        """Return the current internal value."""
         return self._value

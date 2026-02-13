@@ -43,31 +43,7 @@ from .base_view import BaseStepView
 from ..models import ElectrodeCanvas
 # Import configuration
 from ..config_electrode_models import ContactState, ElectrodeModel, ELECTRODE_MODELS, MANUFACTURERS, get_all_manufacturers
-
-
-class FileDropLineEdit(QLineEdit):
-    def __init__(self, on_file_dropped: Callable[[str], None], parent=None):
-        super().__init__(parent)
-        self._on_file_dropped = on_file_dropped
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-            return
-        super().dragEnterEvent(event)
-
-    def dropEvent(self, event):
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            if urls:
-                local_path = urls[0].toLocalFile()
-                if local_path:
-                    self._on_file_dropped(local_path)
-            event.acceptProposedAction()
-            return
-        super().dropEvent(event)
-
+from ..ui import FileDropLineEdit
 
 
 class Step1View(BaseStepView):
@@ -107,23 +83,41 @@ class Step1View(BaseStepView):
         self._setup_ui()
 
     def get_header_title(self) -> str:
+        """Return the wizard header title for Step 1."""
         return "Clinical Programming Session Setup"
 
     def _create_settings_icon(self) -> QIcon:
-        svg = """
+        """Create an SVG gear icon coloured to match the current theme."""
+        # Get theme-appropriate icon color from theme definitions
+        fill_color = self._get_theme_icon_color()
+        
+        svg = f"""
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="#cccccc"/>
+            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
         </svg>
         """
         pixmap = QPixmap()
         pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
         return QIcon(pixmap)
+    
+    def _get_theme_icon_color(self) -> str:
+        """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
+        from ..utils.theme_manager import get_theme_manager
+        return get_theme_manager().get_theme_color('Icon')
+
+    def refresh_theme_icons(self) -> None:
+        """Refresh icons that depend on the current theme (call after theme toggle)."""
+        btn = self.findChild(QPushButton, "settings_clincal_scales")
+        if btn:
+            btn.setIcon(self._create_settings_icon())
 
     def _on_left_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
+        """Callback when left electrode canvas validation state changes."""
         self._left_selection_valid = is_valid
         self.update_configuration_display()
 
     def _on_right_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
+        """Callback when right electrode canvas validation state changes."""
         self._right_selection_valid = is_valid
         self.update_configuration_display()
 
@@ -178,6 +172,10 @@ class Step1View(BaseStepView):
         model_label = QLabel("Model:")
         self.model_combo = QComboBox()
         self.populate_models("All Manufacturers")
+        # Default to Medtronic SenSight B33005
+        idx = self.model_combo.findText("Medtronic SenSight B33005")
+        if idx >= 0:
+            self.model_combo.setCurrentIndex(idx)
         self.model_combo.currentTextChanged.connect(self.on_model_changed)
 
         model_layout.addWidget(manufacturer_label)
@@ -335,6 +333,7 @@ class Step1View(BaseStepView):
         return gb_init
 
     def _create_electrode_legend_layout(self) -> QHBoxLayout:
+        """Create the colour legend row for electrode contact states."""
         layout = QHBoxLayout()
         layout.addStretch(1)
 
@@ -376,8 +375,7 @@ class Step1View(BaseStepView):
             self.model_combo.addItems(models)
         
         self.model_combo.blockSignals(False)
-        
-    
+            
     def on_manufacturer_changed(self, manufacturer):
         """Handle manufacturer selection change"""
         self.populate_models(manufacturer)
@@ -409,6 +407,7 @@ class Step1View(BaseStepView):
         self._apply_config_validation_styles()
 
     def _apply_config_validation_styles(self) -> None:
+        """Apply red/green styling to config labels based on validation state."""
         if hasattr(self, "left_config_box") and hasattr(self, "left_config_label"):
             if not self._left_selection_valid:
                 self.left_config_box.setStyleSheet("border: 2px solid #cc0000;")
@@ -444,6 +443,7 @@ class Step1View(BaseStepView):
                 self.right_config_label.repaint()
 
     def _format_configuration_html(self, canvas: ElectrodeCanvas) -> str:
+        """Return an HTML summary of the electrode contact configuration."""
         model = canvas.model
         if not model:
             return ""
@@ -478,18 +478,23 @@ class Step1View(BaseStepView):
         return "<br>".join(lines)
 
     def get_left_anode_text(self) -> str:
+        """Return underscore-separated anode token string for the left electrode."""
         return self._get_anode_cathode_texts(self.left_canvas)[0]
 
     def get_left_cathode_text(self) -> str:
+        """Return underscore-separated cathode token string for the left electrode."""
         return self._get_anode_cathode_texts(self.left_canvas)[1]
 
     def get_right_anode_text(self) -> str:
+        """Return underscore-separated anode token string for the right electrode."""
         return self._get_anode_cathode_texts(self.right_canvas)[0]
 
     def get_right_cathode_text(self) -> str:
+        """Return underscore-separated cathode token string for the right electrode."""
         return self._get_anode_cathode_texts(self.right_canvas)[1]
 
     def _get_anode_cathode_texts(self, canvas: ElectrodeCanvas) -> Tuple[str, str]:
+        """Build anode and cathode token strings from the canvas contact states."""
         model = canvas.model
         if not model:
             return "", ""
@@ -529,6 +534,7 @@ class Step1View(BaseStepView):
         return "_".join(anode_items), "_".join(cathode_items)
 
     def _apply_contact_text_to_canvas(self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str) -> None:
+        """Parse anode/cathode token strings and set the corresponding canvas states."""
         model = canvas.model
         if not model:
             return
@@ -621,7 +627,7 @@ class Step1View(BaseStepView):
         print("DBS STIMULATION CONFIGURATION")
         print("=" * 60)
         print(f"Model: {left_model.name}")
-        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Timestamp: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}")
         print()
 
         print(f"LEFT  Anode: {self.get_left_anode_text()} | Cathode: {self.get_left_cathode_text()}")
@@ -629,6 +635,7 @@ class Step1View(BaseStepView):
         print("=" * 60 + "\n")
 
     def _create_upload_tsv_group(self) -> QGroupBox:
+        """Create the file upload group with drop zone, Open, and New buttons."""
         gb_upload = QGroupBox("Upload TSV file")
         gb_upload.setFixedHeight(100)          
         gb_upload.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -726,24 +733,39 @@ class Step1View(BaseStepView):
         gb_notes = QGroupBox("Initial notes")
         gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
 
-        layout = QHBoxLayout(gb_notes)
+        layout = QVBoxLayout(gb_notes)
+        layout.setSpacing(10)
+
+        # Instructions
+        instructions = QLabel(
+            "Enter your observations and notes below. "
+            "Each annotation + programming settings will be saved with the current timestamp."
+        )
+        instructions.setWordWrap(True)
+        instructions.setStyleSheet("color: #64748b; padding: 5px;")
+        layout.addWidget(instructions)
+
         self.notes_edit = QTextEdit()
+        self.notes_edit.setPlaceholderText("Type your notes here...")
         self.notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
         self.notes_edit.setMinimumHeight(100)  
         layout.addWidget(self.notes_edit)
 
         return gb_notes
 
+    def _on_file_dropped(self, file_path: str) -> None:
+        """Handle a file dropped onto the line-edit widget."""
+        if file_path:
+            self._load_existing_file(file_path)
+
     def _on_file_path_changed(self, text: str) -> None:
+        """Reset file mode when the path field is cleared."""
         if not text.strip():
             self.current_file_mode = None
             self.next_block_id = None
 
-    def _on_file_dropped(self, file_path: str) -> None:
-        if file_path:
-            self._load_existing_file(file_path)
-
     def open_existing_file(self) -> None:
+        """Open a file dialog to select an existing TSV file."""
         current_path = self.file_path_edit.text().strip()
         start_dir = os.path.dirname(current_path) if current_path else ""
 
@@ -757,6 +779,7 @@ class Step1View(BaseStepView):
             self._load_existing_file(file_path)
 
     def _load_existing_file(self, file_path: str) -> None:
+        """Load an existing TSV file and restore the latest session's settings."""
         import csv
 
         initial_rows = {}  # session_id -> row data
@@ -900,16 +923,49 @@ class Step1View(BaseStepView):
     def create_new_file(self) -> None:
         """Create new file with BIDS-style naming."""
         from datetime import datetime
+        from PyQt5.QtWidgets import QDialog, QFormLayout, QDialogButtonBox
+
+        # First, ask for patient ID and session number
+        dialog = QDialog(self)
+        dialog.setWindowTitle("New Session Information")
+        dialog.setMinimumWidth(300)
+        
+        layout = QFormLayout(dialog)
+        
+        patient_edit = QLineEdit()
+        patient_edit.setText("01")
+        
+        run_edit = QLineEdit()
+        run_edit.setText("01")
+        
+        layout.addRow("Patient ID:", patient_edit)
+        layout.addRow("Run:", run_edit)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+        
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        
+        patient_id = patient_edit.text().strip() or "01"
+        session_num = str(datetime.now().astimezone().strftime("%Y%m%d"))
+        run_num = run_edit.text().strip() or "01"
+        
+        # Store for later use in report
+        self.bids_patient_id = patient_id
+        self.bids_session_num = session_num
+        self.bids_run_num = run_num
 
         current_path = self.file_path_edit.text().strip()
         start_dir = os.path.dirname(current_path) if current_path else ""
 
-        now = datetime.now()
-        subject_id = "sub-01"
-        session_id = f"ses-{now.strftime('%Y%m%d')}"
-        task = "task-percept"
-        run = "run-01"
-        default_name = f"{subject_id}_{session_id}_{task}_{run}_events.tsv"
+        subject_id = f"sub-{patient_id}"
+        session_id = f"ses-{session_num}"
+        task = "task-programming"
+        run_id = f"run-{run_num}"
+        default_name = f"{subject_id}_{session_id}_{task}_{run_id}_events.tsv"
 
         default_path = os.path.join(start_dir, default_name) if start_dir else default_name
 

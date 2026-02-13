@@ -7,6 +7,8 @@ and main window creation.
 
 import sys
 import traceback
+import os
+import tempfile
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
@@ -59,7 +61,12 @@ def main() -> int:
     except Exception as e:
         print("FATAL ERROR:")
         traceback.print_exc()
-        input("Press Enter to exit...")
+        try:
+            log_path = os.path.join(tempfile.gettempdir(), "ClinicalDBSAnnot_crash.log")
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write(traceback.format_exc())
+        except Exception:
+            pass
         return 1
 
 

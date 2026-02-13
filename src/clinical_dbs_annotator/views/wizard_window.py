@@ -239,6 +239,7 @@ class WizardWindow(QWidget):
         return header_layout
 
     def _get_current_header_title(self) -> str:
+        """Return the header title string for the currently visible view."""
         current = self.stack.currentWidget() if hasattr(self, "stack") else None
         if current is None:
             return ""
@@ -259,6 +260,7 @@ class WizardWindow(QWidget):
         return ""
 
     def _update_header_title(self) -> None:
+        """Refresh the header title label to match the active view."""
         if not hasattr(self, "header_title_label"):
             return
         self.header_title_label.setText(self._get_current_header_title())
@@ -350,6 +352,11 @@ class WizardWindow(QWidget):
         theme_manager = get_theme_manager()
         theme_manager.toggle_theme(self.app)
         self._update_theme_button_icon()
+        # Refresh theme-dependent icons in step1 and step2
+        if self.step1_view is not None:
+            self.step1_view.refresh_theme_icons()
+        if self.step2_view is not None:
+            self.step2_view.refresh_theme_icons()
 
     def _connect_step0_signals(self) -> None:
         """Connect Step 0 mode selection signals."""
@@ -410,22 +417,37 @@ class WizardWindow(QWidget):
 
     def _update_window_size_for_step0(self) -> None:
         """Set smaller window size for mode selection (step 0)."""
-        # Small compact size for mode selection
         compact_width = 600
         compact_height = 250
-        
-        # Center the compact window
+
+        # Reset constraints first to avoid min/max conflicts with previous size
+        self.setMinimumSize(1, 1)
+        self.setMaximumSize(16777215, 16777215)
+
+        # Switch size policy to Ignored so the stack's minimumSizeHint
+        if hasattr(self, "stack"):
+            self.stack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+        if hasattr(self, "stack_scroll_area"):
+            self.stack_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Center the compact window on screen
         screen = self.app.primaryScreen()
         screen_geometry = screen.availableGeometry()
         x = int((screen_geometry.width() - compact_width) / 2)
         y = int((screen_geometry.height() - compact_height) / 2)
-        
+
         self.setGeometry(x, y, compact_width, compact_height)
         self.setMinimumSize(compact_width, compact_height)
         self.setMaximumSize(compact_width, compact_height)
     
     def _update_window_size_for_main_workflow(self) -> None:
         """Restore normal window size for main workflow (steps 1+)."""
+        # Restore normal size policies (may have been set to Ignored for step0)
+        if hasattr(self, "stack"):
+            self.stack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        if hasattr(self, "stack_scroll_area"):
+            self.stack_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
         # Get original normal size
         screen = self.app.primaryScreen()
         rect = screen.availableGeometry()
@@ -456,6 +478,7 @@ class WizardWindow(QWidget):
         self._clamp_to_screen()
 
     def _clamp_to_screen(self) -> None:
+        """Ensure the window stays within the available screen area."""
         if getattr(self, "_is_clamping", False):
             return
         self._is_clamping = True
@@ -476,10 +499,12 @@ class WizardWindow(QWidget):
             self._is_clamping = False
 
     def resizeEvent(self, event):
+        """Re-clamp to screen on every resize."""
         super().resizeEvent(event)
         self._clamp_to_screen()
 
     def moveEvent(self, event):
+        """Re-clamp to screen on every move."""
         super().moveEvent(event)
         self._clamp_to_screen()
 
@@ -557,6 +582,7 @@ class WizardWindow(QWidget):
         return nav_layout
 
     def _clear_nav_right(self) -> None:
+        """Remove all widgets from the right side of the navigation bar."""
         if not hasattr(self, "_nav_right_layout"):
             return
 
@@ -567,6 +593,7 @@ class WizardWindow(QWidget):
                 w.setParent(None)
 
     def _refresh_nav_right(self) -> None:
+        """Populate the nav-bar right side with the active view's action buttons."""
         self._clear_nav_right()
 
         current = self.stack.currentWidget()
@@ -616,9 +643,12 @@ class WizardWindow(QWidget):
 
     def _connect_annotations_file_signals(self) -> None:
         """Connect signals for annotations file view."""
-        self.annotations_file_view.browse_button.clicked.connect(
-            lambda: self.controller.browse_save_location_simple(self.annotations_file_view, self)
-        )
+        # Backward-compatible: older AnnotationsFileView exposed browse_button.
+        # Newer UI manages file open/new internally.
+        if hasattr(self.annotations_file_view, "browse_button"):
+            self.annotations_file_view.browse_button.clicked.connect(
+                lambda: self.controller.browse_save_location_simple(self.annotations_file_view, self)
+            )
         self.annotations_file_view.next_button.clicked.connect(self._go_to_annotations_session)
 
     def _go_to_annotations_session(self) -> None:
@@ -646,6 +676,15 @@ class WizardWindow(QWidget):
             lambda: self.controller.close_session(self)
         )
 
+        if hasattr(self.annotations_session_view, "export_word_action"):
+            self.annotations_session_view.export_word_action.triggered.connect(
+                lambda: self.controller.export_annotations_word(self)
+            )
+        if hasattr(self.annotations_session_view, "export_pdf_action"):
+            self.annotations_session_view.export_pdf_action.triggered.connect(
+                lambda: self.controller.export_annotations_pdf(self)
+            )
+
     def _go_to_step2(self) -> None:
         """Navigate to Step 2 after validating Step 1."""
         if not self.controller.validate_step1(self.step1_view, self):
@@ -671,9 +710,18 @@ class WizardWindow(QWidget):
             self.step3_view = Step3View(self.style())
             self.stack.addWidget(self.step3_view)
             self._connect_step3_signals()
+            self._step3_prepared = True
+        elif not getattr(self, '_step3_prepared', False):
+            # Step 3 was created but preparation failed previously — retry
+            try:
+                self.controller.prepare_step3(self.step3_view)
+                self._step3_prepared = True
+            except Exception as e:
+                print(f"[ERROR] prepare_step3 retry failed: {e}")
+                import traceback; traceback.print_exc()
         else:
-            # Update if already created
-            self.controller.prepare_step3(self.step3_view)
+            # Only refresh scales if definitions changed; keep everything else as-is
+            self.controller.refresh_step3_scales(self.step3_view)
 
         self.current_step = 3
         self.stack.setCurrentWidget(self.step3_view)
@@ -687,6 +735,7 @@ class WizardWindow(QWidget):
             # Determine which widget to show based on workflow and step
             if self.current_step == 0:
                 self.stack.setCurrentWidget(self.step0_view)
+                self._update_window_size_for_step0()
             elif self.workflow_mode == "full":
                 if self.current_step == 1 and self.step1_view:
                     self.stack.setCurrentWidget(self.step1_view)
