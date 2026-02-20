@@ -4,10 +4,10 @@ Build script for macOS application using PyInstaller.
 This script builds a standalone macOS .app bundle with all necessary resources.
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
+import argparse
 
 # Get project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -17,35 +17,79 @@ ICONS_DIR = PROJECT_ROOT / "icons"
 SRC_DIR = PROJECT_ROOT / "src"
 
 APP_NAME = "ClinicalDBSAnnot"
-VERSION = "v0.1"
+VERSION = "v0.3_testing"
+PLATFORM = "macOS"
 
 
-def build_macos_app():
+def build_macos_app(*, console: bool, onefile: bool):
     """Build macOS application using PyInstaller."""
     print(f"Building {APP_NAME} {VERSION} for macOS...")
 
+    name = f"{APP_NAME}_{PLATFORM}_{VERSION.replace('.', '_')}"
+    entrypoint = PROJECT_ROOT / "run.py"
+    styles_dir = PROJECT_ROOT / "styles"
+    config_dir = SRC_DIR / "clinical_dbs_annotator" / "config"
+
+    icon_icns = ICONS_DIR / "logobml.icns"
+    icon_fallback = ICONS_DIR / "logobml.ico"
+    icon_path = icon_icns if icon_icns.exists() else icon_fallback
+
+    if icon_path.suffix.lower() != ".icns":
+        print(f"Warning: macOS icon should be .icns, using fallback: {icon_path}")
+
     # PyInstaller command
     cmd = [
-        "pyinstaller",
-        "--onefile",  # Single file executable
-        "--windowed",  # No console window
-        f"--name={APP_NAME}_{VERSION.replace('.', '_')}",
-        f"--icon={ICONS_DIR / 'logobml.ico'}",
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        f"--name={name}",
+        f"--paths={SRC_DIR}",
+        f"--distpath={DIST_DIR}",
+        f"--workpath={BUILD_DIR / 'pyinstaller'}",
+        f"--specpath={BUILD_DIR / 'pyinstaller'}",
+        f"--icon={icon_path}",
+        "--hidden-import=pytz",
+        "--hidden-import=pandas",
+        "--hidden-import=openpyxl",
+        "--hidden-import=xlrd",
+        "--hidden-import=PyQt5.QtCore",
+        "--hidden-import=PyQt5.QtGui",
+        "--hidden-import=PyQt5.QtWidgets",
+        "--exclude-module=PyQt5.QtWebEngineWidgets",
+        "--exclude-module=PyQt5.QtWebEngineCore",
         # Add data files (macOS uses : separator)
         f"--add-data={ICONS_DIR / 'logobml.ico'}:icons",
         f"--add-data={ICONS_DIR / 'logobml.png'}:icons",
-        f"--add-data={PROJECT_ROOT / 'style.qss'}:.",
-        # Collect all PyQt5 plugins
-        "--collect-all=PyQt5",
+        f"--add-data={styles_dir / 'dark_theme.qss'}:styles",
+        f"--add-data={styles_dir / 'light_theme.qss'}:styles",
+        f"--add-data={config_dir / 'clinical_presets.json'}:config",
+        f"--add-data={config_dir / 'session_scales_presets.json'}:config",
         # Entry point
-        f"{SRC_DIR / 'clinical_dbs_annotator' / '__main__.py'}",
+        str(entrypoint),
     ]
+
+    if onefile:
+        cmd.append("--onefile")
+    else:
+        cmd.append("--onedir")
+
+    if console:
+        cmd.append("--console")
+    else:
+        cmd.append("--windowed")
 
     # Run PyInstaller
     try:
         subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
         print(f"\n✓ Build successful!")
-        print(f"  Application location: {DIST_DIR / f'{APP_NAME}_{VERSION.replace('.', '_')}.app'}")
+        if onefile:
+            artifact_path = DIST_DIR / f"{name}.app"
+            print(f"  Expected app bundle: {artifact_path}")
+        else:
+            artifact_dir = DIST_DIR / name
+            print(f"  Expected output directory: {artifact_dir}")
     except subprocess.CalledProcessError as e:
         print(f"\n✗ Build failed: {e}")
         return False
@@ -55,15 +99,26 @@ def build_macos_app():
 
 def main():
     """Main entry point."""
-    if not (ICONS_DIR / "logobml.ico").exists():
-        print(f"Error: Icon file not found at {ICONS_DIR / 'logobml.ico'}")
-        return 1
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--console", action="store_true", help="Build with console window")
+    parser.add_argument("--onedir", action="store_true", help="Build as a folder (onedir) instead of a single bundle (onefile)")
+    args = parser.parse_args()
 
-    if not (ICONS_DIR / "logobml.png").exists():
-        print(f"Error: Logo file not found at {ICONS_DIR / 'logobml.png'}")
-        return 1
+    required_files = [
+        ICONS_DIR / "logobml.ico",
+        ICONS_DIR / "logobml.png",
+        PROJECT_ROOT / "styles" / "dark_theme.qss",
+        PROJECT_ROOT / "styles" / "light_theme.qss",
+        SRC_DIR / "clinical_dbs_annotator" / "config" / "clinical_presets.json",
+        SRC_DIR / "clinical_dbs_annotator" / "config" / "session_scales_presets.json",
+    ]
 
-    if not build_macos_app():
+    for path in required_files:
+        if not path.exists():
+            print(f"Error: Required file not found at {path}")
+            return 1
+
+    if not build_macos_app(console=args.console, onefile=not args.onedir):
         return 1
 
     return 0

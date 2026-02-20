@@ -18,13 +18,14 @@ SRC_DIR = PROJECT_ROOT / "src"
 
 APP_NAME = "ClinicalDBSAnnot"
 VERSION = "v0.3_testing"
+PLATFORM = "Windows"
 
 
 def build_windows_exe(*, console: bool, onefile: bool) -> bool:
     """Build Windows executable using PyInstaller."""
     print(f"Building {APP_NAME} {VERSION} for Windows...")
 
-    name = f"{APP_NAME}_{VERSION.replace('.', '_')}"
+    name = f"{APP_NAME}_{PLATFORM}_{VERSION.replace('.', '_')}"
     # Use run.py as entrypoint
     entrypoint = PROJECT_ROOT / "run.py"
     styles_dir = PROJECT_ROOT / "styles"
