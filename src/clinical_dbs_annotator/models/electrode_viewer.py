@@ -5,8 +5,8 @@ with anodic/cathodic modes and case (ground) support
 Based on Lead-DBS repository models
 """
 
-from PyQt5.QtCore import QPointF, QRectF, Qt
-from PyQt5.QtGui import (
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import (
     QBrush,
     QColor,
     QFont,
@@ -19,7 +19,7 @@ from PyQt5.QtGui import (
     QPolygonF,
     QRadialGradient,
 )
-from PyQt5.QtWidgets import QSizePolicy, QWidget
+from PySide6.QtWidgets import QSizePolicy, QWidget
 
 # Import configuration
 from ..config_electrode_models import (

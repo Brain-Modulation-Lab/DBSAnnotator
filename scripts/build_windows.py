@@ -68,7 +68,7 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
             f"--add-data={styles_dir / 'light_theme.qss'};styles",
             f"--add-data={config_dir / 'clinical_presets.json'};config",
             f"--add-data={config_dir / 'session_scales_presets.json'};config",
-            "--collect-all=PyQt5",
+            "--collect-all=PySide6",
             str(entrypoint),
         ]
     )

@@ -4,7 +4,7 @@ description = "A graphical user interface for annotating DBS clinical programmin
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 authors = [
-    { name = "Lucia Poma", email = "lpoma@mgh.harvard.edu" }
+    { name = "Lucia Poma", email = "lucia.poma@wysscenter.ch" }
 ]
 keywords = ["dbs", "clinical", "annotation", "neuroscience", "deep-brain-stimulation"]
 dynamic = ["version"]
@@ -22,14 +22,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pyqt5",
-    "pyqt5-qt5<=5.15.2",
     "pytz>=2025.2",
     "pandas>=2.1",
     "python-docx>=1.1",
     "docx2pdf>=0.1.8",
     "pydantic>=2.0",
     "pyqtgraph>=0.14.0",
+    "pyside6>=6.11.0",
 ]
 
 [dependency-groups]
@@ -47,8 +46,8 @@ build = [
     "nuitka>=4.0.7",
 ]
 docs = [
-    "sphinx",
-    "sphinx-rtd-theme",
+    "sphinx>=9.0.4",
+    "sphinx-rtd-theme>=3.1.0",
 ]
 
 [project.scripts]
@@ -122,5 +121,5 @@ warn_no_return = true
 strict_optional = true
 
 [[tool.mypy.overrides]]
-module = "PyQt5.*"
+module = "PySide6.*"
 ignore_missing_imports = true

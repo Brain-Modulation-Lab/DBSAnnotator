@@ -10,9 +10,9 @@ import os
 from collections.abc import Callable
 from datetime import datetime
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QDoubleValidator, QIcon, QIntValidator, QPixmap
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QDoubleValidator, QIcon, QIntValidator, QPixmap
+from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFormLayout,
@@ -1081,7 +1081,7 @@ class Step1View(BaseStepView):
         """Create new file with BIDS-style naming."""
         from datetime import datetime
 
-        from PyQt5.QtWidgets import QDialog, QDialogButtonBox
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
         # First, ask for patient ID and session number
         dialog = QDialog(self)
@@ -1104,7 +1104,7 @@ class Step1View(BaseStepView):
         buttons.rejected.connect(dialog.reject)
         layout.addRow(buttons)
 
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.accepted:
             return
 
         patient_id = patient_edit.text().strip() or "01"
@@ -1219,12 +1219,15 @@ class Step1View(BaseStepView):
 
     def _connect_preset_buttons(self):
         """Connect all preset buttons to their respective scales."""
+        import warnings
+
         for btn in self.preset_buttons:
-            # Disconnect any existing connections
-            try:
-                btn.clicked.disconnect()
-            except:
-                pass
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                try:
+                    btn.clicked.disconnect()
+                except RuntimeError:
+                    pass
 
             # Get the preset name from object name
             preset_name = btn.objectName().replace("preset_", "")
@@ -1371,7 +1374,7 @@ class Step1View(BaseStepView):
         """Open the clinical scales settings dialog."""
         dialog = ClinicalScalesSettingsDialog(self.clinical_presets, self, PRESET_BUTTONS)
         dialog.presets_changed.connect(self._on_presets_changed)
-        dialog.exec_()
+        dialog.exec()
 
     def _on_presets_changed(self, new_presets: dict[str, list[str]]):
         """Handle presets change from settings dialog."""

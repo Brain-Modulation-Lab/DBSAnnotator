@@ -6,8 +6,8 @@ full mode (with stimulation settings and scales) or annotations-only mode,
 and provides access to longitudinal reporting.
 """
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,

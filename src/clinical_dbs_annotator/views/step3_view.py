@@ -6,9 +6,9 @@ session data including stimulation parameters and scale values.
 """
 
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QDoubleValidator, QIntValidator
+from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QFrame,

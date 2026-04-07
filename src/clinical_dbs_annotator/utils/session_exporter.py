@@ -17,9 +17,9 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPainter, QPixmap
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QPainter, QPixmap
+from PySide6.QtWidgets import QMessageBox, QWidget
 
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
@@ -123,7 +123,7 @@ class SessionExporter:
                 pass
 
         # Use a dedicated QTimer owned by the message box so it reliably fires.
-        # Some PyQt5 builds do not ship QWeakPointer.
+        # Some Qt builds do not ship QWeakPointer.
         timer = QTimer(msg)
         timer.setSingleShot(True)
 
@@ -787,8 +787,8 @@ class SessionExporter:
 
         try:
             import pyqtgraph as pg
-            from PyQt5.QtCore import QBuffer, QIODevice, Qt
-            from PyQt5.QtGui import QBrush, QColor, QFont, QPen
+            from PySide6.QtCore import QBuffer, QIODevice, Qt
+            from PySide6.QtGui import QBrush, QColor, QFont, QPen
 
             pg.setConfigOptions(useOpenGL=False, antialias=True)
 
@@ -906,7 +906,7 @@ class SessionExporter:
             # --- Export to PNG → Word ---
             pixmap = win.grab()
             qbuf = QBuffer()
-            qbuf.open(QIODevice.WriteOnly)
+            qbuf.open(QIODevice.OpenModeFlag.WriteOnly)
             pixmap.save(qbuf, 'PNG')
             qbuf.close()
             img_buf = BytesIO(bytes(qbuf.data()))
@@ -1199,7 +1199,7 @@ class SessionExporter:
 
         # Crop white borders
         image = pixmap.toImage()
-        from PyQt5.QtGui import QColor as _QColor
+        from PySide6.QtGui import QColor as _QColor
         # Find bounding box of non-white content
         left, top, right, bottom = image.width(), image.height(), 0, 0
         white_rgb = _QColor(Qt.white).rgb()
@@ -1368,7 +1368,7 @@ class SessionExporter:
             start_dir = os.path.dirname(getattr(self.session_data, 'file_path', '') or '')
             start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
 
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
 
             pdf_path, _ = QFileDialog.getSaveFileName(
                 parent,
@@ -1442,7 +1442,7 @@ class SessionExporter:
             start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
 
             # Get save location
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
             file_path, _ = QFileDialog.getSaveFileName(
                 parent,
                 "Export Session Report",
@@ -1665,7 +1665,7 @@ class SessionExporter:
                 except Exception:
                     pass
 
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
             default_filename = self._generate_bids_report_filename('.docx')
             start_dir = os.path.dirname(getattr(self.session_data, "file_path", "") or "")
             start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
@@ -1721,7 +1721,7 @@ class SessionExporter:
                 except Exception:
                     pass
 
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
             default_filename = self._generate_bids_report_filename('.pdf')
             start_dir = os.path.dirname(getattr(self.session_data, "file_path", "") or "")
             start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename

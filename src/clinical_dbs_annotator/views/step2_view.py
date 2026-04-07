@@ -9,9 +9,9 @@ import json
 import os
 from collections.abc import Callable
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QFont, QIcon, QPixmap
+from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -187,7 +187,7 @@ class Step2View(BaseStepView):
         """Open the session scales settings dialog."""
         dialog = SessionScalesSettingsDialog(self.session_presets, self, PRESET_BUTTONS)
         dialog.presets_changed.connect(self._on_presets_changed)
-        dialog.exec_()
+        dialog.exec()
 
     def _on_presets_changed(self, new_presets: dict[str, list[tuple[str, str, str]]]):
         """Handle presets change from settings dialog and persist to JSON."""
@@ -277,11 +277,15 @@ class Step2View(BaseStepView):
 
     def _connect_preset_buttons(self):
         """Wire each preset button to apply its scales on click."""
+        import warnings
+
         for btn in self.preset_buttons:
-            try:
-                btn.clicked.disconnect()
-            except Exception:
-                pass
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                try:
+                    btn.clicked.disconnect()
+                except RuntimeError:
+                    pass
 
             preset_name = btn.objectName().replace("preset2_", "")
             preset_scales = self.session_presets.get(preset_name, [])

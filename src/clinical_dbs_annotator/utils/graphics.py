@@ -5,8 +5,8 @@ This module provides functions for creating icons, rounded images,
 and button animations.
 """
 
-from PyQt5.QtCore import QRectF, Qt, QTimer
-from PyQt5.QtGui import QIcon, QPainter, QPainterPath, QPixmap
+from PySide6.QtCore import QRectF, Qt, QTimer
+from PySide6.QtGui import QIcon, QPainter, QPainterPath, QPixmap
 
 from ..config import BUTTON_PULSE_COUNT, BUTTON_PULSE_DURATION
 

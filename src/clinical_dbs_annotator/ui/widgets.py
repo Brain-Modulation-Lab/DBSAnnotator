@@ -6,9 +6,9 @@ section labels, and horizontal lines.
 """
 
 
-from PyQt5.QtCore import QEvent, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QEvent, QSize, Qt, Signal
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -220,7 +220,7 @@ class ScaleProgressWidget(QWidget):
     Internal values are integers; UI displays value / 4.0 to represent 0.25 steps.
     """
 
-    valueChanged = pyqtSignal(int)
+    valueChanged = Signal(int)
 
     def __init__(self, parent=None):
         """Initialize the scale progress widget with default range 0-10."""

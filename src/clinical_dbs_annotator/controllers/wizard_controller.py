@@ -6,7 +6,7 @@ views and models, handling user interactions and data flow.
 """
 
 
-from PyQt5.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 from ..config import (
     CLINICAL_SCALES_PRESETS,
@@ -457,7 +457,7 @@ class WizardController:
         """
         import os
 
-        from PyQt5.QtWidgets import QFileDialog
+        from PySide6.QtWidgets import QFileDialog
 
         # Get current path if available
         current_path = view.file_path_edit.text()

@@ -49,10 +49,10 @@ HIDDEN_IMPORTS = [
     "docx",
     "docx2pdf",
     "pydantic",
-    "PyQt5.QtCore",
-    "PyQt5.QtGui",
-    "PyQt5.QtWidgets",
-    "PyQt5.uic",
+    "PySide6.QtCore",
+    "PySide6.QtGui",
+    "PySide6.QtWidgets",
+    "PySide6.QtUiTools",
     "PIL.Image",
     "PIL.ImageDraw",
     "PIL.ImageFont",
@@ -108,12 +108,12 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
     for plugin in QT_PLUGINS:
         cmd.append(f"--include-qt-plugin={plugin}")
 
-    # Include PyQt5 completely
+    # Include PySide6 completely
     cmd.append("--follow-imports")
 
     # Optimization flags
     cmd.extend([
-        "--enable-plugin=pyqt5",
+        "--enable-plugin=pyside6",
     ])
 
     # Icon

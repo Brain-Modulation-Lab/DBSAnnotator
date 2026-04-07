@@ -20,7 +20,7 @@ Developed at the **Brain Modulation Lab, Massachusetts General Hospital**.
 
 .. note::
    Version **0.3 (testing)** — Windows installer available.
-   Contact: lpoma@mgh.harvard.edu
+   Contact: lucia.poma@wysscenter.ch
 
 ----
 

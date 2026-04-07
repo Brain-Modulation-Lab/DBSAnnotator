@@ -7,9 +7,9 @@ navigation, and coordinates views with the controller.
 
 import os
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -360,7 +360,7 @@ class WizardWindow(QWidget):
         <h3>Support & Contact</h3>
         <p><b>GitHub Repository:</b> <a href='https://github.com/your-username/clinical-dbs-annotator'>https://github.com/your-username/clinical-dbs-annotator</a></p>
         <p>For bug reports, feature requests, or general support, please visit our GitHub repository 
-        or contact Lucia Poma directly at</b> <a href='mailto:lpoma@mgh.harvard.edu'>lpoma@mgh.harvard.edu</a></p>.
+        or contact Lucia Poma directly at</b> <a href='mailto:lucia.poma@wysscenter.ch'>lucia.poma@wysscenter.ch</a></p>.
         
         <h3>License</h3>
         <p>This software is released under an open-source license. Please see the GitHub repository 
@@ -378,7 +378,7 @@ class WizardWindow(QWidget):
         button_layout.addWidget(close_btn)
         layout.addLayout(button_layout)
 
-        dialog.exec_()
+        dialog.exec()
 
     def _toggle_theme(self) -> None:
         """Toggle between dark and light themes."""
@@ -466,7 +466,7 @@ class WizardWindow(QWidget):
             ReportSectionsDialog,
         )
         dialog = LongitudinalScaleDialog(scales, self)
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.accepted:
             return
 
         prefs = dialog.get_scale_prefs()
@@ -479,7 +479,7 @@ class WizardWindow(QWidget):
             ("programming_summary", "Programming Summary", False),
         ]
         sec_dialog = ReportSectionsDialog(section_defs, self, title="Report Sections")
-        if sec_dialog.exec_() != sec_dialog.Accepted:
+        if sec_dialog.exec() != sec_dialog.accepted:
             return
         sections = sec_dialog.get_selected_sections()
 
@@ -687,7 +687,7 @@ class WizardWindow(QWidget):
         dialog = ScaleOptimizationDialog(
             scales, self, title="Scale Optimization — Session Report"
         )
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.accepted:
             return
 
         prefs = dialog.get_scale_prefs()
@@ -701,7 +701,7 @@ class WizardWindow(QWidget):
             ("programming_summary", "Programming Summary", True),
         ]
         sec_dialog = ReportSectionsDialog(section_defs, self, title="Report Sections")
-        if sec_dialog.exec_() != sec_dialog.Accepted:
+        if sec_dialog.exec() != sec_dialog.accepted:
             return
         sections = sec_dialog.get_selected_sections()
 

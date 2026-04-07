@@ -1,7 +1,3 @@
-/* ============================================
-   LIGHT THEME - Professional Medical Application
-   ============================================ */
-
 /* Base Colors:
    Primary: #b45309 (Orange)
    Accent: #f59e0b (Amber)
@@ -415,7 +411,7 @@ QProgressBar {
     border-radius: 8px;
     text-align: center;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 9pt;
     background-color: #f8fafc;
     color: #0f172a;
 }

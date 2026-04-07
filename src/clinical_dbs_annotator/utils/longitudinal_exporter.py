@@ -17,8 +17,8 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QWidget
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
@@ -745,8 +745,8 @@ class LongitudinalExporter:
 
         try:
             import pyqtgraph as pg
-            from PyQt5.QtCore import QBuffer, QIODevice, Qt
-            from PyQt5.QtGui import QBrush, QColor, QFont, QPen
+            from PySide6.QtCore import QBuffer, QIODevice, Qt
+            from PySide6.QtGui import QBrush, QColor, QFont, QPen
 
             pg.setConfigOptions(useOpenGL=False, antialias=True)
 
@@ -872,7 +872,7 @@ class LongitudinalExporter:
             # --- Export to PNG → Word ---
             pixmap = win.grab()
             qbuf = QBuffer()
-            qbuf.open(QIODevice.WriteOnly)
+            qbuf.open(QIODevice.OpenModeFlag.WriteOnly)
             pixmap.save(qbuf, 'PNG')
             qbuf.close()
             img_buf = BytesIO(bytes(qbuf.data()))
@@ -1064,8 +1064,8 @@ class LongitudinalExporter:
     ) -> str | None:
         """Render electrode configuration to a temporary PNG file."""
         try:
-            from PyQt5.QtGui import QColor as _QColor
-            from PyQt5.QtGui import QPainter, QPixmap
+            from PySide6.QtGui import QColor as _QColor
+            from PySide6.QtGui import QPainter, QPixmap
 
             from ..models import ElectrodeCanvas
 
