@@ -11,7 +11,6 @@ This dialog is shared by both the longitudinal workflow and the Step-3
 single-session export.
 """
 
-from typing import List, Tuple
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDoubleValidator
@@ -43,7 +42,7 @@ class ScaleOptimizationDialog(QDialog):
 
     def __init__(
         self,
-        scales: List[Tuple[str, str, str]],
+        scales: list[tuple[str, str, str]],
         parent=None,
         title: str = "Scale Optimization",
     ):
@@ -194,7 +193,7 @@ class ScaleOptimizationDialog(QDialog):
 
     # -----------------------------------------------------------------
 
-    def get_scale_prefs(self) -> List[Tuple[str, str, str, str, str]]:
+    def get_scale_prefs(self) -> list[tuple[str, str, str, str, str]]:
         """
         Return the user's optimization preferences.
 
@@ -234,11 +233,11 @@ class ReportSectionsDialog(QDialog):
     the original order.
     """
 
-    def __init__(self, sections: List[Tuple[str, str, bool]], parent=None, title: str = "Report Sections"):
+    def __init__(self, sections: list[tuple[str, str, bool]], parent=None, title: str = "Report Sections"):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setMinimumWidth(340)
-        self._checkboxes: List[Tuple[str, QCheckBox]] = []
+        self._checkboxes: list[tuple[str, QCheckBox]] = []
 
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
@@ -258,6 +257,6 @@ class ReportSectionsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def get_selected_sections(self) -> List[str]:
+    def get_selected_sections(self) -> list[str]:
         """Return ordered list of keys for checked sections."""
         return [key for key, cb in self._checkboxes if cb.isChecked()]

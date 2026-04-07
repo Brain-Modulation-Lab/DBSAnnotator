@@ -4,10 +4,10 @@ Build script for Windows executable using PyInstaller.
 This script builds a standalone Windows executable with all necessary resources.
 """
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
-import argparse
 
 # Get project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -76,7 +76,7 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
     # Run PyInstaller
     try:
         subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
-        print(f"\n✓ Build successful!")
+        print("\n✓ Build successful!")
         if onefile:
             exe_path = DIST_DIR / f"{name}.exe"
         else:

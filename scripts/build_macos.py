@@ -4,11 +4,11 @@ Build script for macOS application using PyInstaller.
 This script builds a standalone macOS .app bundle with all necessary resources.
 """
 
+import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
-import argparse
-import shutil
 
 # Get project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -113,7 +113,7 @@ def build_macos_app(*, console: bool, onefile: bool):
     # Run PyInstaller
     try:
         subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
-        print(f"\n✓ Build successful!")
+        print("\n✓ Build successful!")
         if onefile:
             artifact_path = DIST_DIR / f"{name}.app"
             print(f"  Expected app bundle: {artifact_path}")

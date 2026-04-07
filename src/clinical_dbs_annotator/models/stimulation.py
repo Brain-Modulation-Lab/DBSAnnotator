@@ -6,7 +6,6 @@ including frequency, contacts, amplitudes, and pulse widths.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -26,16 +25,16 @@ class StimulationParameters:
         right_amplitude: Right stimulation amplitude in mA
         right_pulse_width: Right pulse width in µs
     """
-    left_frequency: Optional[str] = None
-    left_cathode: Optional[str] = None
-    left_anode: Optional[str] = None
-    left_amplitude: Optional[str] = None
-    left_pulse_width: Optional[str] = None
-    right_frequency: Optional[str] = None
-    right_cathode: Optional[str] = None
-    right_anode: Optional[str] = None
-    right_amplitude: Optional[str] = None
-    right_pulse_width: Optional[str] = None
+    left_frequency: str | None = None
+    left_cathode: str | None = None
+    left_anode: str | None = None
+    left_amplitude: str | None = None
+    left_pulse_width: str | None = None
+    right_frequency: str | None = None
+    right_cathode: str | None = None
+    right_anode: str | None = None
+    right_amplitude: str | None = None
+    right_pulse_width: str | None = None
 
     def to_dict(self) -> dict:
         """Convert stimulation parameters to a dictionary."""

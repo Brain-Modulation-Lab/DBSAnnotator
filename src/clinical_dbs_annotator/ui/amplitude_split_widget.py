@@ -6,10 +6,9 @@ percentage rows below the total amplitude field.  Each row displays the
 contact label, an editable percentage, and a read-only computed mA value.
 """
 
-from typing import Dict, List, Tuple
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -36,11 +35,11 @@ class AmplitudeSplitWidget(QWidget):
         super().__init__(parent)
         self._amp_edit = amp_edit
         # contact_label -> percentage (float 0-100)
-        self._percentages: Dict[str, float] = {}
+        self._percentages: dict[str, float] = {}
         # ordered list of cathode labels currently displayed
-        self._cathode_labels: List[str] = []
+        self._cathode_labels: list[str] = []
         # row widgets: label -> (row_widget, pct_edit, ma_label)
-        self._rows: Dict[str, Tuple[QWidget, QLineEdit, QLabel]] = {}
+        self._rows: dict[str, tuple[QWidget, QLineEdit, QLabel]] = {}
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -55,7 +54,7 @@ class AmplitudeSplitWidget(QWidget):
     # Public API
     # ------------------------------------------------------------------
 
-    def update_cathodes(self, cathode_labels: List[str]) -> None:
+    def update_cathodes(self, cathode_labels: list[str]) -> None:
         """Rebuild the rows to match the current set of active cathodes.
 
         Called by the parent view whenever the electrode canvas changes.
@@ -93,7 +92,7 @@ class AmplitudeSplitWidget(QWidget):
         self._rebuild_rows()
         self.setVisible(True)
 
-    def get_percentages(self) -> Dict[str, float]:
+    def get_percentages(self) -> dict[str, float]:
         """Return {contact_label: percentage} mapping."""
         return dict(self._percentages)
 
@@ -275,7 +274,7 @@ class AmplitudeSplitWidget(QWidget):
             pct = self._percentages.get(lbl, 0.0)
             ma_val = total_amp * pct / 100.0
             ma_label.setText(f"{ma_val:.2f} mA")
-    
+
     def update_main_amplitude_from_split(self, split_text: str) -> None:
         """Update the main amplitude field to show the sum of split values.
         
@@ -284,7 +283,7 @@ class AmplitudeSplitWidget(QWidget):
         """
         if not split_text or '_' not in split_text:
             return
-        
+
         try:
             parts = split_text.split('_')
             total = sum(float(p) for p in parts if p.strip())
@@ -295,7 +294,7 @@ class AmplitudeSplitWidget(QWidget):
                 self._amp_edit.setText(f"{total:.1f}".rstrip('0').rstrip('.'))
         except (ValueError, TypeError):
             pass
-    
+
     def set_amplitude_from_split(self, split_text: str) -> None:
         """Set amplitude from split values and update percentages.
         
@@ -306,36 +305,36 @@ class AmplitudeSplitWidget(QWidget):
         """
         if not split_text or '_' not in split_text:
             return
-        
+
         # Update main amplitude field
         self.update_main_amplitude_from_split(split_text)
-        
+
         # Parse split values and update percentages
         try:
             parts = split_text.split('_')
             values = [float(p) for p in parts if p.strip()]
             total = sum(values)
-            
+
             if len(values) != len(self._cathode_labels):
                 # Mismatch between number of values and cathodes - use equal split
                 self._redistribute_percentages()
                 return
-            
+
             # Calculate percentages based on split values
             for i, lbl in enumerate(self._cathode_labels):
                 if i < len(values):
                     pct = (values[i] / total * 100.0) if total > 0 else 0.0
                     self._percentages[lbl] = round(pct, 1)
-            
+
             # Update the UI rows
             self._rebuild_rows()
-            
+
         except (ValueError, TypeError):
             # If parsing fails, use equal split
             self._redistribute_percentages()
 
 
-def get_cathode_labels(canvas) -> List[str]:
+def get_cathode_labels(canvas) -> list[str]:
     """Extract ordered cathode contact labels from an ElectrodeCanvas.
 
     Returns a list like ``["E1b", "E2a"]``.  ``"case"`` is included if the
@@ -345,7 +344,7 @@ def get_cathode_labels(canvas) -> List[str]:
     if not model:
         return []
 
-    labels: List[str] = []
+    labels: list[str] = []
 
     if canvas.case_state == ContactState.CATHODIC:
         labels.append("case")

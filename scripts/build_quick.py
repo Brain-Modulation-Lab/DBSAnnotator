@@ -38,17 +38,17 @@ if __name__ == "__main__":
         # Nuitka: onefile, no console
         cmd = [sys.executable, "scripts/build_windows_nuitka.py", "--onefile"]
         run_command(cmd, cwd=PROJECT_ROOT)
-    
+
     elif target == "windows-debug":
         # Nuitka: onedir, with console
         cmd = [sys.executable, "scripts/build_windows_nuitka.py", "--console"]
         run_command(cmd, cwd=PROJECT_ROOT)
-    
+
     elif target == "windows-pyinstaller":
         # Fallback to PyInstaller
         cmd = [sys.executable, "scripts/build_windows.py"]
         run_command(cmd, cwd=PROJECT_ROOT)
-    
+
     else:
         print(f"Unknown target: {target}")
         sys.exit(1)

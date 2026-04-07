@@ -5,17 +5,16 @@ This module provides reusable UI components such as increment buttons,
 section labels, and horizontal lines.
 """
 
-from typing import Optional
 
-from PyQt5.QtCore import QSize, Qt, pyqtSignal, QEvent
+from PyQt5.QtCore import QEvent, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QProgressBar,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -81,10 +80,10 @@ class IncrementWidget(QWidget):
         self,
         line_edit: QLineEdit,
         step1: float = 1.0,
-        step2: Optional[float] = None,
+        step2: float | None = None,
         decimals: int = 2,
-        min_value: Optional[float] = None,
-        max_value: Optional[float] = None,
+        min_value: float | None = None,
+        max_value: float | None = None,
     ):
         """
         Initialize the increment widget.

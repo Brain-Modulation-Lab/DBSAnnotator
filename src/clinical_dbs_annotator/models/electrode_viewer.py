@@ -5,18 +5,32 @@ with anodic/cathodic modes and case (ground) support
 Based on Lead-DBS repository models
 """
 
-from PyQt5.QtWidgets import QWidget, QSizePolicy
-from PyQt5.QtCore import Qt, QRectF, QPointF
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygonF, QPalette, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
+from PyQt5.QtCore import QPointF, QRectF, Qt
+from PyQt5.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPainterPathStroker,
+    QPalette,
+    QPen,
+    QPolygonF,
+    QRadialGradient,
+)
+from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 # Import configuration
-from ..config_electrode_models import (ContactState, ElectrodeModel, ELECTRODE_MODELS, 
-                    MANUFACTURERS, get_all_manufacturers, StimulationRule)
+from ..config_electrode_models import (
+    ContactState,
+    StimulationRule,
+)
 
 
 class ElectrodeCanvas(QWidget):
     """Canvas for drawing 2D electrode visualization with clickable contacts"""
-    
+
     def __init__(self, parent=None):
         """Initialize the electrode canvas with default empty state."""
         super().__init__(parent)
@@ -44,7 +58,7 @@ class ElectrodeCanvas(QWidget):
         """Toggle export mode (tighter padding, larger scale for PNG output)."""
         self.export_mode = bool(enabled)
         self.update()
-        
+
     def set_model(self, model):
         """Set the electrode model and reset all states"""
         self.model = model
@@ -58,13 +72,13 @@ class ElectrodeCanvas(QWidget):
         self.hovered_ring = None
         self.hovered_case = False
         self.update()
-        
+
     def _is_contact_directional(self, contact_idx: int) -> bool:
         """Return True if the given contact index is a segmented (directional) contact."""
         if not self.model:
             return False
         return self.model.is_level_directional(contact_idx)
-        
+
     def calculate_scale(self):
         """Calculate exact scale to fill the canvas with the electrode drawing."""
         if not self.model:
@@ -92,7 +106,7 @@ class ElectrodeCanvas(QWidget):
 
         max_scale = 80 if self.export_mode else 24
         return min(scale, max_scale)
-        
+
     def get_contact_at_pos(self, pos):
         """Return contact (contact_index, segment_index) at mouse position"""
         point = QPointF(pos)
@@ -100,7 +114,7 @@ class ElectrodeCanvas(QWidget):
             if hit_area.contains(point):
                 return contact_id
         return None
-    
+
     def get_ring_at_pos(self, pos):
         """Return ring index at mouse position"""
         for ring_idx, rect in self.ring_rects.items():
@@ -109,13 +123,13 @@ class ElectrodeCanvas(QWidget):
             if rect.adjusted(-pad, -pad, pad, pad).contains(pos):
                 return ring_idx
         return None
-    
+
     def is_case_at_pos(self, pos):
         """Check if mouse is over the case"""
         if self.case_rect and self.case_rect.contains(pos):
             return True
         return False
-    
+
     def _apply_change_if_valid(self, new_contact_states, new_case_state):
         """Apply new contact/case states and invoke validation callback."""
         is_valid, error_msg = StimulationRule.validate_configuration(
@@ -146,7 +160,7 @@ class ElectrodeCanvas(QWidget):
                 del new_states[contact_id]
 
         self._apply_change_if_valid(new_states, self.case_state)
-    
+
     def cycle_case_state(self):
         """Cycle case state: OFF -> ANODIC -> CATHODIC -> OFF"""
         new_case_state = self.case_state
@@ -158,7 +172,7 @@ class ElectrodeCanvas(QWidget):
             new_case_state = ContactState.OFF
 
         self._apply_change_if_valid(dict(self.contact_states), new_case_state)
-    
+
     def set_ring_state(self, ring_idx, state):
         """Set state for all segments of a ring"""
         if not self.model or not self.model.is_directional or not self._is_contact_directional(ring_idx):
@@ -174,7 +188,7 @@ class ElectrodeCanvas(QWidget):
                 new_states[contact_id] = state
 
         self._apply_change_if_valid(new_states, self.case_state)
-        
+
     def mousePressEvent(self, event):
         """Handle clicks on contacts, rings and case"""
         if event.button() == Qt.LeftButton:
@@ -192,7 +206,7 @@ class ElectrodeCanvas(QWidget):
                 for seg in range(3):
                     contact_id = (ring_idx, seg)
                     states.append(self.contact_states.get(contact_id, ContactState.OFF))
-                
+
                 # Determine predominant state
                 if all(s == ContactState.OFF for s in states):
                     new_state = ContactState.ANODIC
@@ -200,30 +214,30 @@ class ElectrodeCanvas(QWidget):
                     new_state = ContactState.CATHODIC
                 else:
                     new_state = ContactState.OFF
-                
+
                 self.set_ring_state(ring_idx, new_state)
                 return
-            
+
             # Check if case was clicked
             if self.is_case_at_pos(event.pos()):
                 self.cycle_case_state()
                 return
-                
+
     def mouseMoveEvent(self, event):
         """Handle hover over contacts, rings and case"""
         old_hovered_contact = self.hovered_contact
         old_hovered_ring = self.hovered_ring
         old_hovered_case = self.hovered_case
-        
+
         self.hovered_case = self.is_case_at_pos(event.pos())
         self.hovered_ring = self.get_ring_at_pos(event.pos())
         self.hovered_contact = self.get_contact_at_pos(event.pos())
-        
-        if (old_hovered_contact != self.hovered_contact or 
+
+        if (old_hovered_contact != self.hovered_contact or
             old_hovered_ring != self.hovered_ring or
             old_hovered_case != self.hovered_case):
             self.update()
-    
+
     def get_state_color(self, state, is_hovered=False):
         """Return color based on state"""
         if state == ContactState.ANODIC:
@@ -232,56 +246,56 @@ class ElectrodeCanvas(QWidget):
         elif state == ContactState.CATHODIC:
             base_color = QColor(100, 150, 255)  # Blue for cathodic
             border_color = QColor(50, 100, 200)
-        else: 
+        else:
             base_color = QColor(150, 150, 150)  # Gray for OFF
             border_color = QColor(50, 50, 50)
-        
+
         if is_hovered:
             base_color = base_color.lighter(120)
             border_color = border_color.lighter(120)
-        
+
         border_width = 3 if state != ContactState.OFF else 1
         if is_hovered:
             border_width += 1
-            
+
         return base_color, border_color, border_width
-            
+
     def paintEvent(self, event):
         """Render the electrode lead, contacts, case, and labels."""
         if not self.model:
             return
-            
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
-        
+
         # Background
         palette = self.palette()
        #painter.fillRect(self.rect(), palette.color(QPalette.Window))
-        
+
         # Calculate optimal scale
         scale = self.calculate_scale()
-        
+
         # Canvas center
         center_x = self.width() / 2 - 4
         top_padding = 2 if self.export_mode else 7
-        
+
         # Clear position dictionaries
         self.contact_rects.clear()
         self.contact_hit_areas.clear()
         self.ring_rects.clear()
-        
+
         # Draw case (ground) at the top
         case_height = 4 * scale
         case_width = self.model.lead_diameter * scale * 1.35 + 10
         case_x = center_x - case_width / 2
         case_y = top_padding
         start_y = case_y + case_height + (8 if self.export_mode else 15)
-        
+
         self.case_rect = QRectF(case_x, case_y, case_width, case_height)
-        
+
         color, border_color, border_width = self.get_state_color(
-            self.case_state, 
+            self.case_state,
             self.hovered_case
         )
         painter.setBrush(QBrush(color))
@@ -291,40 +305,40 @@ class ElectrodeCanvas(QWidget):
         # 3D gradient for case
         case_gradient = QLinearGradient(case_x, case_y, case_x, case_y + case_height)
         color, border_color, border_width = self.get_state_color(
-            self.case_state, 
+            self.case_state,
             self.hovered_case
         )
         case_gradient.setColorAt(0, color.lighter(130))
         case_gradient.setColorAt(0.5, color)
         case_gradient.setColorAt(1, color.darker(120))
-        
+
         painter.setBrush(QBrush(case_gradient))
         painter.setPen(QPen(border_color, border_width))
         painter.drawRoundedRect(self.case_rect, 5, 5)
-        
+
         # Add specular highlight on case
         highlight_rect = QRectF(case_x + 2, case_y + 1, case_width * 0.4, case_height * 0.3)
         painter.setBrush(QColor(255, 255, 255, 40))
         painter.setPen(Qt.NoPen)
         painter.drawRoundedRect(highlight_rect, 3, 3)
-        
+
         # Case label - smaller font in export mode
         painter.setPen(Qt.white if self.case_state != ContactState.OFF else Qt.black)
         case_font_size = max(7, int(scale * 0.35)) if self.export_mode else max(8, int(scale * 0.4))
         font = QFont('Arial', case_font_size, QFont.Bold)
         painter.setFont(font)
         painter.drawText(self.case_rect, Qt.AlignCenter, "CASE")
-        
+
         # Draw electrode body (lead)
         lead_width = self.model.lead_diameter * scale * 1.8
-        
+
         # Calculate where E0 (bottom contact) will be positioned
         contact_height_px = self.model.contact_height * scale
         # E0 is the last contact (index 0), positioned after all other contacts and their spacing
         e0_y_position = start_y + 2 * scale  # Initial offset
         for i in range(self.model.num_contacts - 1):  # All contacts except E0
             e0_y_position += contact_height_px + (self.model.contact_spacing + 1.0) * scale
-        
+
         # Lead body end position depends on electrode type
         if getattr(self.model, 'tip_contact', False):
             # Boston Scientific: lead ends at top of E0 (the tip IS a contact)
@@ -332,22 +346,22 @@ class ElectrodeCanvas(QWidget):
         else:
             # Medtronic/Abbott: lead extends slightly below E0 (0.3mm tail)
             total_height = e0_y_position + contact_height_px + 0.3 * scale - start_y
-        
+
         # Create linear gradient for cylindrical effect (no spotlight)
         lead_gradient = QLinearGradient(
             center_x - lead_width/2, start_y,
             center_x + lead_width/2, start_y
         )
-        
+
         base_color = palette.color(QPalette.Midlight)
         lead_gradient.setColorAt(0, base_color.darker(120))
         lead_gradient.setColorAt(0.3, base_color)
         lead_gradient.setColorAt(0.7, base_color)
         lead_gradient.setColorAt(1, base_color.darker(120))
-        
+
         painter.setBrush(QBrush(lead_gradient))
         painter.setPen(QPen(palette.color(QPalette.Dark), 2))
-        
+
         if getattr(self.model, 'tip_contact', False):
             # Boston Scientific: flat bottom so lead seamlessly meets the tip contact
             corner = lead_width / 4
@@ -393,7 +407,7 @@ class ElectrodeCanvas(QWidget):
             int(lead_width * 0.1),
             int(total_height)
         )
-        
+
         shadow_right = QLinearGradient(
             center_x + lead_width/2 - lead_width * 0.1, start_y,
             center_x + lead_width/2, start_y
@@ -407,17 +421,17 @@ class ElectrodeCanvas(QWidget):
             int(lead_width * 0.1),
             int(total_height)
         )
-        
+
         # Draw contacts with metallic 3D appearance
         current_y = start_y + 2 * scale
         base_extension = lead_width * 0.22 if self.model.is_directional else 0
-         
+
         for i in range(self.model.num_contacts):
             contact_height_px = self.model.contact_height * scale
             contact_number = self.model.num_contacts - 1 - i
             contact_idx = contact_number
             is_directional_contact = self._is_contact_directional(contact_idx)
-             
+
             if is_directional_contact:
                 # Store ring cap position but don't draw yet - will draw after contacts
                 ring_cap_height = contact_height_px * 0.8
@@ -429,15 +443,15 @@ class ElectrodeCanvas(QWidget):
                     ring_cap_height
                 )
                 self.ring_rects[contact_idx] = ring_cap_rect
-                
+
                 #  Directional electrode with 3D metallic segments
                 segment_width = lead_width * 0.5
                 extension = base_extension
-                
+
                 # Helper function to draw 3D segment
                 def draw_3d_segment(poly, state, is_hovered, contact_id, label):
                     color, border, width = self.get_state_color(state, is_hovered)
-                    
+
                     # Create gradient for metallic appearance
                     bounds = poly.boundingRect()
                     segment_gradient = QRadialGradient(
@@ -449,19 +463,19 @@ class ElectrodeCanvas(QWidget):
                     segment_gradient.setColorAt(0.5, color.lighter(110))
                     segment_gradient.setColorAt(0.9, color.darker(110))
                     segment_gradient.setColorAt(1, color.darker(130))
-                    
+
                     # Draw shadow beneath segment
                     shadow_poly = QPolygonF(poly)
                     shadow_poly.translate(1, 2)
                     painter.setBrush(QColor(0, 0, 0, 30))
                     painter.setPen(Qt.NoPen)
                     painter.drawPolygon(shadow_poly)
-                    
+
                     # Draw main segment
                     painter.setBrush(QBrush(segment_gradient))
                     painter.setPen(QPen(border, width))
                     painter.drawPolygon(poly)
-                    
+
                     # Add specular highlight
                     if state != ContactState.OFF:
                         highlight_poly = QPolygonF([
@@ -473,7 +487,7 @@ class ElectrodeCanvas(QWidget):
                         painter.setBrush(QColor(255, 255, 255, 40))
                         painter.setPen(Qt.NoPen)
                         painter.drawPolygon(highlight_poly)
-                    
+
                     self.contact_rects[contact_id] = bounds
                     path = QPainterPath()
                     path.addPolygon(poly)
@@ -481,14 +495,14 @@ class ElectrodeCanvas(QWidget):
                     stroker = QPainterPathStroker()
                     stroker.setWidth(max(10.0, scale * 0.8))
                     self.contact_hit_areas[contact_id] = stroker.createStroke(path).united(path)
-                    
+
                     # Label - smaller font in export mode
                     painter.setPen(Qt.white if state != ContactState.OFF else Qt.black)
                     font_size = max(6, int(scale * 0.3)) if self.export_mode else max(7, int(scale * 0.4))
                     font = QFont('Arial', font_size, QFont.Bold)
                     painter.setFont(font)
                     painter.drawText(bounds, Qt.AlignCenter, label)
-                
+
                 # Segment 'a' (left) - extends left
                 contact_id_a = (contact_idx, 0)
                 state_a = self.contact_states.get(contact_id_a, ContactState.OFF)
@@ -497,7 +511,7 @@ class ElectrodeCanvas(QWidget):
                 # Calculate positions to center b and prevent overlap
                 b_width = lead_width * 0.55
                 b_left = center_x - b_width/2
-                
+
                 x_left = center_x - lead_width/2 - extension
                 poly_a = QPolygonF([
                     QPointF(x_left-2, current_y),
@@ -518,7 +532,7 @@ class ElectrodeCanvas(QWidget):
                     b_width,
                     contact_height_px
                 )
-                
+
                 # Convert rect to polygon for consistent rendering
                 poly_b = QPolygonF([
                     rect_b.topLeft(),
@@ -527,12 +541,12 @@ class ElectrodeCanvas(QWidget):
                     rect_b.bottomLeft()
                 ])
                 draw_3d_segment(poly_b, state_b, is_hovered_b, contact_id_b, "b")
-                
+
                 # Segment 'c' (right) - extends right
                 contact_id_c = (contact_idx, 2)
                 state_c = self.contact_states.get(contact_id_c, ContactState.OFF)
                 is_hovered_c = contact_id_c == self.hovered_contact
-                
+
                 x_right = center_x + lead_width/2 + extension
                 poly_c = QPolygonF([
                     QPointF(b_left + b_width + 2, current_y),  # 2px gap from b
@@ -541,7 +555,7 @@ class ElectrodeCanvas(QWidget):
                     QPointF(b_left + b_width + 2, current_y + contact_height_px)
                 ])
                 draw_3d_segment(poly_c, state_c, is_hovered_c, contact_id_c, "c")
-                
+
                 # Recalculate ring cap to align with segment edges
                 a_left = center_x - lead_width/2 - extension
                 c_right = center_x + lead_width/2 + extension
@@ -553,24 +567,24 @@ class ElectrodeCanvas(QWidget):
                     ring_cap_height
                 )
                 self.ring_rects[contact_idx] = ring_cap_rect  # Update with corrected position
-            
+
             else:
                 # Standard electrode without segments (also used for first/last contacts in directional leads)
                 contact_id = (contact_idx, 0)
                 contact_state = self.contact_states.get(contact_id, ContactState.OFF)
                 is_hovered = contact_id == self.hovered_contact
-                
+
                 color, border_color, border_width = self.get_state_color(
-                    contact_state, 
+                    contact_state,
                     is_hovered
                 )
-                
+
                 painter.setBrush(QBrush(color))
                 painter.setPen(QPen(border_color, border_width))
-                
+
                 # Check if this is the tip contact (E0 on Boston Scientific)
                 is_tip = (contact_idx == 0 and getattr(self.model, 'tip_contact', False))
-                
+
                 # Draw contact with cylindrical gradient
                 rect = QRectF(
                     center_x - lead_width/2 + 2,
@@ -578,7 +592,7 @@ class ElectrodeCanvas(QWidget):
                     lead_width - 4,
                     contact_height_px
                 )
-                
+
                 # Radial gradient for cylindrical contact
                 contact_gradient = QRadialGradient(
                     rect.center().x(),
@@ -589,14 +603,14 @@ class ElectrodeCanvas(QWidget):
                 contact_gradient.setColorAt(0.5, color.lighter(110))
                 contact_gradient.setColorAt(0.85, color.darker(110))
                 contact_gradient.setColorAt(1, color.darker(130))
-                
+
                 if is_tip:
                     # Boston Scientific tip contact: flush with lead body + hemisphere bottom
                     tip_left = center_x - lead_width / 2
                     tip_right = center_x + lead_width / 2
                     tip_width = tip_right - tip_left
                     tip_radius = tip_width / 2
-                    
+
                     tip_path = QPainterPath()
                     tip_path.moveTo(tip_left, current_y)
                     tip_path.lineTo(tip_right, current_y)
@@ -609,7 +623,7 @@ class ElectrodeCanvas(QWidget):
                     )
                     tip_path.arcTo(arc_rect, 0, -180)
                     tip_path.lineTo(tip_left, current_y)
-                    
+
                     tip_bounds = tip_path.boundingRect()
                     contact_gradient_tip = QRadialGradient(
                         tip_bounds.center().x(),
@@ -620,17 +634,17 @@ class ElectrodeCanvas(QWidget):
                     contact_gradient_tip.setColorAt(0.5, color.lighter(110))
                     contact_gradient_tip.setColorAt(0.85, color.darker(110))
                     contact_gradient_tip.setColorAt(1, color.darker(130))
-                    
+
                     shadow_path = QPainterPath(tip_path)
                     shadow_path.translate(0, 2)
                     painter.setBrush(QColor(0, 0, 0, 20))
                     painter.setPen(Qt.NoPen)
                     painter.drawPath(shadow_path)
-                    
+
                     painter.setBrush(QBrush(contact_gradient_tip))
                     painter.setPen(QPen(border_color, border_width))
                     painter.drawPath(tip_path)
-                    
+
                     if contact_state != ContactState.OFF:
                         highlight_rect = QRectF(
                             tip_left + tip_width * 0.15,
@@ -641,7 +655,7 @@ class ElectrodeCanvas(QWidget):
                         painter.setBrush(QColor(255, 255, 255, 50))
                         painter.setPen(Qt.NoPen)
                         painter.drawRoundedRect(highlight_rect, 2, 2)
-                    
+
                     self.contact_rects[contact_id] = tip_bounds
                     stroker = QPainterPathStroker()
                     stroker.setWidth(max(10.0, scale * 0.9))
@@ -653,11 +667,11 @@ class ElectrodeCanvas(QWidget):
                     painter.setBrush(QColor(0, 0, 0, 20))
                     painter.setPen(Qt.NoPen)
                     painter.drawRoundedRect(shadow_rect, 3, 3)
-                    
+
                     painter.setBrush(QBrush(contact_gradient))
                     painter.setPen(QPen(border_color, border_width))
                     painter.drawRoundedRect(rect, 3, 3)
-                    
+
                     if contact_state != ContactState.OFF:
                         highlight_rect = QRectF(
                             rect.left() + rect.width() * 0.15,
@@ -668,23 +682,23 @@ class ElectrodeCanvas(QWidget):
                         painter.setBrush(QColor(255, 255, 255, 50))
                         painter.setPen(Qt.NoPen)
                         painter.drawRoundedRect(highlight_rect, 2, 2)
-                    
+
                     self.contact_rects[contact_id] = rect
                     path = QPainterPath()
                     path.addRoundedRect(rect, 3, 3)
                     stroker = QPainterPathStroker()
                     stroker.setWidth(max(10.0, scale * 0.9))
                     self.contact_hit_areas[contact_id] = stroker.createStroke(path).united(path)
-            
+
             # Contact number on the left - smaller font in export mode
             painter.setPen(palette.color(QPalette.Text))
             elabel_size = max(7, int(scale * 0.35)) if self.export_mode else max(10, int(scale * 0.5))
             font = QFont('Arial', elabel_size, QFont.Bold)
             painter.setFont(font)
-            
+
             label_extension = base_extension if is_directional_contact else 0
             extra_offset = label_extension + 15 if is_directional_contact else 0
-            
+
             # Adjust horizontal position for better alignment
             if is_directional_contact:
                 label_x = center_x - lead_width/2 - label_extension - 22 - extra_offset
@@ -693,10 +707,10 @@ class ElectrodeCanvas(QWidget):
                 contact_rect_x = center_x - lead_width/2 + 2
                 contact_rect_width = lead_width - 4
                 label_x = contact_rect_x + contact_rect_width/2 - 30
-            
+
             # Label format
             contact_label = f"E{contact_idx}"
-            
+
             painter.drawText(
                 int(label_x),
                 int(current_y),
@@ -705,14 +719,14 @@ class ElectrodeCanvas(QWidget):
                 Qt.AlignVCenter | Qt.AlignRight,
                 contact_label
             )
-            
+
             # Spacing between contacts - reasonable vertical space for clickability
             current_y += contact_height_px + (self.model.contact_spacing + 1.0) * scale
-        
+
         # Draw ring caps on top of contacts (after all contacts are drawn)
         for contact_idx, ring_cap_rect in self.ring_rects.items():
             # Cap color based on ring state
-            ring_states = [self.contact_states.get((contact_idx, seg), ContactState.OFF) 
+            ring_states = [self.contact_states.get((contact_idx, seg), ContactState.OFF)
                           for seg in range(3)]
             if all(s == ContactState.ANODIC for s in ring_states):
                 ring_state = ContactState.ANODIC
@@ -720,13 +734,13 @@ class ElectrodeCanvas(QWidget):
                 ring_state = ContactState.CATHODIC
             else:
                 ring_state = ContactState.OFF
-            
+
             is_ring_hovered = self.hovered_ring == contact_idx
             cap_color, cap_border, cap_width = self.get_state_color(
-                ring_state, 
+                ring_state,
                 is_ring_hovered
             )
-            
+
             # 3D gradient for ring cap
             ring_gradient = QLinearGradient(
                 ring_cap_rect.left(),
@@ -737,19 +751,19 @@ class ElectrodeCanvas(QWidget):
             ring_gradient.setColorAt(0, cap_color.lighter(150))
             ring_gradient.setColorAt(0.3, cap_color.lighter(120))
             ring_gradient.setColorAt(1, cap_color.darker(80))
-            
+
             # Draw shadow
             shadow_rect = QRectF(ring_cap_rect)
             shadow_rect.translate(0, 1)
             painter.setBrush(QColor(0, 0, 0, 25))
             painter.setPen(Qt.NoPen)
             painter.drawRoundedRect(shadow_rect, 3, 3)
-            
+
             # Draw ring cap
             painter.setBrush(QBrush(ring_gradient))
             painter.setPen(QPen(cap_border, cap_width))
             painter.drawRoundedRect(ring_cap_rect, 3, 3)
-            
+
             # Add highlight
             if ring_state != ContactState.OFF:
                 highlight = QRectF(
@@ -761,7 +775,7 @@ class ElectrodeCanvas(QWidget):
                 painter.setBrush(QColor(255, 255, 255, 50))
                 painter.setPen(Qt.NoPen)
                 painter.drawRoundedRect(highlight, 2, 2)
-            
+
             # Ring label - smaller font in export mode
             painter.setPen(Qt.white if ring_state != ContactState.OFF else Qt.black)
             ring_font_size = max(6, int(scale * 0.3)) if self.export_mode else max(7, int(scale * 0.3))
@@ -769,7 +783,7 @@ class ElectrodeCanvas(QWidget):
             painter.setFont(font)
             painter.drawText(ring_cap_rect, Qt.AlignCenter, "Ring")
 
-        
+
     def resizeEvent(self, event):
         """Redraw when window is resized"""
         super().resizeEvent(event)

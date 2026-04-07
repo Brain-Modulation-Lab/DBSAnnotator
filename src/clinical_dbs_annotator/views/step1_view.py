@@ -5,13 +5,13 @@ This module contains the view for the first step of the wizard where users
 configure initial settings, stimulation parameters, and clinical scales.
 """
 
-from typing import Callable, List, Tuple, Dict, Optional
 import json
 import os
+from collections.abc import Callable
 from datetime import datetime
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QDoubleValidator, QFont, QIntValidator, QPixmap, QIcon
+from PyQt5.QtGui import QDoubleValidator, QIcon, QIntValidator, QPixmap
 from PyQt5.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -25,9 +25,9 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QStyle,
     QTextEdit,
-    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -37,12 +37,22 @@ from ..config import (
     PRESET_BUTTONS,
     STIMULATION_LIMITS,
 )
-from ..ui import IncrementWidget, create_horizontal_line, FileDropLineEdit, AmplitudeSplitWidget, get_cathode_labels
+from ..config_electrode_models import (
+    ELECTRODE_MODELS,
+    MANUFACTURERS,
+    ContactState,
+    get_all_manufacturers,
+)
+from ..models import ElectrodeCanvas
+from ..ui import (
+    AmplitudeSplitWidget,
+    FileDropLineEdit,
+    IncrementWidget,
+    get_cathode_labels,
+)
 from ..ui.clinical_scales_settings_dialog import ClinicalScalesSettingsDialog
 from ..utils.resources import resource_path
 from .base_view import BaseStepView
-from ..models import ElectrodeCanvas
-from ..config_electrode_models import ContactState, ElectrodeModel, ELECTRODE_MODELS, MANUFACTURERS, get_all_manufacturers 
 
 
 class Step1View(BaseStepView):
@@ -65,10 +75,10 @@ class Step1View(BaseStepView):
         """
         super().__init__()
         self.parent_style = parent_style
-        self.clinical_scales_rows: List[Tuple[QLineEdit, QLineEdit, QHBoxLayout]] = []
+        self.clinical_scales_rows: list[tuple[QLineEdit, QLineEdit, QHBoxLayout]] = []
         self.current_file_mode = None  # Track file mode: 'existing', 'new', or None
-        self.next_block_id: Optional[int] = None
-        self.active_preset_button: Optional[QPushButton] = None  # Track active preset
+        self.next_block_id: int | None = None
+        self.active_preset_button: QPushButton | None = None  # Track active preset
 
         self.left_canvas = ElectrodeCanvas()
         self.right_canvas = ElectrodeCanvas()
@@ -76,10 +86,10 @@ class Step1View(BaseStepView):
         self.right_canvas.validation_callback = self._on_right_canvas_validation
         self._left_selection_valid = True
         self._right_selection_valid = True
-        
+
         # Load custom presets
         self.clinical_presets = self._load_clinical_presets()
-        
+
         self._setup_ui()
 
     def get_header_title(self) -> str:
@@ -90,7 +100,7 @@ class Step1View(BaseStepView):
         """Create an SVG gear icon coloured to match the current theme."""
         # Get theme-appropriate icon color from theme definitions
         fill_color = self._get_theme_icon_color()
-        
+
         svg = f"""
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
@@ -99,7 +109,7 @@ class Step1View(BaseStepView):
         pixmap = QPixmap()
         pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
         return QIcon(pixmap)
-    
+
     def _get_theme_icon_color(self) -> str:
         """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
         from ..utils.theme_manager import get_theme_manager
@@ -127,7 +137,7 @@ class Step1View(BaseStepView):
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
-        
+
         # Left side: File + Initial settings
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
@@ -200,7 +210,7 @@ class Step1View(BaseStepView):
         group_row_layout = QHBoxLayout()
         self.group_combo = QComboBox()
         self.group_combo.addItems(["A", "B", "C", "D", "None"])
-        self.group_combo.setCurrentText("None") 
+        self.group_combo.setCurrentText("None")
         group_row_layout.addWidget(self.group_combo)
         group_row.setLayout(group_row_layout)
 
@@ -211,7 +221,7 @@ class Step1View(BaseStepView):
         left_group = QGroupBox("Left")
         left_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         left_group_layout = QVBoxLayout()
-        
+
         freq_row = QHBoxLayout()
         freq_row.addWidget(QLabel("Frequency:"))
         freq_row.addStretch()
@@ -228,7 +238,7 @@ class Step1View(BaseStepView):
             max_value=freq_limits["max"],
         )
         freq_row.addWidget(left_freq_widget)
-        
+
         amp_row = QHBoxLayout()
         amp_row.addWidget(QLabel("Amplitude:"))
         amp_row.addStretch()
@@ -245,7 +255,7 @@ class Step1View(BaseStepView):
             max_value=amp_limits["max"],
         )
         amp_row.addWidget(left_amp_widget)
-        
+
         pw_row = QHBoxLayout()
         pw_row.addWidget(QLabel("Pulse width:"))
         pw_row.addStretch()
@@ -262,7 +272,7 @@ class Step1View(BaseStepView):
             max_value=pw_limits["max"],
         )
         pw_row.addWidget(left_pw_widget)
-        
+
         self.left_amp_split = AmplitudeSplitWidget(self.left_amp_edit)
 
         left_group_layout.addLayout(freq_row)
@@ -288,7 +298,7 @@ class Step1View(BaseStepView):
         right_group = QGroupBox("Right")
         right_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         right_group_layout = QVBoxLayout()
-        
+
         freq_row = QHBoxLayout()
         freq_row.addWidget(QLabel("Frequency:"))
         freq_row.addStretch()
@@ -305,7 +315,7 @@ class Step1View(BaseStepView):
             max_value=freq_limits["max"],
         )
         freq_row.addWidget(right_freq_widget)
-        
+
         amp_row = QHBoxLayout()
         amp_row.addWidget(QLabel("Amplitude:"))
         amp_row.addStretch()
@@ -322,7 +332,7 @@ class Step1View(BaseStepView):
             max_value=amp_limits["max"],
         )
         amp_row.addWidget(right_amp_widget)
-        
+
         pw_row = QHBoxLayout()
         pw_row.addWidget(QLabel("Pulse width:"))
         pw_row.addStretch()
@@ -339,7 +349,7 @@ class Step1View(BaseStepView):
             max_value=pw_limits["max"],
         )
         pw_row.addWidget(right_pw_widget)
-        
+
         self.right_amp_split = AmplitudeSplitWidget(self.right_amp_edit)
 
         right_group_layout.addLayout(freq_row)
@@ -381,7 +391,7 @@ class Step1View(BaseStepView):
                 background: transparent;
             }
         """)
-        
+
         sidebar_scroll.setWidgetResizable(True)
         sidebar_scroll.setFrameShape(QFrame.NoFrame)
         sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -456,7 +466,7 @@ class Step1View(BaseStepView):
         """Populate model combo box based on selected manufacturer"""
         self.model_combo.blockSignals(True)  # Prevent triggering on_model_changed during population
         self.model_combo.clear()
-        
+
         if manufacturer == "All Manufacturers":
             # Add all models sorted alphabetically
             all_models = sorted(ELECTRODE_MODELS.keys())
@@ -465,29 +475,29 @@ class Step1View(BaseStepView):
             # Add models for specific manufacturer
             models = MANUFACTURERS.get(manufacturer, [])
             self.model_combo.addItems(models)
-        
+
         self.model_combo.blockSignals(False)
-            
+
     def on_manufacturer_changed(self, manufacturer):
         """Handle manufacturer selection change"""
         self.populate_models(manufacturer)
         if self.model_combo.count() > 0:
             self.on_model_changed(self.model_combo.currentText())
-        
+
     def on_model_changed(self, model_name):
         """Handle model selection change"""
         if not model_name:
             return
-            
+
         model = ELECTRODE_MODELS.get(model_name)
         if not model:
             return
-            
+
         self.left_canvas.set_model(model)
         self.right_canvas.set_model(model)
-        
+
         self.update_configuration_display()
-        
+
     def update_configuration_display(self):
         """Update stimulation configuration display"""
         if not hasattr(self, "left_config_label") or not hasattr(self, "right_config_label"):
@@ -495,7 +505,7 @@ class Step1View(BaseStepView):
 
         self.left_config_label.setText("✓ Configuration valid")
         self.right_config_label.setText("✓ Configuration valid")
-        
+
         self._apply_config_validation_styles()
 
     def _apply_config_validation_styles(self) -> None:
@@ -516,7 +526,7 @@ class Step1View(BaseStepView):
                 self.left_config_label.style().polish(self.left_config_label)
                 self.left_config_label.update()
                 self.left_config_label.repaint()
-                
+
         if hasattr(self, "right_config_box") and hasattr(self, "right_config_label"):
             if not self._right_selection_valid:
                 self.right_config_box.setStyleSheet("border: 2px solid #cc0000;")
@@ -585,7 +595,7 @@ class Step1View(BaseStepView):
         """Return underscore-separated cathode token string for the right electrode."""
         return self._get_anode_cathode_texts(self.right_canvas)[1]
 
-    def _get_anode_cathode_texts(self, canvas: ElectrodeCanvas) -> Tuple[str, str]:
+    def _get_anode_cathode_texts(self, canvas: ElectrodeCanvas) -> tuple[str, str]:
         """Build anode and cathode token strings from the canvas contact states."""
         model = canvas.model
         if not model:
@@ -667,7 +677,7 @@ class Step1View(BaseStepView):
                     except Exception:
                         continue
                     continue
-                
+
                 # Legacy support for old format
                 if token.endswith(" ring"):
                     idx_str = token.replace(" ring", "")
@@ -702,7 +712,7 @@ class Step1View(BaseStepView):
             self.left_amp_split.update_cathodes(get_cathode_labels(self.left_canvas))
         elif canvas is self.right_canvas and hasattr(self, "right_amp_split"):
             self.right_amp_split.update_cathodes(get_cathode_labels(self.right_canvas))
-        
+
     def reset_all(self):
         """Reset all contacts and case"""
         self.left_canvas.contact_states.clear()
@@ -716,7 +726,7 @@ class Step1View(BaseStepView):
             self.left_amp_split.update_cathodes([])
         if hasattr(self, "right_amp_split"):
             self.right_amp_split.update_cathodes([])
-        
+
     def export_configuration(self):
         """Export current configuration to console"""
         left_model = self.left_canvas.model
@@ -738,7 +748,7 @@ class Step1View(BaseStepView):
     def _create_upload_tsv_group(self) -> QGroupBox:
         """Create the file upload group with drop zone, Open, and New buttons."""
         gb_upload = QGroupBox("Upload TSV file")
-        gb_upload.setFixedHeight(100)          
+        gb_upload.setFixedHeight(100)
         gb_upload.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         layout = QHBoxLayout(gb_upload)
@@ -782,7 +792,7 @@ class Step1View(BaseStepView):
         preset_row = QHBoxLayout()
         self.preset_buttons = []
         #preset_row.addStretch(1)
-        
+
         # Settings button
         settings_btn = QPushButton()
         settings_btn.setIcon(self._create_settings_icon())
@@ -790,9 +800,9 @@ class Step1View(BaseStepView):
         settings_btn.setToolTip("Settings clinical scales")
         settings_btn.clicked.connect(self._open_clinical_scales_settings)
         preset_row.addWidget(settings_btn)
-        
+
         layout.addLayout(preset_row)
-        
+
         # Store the layout for later updates
         self.preset_row_layout = preset_row
 
@@ -802,7 +812,7 @@ class Step1View(BaseStepView):
         # Container for dynamic scale rows - expands to show all rows
         scroll_content = QWidget()
       # scroll_content.setStyleSheet("background: transparent; border: none;")
-        scroll_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  
+        scroll_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.clinical_scales_container = QVBoxLayout(scroll_content)
         self.clinical_scales_container.setContentsMargins(0, 0, 0, 0)
 
@@ -822,7 +832,7 @@ class Step1View(BaseStepView):
         scroll_area.setFrameShape(QScrollArea.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
+        scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         scroll_area.setWidget(scroll_content)
 
         layout.addWidget(scroll_area)
@@ -832,7 +842,7 @@ class Step1View(BaseStepView):
     def _create_notes_group(self) -> QGroupBox:
         """Create the initial notes group box."""
         gb_notes = QGroupBox("Initial notes")
-        gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
+        gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         layout = QVBoxLayout(gb_notes)
         layout.setSpacing(10)
@@ -848,8 +858,8 @@ class Step1View(BaseStepView):
 
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlaceholderText("Type your notes here...")
-        self.notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
-        self.notes_edit.setMinimumHeight(100)  
+        self.notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.notes_edit.setMinimumHeight(100)
         layout.addWidget(self.notes_edit)
 
         return gb_notes
@@ -888,7 +898,7 @@ class Step1View(BaseStepView):
         max_block = -1
 
         try:
-            with open(file_path, "r", newline="", encoding="utf-8") as f:
+            with open(file_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     try:
@@ -926,7 +936,7 @@ class Step1View(BaseStepView):
             # Load data from the latest initial session (highest session_id)
             if max_session_id >= 0 and max_session_id in initial_rows:
                 latest_initial = initial_rows[max_session_id]["row"]
-                
+
                 # Load electrode model (if present in file)
                 model_name = latest_initial.get("electrode_model", None)
                 if model_name not in (None, "") and hasattr(self, "model_combo"):
@@ -935,7 +945,7 @@ class Step1View(BaseStepView):
                         self.on_model_changed(self.model_combo.currentText())
                     except Exception:
                         pass
-                
+
                 # Load group
                 group_val = latest_initial.get("group_ID", None)
                 if group_val not in (None, "") and hasattr(self, "group_combo"):
@@ -947,10 +957,10 @@ class Step1View(BaseStepView):
                 # Load clinical scales
                 block0_scales = []
                 # Re-read file to get all scales from the latest initial session
-                with open(file_path, "r", newline="", encoding="utf-8") as f:
+                with open(file_path, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
                     for row in reader:
-                        if (row.get("session_ID") == str(max_session_id) and 
+                        if (row.get("session_ID") == str(max_session_id) and
                             row.get("is_initial") == "1"):
                             sname = row.get("scale_name", None)
                             sval = row.get("scale_value", None)
@@ -971,7 +981,7 @@ class Step1View(BaseStepView):
                 # Update clinical scales UI
                 # Store scales for later if callbacks not ready yet
                 self._pending_scales = block0_scales if block0_scales else []
-                
+
                 if block0_scales and hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
                     for _, _, row_layout in self.clinical_scales_rows:
                         while row_layout.count():
@@ -981,7 +991,7 @@ class Step1View(BaseStepView):
                                 widget.deleteLater()
                         self.clinical_scales_container.removeItem(row_layout)
                     self.clinical_scales_rows = []
-                    
+
                     # Remove any existing stretches from container
                     while self.clinical_scales_container.count():
                         item = self.clinical_scales_container.takeAt(0)
@@ -1002,7 +1012,7 @@ class Step1View(BaseStepView):
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to load file: {str(e)}")
-    
+
     def _parse_amplitude_for_display(self, amplitude_str: str) -> str:
         """Parse amplitude string for display: sum underscore-separated values.
         
@@ -1011,7 +1021,7 @@ class Step1View(BaseStepView):
         """
         if not amplitude_str:
             return amplitude_str
-        
+
         # Check if this is a split amplitude (contains underscore)
         if '_' in amplitude_str:
             try:
@@ -1023,9 +1033,9 @@ class Step1View(BaseStepView):
             except (ValueError, TypeError):
                 # If parsing fails, return original
                 return amplitude_str
-        
+
         return amplitude_str
-    
+
     def _load_stimulation_parameters(self, row: dict) -> None:
         """Restore stimulation edits + electrode selections from a TSV row."""
         # Text fields
@@ -1056,50 +1066,51 @@ class Step1View(BaseStepView):
             pass
 
         self.update_configuration_display()
-        
+
         # Update amplitude split widgets with original split values if present
         left_amp_raw = str(row.get("left_amplitude", "") or "")
         right_amp_raw = str(row.get("right_amplitude", "") or "")
-        
+
         if hasattr(self, "left_amp_split") and left_amp_raw and '_' in left_amp_raw:
             self.left_amp_split.set_amplitude_from_split(left_amp_raw)
-        
+
         if hasattr(self, "right_amp_split") and right_amp_raw and '_' in right_amp_raw:
             self.right_amp_split.set_amplitude_from_split(right_amp_raw)
 
     def create_new_file(self) -> None:
         """Create new file with BIDS-style naming."""
         from datetime import datetime
-        from PyQt5.QtWidgets import QDialog, QFormLayout, QDialogButtonBox
+
+        from PyQt5.QtWidgets import QDialog, QDialogButtonBox
 
         # First, ask for patient ID and session number
         dialog = QDialog(self)
         dialog.setWindowTitle("New Session Information")
         dialog.setMinimumWidth(300)
-        
+
         layout = QFormLayout(dialog)
-        
+
         patient_edit = QLineEdit()
         patient_edit.setText("01")
-        
+
         run_edit = QLineEdit()
         run_edit.setText("01")
-        
+
         layout.addRow("Patient ID:", patient_edit)
         layout.addRow("Run:", run_edit)
-        
+
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addRow(buttons)
-        
+
         if dialog.exec_() != QDialog.Accepted:
             return
-        
+
         patient_id = patient_edit.text().strip() or "01"
         session_num = str(datetime.now().astimezone().strftime("%Y%m%d"))
         run_num = run_edit.text().strip() or "01"
-        
+
         # Store for later use in report
         self.bids_patient_id = patient_id
         self.bids_session_num = session_num
@@ -1135,7 +1146,7 @@ class Step1View(BaseStepView):
         return self.findChild(QPushButton, f"preset_{preset_name}")
 
     def update_clinical_scales(
-        self, preset_scales: List[str], on_add_callback: Callable, on_remove_callback: Callable
+        self, preset_scales: list[str], on_add_callback: Callable, on_remove_callback: Callable
     ) -> None:
         """
         Update the clinical scales UI with the given scales.
@@ -1148,7 +1159,7 @@ class Step1View(BaseStepView):
         # Store callbacks for preset buttons
         self.on_add_callback = on_add_callback
         self.on_remove_callback = on_remove_callback
-        
+
         # Check if we have pending scales from file load
         if hasattr(self, '_pending_scales') and self._pending_scales:
             # Use pending scales instead of preset_scales
@@ -1163,7 +1174,7 @@ class Step1View(BaseStepView):
                 else:
                     # Legacy: just a name string, convert to tuple
                     scales_to_load.append((item, ""))
-        
+
         # Clear existing rows
         for _, _, row_layout in self.clinical_scales_rows:
             while row_layout.count():
@@ -1173,7 +1184,7 @@ class Step1View(BaseStepView):
                     widget.deleteLater()
             self.clinical_scales_container.removeItem(row_layout)
         self.clinical_scales_rows = []
-        
+
         # Remove any existing stretches from container
         while self.clinical_scales_container.count():
             item = self.clinical_scales_container.takeAt(0)
@@ -1199,10 +1210,10 @@ class Step1View(BaseStepView):
 
         # Add empty row with add button
         self._add_clinical_scale_row("", with_plus=True, on_add=on_add_callback)
-        
+
         # Add stretch at the bottom to push content up
         self.clinical_scales_container.addStretch()
-        
+
         # Connect preset buttons to their respective scales (only now that callbacks are available)
         self._connect_preset_buttons()
 
@@ -1214,14 +1225,14 @@ class Step1View(BaseStepView):
                 btn.clicked.disconnect()
             except:
                 pass
-            
+
             # Get the preset name from object name
             preset_name = btn.objectName().replace("preset_", "")
-            
+
             # Get the scales for this preset from clinical_presets
             if preset_name in self.clinical_presets:
                 preset_scales = self.clinical_presets[preset_name]
-                
+
                 if preset_scales and isinstance(preset_scales, list):
                     # Create a proper closure using a function
                     def create_preset_handler(scales, button):
@@ -1229,12 +1240,12 @@ class Step1View(BaseStepView):
                             self._set_active_preset_button(button)
                             self._apply_preset_scales(scales)
                         return handler
-                    
+
                     btn.clicked.connect(create_preset_handler(preset_scales, btn))
                 else:
                     # Still connect with empty list as fallback
                     btn.clicked.connect(lambda: self._apply_preset_scales([]))
-                
+
     def _set_active_preset_button(self, button: QPushButton) -> None:
         """Set the active preset button and update visual state."""
         # Clear previous active button
@@ -1242,19 +1253,19 @@ class Step1View(BaseStepView):
             self.active_preset_button.setProperty("active", "false")
             self.active_preset_button.style().unpolish(self.active_preset_button)
             self.active_preset_button.style().polish(self.active_preset_button)
-        
+
         # Set new active button
         self.active_preset_button = button
         if button is not None:
             button.setProperty("active", "true")
             button.style().unpolish(button)
             button.style().polish(button)
-    
-    def _apply_preset_scales(self, scales: List[str]):
+
+    def _apply_preset_scales(self, scales: list[str]):
         """Apply a preset's scales to the clinical scales section."""
         if not isinstance(scales, list):
             return
-            
+
         if hasattr(self, 'on_add_callback') and hasattr(self, 'on_remove_callback'):
             # Clear existing scales first
             for _, _, row_layout in self.clinical_scales_rows:
@@ -1265,7 +1276,7 @@ class Step1View(BaseStepView):
                         widget.deleteLater()
                 self.clinical_scales_container.removeItem(row_layout)
             self.clinical_scales_rows = []
-            
+
             # Also remove any stretches from container
             while self.clinical_scales_container.count():
                 item = self.clinical_scales_container.takeAt(0)
@@ -1277,15 +1288,15 @@ class Step1View(BaseStepView):
                 else:
                     # Remove layout items
                     continue
-            
+
             # Add the preset scales
             for scale_name in scales:
                 self._add_clinical_scale_row(scale_name, with_minus=True, on_remove=self.on_remove_callback)
-            
+
             # Add empty row with add button
             self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
-            
-            # Add stretch at the very bottom 
+
+            # Add stretch at the very bottom
             self.clinical_scales_container.addStretch()
 
     def _add_clinical_scale_row(
@@ -1327,7 +1338,7 @@ class Step1View(BaseStepView):
             # Fallback placeholder (prevents UnboundLocalError)
             btn = QLabel("")
             btn.setFixedWidth(24)
-                
+
         # Add widgets to row
         row.addWidget(QLabel("Name:"))
         row.addWidget(name_edit)
@@ -1341,13 +1352,13 @@ class Step1View(BaseStepView):
         self.clinical_scales_container.addLayout(row)
         self.clinical_scales_rows.append((name_edit, score_edit, row))
 
-    def _load_clinical_presets(self) -> Dict[str, List[str]]:
+    def _load_clinical_presets(self) -> dict[str, list[str]]:
         """Load clinical presets from config file."""
         presets_file = resource_path("config/clinical_presets.json")
-        
+
         if os.path.exists(presets_file):
             try:
-                with open(presets_file, 'r', encoding='utf-8') as f:
+                with open(presets_file, encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
                 print(f"Error loading clinical presets: {e}")
@@ -1362,29 +1373,29 @@ class Step1View(BaseStepView):
         dialog.presets_changed.connect(self._on_presets_changed)
         dialog.exec_()
 
-    def _on_presets_changed(self, new_presets: Dict[str, List[str]]):
+    def _on_presets_changed(self, new_presets: dict[str, list[str]]):
         """Handle presets change from settings dialog."""
         old_presets = self.clinical_presets
         self.clinical_presets = new_presets
-        
+
         # Save all presets to file immediately
         try:
             presets_file = resource_path("config/clinical_presets.json")
             os.makedirs(os.path.dirname(presets_file), exist_ok=True)
-            
+
             with open(presets_file, 'w', encoding='utf-8') as f:
                 json.dump(new_presets, f, indent=2, ensure_ascii=False)
-                
+
         except Exception as e:
             print(f"Error saving presets: {e}")
-        
+
         # Check if any currently displayed preset was modified or deleted
         current_scales = []
         for name_edit, _, _ in self.clinical_scales_rows:
             scale_name = name_edit.text().strip()
             if scale_name:
                 current_scales.append(scale_name)
-        
+
         # Find which preset contains current scales
         current_preset = None
         if len(current_scales) > 0:
@@ -1392,21 +1403,21 @@ class Step1View(BaseStepView):
                 if all(scale in preset_scales for scale in current_scales):
                     current_preset = preset_name
                     break
-        
+
         # Refresh preset buttons
         self._refresh_preset_buttons()
-        
+
         # Reconnect buttons with new scales
         if hasattr(self, 'on_add_callback') and hasattr(self, 'on_remove_callback'):
             self._connect_preset_buttons()
-            
+
             # If we found a current preset, check if it was modified
             if current_preset:
                 if current_preset in new_presets:
                     # Check if scales actually changed
                     old_scales = old_presets[current_preset]
                     new_scales = new_presets[current_preset]
-                    
+
                     if old_scales != new_scales:
                         # Preset was modified - apply new scales
                         self._apply_preset_scales(new_scales)
@@ -1421,10 +1432,10 @@ class Step1View(BaseStepView):
             btn.setParent(None)
             btn.deleteLater()
         self.preset_buttons.clear()
-        
+
         # Use the stored preset row layout
         preset_row = self.preset_row_layout
-        
+
         if preset_row:
             # Remove all existing widgets from preset row (except stretch and settings button)
             widgets_to_remove = []
@@ -1434,12 +1445,12 @@ class Step1View(BaseStepView):
                     widget = item.widget()
                     if widget and widget.objectName() != "settings_clincal_scales":
                         widgets_to_remove.append(widget)
-            
+
             for widget in widgets_to_remove:
                 preset_row.removeWidget(widget)
                 widget.setParent(None)
                 widget.deleteLater()
-                    
+
             # Find the settings button and its position
             settings_btn = None
             settings_index = -1
@@ -1451,7 +1462,7 @@ class Step1View(BaseStepView):
                         settings_btn = widget
                         settings_index = i
                         break
-            
+
             if settings_btn is None:
                 return
 
@@ -1473,7 +1484,7 @@ class Step1View(BaseStepView):
             insert_index = stretch_index
 
             # Prefer showing defaults first IF they exist in the current presets
-            ordered_names: List[str] = []
+            ordered_names: list[str] = []
             for name in PRESET_BUTTONS:
                 if name in self.clinical_presets:
                     ordered_names.append(name)
@@ -1489,7 +1500,7 @@ class Step1View(BaseStepView):
                 insert_index += 1
                 settings_index += 1
                 stretch_index += 1
-            
+
             # Reconnect all preset buttons after refresh
             if hasattr(self, 'on_add_callback') and hasattr(self, 'on_remove_callback'):
                 self._connect_preset_buttons()

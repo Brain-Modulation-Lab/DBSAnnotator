@@ -6,7 +6,6 @@ used in DBS programming sessions.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -19,7 +18,7 @@ class ClinicalScale:
         value: The score/value for this scale (optional)
     """
     name: str
-    value: Optional[str] = None
+    value: str | None = None
 
     def is_valid(self) -> bool:
         """Check if the scale has both name and value."""
@@ -43,7 +42,7 @@ class SessionScale:
     name: str
     min_value: str = "0"
     max_value: str = "10"
-    current_value: Optional[str] = None
+    current_value: str | None = None
 
     def is_valid(self) -> bool:
         """Check if the scale has a valid name."""

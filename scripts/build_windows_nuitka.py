@@ -14,7 +14,6 @@ Options:
 """
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -143,19 +142,19 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
         import subprocess
         result = subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
         print("\n✅ Build completed successfully!")
-        
+
         # Show output location
         if onefile:
             exe_path = DIST_DIR / f"{NAME}.exe"
         else:
             exe_path = DIST_DIR / f"{NAME}.dist" / f"{NAME}.exe"
-        
+
         if exe_path.exists():
             print(f"📦 Executable: {exe_path}")
             print(f"📊 Size: {exe_path.stat().st_size / (1024*1024):.1f} MB")
         else:
             print("⚠️  Executable not found at expected location")
-            
+
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Build failed with exit code {e.returncode}")
         sys.exit(1)
@@ -166,16 +165,16 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
 # -------------------------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build Windows executable with Nuitka")
-    parser.add_argument("--console", action="store_true", 
+    parser.add_argument("--console", action="store_true",
                        help="Include console window (useful for debugging)")
-    parser.add_argument("--onefile", action="store_true", 
+    parser.add_argument("--onefile", action="store_true",
                        help="Create single .exe file (default: directory bundle)")
-    
+
     args = parser.parse_args()
-    
+
     print("=== Clinical DBS Annotator Nuitka Build ===")
     print(f"Console: {'Yes' if args.console else 'No'}")
     print(f"Onefile: {'Yes' if args.onefile else 'No'}")
     print()
-    
+
     build_nuitka(console=args.console, onefile=args.onefile)

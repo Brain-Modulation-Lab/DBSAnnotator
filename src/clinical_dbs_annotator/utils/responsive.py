@@ -5,8 +5,8 @@ This module provides functions to scale UI elements based on screen DPI
 and resolution, ensuring consistent appearance across different displays.
 """
 
+
 from PyQt5.QtWidgets import QApplication
-from typing import Union
 
 
 def get_dpi_scale() -> float:
@@ -29,7 +29,7 @@ def get_dpi_scale() -> float:
     return logical_dpi / base_dpi
 
 
-def scale_value(value: Union[int, float], dpi_scale: float = None) -> int:
+def scale_value(value: int | float, dpi_scale: float = None) -> int:
     """
     Scale a value based on DPI.
 

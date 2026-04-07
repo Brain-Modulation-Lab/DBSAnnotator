@@ -5,39 +5,42 @@ This module contains the view for the third step where users actively record
 session data including stimulation parameters and scale values.
 """
 
-from typing import List, Tuple
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import (
-    QAction,
     QComboBox,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QPushButton,
-    QFormLayout,
-    QGroupBox,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QStyle,
     QTextEdit,
-    QSplitter,
     QVBoxLayout,
     QWidget,
-    QMenu,
-    QFrame
 )
 
 from ..config import (
     PLACEHOLDERS,
-    SESSION_SCALE_LIMITS,
     STIMULATION_LIMITS,
 )
-from ..ui import IncrementWidget, ScaleProgressWidget, create_horizontal_line, AmplitudeSplitWidget, get_cathode_labels
-from .base_view import BaseStepView
-from ..models import ElectrodeCanvas
 from ..config_electrode_models import ContactState, StimulationRule
+from ..models import ElectrodeCanvas
+from ..ui import (
+    AmplitudeSplitWidget,
+    IncrementWidget,
+    ScaleProgressWidget,
+    create_horizontal_line,
+    get_cathode_labels,
+)
+from .base_view import BaseStepView
 
 
 class Step3View(BaseStepView):
@@ -87,7 +90,7 @@ class Step3View(BaseStepView):
         left_container_layout.setContentsMargins(0, 0, 0, 0)
 
         params_group = self._create_stimulation_params_group()
-        
+
         # Wrap sidebar in a scroll area like step1_view
         sidebar_widget = params_group
         sidebar_scroll = QScrollArea()
@@ -105,7 +108,7 @@ class Step3View(BaseStepView):
         sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         sidebar_scroll.setWidget(sidebar_widget)
-        
+
         left_container_layout.addWidget(sidebar_scroll, 1)
 
         electrodes_layout = QVBoxLayout()
@@ -169,18 +172,18 @@ class Step3View(BaseStepView):
             self.parent_style.standardIcon(QStyle.SP_DialogCloseButton)
         )
         self.close_button.setMinimumWidth(170)
-        
+
         # Create dropdown menu for export options
         self.export_menu = QMenu(self)
-        
-        # Word export action  
+
+        # Word export action
         self.export_word_action = self.export_menu.addAction("📄 Word Report")
         self.export_word_action.setToolTip("Export to Word (.docx) document")
-        
+
         # PDF export action
         self.export_pdf_action = self.export_menu.addAction("📋 PDF Report")
         self.export_pdf_action.setToolTip("Export to PDF document")
-        
+
         # Set menu to button
         self.export_button.setMenu(self.export_menu)
 
@@ -257,7 +260,7 @@ class Step3View(BaseStepView):
             max_value=pw_limits["max"],
         )
         pw_row.addWidget(left_pw_widget)
-      
+
         self.left_amp_split = AmplitudeSplitWidget(self.session_left_amp_edit)
 
         left_group_layout.addLayout(freq_row)
@@ -504,7 +507,7 @@ class Step3View(BaseStepView):
         """Return underscore-separated cathode token string for the right electrode."""
         return self._get_anode_cathode_texts(self.right_canvas)[1]
 
-    def _get_anode_cathode_texts(self, canvas: ElectrodeCanvas) -> Tuple[str, str]:
+    def _get_anode_cathode_texts(self, canvas: ElectrodeCanvas) -> tuple[str, str]:
         """Build anode and cathode token strings from the canvas contact states."""
         model = canvas.model
         if not model:
@@ -559,7 +562,7 @@ class Step3View(BaseStepView):
     def _create_notes_group(self) -> QGroupBox:
         """Create the session notes group box."""
         gb_notes = QGroupBox("Session notes")
-        gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
+        gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         layout = QVBoxLayout(gb_notes)
         layout.setSpacing(10)
@@ -576,8 +579,8 @@ class Step3View(BaseStepView):
         # Annotation text area
         self.session_notes_edit = QTextEdit()
         self.session_notes_edit.setPlaceholderText("Type your notes here...")
-        self.session_notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
-        self.session_notes_edit.setMinimumHeight(100)  
+        self.session_notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.session_notes_edit.setMinimumHeight(100)
         layout.addWidget(self.session_notes_edit)
 
         return gb_notes
@@ -669,7 +672,7 @@ class Step3View(BaseStepView):
         self.session_left_pw_edit.setText(left_pw)
         self.session_right_stim_freq_edit.setText(right_frequency)
         self.session_right_pw_edit.setText(right_pw)
-        
+
         # Handle amplitude: if split (contains _), calculate total and set total in field
         # The AmplitudeSplitWidget will handle distribution based on cathode contacts
         left_total_amp = self._parse_amplitude_total(left_amp)
@@ -702,7 +705,7 @@ class Step3View(BaseStepView):
         """
         if not amp_str or "_" not in amp_str:
             return amp_str
-        
+
         try:
             parts = amp_str.split("_")
             total = sum(float(p) for p in parts)

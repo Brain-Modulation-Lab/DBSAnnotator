@@ -5,10 +5,10 @@ This module handles application initialization, theme loading,
 and main window creation.
 """
 
-import sys
-import traceback
 import os
+import sys
 import tempfile
+import traceback
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
@@ -57,8 +57,8 @@ def main() -> int:
 
         # Run application
         return app.exec_()
-        
-    except Exception as e:
+
+    except Exception:
         print("FATAL ERROR:")
         traceback.print_exc()
         try:

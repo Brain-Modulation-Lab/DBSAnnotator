@@ -5,7 +5,6 @@ This module contains the main controller that coordinates between the
 views and models, handling user interactions and data flow.
 """
 
-from typing import List, Optional, Tuple
 
 from PyQt5.QtWidgets import QMessageBox
 
@@ -13,8 +12,8 @@ from ..config import (
     CLINICAL_SCALES_PRESETS,
     SESSION_SCALES_PRESETS,
 )
-from ..models import ClinicalScale, SessionData, SessionScale, StimulationParameters
 from ..config_electrode_models import ELECTRODE_MODELS
+from ..models import ClinicalScale, SessionData, SessionScale, StimulationParameters
 from ..utils import animate_button
 
 
@@ -36,12 +35,12 @@ class WizardController:
         self.current_stimulation = StimulationParameters()
         self.current_group: str = ""
         self.current_electrode_model_name: str = ""
-        self.session_scales_names: List[str] = []
-        self.session_scales_data: List[Tuple[str, str, str]] = []
+        self.session_scales_names: list[str] = []
+        self.session_scales_data: list[tuple[str, str, str]] = []
         # Scale optimization preferences: (name, min, max, mode, custom_value)
         # mode: "low", "high", "custom", "ignore"
-        self.scale_optimization_prefs: List[Tuple[str, str, str, str, str]] = []
-        self.workflow_mode: Optional[str] = None  # "full" or "annotations_only"
+        self.scale_optimization_prefs: list[tuple[str, str, str, str, str]] = []
+        self.workflow_mode: str | None = None  # "full" or "annotations_only"
         self._session_exporter = None  # Lazy-loaded SessionExporter
 
     @property
@@ -355,7 +354,7 @@ class WizardController:
             # Check if widget is disabled (X button clicked)
             if hasattr(value_widget, "isDisabled") and value_widget.isDisabled():
                 scale_value = "NaN"
-            elif hasattr(value_widget, "value") and callable(getattr(value_widget, "value")):
+            elif hasattr(value_widget, "value") and callable(value_widget.value):
                 try:
                     scale_value = f"{float(value_widget.value()) / 4.0:.2f}"
                 except Exception:
@@ -406,13 +405,13 @@ class WizardController:
         """
         # Show confirmation dialog
         reply = QMessageBox.question(
-            parent, 
+            parent,
             "Confirm Close Session",
             "Are you sure you want to close the current session? The session will be saved before closing.",
             QMessageBox.Ok | QMessageBox.Cancel,
             QMessageBox.Cancel
         )
-        
+
         if reply == QMessageBox.Ok:
             self.session_data.close_file()
             QMessageBox.information(
@@ -456,8 +455,9 @@ class WizardController:
             view: The AnnotationsFileView instance
             parent: The parent widget for dialogs
         """
-        from PyQt5.QtWidgets import QFileDialog
         import os
+
+        from PyQt5.QtWidgets import QFileDialog
 
         # Get current path if available
         current_path = view.file_path_edit.text()

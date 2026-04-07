@@ -13,30 +13,31 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from PyQt5.QtWidgets import QApplication, QPushButton
+
 from clinical_dbs_annotator.views import (
     Step0View,
     Step1View,
     Step2View,
     Step3View,
-    WizardWindow
+    WizardWindow,
 )
 
 
 class TestStep0View(unittest.TestCase):
     """Test Step 0 view functionality."""
-    
+
     def setUp(self):
         """Set up test environment."""
         self.app = QApplication(sys.argv)
         self.view = Step0View()
-    
+
     def test_view_creates_successfully(self):
         """Test that Step0View creates without errors."""
         # This should not raise any exceptions
         self.assertIsNotNone(self.view)
         self.assertIsNotNone(self.view.full_mode_button)
         self.assertIsNotNone(self.view.annotations_only_button)
-    
+
     def test_buttons_are_push_buttons(self):
         """Test that buttons are QPushButton instances."""
         self.assertIsInstance(self.view.full_mode_button, QPushButton)
@@ -45,12 +46,12 @@ class TestStep0View(unittest.TestCase):
 
 class TestStep1View(unittest.TestCase):
     """Test Step 1 view functionality."""
-    
+
     def setUp(self):
         """Set up test environment."""
         self.app = QApplication(sys.argv)
         self.view = Step1View()
-    
+
     def test_view_creates_successfully(self):
         """Test that Step1View creates without errors."""
         self.assertIsNotNone(self.view)
@@ -60,12 +61,12 @@ class TestStep1View(unittest.TestCase):
 
 class TestStep2View(unittest.TestCase):
     """Test Step 2 view functionality."""
-    
+
     def setUp(self):
         """Set up test environment."""
         self.app = QApplication(sys.argv)
         self.view = Step2View()
-    
+
     def test_view_creates_successfully(self):
         """Test that Step2View creates without errors."""
         self.assertIsNotNone(self.view)
@@ -75,19 +76,19 @@ class TestStep2View(unittest.TestCase):
 
 class TestStep3View(unittest.TestCase):
     """Test Step 3 view functionality."""
-    
+
     def setUp(self):
         """Set up test environment."""
         self.app = QApplication(sys.argv)
         self.view = Step3View()
-    
+
     def test_view_creates_successfully(self):
         """Test that Step3View creates without errors."""
         self.assertIsNotNone(self.view)
         self.assertIsNotNone(self.view.insert_button)
         self.assertIsNotNone(self.view.close_button)
         self.assertIsNotNone(self.view.export_button)
-    
+
     def test_export_menu_exists(self):
         """Test that export menu exists."""
         self.assertIsNotNone(self.view.export_menu)
@@ -97,12 +98,12 @@ class TestStep3View(unittest.TestCase):
 
 class TestWizardWindow(unittest.TestCase):
     """Test main wizard window."""
-    
+
     def setUp(self):
         """Set up test environment."""
         self.app = QApplication(sys.argv)
         self.window = WizardWindow()
-    
+
     def test_window_creates_successfully(self):
         """Test that WizardWindow creates without errors."""
         self.assertIsNotNone(self.window)
@@ -115,7 +116,7 @@ class TestWizardWindow(unittest.TestCase):
 
 class TestViewBasicFunctionality(unittest.TestCase):
     """Test basic view functionality across all views."""
-    
+
     def test_all_views_import_successfully(self):
         """Test that all views can be imported."""
         # This tests that our imports work correctly

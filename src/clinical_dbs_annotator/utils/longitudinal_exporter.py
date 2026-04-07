@@ -10,20 +10,19 @@ import os
 import re
 import tempfile
 from datetime import datetime
-from typing import List, Optional, Tuple
 
 import pandas as pd
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QWidget
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt, RGBColor
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import Inches, Pt, RGBColor
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QWidget
 
-from .. import __version__, __app_name__
+from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
-from ..config_electrode_models import ContactState, ELECTRODE_MODELS, MANUFACTURERS
+from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 
 
 class LongitudinalExporter:
@@ -41,7 +40,7 @@ class LongitudinalExporter:
     # ------------------------------------------------------------------
 
     def export_to_word(
-        self, file_paths: List[str], parent: Optional[QWidget] = None, sections=None
+        self, file_paths: list[str], parent: QWidget | None = None, sections=None
     ) -> bool:
         """Export longitudinal report to Word format."""
         try:
@@ -78,7 +77,7 @@ class LongitudinalExporter:
             return False
 
     def export_to_pdf(
-        self, file_paths: List[str], parent: Optional[QWidget] = None, sections=None
+        self, file_paths: list[str], parent: QWidget | None = None, sections=None
     ) -> bool:
         """Export longitudinal report to PDF (via intermediate Word)."""
         try:
@@ -127,7 +126,7 @@ class LongitudinalExporter:
     # Report building
     # ------------------------------------------------------------------
 
-    def _build_report(self, file_paths: List[str], out_path: str, sections=None) -> bool:
+    def _build_report(self, file_paths: list[str], out_path: str, sections=None) -> bool:
         """Read all files, merge, and build the Word document."""
         # Sort files chronologically by earliest date+time in each file
         def get_file_datetime(path):
@@ -150,10 +149,10 @@ class LongitudinalExporter:
                 return pd.Timestamp("1900-01-01")
             except Exception:
                 return pd.Timestamp("1900-01-01")
-        
+
         # Sort files from oldest to newest
         file_paths = sorted(file_paths, key=get_file_datetime)
-        
+
         frames = []
         for path in file_paths:
             try:
@@ -242,7 +241,7 @@ class LongitudinalExporter:
     # ------------------------------------------------------------------
 
     def _add_sessions_overview(
-        self, doc: Document, df: pd.DataFrame, file_paths: List[str]
+        self, doc: Document, df: pd.DataFrame, file_paths: list[str]
     ) -> None:
         """Add a summary table listing each session file with date and entry count."""
         doc.add_heading("Sessions Overview", level=1)
@@ -282,7 +281,7 @@ class LongitudinalExporter:
             session_rows = sub_df
             if "is_initial" in sub_df.columns:
                 session_rows = sub_df[sub_df["is_initial"] == 0]
-            
+
             # Count unique block_ids (entries)
             if "block_id" in session_rows.columns:
                 unique_entries = session_rows["block_id"].nunique()
@@ -297,31 +296,31 @@ class LongitudinalExporter:
                 baseline_df = sub_df.copy()
                 if "is_initial" in baseline_df.columns:
                     baseline_df = baseline_df[pd.to_numeric(baseline_df["is_initial"], errors="coerce").fillna(0).astype(int) == 1]
-                
+
                 if not baseline_df.empty and "block_id" in baseline_df.columns:
                     try:
                         baseline_df["block_id_num"] = pd.to_numeric(baseline_df["block_id"], errors="coerce")
                         max_block = baseline_df["block_id_num"].max()
-                        
+
                         # Get ALL rows with the highest block_id (there could be multiple)
                         max_block_rows = baseline_df[baseline_df["block_id_num"] == max_block]
-                        
+
                         # Collect all scale pairs from these rows
                         all_scales = {}
                         for _, row in max_block_rows.iterrows():
                             sn = str(row.get("scale_name", "") or "").strip()
                             sv = str(row.get("scale_value", "") or "").strip()
-                            
+
                             if sn and sv:
                                 sn_lines = [s.strip() for s in sn.split("\n") if s.strip()]
                                 sv_lines = [s.strip() for s in sv.split("\n") if s.strip()]
-                                
+
                                 # Store scales, keeping first non-NaN value per scale name
                                 for name, val in zip(sn_lines, sv_lines):
                                     if val != "NaN" and val.strip() != "NaN":
                                         if name not in all_scales:
                                             all_scales[name] = val
-                        
+
                         # Convert to list of tuples
                         scale_pairs = list(all_scales.items())
                     except Exception:
@@ -331,7 +330,7 @@ class LongitudinalExporter:
             row_cells[5].text = "\n".join(p[1] for p in scale_pairs) if scale_pairs else ""
 
     def _add_electrode_config_section(
-        self, doc: Document, df_all: pd.DataFrame, file_paths: List[str]
+        self, doc: Document, df_all: pd.DataFrame, file_paths: list[str]
     ) -> None:
         """Add per-file electrode configuration (Initial / Final, Left / Right).
 
@@ -493,7 +492,7 @@ class LongitudinalExporter:
             doc.add_paragraph("")
 
     def _add_programming_summary(
-        self, doc: Document, df_all: pd.DataFrame, file_paths: List[str]
+        self, doc: Document, df_all: pd.DataFrame, file_paths: list[str]
     ) -> None:
         """Add a per-session programming summary table."""
         if df_all is None or df_all.empty:
@@ -563,7 +562,7 @@ class LongitudinalExporter:
 
     def _add_longitudinal_data_table(
         self, doc: Document, df_session: pd.DataFrame,
-        file_paths: Optional[List[str]] = None,
+        file_paths: list[str] | None = None,
     ) -> None:
         """Add the main longitudinal data table with green highlighting."""
         doc.add_heading("Session Data", level=1)
@@ -617,7 +616,6 @@ class LongitudinalExporter:
             used = sum(w for j, w in enumerate(widths) if j != ni)
             widths[ni] = max(1.5, page_w - used)
 
-        from docx.shared import Twips
         w_twips = [Inches(max(0.25, w)) for w in widths]
         for row in table.rows:
             for idx, cell in enumerate(row.cells):
@@ -694,8 +692,8 @@ class LongitudinalExporter:
     ) -> None:
         """Add a rainbow-colored timeline chart of scale trends with a general index line."""
         import math as _math
-        from io import BytesIO
         from collections import defaultdict
+        from io import BytesIO
 
         doc.add_heading("Scale Trends", level=2)
 
@@ -747,8 +745,8 @@ class LongitudinalExporter:
 
         try:
             import pyqtgraph as pg
-            from PyQt5.QtGui import QColor, QFont, QPen, QBrush
             from PyQt5.QtCore import QBuffer, QIODevice, Qt
+            from PyQt5.QtGui import QBrush, QColor, QFont, QPen
 
             pg.setConfigOptions(useOpenGL=False, antialias=True)
 
@@ -793,7 +791,7 @@ class LongitudinalExporter:
             # --- General Index on same plot (if >= 2 scales) ---
             if has_index:
                 all_sessions = sorted({s for pts in scale_data.values() for s in pts})
-                
+
                 # Create scale targets dictionary from preferences
                 scale_targets = {}
                 if self.scale_optimization_prefs:
@@ -809,22 +807,22 @@ class LongitudinalExporter:
                                     scale_targets[name] = {"type": "custom", "value": float(custom_val)}
                                 except ValueError:
                                     scale_targets[name] = {"type": "custom", "value": 0.0}
-                
+
                 index_vals = {}
                 for s in all_sessions:
                     weighted_scores = []
                     weights = []
-                    
+
                     for scale_name in scale_data:
                         if s in scale_data[scale_name]:
                             original_value = scale_data[scale_name][s]
-                            
+
                             # Get target for this scale
                             if scale_name in scale_targets:
                                 target_info = scale_targets[scale_name]
                                 target_type = target_info["type"]
                                 target_value = target_info["value"]
-                                
+
                                 # Calculate distance from target (lower is better)
                                 if target_type == "min":
                                     # For minimization: lower values are better
@@ -844,7 +842,7 @@ class LongitudinalExporter:
                                     max_distance = max(abs(v - target_value) for v in scale_data[scale_name].values())
                                     # Normalize: 0 = at target, 1 = worst
                                     normalized_score = distance / max_distance if max_distance > 0 else 0
-                                
+
                                 # Convert to proximity score (higher is better)
                                 proximity_score = 1.0 - normalized_score
                                 weighted_scores.append(proximity_score)
@@ -853,7 +851,7 @@ class LongitudinalExporter:
                                 # No target defined: use neutral score
                                 weighted_scores.append(0.5)  # Neutral middle value
                                 weights.append(0.5)  # Lower weight for scales without targets
-                    
+
                     if weighted_scores and weights:
                         # Calculate weighted average of proximity scores
                         total_weight = sum(weights)
@@ -918,11 +916,11 @@ class LongitudinalExporter:
             for _, r in block_df.iterrows():
                 sn = str(r.get("scale_name", "") or "").strip()
                 sv = str(r.get("scale_value", "") or "").strip()
-                
+
                 # Skip if scale value is NaN or empty
                 if not sv or sv == "NaN" or sv.strip() == "NaN":
                     continue
-                
+
                 if sn and (sn, sv) not in seen:
                     seen.add((sn, sv))
                     scale_pairs.append((sn, sv))
@@ -1063,11 +1061,13 @@ class LongitudinalExporter:
         anode_text: str,
         cathode_text: str,
         target_size_px: tuple = (440, 900),
-    ) -> Optional[str]:
+    ) -> str | None:
         """Render electrode configuration to a temporary PNG file."""
         try:
+            from PyQt5.QtGui import QColor as _QColor
+            from PyQt5.QtGui import QPainter, QPixmap
+
             from ..models import ElectrodeCanvas
-            from PyQt5.QtGui import QPixmap, QPainter, QColor as _QColor
 
             model = ELECTRODE_MODELS.get(model_name)
             if not model:
@@ -1198,7 +1198,7 @@ class LongitudinalExporter:
         return m.get(col, col.replace("_", " ").title())
 
     @staticmethod
-    def _extract_patient_id(file_paths: List[str]) -> str:
+    def _extract_patient_id(file_paths: list[str]) -> str:
         for fp in file_paths:
             m = re.search(r"sub-([^_]+)", os.path.basename(fp))
             if m:
@@ -1206,7 +1206,7 @@ class LongitudinalExporter:
         return ""
 
     @staticmethod
-    def _generate_filename(file_paths: List[str], ext: str) -> str:
+    def _generate_filename(file_paths: list[str], ext: str) -> str:
         today = datetime.now().astimezone().strftime("%Y%m%d")
         pid = LongitudinalExporter._extract_patient_id(file_paths)
         if pid:
@@ -1310,8 +1310,8 @@ class LongitudinalExporter:
 
     def _convert_docx_to_pdf(self, docx_path: str, pdf_path: str) -> None:
         """Convert Word → PDF using the same strategy as SessionExporter."""
-        import subprocess
         import shutil
+        import subprocess
 
         errors = []
 
@@ -1362,6 +1362,6 @@ class LongitudinalExporter:
                 errors.append(f"LibreOffice: {e}")
 
         raise RuntimeError(
-            f"Could not convert to PDF:\n" + "\n".join(errors)
+            "Could not convert to PDF:\n" + "\n".join(errors)
             + "\n\nPlease export to Word and convert manually."
         )

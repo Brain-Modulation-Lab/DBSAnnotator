@@ -9,6 +9,7 @@ Usage:
 """
 
 import sys
+
 from clinical_dbs_annotator.__main__ import main
 
 if __name__ == "__main__":

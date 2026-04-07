@@ -6,9 +6,6 @@ Tests the clinical scales, stimulation parameters, and session data models.
 
 import os
 import tempfile
-from pathlib import Path
-
-import pytest
 
 from clinical_dbs_annotator.models import (
     ClinicalScale,
@@ -196,7 +193,7 @@ class TestSessionData:
             session.close_file()
 
             # Verify file content
-            with open(tmp_path, "r", encoding="utf-8") as f:
+            with open(tmp_path, encoding="utf-8") as f:
                 lines = f.readlines()
                 assert len(lines) == 3  # header + 2 scale rows
                 assert "YBOCS" in lines[1]
@@ -228,7 +225,7 @@ class TestSessionData:
             session.close_file()
 
             # Verify file content
-            with open(tmp_path, "r", encoding="utf-8") as f:
+            with open(tmp_path, encoding="utf-8") as f:
                 lines = f.readlines()
                 assert len(lines) == 3  # header + 2 scale rows
                 assert "Mood" in lines[1]

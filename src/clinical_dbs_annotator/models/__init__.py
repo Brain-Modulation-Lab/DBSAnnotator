@@ -6,9 +6,9 @@ stimulation parameters, and session information.
 """
 
 from .clinical_scale import ClinicalScale, SessionScale
-from .stimulation import StimulationParameters
-from .session_data import SessionData
 from .electrode_viewer import ElectrodeCanvas
+from .session_data import SessionData
+from .stimulation import StimulationParameters
 
 __all__ = [
     "ClinicalScale",

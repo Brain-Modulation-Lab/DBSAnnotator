@@ -5,24 +5,25 @@ This module contains views for the simplified workflow that only
 handles file naming and text annotations.
 """
 
-from PyQt5.QtCore import Qt, QSize
+import os
+
+from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
+    QFileDialog,
     QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
     QStyle,
     QTextEdit,
-    QSizePolicy,
-    QFileDialog,
-    QMessageBox,
-    QMenu,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtGui import QFont
+
 from ..ui import FileDropLineEdit
-import os
 
 
 class AnnotationsFileView(QWidget):
@@ -49,7 +50,7 @@ class AnnotationsFileView(QWidget):
         self.next_button.setIcon(self.parent_style.standardIcon(QStyle.SP_ArrowForward))
         self.next_button.setIconSize(QSize(16, 16))
         self.next_button.setMaximumWidth(120)
-        
+
         # Add the next button to the layout
         self.main_layout.addWidget(self.next_button)
 
@@ -85,7 +86,7 @@ class AnnotationsFileView(QWidget):
             self.file_path_edit.setText(file_path)
             self.current_file_mode = "existing"
 
-            with open(file_path, "r", newline="", encoding="utf-8") as f:
+            with open(file_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     try:
@@ -95,16 +96,17 @@ class AnnotationsFileView(QWidget):
                         bid = int(float(bid_raw))
                     except Exception:
                         continue
-        
+
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to load file: {str(e)}")
-    
+
 
     def create_new_file(self) -> None:
         """Create new file with BIDS-style naming via a dialog."""
         from datetime import datetime
-        from PyQt5.QtWidgets import QDialog, QFormLayout, QDialogButtonBox, QLineEdit
+
+        from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
 
         dialog = QDialog(self)
         dialog.setWindowTitle("New Session Information")
@@ -161,7 +163,7 @@ class AnnotationsFileView(QWidget):
     def _create_upload_tsv_group(self) -> QGroupBox:
         """Create the file upload group with drop zone, Open, and New buttons."""
         gb_upload = QGroupBox("Upload TSV file")
-        gb_upload.setFixedHeight(100)          
+        gb_upload.setFixedHeight(100)
         gb_upload.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         layout = QHBoxLayout(gb_upload)
@@ -255,7 +257,7 @@ class AnnotationsSessionView(QWidget):
         # Annotation text area
         self.annotation_edit = QTextEdit()
         self.annotation_edit.setPlaceholderText("Type your notes here...")
-        self.annotation_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
+        self.annotation_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.annotation_edit.setMinimumHeight(50)
         layout.addWidget(self.annotation_edit)
 

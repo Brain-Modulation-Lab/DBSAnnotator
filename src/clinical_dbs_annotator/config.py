@@ -5,7 +5,6 @@ This module contains all constants, presets, and configuration values used
 throughout the application.
 """
 
-from typing import Dict, List, Tuple
 
 # Application metadata
 APP_NAME = "BML Annotator for DBS clinical programming sessions"
@@ -27,7 +26,7 @@ WINDOW_SIZE_RATIO = {
 # Responsive window size ratios based on screen size
 RESPONSIVE_WINDOW_RATIOS = {
     "small": {"width": 0.9, "height": 0.85},   # < 1400px width
-    "medium": {"width": 0.85, "height": 0.8}, # 1400-1919px width  
+    "medium": {"width": 0.85, "height": 0.8}, # 1400-1919px width
     "large": {"width": 0.75, "height": 0.75},  # >= 1920px width
 }
 
@@ -96,7 +95,7 @@ SESSION_SCALE_LIMITS = {
 }
 
 # Clinical scales presets
-CLINICAL_SCALES_PRESETS: Dict[str, List[str]] = {
+CLINICAL_SCALES_PRESETS: dict[str, list[str]] = {
     "OCD": ["YBOCS", "YBOCS-o", "YBOCS-c", "MADRS"],
     "MDD": ["MADRS"],
     "PD": ["UPDRS", "PDQ"],
@@ -104,7 +103,7 @@ CLINICAL_SCALES_PRESETS: Dict[str, List[str]] = {
 }
 
 # Session scales presets (name, min, max)
-SESSION_SCALES_PRESETS: Dict[str, List[Tuple[str, str, str]]] = {
+SESSION_SCALES_PRESETS: dict[str, list[tuple[str, str, str]]] = {
     "OCD": [
         ("Mood", "0", "10"),
         ("Anxiety", "0", "10"),

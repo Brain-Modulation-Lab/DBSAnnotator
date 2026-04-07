@@ -36,24 +36,24 @@ class StimulationRule:
         """
         # Rule 1: If case is cathodic, no other contact can be cathodic
         if case_state == ContactState.CATHODIC:
-            cathodic_contacts = [cid for cid, state in contact_states.items() 
+            cathodic_contacts = [cid for cid, state in contact_states.items()
                                 if state == ContactState.CATHODIC]
             if cathodic_contacts:
                 return False, "When CASE is cathodic, no other contacts can be cathodic"
 
         # Rule 2: If case is anodic, no other contact can be anodic
         if case_state == ContactState.ANODIC:
-            anodic_contacts = [cid for cid, state in contact_states.items() 
+            anodic_contacts = [cid for cid, state in contact_states.items()
                                if state == ContactState.ANODIC]
             if anodic_contacts:
                 return False, "When CASE is anodic, no other contacts can be anodic"
-        
+
         # Rule 3: At least one anodic contact must exist if any cathodic contact exists
         has_cathodic = any(state == ContactState.CATHODIC for state in contact_states.values())
         has_anodic = case_state == ContactState.ANODIC or any(
             state == ContactState.ANODIC for state in contact_states.values()
         )
-        
+
         if has_cathodic and not has_anodic:
             return False, "At least one anodic contact (or CASE) required when using cathodic contacts"
 
@@ -66,9 +66,9 @@ class StimulationRule:
                 is_valid, error_msg = result
                 if not is_valid:
                     return False, error_msg
-        
+
         return True, ""
-    
+
     @staticmethod
     def get_suggested_fix(contact_states, case_state):
         """
@@ -82,25 +82,25 @@ class StimulationRule:
             str: Suggestion message
         """
         if case_state == ContactState.CATHODIC:
-            cathodic_contacts = [cid for cid, state in contact_states.items() 
+            cathodic_contacts = [cid for cid, state in contact_states.items()
                                 if state == ContactState.CATHODIC]
             if cathodic_contacts:
                 return "Suggestion: Turn off cathodic contacts or switch CASE to anodic/off"
-        
+
         has_cathodic = any(state == ContactState.CATHODIC for state in contact_states.values())
         has_anodic = case_state == ContactState.ANODIC or any(
             state == ContactState.ANODIC for state in contact_states.values()
         )
-        
+
         if has_cathodic and not has_anodic:
             return "Suggestion: Add at least one anodic contact or set CASE to anodic"
-        
+
         return ""
 
 
 class ElectrodeModel:
     """Base class for electrode models"""
-    def __init__(self, name, num_contacts, contact_height, contact_spacing, 
+    def __init__(self, name, num_contacts, contact_height, contact_spacing,
                  lead_diameter, is_directional=False, tip_contact=False,
                  directional_levels=None):
         self.name = name
@@ -161,7 +161,7 @@ MEDTRONIC_B33005 = ElectrodeModel(
     contact_height=1.5,
     contact_spacing=0.5,
     lead_diameter=1.27,
-    is_directional=True 
+    is_directional=True
 )
 
 MEDTRONIC_B33015 = ElectrodeModel(
@@ -343,13 +343,13 @@ ELECTRODE_MODELS = {
     'Medtronic 3391': MEDTRONIC_3391,
     'Medtronic SenSight B33005': MEDTRONIC_B33005,
     'Medtronic SenSight B33015': MEDTRONIC_B33015,
-    
+
     # Boston Scientific
     'Boston Scientific Vercise': BOSTON_VERCISE,
     'Boston Scientific Vercise Directed': BOSTON_VERCISE_DIRECTED,
     'Boston Scientific Vercise Cartesia HX': BOSTON_VERCISE_CARTESIA_HX,
     'Boston Scientific Vercise Cartesia X': BOSTON_VERCISE_CARTESIA_X,
-    
+
     # Abbott (St. Jude)
     'Abbott ActiveTip 6142-6145': ABBOTT_ACTIVETIP_6142_6145,
     'Abbott ActiveTip 6146-6149': ABBOTT_ACTIVETIP_6146_6149,
@@ -358,12 +358,12 @@ ELECTRODE_MODELS = {
     # 'Abbott Infinity 6172': ABBOTT_INFINITY_6172,
     # 'Abbott Infinity 6173': ABBOTT_INFINITY_6173,
     # 'Abbott Infinity Directed': ABBOTT_INFINITY_DIRECTED,
-    
+
     # PINS Medical
     'PINS Medical L301': PINS_L301,
     'PINS Medical L302': PINS_L302,
     'PINS Medical L303': PINS_L303,
-    
+
     # ALEVA
     'ALEVA directSTIM': ALEVA_DIRECTSTIM,
 }

@@ -5,8 +5,9 @@ Provides a QLineEdit subclass that accepts file drops, invoking a callback
 with the dropped file path.
 """
 
+from collections.abc import Callable
+
 from PyQt5.QtWidgets import QLineEdit
-from typing import Callable
 
 
 class FileDropLineEdit(QLineEdit):

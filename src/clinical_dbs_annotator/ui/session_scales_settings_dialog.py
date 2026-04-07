@@ -7,7 +7,6 @@ Provides a dialog for creating, editing, and deleting session-scale presets
 
 import json
 import os
-from typing import Dict, List, Tuple
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal
 from PyQt5.QtGui import QCloseEvent, QFont
@@ -35,7 +34,7 @@ class SessionScalesSettingsDialog(QDialog):
 
     def __init__(
         self,
-        current_presets: Dict[str, List[Tuple[str, str, str]]],
+        current_presets: dict[str, list[tuple[str, str, str]]],
         parent=None,
         original_presets=None,
     ):
@@ -146,7 +145,7 @@ class SessionScalesSettingsDialog(QDialog):
         file_presets = {}
         if os.path.exists(self.presets_file):
             try:
-                with open(self.presets_file, "r", encoding="utf-8") as f:
+                with open(self.presets_file, encoding="utf-8") as f:
                     file_presets = json.load(f)
             except Exception:
                 file_presets = {}
@@ -160,7 +159,7 @@ class SessionScalesSettingsDialog(QDialog):
 
         self._update_presets_list()
 
-    def _format_scales(self, scales: List[Tuple[str, str, str]]) -> str:
+    def _format_scales(self, scales: list[tuple[str, str, str]]) -> str:
         """Format a list of (name, min, max) tuples into a readable string."""
         parts = []
         for n, mn, mx in scales:
@@ -191,7 +190,7 @@ class SessionScalesSettingsDialog(QDialog):
         self.preset_name_edit.setText(preset_name)
         self.scales_edit.setText(", ".join([f"{n}:{mn}-{mx}" for n, mn, mx in scales]))
 
-    def _parse_scales(self, text: str) -> List[Tuple[str, str, str]]:
+    def _parse_scales(self, text: str) -> list[tuple[str, str, str]]:
         """Parse user-entered text into a list of (name, min, max) tuples."""
         text = (text or "").strip()
         if not text:
@@ -200,7 +199,7 @@ class SessionScalesSettingsDialog(QDialog):
         parts = [p.strip() for p in text.replace("\n", ",").split(",")]
         parts = [p for p in parts if p]
 
-        scales: List[Tuple[str, str, str]] = []
+        scales: list[tuple[str, str, str]] = []
         for part in parts:
             if ":" in part:
                 name, rest = part.split(":", 1)

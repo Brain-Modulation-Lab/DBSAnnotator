@@ -6,27 +6,25 @@ multiple annotation files from the same patient, then generate a unified
 longitudinal report.
 """
 
+import csv
 import os
 import re
-import csv
-from typing import List, Dict, Tuple, Optional
 
-from PyQt5.QtCore import Qt, QSize, QMimeData
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
-    QGroupBox,
-    QStyle,
-    QSizePolicy,
+    QAbstractItemView,
     QFileDialog,
-    QMessageBox,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
     QListWidget,
     QListWidgetItem,
-    QAbstractItemView,
     QMenu,
+    QPushButton,
+    QSizePolicy,
+    QStyle,
+    QVBoxLayout,
+    QWidget,
 )
 
 
@@ -95,7 +93,7 @@ class LongitudinalFileView(QWidget):
         """Initialize the longitudinal file view."""
         super().__init__(parent)
         self.parent_style = self.style()
-        self.loaded_files: List[str] = []
+        self.loaded_files: list[str] = []
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
@@ -207,7 +205,7 @@ class LongitudinalFileView(QWidget):
 
         return gb
 
-    def _on_files_dropped(self, paths: List[str]) -> None:
+    def _on_files_dropped(self, paths: list[str]) -> None:
         """Handle files dropped onto the drop zone."""
         added = 0
         for path in paths:
@@ -283,30 +281,30 @@ class LongitudinalFileView(QWidget):
             self.warning_label.setVisible(False)
 
     @staticmethod
-    def _extract_patient_id(file_path: str) -> Optional[str]:
+    def _extract_patient_id(file_path: str) -> str | None:
         """Extract patient ID (sub-XXX) from a BIDS-like filename."""
         m = re.search(r"sub-([^_]+)", os.path.basename(file_path))
         return m.group(1) if m else None
 
-    def get_loaded_files(self) -> List[str]:
+    def get_loaded_files(self) -> list[str]:
         """Return the list of loaded file paths."""
         return list(self.loaded_files)
 
     @staticmethod
     def extract_session_scales_from_files(
-        file_paths: List[str],
-    ) -> List[Tuple[str, str, str]]:
+        file_paths: list[str],
+    ) -> list[tuple[str, str, str]]:
         """
         Read all TSV files and extract unique session scale names (is_initial == 0).
 
         Returns:
             List of (scale_name, min_value, max_value) tuples with observed ranges.
         """
-        scale_values: Dict[str, List[float]] = {}
+        scale_values: dict[str, list[float]] = {}
 
         for path in file_paths:
             try:
-                with open(path, "r", newline="", encoding="utf-8") as f:
+                with open(path, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
                     for row in reader:
                         is_initial = row.get("is_initial", "").strip()

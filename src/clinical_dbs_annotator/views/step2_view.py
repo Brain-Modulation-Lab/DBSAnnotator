@@ -7,10 +7,10 @@ the session tracking scales that will be used during the programming session.
 
 import json
 import os
-from typing import Callable, Dict, List, Tuple
+from collections.abc import Callable
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QFont, QPixmap, QIcon, QIntValidator
+from PyQt5.QtGui import QFont, QIcon, QPixmap
 from PyQt5.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
@@ -48,11 +48,11 @@ class Step2View(BaseStepView):
         """
         super().__init__()
         self.parent_style = parent_style
-        self.session_presets: Dict[str, List[Tuple[str, str, str]]] = self._load_session_presets()
-        self.preset_buttons: List[QPushButton] = []
+        self.session_presets: dict[str, list[tuple[str, str, str]]] = self._load_session_presets()
+        self.preset_buttons: list[QPushButton] = []
         # Each row: (name_edit, min_edit, max_edit, row_layout, None, None)
-        self.session_scales_rows: List[
-            Tuple[QLineEdit, QLineEdit, QLineEdit, QHBoxLayout, None, None]
+        self.session_scales_rows: list[
+            tuple[QLineEdit, QLineEdit, QLineEdit, QHBoxLayout, None, None]
         ] = []
         self.active_preset_button: Optional[QPushButton] = None  # Track active preset
         self._setup_ui()
@@ -65,7 +65,7 @@ class Step2View(BaseStepView):
         """Create an SVG gear icon coloured to match the current theme."""
         # Get theme-appropriate icon color from theme definitions
         fill_color = self._get_theme_icon_color()
-        
+
         svg = f"""
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
@@ -74,7 +74,7 @@ class Step2View(BaseStepView):
         pixmap = QPixmap()
         pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
         return QIcon(pixmap)
-    
+
     def _get_theme_icon_color(self) -> str:
         """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
         from ..utils.theme_manager import get_theme_manager
@@ -157,20 +157,20 @@ class Step2View(BaseStepView):
         """Get a preset button by name."""
         return self.findChild(QPushButton, f"preset2_{preset_name}")
 
-    def _load_session_presets(self) -> Dict[str, List[Tuple[str, str, str]]]:
+    def _load_session_presets(self) -> dict[str, list[tuple[str, str, str]]]:
         """Load session presets from JSON file."""
         presets_file = resource_path("config/session_scales_presets.json")
 
         if os.path.exists(presets_file):
             try:
-                with open(presets_file, "r", encoding="utf-8") as f:
+                with open(presets_file, encoding="utf-8") as f:
                     raw = json.load(f)
-                presets: Dict[str, List[Tuple[str, str, str]]] = {}
+                presets: dict[str, list[tuple[str, str, str]]] = {}
                 for name, scales in (raw or {}).items():
                     try:
                         presets[name] = [
-                            (scale[0], scale[1], scale[2]) if len(scale) == 3 
-                            else (scale[0], scale[1], scale[2]) if len(scale) >= 3 
+                            (scale[0], scale[1], scale[2]) if len(scale) == 3
+                            else (scale[0], scale[1], scale[2]) if len(scale) >= 3
                             else (scale[0], "", "")
                             for scale in scales
                         ]
@@ -189,7 +189,7 @@ class Step2View(BaseStepView):
         dialog.presets_changed.connect(self._on_presets_changed)
         dialog.exec_()
 
-    def _on_presets_changed(self, new_presets: Dict[str, List[Tuple[str, str, str]]]):
+    def _on_presets_changed(self, new_presets: dict[str, list[tuple[str, str, str]]]):
         """Handle presets change from settings dialog and persist to JSON."""
         self.session_presets = new_presets
 
@@ -255,7 +255,7 @@ class Step2View(BaseStepView):
 
         insert_index = stretch_index
 
-        ordered_names: List[str] = []
+        ordered_names: list[str] = []
         for name in PRESET_BUTTONS:
             if name in self.session_presets:
                 ordered_names.append(name)
@@ -301,15 +301,15 @@ class Step2View(BaseStepView):
             self.active_preset_button.setProperty("active", "false")
             self.active_preset_button.style().unpolish(self.active_preset_button)
             self.active_preset_button.style().polish(self.active_preset_button)
-        
+
         # Set new active button
         self.active_preset_button = button
         if button is not None:
             button.setProperty("active", "true")
             button.style().unpolish(button)
             button.style().polish(button)
-    
-    def _apply_preset_scales(self, scales: List[Tuple[str, str, str]]):
+
+    def _apply_preset_scales(self, scales: list[tuple[str, str, str]]):
         """Replace the current session scale rows with the given preset scales."""
         if not isinstance(scales, list):
             return
@@ -343,12 +343,12 @@ class Step2View(BaseStepView):
 
             self._add_session_scale_row("", "", "", with_plus=True, on_add=self.on_add_callback)
 
-            # Add stretch at very bottom 
+            # Add stretch at very bottom
             self.session_scales_container.addStretch()
 
     def update_session_scales(
         self,
-        preset_scales: List[Tuple[str, str, str]],
+        preset_scales: list[tuple[str, str, str]],
         on_add_callback: Callable,
         on_remove_callback: Callable,
     ) -> None:
@@ -370,7 +370,7 @@ class Step2View(BaseStepView):
                     widget.deleteLater()
             self.session_scales_container.removeItem(row_layout)
         self.session_scales_rows = []
-        
+
         # Remove any existing stretches from container
         while self.session_scales_container.count():
             item = self.session_scales_container.takeAt(0)
@@ -396,7 +396,7 @@ class Step2View(BaseStepView):
         self.on_remove_callback = on_remove_callback
         self._connect_preset_buttons()
 
-    def get_session_scales_data(self) -> List[Tuple[str, str, str]]:
+    def get_session_scales_data(self) -> list[tuple[str, str, str]]:
         """
         Get session scale definitions (name, min, max) for use by the
         ScaleOptimizationDialog at export time.

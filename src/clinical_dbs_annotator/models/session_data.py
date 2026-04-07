@@ -8,11 +8,11 @@ for a clinical DBS programming session, including TSV file writing.
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, TextIO
+from typing import TextIO
 
 import pytz
 
-from ..config import TSV_COLUMNS, TIMEZONE
+from ..config import TIMEZONE, TSV_COLUMNS
 from .clinical_scale import ClinicalScale, SessionScale
 from .stimulation import StimulationParameters
 
@@ -28,7 +28,7 @@ class SessionData:
     - Stimulation parameters tracking
     """
 
-    def __init__(self, file_path: Optional[str] = None):
+    def __init__(self, file_path: str | None = None):
         """
         Initialize a new session.
 
@@ -36,12 +36,12 @@ class SessionData:
             file_path: Path to the TSV file where data will be saved
         """
         self.file_path = file_path
-        self.tsv_file: Optional[TextIO] = None
-        self.tsv_writer: Optional[csv.DictWriter] = None
-        self.tsv_fieldnames: Optional[List[str]] = None
+        self.tsv_file: TextIO | None = None
+        self.tsv_writer: csv.DictWriter | None = None
+        self.tsv_fieldnames: list[str] | None = None
         self.block_id: int = 0
         self.session_id: int = 1
-        self.session_start_time: Optional[datetime] = None
+        self.session_start_time: datetime | None = None
 
         if file_path:
             self.open_file(file_path)
@@ -68,7 +68,7 @@ class SessionData:
         self.tsv_writer.writeheader()
         self.session_start_time = datetime.now()
 
-    def open_file_append(self, file_path: str, start_block_id: Optional[int] = None) -> None:
+    def open_file_append(self, file_path: str, start_block_id: int | None = None) -> None:
         """Open an existing TSV file in append mode and continue block numbering."""
         self.file_path = file_path
         self.close_file()
@@ -82,7 +82,7 @@ class SessionData:
         max_block = -1
         max_session = 0
         try:
-            with open(file_path, "r", newline="", encoding="utf-8") as f:
+            with open(file_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     try:
@@ -90,7 +90,7 @@ class SessionData:
                         val = row.get("block_id", None)
                         if val is not None and val != "":
                             max_block = max(max_block, int(float(val)))
-                        
+
                         # Get max session_ID
                         session_val = row.get("session_ID", None)
                         if session_val is not None and session_val != "":
@@ -103,13 +103,13 @@ class SessionData:
 
         if start_block_id is None:
             start_block_id = max_block + 1
-        
+
         self.block_id = int(start_block_id)
         self.session_id = max_session + 1
         self.tsv_file = open(file_path, "a", newline="", encoding="utf-8")
-        existing_fieldnames: Optional[List[str]] = None
+        existing_fieldnames: list[str] | None = None
         try:
-            with open(file_path, "r", newline="", encoding="utf-8") as f:
+            with open(file_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="\t")
                 existing_fieldnames = reader.fieldnames
         except Exception:
@@ -148,7 +148,7 @@ class SessionData:
 
     def write_clinical_scales(
         self,
-        scales: List[ClinicalScale],
+        scales: list[ClinicalScale],
         stimulation: StimulationParameters,
         group: str = "",
         electrode_model: str = "",
@@ -211,7 +211,7 @@ class SessionData:
 
     def write_session_scales(
         self,
-        scales: List[SessionScale],
+        scales: list[SessionScale],
         stimulation: StimulationParameters,
         group: str = "",
         electrode_model: str = "",
@@ -334,10 +334,10 @@ class SessionData:
         file_exists = Path(filepath).exists()
         self.tsv_file = open(filepath, "a", newline="", encoding="utf-8")
 
-        fieldnames: Optional[List[str]] = None
+        fieldnames: list[str] | None = None
         if file_exists:
             try:
-                with open(filepath, "r", newline="", encoding="utf-8") as f:
+                with open(filepath, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
                     fieldnames = reader.fieldnames
             except Exception:
@@ -374,7 +374,7 @@ class SessionData:
 
         # Get current time
         from datetime import datetime
-        import pytz
+
 
         time_str = datetime.now().astimezone().strftime("%H:%M:%S")
         date_str = datetime.now().astimezone().strftime("%Y-%m-%d")

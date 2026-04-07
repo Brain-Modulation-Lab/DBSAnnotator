@@ -4,29 +4,28 @@ Session data exporter for Clinical DBS Annotator.
 This module provides functionality to export session data to Word and PDF.
 """
 
-import os
-import tempfile
 import csv
+import os
+import shutil
+import subprocess
+import tempfile
 from datetime import datetime
-from typing import Optional
 
 import pandas as pd
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QMessageBox, QWidget
-from PyQt5.QtGui import QPixmap, QPainter
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import Inches
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtWidgets import QMessageBox, QWidget
 
-import subprocess
-import shutil
-
-from .. import __version__, __app_name__
+from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
-from ..config_electrode_models import ContactState, ELECTRODE_MODELS, MANUFACTURERS
+from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 from ..models import ElectrodeCanvas
+
 
 class SessionExporter:
     """
@@ -35,7 +34,7 @@ class SessionExporter:
     This class provides methods to export the collected session data
     to Word and PDF.
     """
-    
+
     def __init__(self, session_data):
         """
         Initialize the session exporter.
@@ -56,7 +55,7 @@ class SessionExporter:
         """Generate BIDS-friendly report filename from TSV file path."""
         tsv_path = getattr(self.session_data, 'file_path', '') or ''
         today_str = datetime.now().astimezone().strftime('%Y%m%d')
-        
+
         if tsv_path:
             base = os.path.basename(tsv_path)
             import re
@@ -66,9 +65,9 @@ class SessionExporter:
             patient_id = sub_match.group(1) if sub_match else "unknown"
             run_num = run_match.group(1) if run_match else "01"
             task = task_match.group(1) if task_match else "programming"
-            
+
             return f"sub-{patient_id}_ses-{today_str}_task-{task}_run-{run_num}_report{extension}"
-        
+
         # Fallback
         return f"dbs_session_report_{today_str}_{datetime.now().astimezone().strftime('%H%M%S')}{extension}"
 
@@ -102,7 +101,7 @@ class SessionExporter:
 
     def _show_transient_message(
         self,
-        parent: Optional[QWidget],
+        parent: QWidget | None,
         title: str,
         text: str,
         *,
@@ -119,7 +118,7 @@ class SessionExporter:
 
         if parent is not None:
             try:
-                setattr(parent, "_export_transient_msg", msg)
+                parent._export_transient_msg = msg
             except Exception:
                 pass
 
@@ -140,14 +139,14 @@ class SessionExporter:
             if parent is not None:
                 try:
                     if getattr(parent, "_export_transient_msg", None) is msg:
-                        setattr(parent, "_export_transient_msg", None)
+                        parent._export_transient_msg = None
                 except Exception:
                     pass
 
         timer.timeout.connect(_close_msg)
         timer.start(max(0, int(msecs)))
-     
-    
+
+
     def _convert_docx_to_pdf(self, docx_path: str, pdf_path: str) -> None:
         """Convert a Word document to PDF using the best available method.
 
@@ -218,7 +217,7 @@ class SessionExporter:
             "Please export to Word (.docx) and convert to PDF manually."
         )
 
-    def _read_session_data(self) -> Optional[pd.DataFrame]:
+    def _read_session_data(self) -> pd.DataFrame | None:
         """
         Read session data from the TSV file.
         
@@ -258,7 +257,7 @@ class SessionExporter:
                 continue
         return ""
 
-    def _pick_latest_session_row(self, df: pd.DataFrame) -> Optional[pd.Series]:
+    def _pick_latest_session_row(self, df: pd.DataFrame) -> pd.Series | None:
         """Return the row with the highest session_ID and block_id."""
         if df is None or df.empty:
             return None
@@ -314,13 +313,13 @@ class SessionExporter:
     def _add_programming_summary(self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame, df_final: pd.DataFrame) -> None:
         """Add programming summary with session statistics."""
         from docx.shared import Pt
-        
+
         doc.add_heading('Programming Summary', level=1)
-        
+
         if df is None or df.empty:
             doc.add_paragraph("No session data available.")
             return
-        
+
         # Session duration (from first to last timestamp)
         duration_str = "N/A"
         try:
@@ -344,13 +343,13 @@ class SessionExporter:
                     duration_str = f"{total_mins} min"
         except Exception:
             pass
-        
+
         # Number of configurations tested
         df_normalized = self._normalize_block_id_column(df)
         num_configs = 0
         if 'block_id' in df_normalized.columns:
             num_configs = df_normalized['block_id'].nunique()
-        
+
         # Parameter ranges per side (Left / Right)
         def _param_range(series):
             vals = pd.to_numeric(series, errors='coerce').dropna()
@@ -383,7 +382,7 @@ class SessionExporter:
                     else: pw_r = val
         except Exception:
             pass
-        
+
         # Add summary paragraphs
         summary_items = [
             f"Session Duration: {duration_str}",
@@ -392,14 +391,14 @@ class SessionExporter:
             f"Frequency Range:  L: {freq_l}  |  R: {freq_r}",
             f"Pulse Width Range:  L: {pw_l}  |  R: {pw_r}",
         ]
-        
+
         for item in summary_items:
             para = doc.add_paragraph(item)
             for run in para.runs:
                 run.font.size = Pt(11)
-        
+
         doc.add_paragraph("")
-    
+
     def _create_lateral_table_data(self, df):
         """
         Create lateral table structure for Word and PDF exports.
@@ -414,21 +413,21 @@ class SessionExporter:
             return df
 
         df = self._normalize_block_id_column(df)
-        
+
         # Group by block_id to consolidate multiple scales
         if 'block_id' in df.columns:
             grouped = df.groupby('block_id', sort=False, dropna=False)
         else:
             grouped = [(0, df)]
-        
+
         # Create new lateral structure
         lateral_data = []
-        
+
         # Process each block
         for block_id, block_df in grouped:
             # Get first row to extract common values
             first_row = block_df.iloc[0]
-            
+
             # Collect all scales for this block
             scale_pairs = []
             seen_pairs = set()
@@ -445,11 +444,11 @@ class SessionExporter:
 
             scale_names = [p[0] for p in scale_pairs]
             scale_values = [p[1] for p in scale_pairs]
-            
+
             # Join multiple scales with newlines for internal separation
             combined_scale_name = '\n'.join(scale_names) if scale_names else ''
             combined_scale_value = '\n'.join(scale_values) if scale_values else ''
-            
+
             # Left side row
             left_row = {}
             right_row = {}
@@ -457,18 +456,18 @@ class SessionExporter:
             # Keep block_id in the output for styling logic (excluded from display columns later)
             left_row['block_id'] = block_id
             right_row['block_id'] = block_id
-            
+
             # Common columns (non-lateral) - use combined scales with internal lines
             left_row['group_ID'] = first_row.get('group_ID', '')
             left_row['scale_name'] = combined_scale_name
             left_row['scale_value'] = combined_scale_value
             left_row['notes'] = first_row.get('notes', '')
-            
+
             right_row['group_ID'] = first_row.get('group_ID', '')
             right_row['scale_name'] = combined_scale_name
             right_row['scale_value'] = combined_scale_value
             right_row['notes'] = first_row.get('notes', '')
-            
+
             # Lateral columns - map to generic names
             lateral_mappings = {
                 'left_stim_freq': 'frequency',
@@ -482,24 +481,24 @@ class SessionExporter:
                 'right_amplitude': 'amplitude',
                 'right_pulse_width': 'pulse_width',
             }
-            
+
             # Left side parameters
             for left_col, generic_col in lateral_mappings.items():
                 if left_col.startswith('left_'):
                     left_row[generic_col] = first_row.get(left_col, '')
-            
+
             # Right side parameters
             for right_col, generic_col in lateral_mappings.items():
                 if right_col.startswith('right_'):
                     right_row[generic_col] = first_row.get(right_col, '')
-            
+
             # Add lateral indicator
             left_row['laterality'] = 'L'
             right_row['laterality'] = 'R'
-            
+
             lateral_data.append(left_row)
             lateral_data.append(right_row)
-        
+
         return pd.DataFrame(lateral_data)
 
     def _add_session_data_table(self, doc: Document, df_table: pd.DataFrame) -> None:
@@ -551,7 +550,6 @@ class SessionExporter:
             widths_in[notes_idx] = max(2.5, page_width_inches - used)
 
         # Apply widths to each cell in every row (required for python-docx)
-        from docx.shared import Twips
         widths_twips = [Inches(max(0.25, w)) for w in widths_in]
         for row in table.rows:
             for idx, cell in enumerate(row.cells):
@@ -600,7 +598,7 @@ class SessionExporter:
                     raw_sv = row.get('scale_value', '')
                     sn_text = str(raw_sn) if pd.notna(raw_sn) else ''
                     sv_text = str(raw_sv) if pd.notna(raw_sv) else ''
-                    
+
                     # Filter out NaN scales from display - remove both name and value
                     if sv_text == 'NaN' or 'NaN' in sv_text:
                         sn_parts = [s for s in sn_text.split('\n') if s.strip()]
@@ -614,7 +612,7 @@ class SessionExporter:
                                 filtered_values.append(val)
                         sn_text = '\n'.join(filtered_names)
                         sv_text = '\n'.join(filtered_values)
-                    
+
                     scale_name_lines = sn_text.split('\n') if sn_text else ['']
                     scale_value_lines = sv_text.split('\n') if sv_text else ['']
                     max_len = max(len(scale_name_lines), len(scale_value_lines))
@@ -679,27 +677,27 @@ class SessionExporter:
     def _add_table_legend(self, doc: Document, best_ids: list, second_ids: list) -> None:
         """Add color legend and clinical disclaimer below the session data table."""
         from docx.shared import Pt, RGBColor
-        
+
         # Only add legend if there are highlighted blocks
         if not best_ids and not second_ids:
             return
-        
+
         doc.add_paragraph()  # spacing
-        
+
         # Legend paragraph
         legend_para = doc.add_paragraph()
         legend_para.add_run("Legend: ").bold = True
-        
+
         if best_ids:
             best_run = legend_para.add_run("■ ")
             best_run.font.color.rgb = RGBColor(0xC3, 0xE6, 0xCB)
             legend_para.add_run("Optimal configuration    ")
-        
+
         if second_ids:
             second_run = legend_para.add_run("■ ")
             second_run.font.color.rgb = RGBColor(0xE8, 0xF5, 0xE9)
             legend_para.add_run("Second-best configuration")
-        
+
         # Show target values used for optimization
         if self.scale_optimization_prefs:
             targets_para = doc.add_paragraph()
@@ -789,8 +787,8 @@ class SessionExporter:
 
         try:
             import pyqtgraph as pg
-            from PyQt5.QtGui import QColor, QFont, QPen, QBrush
             from PyQt5.QtCore import QBuffer, QIODevice, Qt
+            from PyQt5.QtGui import QBrush, QColor, QFont, QPen
 
             pg.setConfigOptions(useOpenGL=False, antialias=True)
 
@@ -843,22 +841,22 @@ class SessionExporter:
                                     scale_targets[name] = {"type": "custom", "value": float(custom_val)}
                                 except ValueError:
                                     scale_targets[name] = {"type": "custom", "value": 0.0}
-                
+
                 index_vals = {}
                 for b in all_blocks:
                     weighted_scores = []
                     weights = []
-                    
+
                     for scale_name in scale_data:
                         if b in scale_data[scale_name]:
                             original_value = scale_data[scale_name][b]
-                            
+
                             # Get target for this scale
                             if scale_name in scale_targets:
                                 target_info = scale_targets[scale_name]
                                 target_type = target_info["type"]
                                 target_value = target_info["value"]
-                                
+
                                 # Calculate distance from target (lower is better)
                                 if target_type == "min":
                                     # For minimization: lower values are better
@@ -878,7 +876,7 @@ class SessionExporter:
                                     max_distance = max(abs(v - target_value) for v in scale_data[scale_name].values())
                                     # Normalize: 0 = at target, 1 = worst
                                     normalized_score = distance / max_distance if max_distance > 0 else 0
-                                
+
                                 # Convert to proximity score (higher is better)
                                 proximity_score = 1.0 - normalized_score
                                 weighted_scores.append(proximity_score)
@@ -887,7 +885,7 @@ class SessionExporter:
                                 # No target defined: use neutral score
                                 weighted_scores.append(0.5)  # Neutral middle value
                                 weights.append(0.5)  # Lower weight for scales without targets
-                    
+
                     if weighted_scores and weights:
                         # Calculate weighted average of proximity scores
                         total_weight = sum(weights)
@@ -938,7 +936,7 @@ class SessionExporter:
             return str(placeholder_map[col])
         return str(col).replace('_', ' ').title()
 
-    def _pick_latest_row(self, df: pd.DataFrame) -> Optional[pd.Series]:
+    def _pick_latest_row(self, df: pd.DataFrame) -> pd.Series | None:
         """Return the row with the highest block_id, or the last row."""
         if df is None or df.empty:
             return None
@@ -1038,17 +1036,17 @@ class SessionExporter:
 
             # Sort unique scores
             unique_scores = sorted(set(block_scores.values()))
-            
+
             # Best blocks (lowest score)
             best_score = unique_scores[0]
             best_blocks = [bid for bid, score in block_scores.items() if score == best_score]
-            
+
             # Second best blocks (second lowest score, if exists)
             second_best_blocks = []
             if len(unique_scores) > 1:
                 second_score = unique_scores[1]
                 second_best_blocks = [bid for bid, score in block_scores.items() if score == second_score]
-            
+
             return best_blocks, second_best_blocks
 
         except Exception:
@@ -1173,7 +1171,7 @@ class SessionExporter:
         anode_text: str,
         cathode_text: str,
         target_size_px: tuple[int, int] = (440, 900),
-    ) -> Optional[str]:
+    ) -> str | None:
         model = ELECTRODE_MODELS.get(model_name)
         if not model:
             return None
@@ -1355,7 +1353,7 @@ class SessionExporter:
             except Exception:
                 pass
 
-    def export_to_pdf(self, parent: Optional[QWidget] = None, sections=None) -> bool:
+    def export_to_pdf(self, parent: QWidget | None = None, sections=None) -> bool:
         """Export session data to PDF by generating a Word report and converting it."""
         try:
             if not self.session_data.is_file_open():
@@ -1414,8 +1412,8 @@ class SessionExporter:
                 f"Failed to export session data to PDF:\n{str(e)}",
             )
             return False
-    
-    def export_to_word(self, parent: Optional[QWidget] = None, sections=None) -> bool:
+
+    def export_to_word(self, parent: QWidget | None = None, sections=None) -> bool:
         """
         Export session data to Word format.
         
@@ -1430,19 +1428,19 @@ class SessionExporter:
             # Get the current session data
             if not self.session_data.is_file_open():
                 QMessageBox.warning(
-                    parent, 
-                    "No Session Data", 
+                    parent,
+                    "No Session Data",
                     "No session file is currently open. Please start a session first."
                 )
                 return False
-            
+
             # Generate BIDS-friendly default filename from TSV path
             default_filename = self._generate_bids_report_filename('.docx')
-            
+
             # Use same directory as TSV file
             start_dir = os.path.dirname(getattr(self.session_data, 'file_path', '') or '')
             start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
-            
+
             # Get save location
             from PyQt5.QtWidgets import QFileDialog
             file_path, _ = QFileDialog.getSaveFileName(
@@ -1451,10 +1449,10 @@ class SessionExporter:
                 start_path,
                 "Word Files (*.docx);;All Files (*)"
             )
-            
+
             if not file_path:
                 return False  # User cancelled
-            
+
             # Ensure .docx extension
             if not file_path.endswith('.docx'):
                 file_path += '.docx'
@@ -1475,7 +1473,7 @@ class SessionExporter:
                 msecs=2000,
             )
             return True
-            
+
         except Exception as e:
             QMessageBox.critical(
                 parent,
@@ -1546,17 +1544,17 @@ class SessionExporter:
     def _add_report_footer(self, doc: Document) -> None:
         """Add footer with patient ID and session number."""
         from docx.shared import Pt
-        
+
         patient_id, session_num = self._extract_bids_info_from_path()
-        
+
         if patient_id or session_num:
             doc.add_paragraph('')
             doc.add_paragraph('')
-            
+
             footer_para = doc.add_paragraph()
             footer_run = footer_para.add_run("─" * 50)
             footer_run.font.size = Pt(8)
-            
+
             info_para = doc.add_paragraph()
             if patient_id:
                 info_para.add_run(f"Patient ID: {patient_id}    ")
@@ -1578,7 +1576,7 @@ class SessionExporter:
 
         items: list[tuple[str, str]] = []
         try:
-            with open(file_path, "r", newline="", encoding="utf-8-sig") as f:
+            with open(file_path, newline="", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     if not row:
@@ -1595,7 +1593,7 @@ class SessionExporter:
                     # Extract date and time separately
                     date_str = norm.get("date", "")
                     time_str = norm.get("time", "")
-                    
+
                     # Build timestamp: if both exist, combine; otherwise fallback to time/timestamp/date
                     if date_str and time_str:
                         t = f"{date_str} {time_str}"
@@ -1606,7 +1604,7 @@ class SessionExporter:
                             or norm.get("date", "")
                             or ""
                         )
-                    
+
                     a = str(
                         norm.get("annotation", "")
                         or norm.get("note", "")
@@ -1650,7 +1648,7 @@ class SessionExporter:
         doc.save(file_path)
         return True
 
-    def export_annotations_to_word(self, parent: Optional[QWidget] = None) -> bool:
+    def export_annotations_to_word(self, parent: QWidget | None = None) -> bool:
         """Export simple annotations to a Word document."""
         try:
             if not self.session_data.is_file_open():
@@ -1706,7 +1704,7 @@ class SessionExporter:
             )
             return False
 
-    def export_annotations_to_pdf(self, parent: Optional[QWidget] = None) -> bool:
+    def export_annotations_to_pdf(self, parent: QWidget | None = None) -> bool:
         """Export simple annotations to PDF via intermediate Word conversion."""
         try:
             if not self.session_data.is_file_open():
