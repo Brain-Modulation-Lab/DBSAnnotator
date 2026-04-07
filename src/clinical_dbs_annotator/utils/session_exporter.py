@@ -512,6 +512,9 @@ class SessionExporter:
         df_table = self._normalize_block_id_column(df_table)
         lateral_df = self._create_lateral_table_data(df_table)
 
+        # Chart BEFORE the table
+        self._add_scales_timeline_chart(doc, lateral_df)
+
         columns_to_exclude = ['date', 'time', 'onset', 'block_id', 'session_ID', 'is_initial', 'electrode_model']
         display_columns = [col for col in lateral_df.columns if col not in columns_to_exclude]
 
@@ -672,9 +675,6 @@ class SessionExporter:
 
         # Add legend and clinical disclaimer below table
         self._add_table_legend(doc, best_block_ids, second_best_ids)
-        
-        # Add scales timeline chart
-        self._add_scales_timeline_chart(doc, lateral_df)
 
     def _add_table_legend(self, doc: Document, best_ids: list, second_ids: list) -> None:
         """Add color legend and clinical disclaimer below the session data table."""
@@ -733,41 +733,38 @@ class SessionExporter:
         disclaimer_run.font.italic = True
 
     def _add_scales_timeline_chart(self, doc: Document, lateral_df: pd.DataFrame) -> None:
-        """Add a timeline chart of session scales with different colors."""
-        try:
-            import matplotlib
-            matplotlib.use('Agg')
-            import matplotlib.pyplot as plt
-            from io import BytesIO
-        except ImportError:
-            return  # matplotlib not available
-        
+        """Add a rainbow-colored timeline chart of session scales with a general index line."""
+        import math as _math
+        from io import BytesIO
+
+        # Guard: need valid input
         if lateral_df is None or lateral_df.empty:
+            doc.add_paragraph('No session data available for chart.')
             return
         if 'scale_name' not in lateral_df.columns or 'scale_value' not in lateral_df.columns:
+            doc.add_paragraph('No scale columns found in session data.')
             return
         if 'block_id' not in lateral_df.columns:
+            doc.add_paragraph('No block ID column found in session data.')
             return
-        
-        # Extract scale data per block (use L rows only to avoid duplicates)
+
+        # Use L rows only to avoid duplicates
         if 'laterality' in lateral_df.columns:
             df_l = lateral_df[lateral_df['laterality'] == 'L'].copy()
         else:
             df_l = lateral_df.copy()
         if df_l.empty:
             df_l = lateral_df.drop_duplicates(subset=['block_id']).copy()
-        
-        # Collect all unique scale names and their values per block
-        scale_data = {}  # scale_name -> [(block_id, value), ...]
-        
+
+        # Collect scale values per block
+        scale_data = {}  # scale_name -> {block_id: value}
         for _, row in df_l.iterrows():
-            block_id = int(row.get('block_id', 0))
-            scale_names_str = str(row.get('scale_name', '') or '')
-            scale_values_str = str(row.get('scale_value', '') or '')
-            
-            names = scale_names_str.split('\n')
-            values = scale_values_str.split('\n')
-            
+            try:
+                block_id = int(row.get('block_id', 0))
+            except (ValueError, TypeError):
+                continue
+            names = str(row.get('scale_name', '') or '').split('\n')
+            values = str(row.get('scale_value', '') or '').split('\n')
             for i, name in enumerate(names):
                 name = name.strip()
                 if not name:
@@ -777,57 +774,152 @@ class SessionExporter:
                     val = float(val_str)
                 except ValueError:
                     continue
-                
-                if name not in scale_data:
-                    scale_data[name] = []
-                scale_data[name].append((block_id, val))
-        
+                if _math.isnan(val):
+                    continue
+                scale_data.setdefault(name, {})[block_id] = val
+
         if not scale_data:
+            doc.add_paragraph('No numeric scale values recorded for this session.')
             return
-        
-        # Sort each scale's data by block_id
-        for name in scale_data:
-            scale_data[name].sort(key=lambda x: x[0])
-        
-        # Create the chart
-        fig, ax = plt.subplots(figsize=(7, 3.5))
-        
-        colors = plt.cm.tab10.colors
-        legend_handles = []
-        
-        for idx, (scale_name, points) in enumerate(scale_data.items()):
-            color = colors[idx % len(colors)]
-            x_vals = [p[0] for p in points]
-            y_vals = [p[1] for p in points]
-            
-            # Only plot if we have more than one point, otherwise just markers
-            if len(x_vals) > 1:
-                line, = ax.plot(x_vals, y_vals, 'o-', color=color, linewidth=2, markersize=6, label=scale_name)
-            else:
-                line, = ax.plot(x_vals, y_vals, 'o', color=color, markersize=8, label=scale_name)
-            legend_handles.append(line)
-        
-        ax.set_xlabel('Configuration Block', fontsize=10)
-        ax.set_ylabel('Scale Value', fontsize=10)
-        ax.set_title('Session Scales Timeline', fontsize=12, fontweight='bold')
-        ax.grid(True, alpha=0.3)
-        
-        # Legend below the chart
-        ax.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, -0.15),
-                  ncol=min(3, len(scale_data)), fontsize=9)
-        
-        plt.tight_layout()
-        
-        # Save to buffer and insert into document
-        buf = BytesIO()
-        fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white')
-        buf.seek(0)
-        plt.close(fig)
-        
-        doc.add_paragraph()
-        doc.add_heading('Scales Timeline', level=2)
-        doc.add_picture(buf, width=Inches(6))
-        buf.close()
+
+        all_blocks = sorted({b for pts in scale_data.values() for b in pts})
+        if not all_blocks:
+            doc.add_paragraph('No configuration blocks with scale data found.')
+            return
+
+        try:
+            import pyqtgraph as pg
+            from PyQt5.QtGui import QColor, QFont, QPen, QBrush
+            from PyQt5.QtCore import QBuffer, QIODevice, Qt
+
+            pg.setConfigOptions(useOpenGL=False, antialias=True)
+
+            n_scales = len(scale_data)
+            rainbow = [QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
+                        for i in range(n_scales)]
+
+            has_index = n_scales >= 2
+            win = pg.GraphicsLayoutWidget()
+            win.setBackground('w')
+            win.resize(1050, 500)  # Single plot, larger for right-side legend
+
+            # --- Main scales chart with General Index on same plot ---
+            p1 = win.addPlot(row=0, col=0)
+            p1.setTitle('Session Scales Timeline', color='k', size='14pt')
+            p1.setLabel('left', 'Scale Value', color='k', size='14pt', font='Arial')
+            p1.setLabel('bottom', 'Block', color='k', size='14pt', font='Arial')
+            p1.getAxis('left').setStyle(tickFont=QFont('Arial', 10))
+            p1.getAxis('bottom').setStyle(tickFont=QFont('Arial', 10))
+            p1.showGrid(x=True, y=True, alpha=0.3)
+            # Legend on right side external - increase offset and add background
+            legend = p1.addLegend(offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white))
+            legend.setLabelTextColor('k')
+
+            # Plot individual scales with original values (no normalization)
+            for idx, (sname, pts) in enumerate(scale_data.items()):
+                c = rainbow[idx]
+                xs = sorted(pts.keys())
+                ys = [pts[x] for x in xs]
+                p1.plot(xs, ys,
+                        pen=pg.mkPen(c, width=2),
+                        symbol='o', symbolPen=pg.mkPen(c, width=1),
+                        symbolBrush=pg.mkBrush(c), symbolSize=8,
+                        name=sname)
+
+            # --- General Index on same plot (if >= 2 scales) ---
+            if has_index:
+                # Create scale targets dictionary from preferences
+                scale_targets = {}
+                if self.scale_optimization_prefs:
+                    for pref in self.scale_optimization_prefs:
+                        if len(pref) >= 5:
+                            name, smin, smax, mode, custom_val = pref
+                            if mode == "min":
+                                scale_targets[name] = {"type": "min", "value": smin}
+                            elif mode == "max":
+                                scale_targets[name] = {"type": "max", "value": smax}
+                            elif mode == "custom":
+                                try:
+                                    scale_targets[name] = {"type": "custom", "value": float(custom_val)}
+                                except ValueError:
+                                    scale_targets[name] = {"type": "custom", "value": 0.0}
+                
+                index_vals = {}
+                for b in all_blocks:
+                    weighted_scores = []
+                    weights = []
+                    
+                    for scale_name in scale_data:
+                        if b in scale_data[scale_name]:
+                            original_value = scale_data[scale_name][b]
+                            
+                            # Get target for this scale
+                            if scale_name in scale_targets:
+                                target_info = scale_targets[scale_name]
+                                target_type = target_info["type"]
+                                target_value = target_info["value"]
+                                
+                                # Calculate distance from target (lower is better)
+                                if target_type == "min":
+                                    # For minimization: lower values are better
+                                    distance = original_value
+                                    max_possible = max(scale_data[scale_name].values())
+                                    # Normalize: 0 = at target (min), 1 = worst (max)
+                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                elif target_type == "max":
+                                    # For maximization: higher values are better
+                                    distance = max(scale_data[scale_name].values()) - original_value
+                                    max_possible = max(scale_data[scale_name].values()) - min(scale_data[scale_name].values())
+                                    # Normalize: 0 = at target (max), 1 = worst (min)
+                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                elif target_type == "custom":
+                                    # For custom target: absolute distance from target
+                                    distance = abs(original_value - target_value)
+                                    max_distance = max(abs(v - target_value) for v in scale_data[scale_name].values())
+                                    # Normalize: 0 = at target, 1 = worst
+                                    normalized_score = distance / max_distance if max_distance > 0 else 0
+                                
+                                # Convert to proximity score (higher is better)
+                                proximity_score = 1.0 - normalized_score
+                                weighted_scores.append(proximity_score)
+                                weights.append(1.0)  # Equal weight for now
+                            else:
+                                # No target defined: use neutral score
+                                weighted_scores.append(0.5)  # Neutral middle value
+                                weights.append(0.5)  # Lower weight for scales without targets
+                    
+                    if weighted_scores and weights:
+                        # Calculate weighted average of proximity scores
+                        total_weight = sum(weights)
+                        if total_weight > 0:
+                            index_vals[b] = sum(w * s for w, s in zip(weights, weighted_scores)) / total_weight
+                        else:
+                            index_vals[b] = 0.5  # Default neutral value
+
+                if index_vals:
+                    ix = sorted(index_vals.keys())
+                    iy = [index_vals[x] for x in ix]
+                    # Thicker black line for General Index
+                    p1.plot(ix, iy,
+                            pen=pg.mkPen('k', width=5),
+                            symbol='d', symbolPen='k', symbolBrush='k',
+                            symbolSize=10, name='General Index')
+
+            # --- Export to PNG → Word ---
+            pixmap = win.grab()
+            qbuf = QBuffer()
+            qbuf.open(QIODevice.WriteOnly)
+            pixmap.save(qbuf, 'PNG')
+            qbuf.close()
+            img_buf = BytesIO(bytes(qbuf.data()))
+            doc.add_picture(img_buf, width=Inches(6))
+            doc.add_paragraph()
+            img_buf.close()
+            win.close()
+            del win
+
+        except Exception as e:
+            doc.add_paragraph(f'Chart generation error: {e}')
 
     def _column_header(self, col: str) -> str:
         """Map an internal column name to a human-readable table header."""
@@ -909,6 +1001,10 @@ class SessionExporter:
                     try:
                         val = float(val_line)
                     except ValueError:
+                        continue
+
+                    import math as _math
+                    if _math.isnan(val):
                         continue
 
                     # Get the corresponding scale name

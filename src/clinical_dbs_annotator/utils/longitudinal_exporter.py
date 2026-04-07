@@ -221,11 +221,12 @@ class LongitudinalExporter:
                 continue
             if key == "sessions_overview":
                 self._add_sessions_overview(doc, df_all, file_paths)
+                self._add_scales_timeline_chart(doc, df_session)
                 doc.add_paragraph("")
             elif key == "session_data":
+                self._add_scales_timeline_chart(doc, df_session)
                 self._add_longitudinal_data_table(doc, df_session, file_paths)
                 doc.add_paragraph("")
-                self._add_scales_timeline_chart(doc, df_session)
             elif key == "electrode_config":
                 self._add_electrode_config_section(doc, df_all, file_paths)
                 doc.add_paragraph("")
@@ -691,32 +692,35 @@ class LongitudinalExporter:
     def _add_scales_timeline_chart(
         self, doc: Document, df_session: pd.DataFrame
     ) -> None:
-        """Add a timeline chart of scale values across sessions."""
-        try:
-            import matplotlib
-            matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
-            from io import BytesIO
-        except ImportError:
-            return
+        """Add a rainbow-colored timeline chart of scale trends with a general index line."""
+        import math as _math
+        from io import BytesIO
+        from collections import defaultdict
 
+        doc.add_heading("Scale Trends", level=2)
+
+        # Guard: need valid input
         if df_session is None or df_session.empty:
+            doc.add_paragraph("No session data available for chart.")
             return
         if "scale_name" not in df_session.columns or "scale_value" not in df_session.columns:
+            doc.add_paragraph("No scale columns found in session data.")
             return
 
-        # Build per-scale data indexed by source file (chronological order)
+        # Build source-file index (chronological order)
         sources = []
         if "_source_file" in df_session.columns:
             for s in df_session["_source_file"].unique():
                 if s not in sources:
                     sources.append(s)
         if not sources:
+            doc.add_paragraph("No source files found in session data.")
             return
 
         source_idx = {s: i for i, s in enumerate(sources)}
 
-        scale_data = {}
+        # Collect raw (session_idx, value) pairs per scale
+        raw_data = {}  # scale_name -> {session_idx: [values]}
         for _, row in df_session.iterrows():
             sname = str(row.get("scale_name", "") or "").strip()
             sval = str(row.get("scale_value", "") or "").strip()
@@ -727,52 +731,161 @@ class LongitudinalExporter:
                 val = float(sval)
             except ValueError:
                 continue
-            scale_data.setdefault(sname, []).append((source_idx.get(src, 0), val))
+            if _math.isnan(val):
+                continue
+            sidx = source_idx.get(src, 0)
+            raw_data.setdefault(sname, defaultdict(list))[sidx].append(val)
 
-        if not scale_data:
+        if not raw_data:
+            doc.add_paragraph("No numeric scale values recorded across sessions.")
             return
 
-        fig, ax = plt.subplots(figsize=(7, 3.5))
-        colors = plt.cm.tab10.colors
+        # Average values per session for each scale
+        scale_data = {}  # scale_name -> {session_idx: avg_value}
+        for name, by_session in raw_data.items():
+            scale_data[name] = {si: sum(vs) / len(vs) for si, vs in by_session.items()}
 
-        for idx, (name, points) in enumerate(scale_data.items()):
-            color = colors[idx % len(colors)]
-            # Average values per session
-            from collections import defaultdict
-            by_session = defaultdict(list)
-            for si, v in points:
-                by_session[si].append(v)
-            xs = sorted(by_session.keys())
-            ys = [sum(by_session[x]) / len(by_session[x]) for x in xs]
+        try:
+            import pyqtgraph as pg
+            from PyQt5.QtGui import QColor, QFont, QPen, QBrush
+            from PyQt5.QtCore import QBuffer, QIODevice, Qt
 
-            if len(xs) > 1:
-                ax.plot(xs, ys, "o-", color=color, linewidth=2, markersize=6, label=name)
-            else:
-                ax.plot(xs, ys, "o", color=color, markersize=8, label=name)
+            pg.setConfigOptions(useOpenGL=False, antialias=True)
 
-        ax.set_xlabel("Session", fontsize=10)
-        ax.set_ylabel("Scale Value", fontsize=10)
-        ax.set_title("Longitudinal Scale Trends", fontsize=12, fontweight="bold")
-        ax.set_xticks(range(len(sources)))
-        ax.set_xticklabels(
-            [s.replace("_events.tsv", "").replace(".tsv", "") for s in sources],
-            rotation=30, ha="right", fontsize=8,
-        )
-        ax.grid(True, alpha=0.3)
-        ax.legend(
-            loc="upper center", bbox_to_anchor=(0.5, -0.25),
-            ncol=min(3, len(scale_data)), fontsize=9,
-        )
-        plt.tight_layout()
+            n_scales = len(scale_data)
+            rainbow = [QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
+                        for i in range(n_scales)]
 
-        buf = BytesIO()
-        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        plt.close(fig)
+            # Session tick labels
+            tick_labels = [s.replace("_events.tsv", "").replace(".tsv", "")
+                           for s in sources]
+            x_ticks = [(i, lbl) for i, lbl in enumerate(tick_labels)]
 
-        doc.add_heading("Scale Trends", level=2)
-        doc.add_picture(buf, width=Inches(6))
-        buf.close()
+            has_index = n_scales >= 2
+            win = pg.GraphicsLayoutWidget()
+            win.setBackground('w')
+            win.resize(1050, 500)  # Single plot, larger for right-side legend
+
+            # --- Main scales chart with General Index on same plot ---
+            p1 = win.addPlot(row=0, col=0)
+            p1.setTitle("Longitudinal Scale Trends", color='k', size='14pt')
+            p1.setLabel('left', 'Scale Value', color='k', size='14pt', font='Arial')
+            p1.setLabel('bottom', 'Session', color='k', size='14pt', font='Arial')
+            p1.getAxis('bottom').setTicks([x_ticks])
+            p1.getAxis('left').setStyle(tickFont=QFont('Arial', 10))
+            p1.getAxis('bottom').setStyle(tickFont=QFont('Arial', 10))
+            p1.showGrid(x=True, y=True, alpha=0.3)
+            # Legend on right side external - increase offset and add background
+            legend = p1.addLegend(offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white))
+            legend.setLabelTextColor('k')
+
+            # Plot individual scales with original values (no normalization)
+            for idx, (sname, pts) in enumerate(scale_data.items()):
+                c = rainbow[idx]
+                xs = sorted(pts.keys())
+                ys = [pts[x] for x in xs]
+                p1.plot(xs, ys,
+                        pen=pg.mkPen(c, width=2),
+                        symbol='o', symbolPen=pg.mkPen(c, width=1),
+                        symbolBrush=pg.mkBrush(c), symbolSize=8,
+                        name=sname)
+
+            # --- General Index on same plot (if >= 2 scales) ---
+            if has_index:
+                all_sessions = sorted({s for pts in scale_data.values() for s in pts})
+                
+                # Create scale targets dictionary from preferences
+                scale_targets = {}
+                if self.scale_optimization_prefs:
+                    for pref in self.scale_optimization_prefs:
+                        if len(pref) >= 5:
+                            name, smin, smax, mode, custom_val = pref
+                            if mode == "min":
+                                scale_targets[name] = {"type": "min", "value": smin}
+                            elif mode == "max":
+                                scale_targets[name] = {"type": "max", "value": smax}
+                            elif mode == "custom":
+                                try:
+                                    scale_targets[name] = {"type": "custom", "value": float(custom_val)}
+                                except ValueError:
+                                    scale_targets[name] = {"type": "custom", "value": 0.0}
+                
+                index_vals = {}
+                for s in all_sessions:
+                    weighted_scores = []
+                    weights = []
+                    
+                    for scale_name in scale_data:
+                        if s in scale_data[scale_name]:
+                            original_value = scale_data[scale_name][s]
+                            
+                            # Get target for this scale
+                            if scale_name in scale_targets:
+                                target_info = scale_targets[scale_name]
+                                target_type = target_info["type"]
+                                target_value = target_info["value"]
+                                
+                                # Calculate distance from target (lower is better)
+                                if target_type == "min":
+                                    # For minimization: lower values are better
+                                    distance = original_value
+                                    max_possible = max(scale_data[scale_name].values())
+                                    # Normalize: 0 = at target (min), 1 = worst (max)
+                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                elif target_type == "max":
+                                    # For maximization: higher values are better
+                                    distance = max(scale_data[scale_name].values()) - original_value
+                                    max_possible = max(scale_data[scale_name].values()) - min(scale_data[scale_name].values())
+                                    # Normalize: 0 = at target (max), 1 = worst (min)
+                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                elif target_type == "custom":
+                                    # For custom target: absolute distance from target
+                                    distance = abs(original_value - target_value)
+                                    max_distance = max(abs(v - target_value) for v in scale_data[scale_name].values())
+                                    # Normalize: 0 = at target, 1 = worst
+                                    normalized_score = distance / max_distance if max_distance > 0 else 0
+                                
+                                # Convert to proximity score (higher is better)
+                                proximity_score = 1.0 - normalized_score
+                                weighted_scores.append(proximity_score)
+                                weights.append(1.0)  # Equal weight for now
+                            else:
+                                # No target defined: use neutral score
+                                weighted_scores.append(0.5)  # Neutral middle value
+                                weights.append(0.5)  # Lower weight for scales without targets
+                    
+                    if weighted_scores and weights:
+                        # Calculate weighted average of proximity scores
+                        total_weight = sum(weights)
+                        if total_weight > 0:
+                            index_vals[s] = sum(w * s for w, s in zip(weights, weighted_scores)) / total_weight
+                        else:
+                            index_vals[s] = 0.5  # Default neutral value
+
+                if index_vals:
+                    ix = sorted(index_vals.keys())
+                    iy = [index_vals[x] for x in ix]
+                    # Thicker black line for General Index
+                    p1.plot(ix, iy,
+                            pen=pg.mkPen('k', width=5),
+                            symbol='d', symbolPen='k', symbolBrush='k',
+                            symbolSize=10, name='General Index')
+
+            # --- Export to PNG → Word ---
+            pixmap = win.grab()
+            qbuf = QBuffer()
+            qbuf.open(QIODevice.WriteOnly)
+            pixmap.save(qbuf, 'PNG')
+            qbuf.close()
+            img_buf = BytesIO(bytes(qbuf.data()))
+            doc.add_picture(img_buf, width=Inches(6))
+            doc.add_paragraph()
+            img_buf.close()
+            win.close()
+            del win
+
+        except Exception as e:
+            doc.add_paragraph(f"Chart generation error: {e}")
 
     # ------------------------------------------------------------------
     # Data helpers
@@ -885,6 +998,7 @@ class LongitudinalExporter:
 
                 total = 0.0
                 has_val = False
+                import math as _math
                 for i, vl in enumerate(values):
                     vl = vl.strip()
                     if not vl:
@@ -892,6 +1006,8 @@ class LongitudinalExporter:
                     try:
                         val = float(vl)
                     except ValueError:
+                        continue
+                    if _math.isnan(val):
                         continue
                     sn = names[i].strip().lower() if i < len(names) else ""
                     mode, cv = pref_lookup.get(sn, ("min", ""))

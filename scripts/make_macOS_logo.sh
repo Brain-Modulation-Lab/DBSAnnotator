@@ -4,8 +4,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ICON_DIR="$SCRIPT_DIR/../icons"
-ICONSET="$ICON_DIR/logobml.iconset"
-SRC_ICON="$ICON_DIR/logobml.png"
+ICONSET="$ICON_DIR/logoneutral.iconset"
+SRC_ICON="$ICON_DIR/logoneutral.png"
 
 mkdir -p "$ICONSET"
 
@@ -21,4 +21,4 @@ sips -z 512 512   "$SRC_ICON" --out "$ICONSET/icon_512x512.png"
 
 cp "$SRC_ICON" "$ICONSET/icon_512x512@2x.png"
 
-iconutil -c icns "$ICONSET" -o "$ICON_DIR/logobml.icns"
+iconutil -c icns "$ICONSET" -o "$ICON_DIR/logoneutral.icns"

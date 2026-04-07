@@ -275,6 +275,64 @@ class AmplitudeSplitWidget(QWidget):
             pct = self._percentages.get(lbl, 0.0)
             ma_val = total_amp * pct / 100.0
             ma_label.setText(f"{ma_val:.2f} mA")
+    
+    def update_main_amplitude_from_split(self, split_text: str) -> None:
+        """Update the main amplitude field to show the sum of split values.
+        
+        When loading a file with split amplitude (e.g., "2.5_2.5"),
+        this method calculates the sum and updates the main field.
+        """
+        if not split_text or '_' not in split_text:
+            return
+        
+        try:
+            parts = split_text.split('_')
+            total = sum(float(p) for p in parts if p.strip())
+            # Format without unnecessary decimal places
+            if total.is_integer():
+                self._amp_edit.setText(str(int(total)))
+            else:
+                self._amp_edit.setText(f"{total:.1f}".rstrip('0').rstrip('.'))
+        except (ValueError, TypeError):
+            pass
+    
+    def set_amplitude_from_split(self, split_text: str) -> None:
+        """Set amplitude from split values and update percentages.
+        
+        When loading a file with split amplitude (e.g., "2.5_2.5"),
+        this method:
+        1. Updates the main amplitude field to show the sum
+        2. Updates the percentage distribution to match the split
+        """
+        if not split_text or '_' not in split_text:
+            return
+        
+        # Update main amplitude field
+        self.update_main_amplitude_from_split(split_text)
+        
+        # Parse split values and update percentages
+        try:
+            parts = split_text.split('_')
+            values = [float(p) for p in parts if p.strip()]
+            total = sum(values)
+            
+            if len(values) != len(self._cathode_labels):
+                # Mismatch between number of values and cathodes - use equal split
+                self._redistribute_percentages()
+                return
+            
+            # Calculate percentages based on split values
+            for i, lbl in enumerate(self._cathode_labels):
+                if i < len(values):
+                    pct = (values[i] / total * 100.0) if total > 0 else 0.0
+                    self._percentages[lbl] = round(pct, 1)
+            
+            # Update the UI rows
+            self._rebuild_rows()
+            
+        except (ValueError, TypeError):
+            # If parsing fails, use equal split
+            self._redistribute_percentages()
 
 
 def get_cathode_labels(canvas) -> List[str]:

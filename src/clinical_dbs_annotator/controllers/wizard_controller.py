@@ -404,11 +404,21 @@ class WizardController:
         Args:
             parent: The parent widget for dialogs
         """
-        self.session_data.close_file()
-        QMessageBox.information(
-            parent, "Session closed", "Session closed and file saved."
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            parent, 
+            "Confirm Close Session",
+            "Are you sure you want to close the current session? The session will be saved before closing.",
+            QMessageBox.Ok | QMessageBox.Cancel,
+            QMessageBox.Cancel
         )
-        parent.close()
+        
+        if reply == QMessageBox.Ok:
+            self.session_data.close_file()
+            QMessageBox.information(
+                parent, "Session closed", "Session closed and file saved."
+            )
+            parent.close()
 
     def export_session_word(self, parent, scale_prefs=None, sections=None) -> None:
         """

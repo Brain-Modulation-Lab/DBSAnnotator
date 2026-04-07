@@ -28,7 +28,6 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QMenu,
 )
-from PyQt5.QtGui import QFont
 
 
 class FileDropZone(QWidget):
@@ -117,8 +116,10 @@ class LongitudinalFileView(QWidget):
         self.export_button.setMinimumWidth(170)
 
         self.export_menu = QMenu(self)
-        self.export_word_action = self.export_menu.addAction("Word Report")
-        self.export_pdf_action = self.export_menu.addAction("PDF Report")
+        self.export_word_action = self.export_menu.addAction("📄 Word Report")
+        self.export_word_action.setToolTip("Export to Word (.docx) document")
+        self.export_pdf_action = self.export_menu.addAction("📋 PDF Report")
+        self.export_pdf_action.setToolTip("Export to PDF document")
         self.export_button.setMenu(self.export_menu)
 
     def get_header_title(self) -> str:

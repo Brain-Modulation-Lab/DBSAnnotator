@@ -22,9 +22,9 @@ RequestExecutionLevel admin
 
 ; MUI Settings
 !define MUI_ABORTWARNING
-!define MUI_ICON "..\icons\logobml.ico"
-!define MUI_UNICON "..\icons\logobml.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "..\icons\logobml.png"
+!define MUI_ICON "..\icons\logoneutral.ico"
+!define MUI_UNICON "..\icons\logoneutral.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "..\icons\logoneutral.png"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -46,17 +46,17 @@ Section "Install"
 
     ; Copy executable and resources
     File "..\dist\${APP_EXE}"
-    File "..\icons\logobml.ico"
-    File "..\icons\logobml.png"
+    File "..\icons\logoneutral.ico"
+    File "..\icons\logoneutral.png"
     File "..\style.qss"
 
     ; Create start menu shortcuts
     CreateDirectory "$SMPROGRAMS\${APP_PUBLISHER}\${APP_NAME}"
-    CreateShortcut "$SMPROGRAMS\${APP_PUBLISHER}\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\logobml.ico"
+    CreateShortcut "$SMPROGRAMS\${APP_PUBLISHER}\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\logoneutral.ico"
     CreateShortcut "$SMPROGRAMS\${APP_PUBLISHER}\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
     ; Create desktop shortcut
-    CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\logobml.ico"
+    CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\logoneutral.ico"
 
     ; Write uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -65,7 +65,7 @@ Section "Install"
     WriteRegStr HKCU "Software\${APP_PUBLISHER}\${APP_NAME}" "InstallDir" "$INSTDIR"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName" "${APP_NAME}"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" "$INSTDIR\Uninstall.exe"
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon" "$INSTDIR\logobml.ico"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon" "$INSTDIR\logoneutral.ico"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "Publisher" "${APP_PUBLISHER}"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayVersion" "${APP_VERSION}"
     WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoModify" 1
@@ -77,8 +77,8 @@ SectionEnd
 Section "Uninstall"
     ; Remove files
     Delete "$INSTDIR\${APP_EXE}"
-    Delete "$INSTDIR\logobml.ico"
-    Delete "$INSTDIR\logobml.png"
+    Delete "$INSTDIR\logoneutral.ico"
+    Delete "$INSTDIR\logoneutral.png"
     Delete "$INSTDIR\style.qss"
     Delete "$INSTDIR\Uninstall.exe"
 

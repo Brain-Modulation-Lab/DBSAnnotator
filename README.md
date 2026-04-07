@@ -38,6 +38,23 @@ There is also a **Free Annotations** mode for quick timestamped text annotations
 
 Data is saved as TSV with columns: `date`, `time`, `block_id`, `is_initial`, `session_ID`, `electrode_model`, `scale_name`, `scale_value`, stimulation parameters (frequency, contacts, amplitude, pulse width per side), `group`, and `notes`.
 
+## Contributing
+
+We welcome contributions! Please see the [Contributing Guide](CONTRIBUTING.md) for detailed guidelines on:
+
+- Bug reports and feature requests
+- Code contributions and pull requests
+- Development setup and testing
+- Community guidelines
+
+### Quick Contribution Steps
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes following PEP 8
+4. Add tests for new functionality
+5. Submit a pull request
+
 ## For Developers
 
 ### Prerequisites

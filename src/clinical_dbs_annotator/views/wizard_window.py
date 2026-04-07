@@ -763,11 +763,11 @@ class WizardWindow(QWidget):
         if hasattr(current, "insert_button"):
             widgets.append(current.insert_button)
         
-        if hasattr(current, "close_button"):
-            widgets.append(current.close_button)
-        
         if hasattr(current, "export_button"):
             widgets.append(current.export_button)
+        
+        if hasattr(current, "close_button"):
+            widgets.append(current.close_button)
 
         for w in widgets:
             if w is not None:

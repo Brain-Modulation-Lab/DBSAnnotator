@@ -23,9 +23,9 @@ PLATFORM = "macOS"
 
 
 def update_macos_logo(png_path: Path) -> bool:
-    """Update logobml.png from the provided file and regenerate logobml.icns."""
+    """Update logoneutral.png from the provided file and regenerate logoneutral.icns."""
     logo_script = PROJECT_ROOT / "scripts" / "make_macOS_logo.sh"
-    target_png = ICONS_DIR / "logobml.png"
+    target_png = ICONS_DIR / "logoneutral.png"
 
     if not png_path.exists():
         print(f"Error: PNG file not found at {png_path}")
@@ -43,7 +43,7 @@ def update_macos_logo(png_path: Path) -> bool:
         shutil.copy2(png_path, target_png)
         print(f"Updated base icon PNG: {target_png}")
         subprocess.run(["bash", str(logo_script)], check=True, cwd=PROJECT_ROOT)
-        print(f"Regenerated macOS icon: {ICONS_DIR / 'logobml.icns'}")
+        print(f"Regenerated macOS icon: {ICONS_DIR / 'logoneutral.icns'}")
     except (OSError, subprocess.CalledProcessError) as e:
         print(f"Error: Failed to update macOS icon: {e}")
         return False
@@ -60,8 +60,8 @@ def build_macos_app(*, console: bool, onefile: bool):
     styles_dir = PROJECT_ROOT / "styles"
     config_dir = SRC_DIR / "clinical_dbs_annotator" / "config"
 
-    icon_icns = ICONS_DIR / "logobml.icns"
-    icon_fallback = ICONS_DIR / "logobml.ico"
+    icon_icns = ICONS_DIR / "logoneutral.icns"
+    icon_fallback = ICONS_DIR / "logoneutral.ico"
     icon_path = icon_icns if icon_icns.exists() else icon_fallback
 
     if icon_path.suffix.lower() != ".icns":
@@ -90,8 +90,8 @@ def build_macos_app(*, console: bool, onefile: bool):
         "--exclude-module=PyQt5.QtWebEngineWidgets",
         "--exclude-module=PyQt5.QtWebEngineCore",
         # Add data files (macOS uses : separator)
-        f"--add-data={ICONS_DIR / 'logobml.ico'}:icons",
-        f"--add-data={ICONS_DIR / 'logobml.png'}:icons",
+        f"--add-data={ICONS_DIR / 'logoneutral.ico'}:icons",
+        f"--add-data={ICONS_DIR / 'logoneutral.png'}:icons",
         f"--add-data={styles_dir / 'dark_theme.qss'}:styles",
         f"--add-data={styles_dir / 'light_theme.qss'}:styles",
         f"--add-data={config_dir / 'clinical_presets.json'}:config",
@@ -135,7 +135,7 @@ def main():
     parser.add_argument(
         "--mac-logo-png",
         type=Path,
-        help="Optional PNG path: copy it to icons/logobml.png and regenerate icons/logobml.icns before build",
+        help="Optional PNG path: copy it to icons/logoneutral.png and regenerate icons/logoneutral.icns before build",
     )
     args = parser.parse_args()
 
@@ -144,8 +144,8 @@ def main():
             return 1
 
     required_files = [
-        ICONS_DIR / "logobml.ico",
-        ICONS_DIR / "logobml.png",
+        ICONS_DIR / "logoneutral.ico",
+        ICONS_DIR / "logoneutral.png",
         PROJECT_ROOT / "styles" / "dark_theme.qss",
         PROJECT_ROOT / "styles" / "light_theme.qss",
         SRC_DIR / "clinical_dbs_annotator" / "config" / "clinical_presets.json",

@@ -79,8 +79,6 @@ class Step3View(BaseStepView):
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
-        self.main_layout.setSpacing(8)
-        self.main_layout.setContentsMargins(12, 8, 12, 8)
 
         # Left macro-panel: Stimulation params + electrodes
         left_container = QGroupBox("Session settings")
@@ -89,13 +87,26 @@ class Step3View(BaseStepView):
         left_container_layout.setContentsMargins(0, 0, 0, 0)
 
         params_group = self._create_stimulation_params_group()
-        params_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        params_scroll = QScrollArea()
-        params_scroll.setWidget(params_group)
-        params_scroll.setWidgetResizable(True)
-        params_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        params_scroll.setFrameShape(QFrame.NoFrame)
-        left_container_layout.addWidget(params_scroll, 1)
+        
+        # Wrap sidebar in a scroll area like step1_view
+        sidebar_widget = params_group
+        sidebar_scroll = QScrollArea()
+        sidebar_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
+        sidebar_scroll.setWidgetResizable(True)
+        sidebar_scroll.setFrameShape(QFrame.NoFrame)
+        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        sidebar_scroll.setWidget(sidebar_widget)
+        
+        left_container_layout.addWidget(sidebar_scroll, 1)
 
         electrodes_layout = QVBoxLayout()
         electrodes_row = QHBoxLayout()
@@ -127,7 +138,7 @@ class Step3View(BaseStepView):
         notes_group = self._create_notes_group()
         right_layout.addWidget(notes_group)
 
-        left_container.setMinimumWidth(500)
+        #left_container.setMinimumWidth(500)
         right_widget.setMinimumWidth(400)
 
         # Splitter: right panel shrinks first (stretch=1), left stays stable (stretch=0)
@@ -177,12 +188,13 @@ class Step3View(BaseStepView):
         """Create the stimulation parameters container."""
         container = QWidget()
         container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        #container.setMinimumWidth(380)
         sidebar_layout = QVBoxLayout(container)
 
         group_row = QGroupBox("Group")
         group_row_layout = QHBoxLayout()
         self.group_combo = QComboBox()
-        self.group_combo.addItems(["A", "B", "C", "D"])
+        self.group_combo.addItems(["A", "B", "C", "D", "None"])
         self.group_combo.setCurrentIndex(0)
         group_row_layout.addWidget(self.group_combo)
         group_row.setLayout(group_row_layout)
@@ -245,7 +257,7 @@ class Step3View(BaseStepView):
             max_value=pw_limits["max"],
         )
         pw_row.addWidget(left_pw_widget)
-
+      
         self.left_amp_split = AmplitudeSplitWidget(self.session_left_amp_edit)
 
         left_group_layout.addLayout(freq_row)
@@ -546,7 +558,7 @@ class Step3View(BaseStepView):
 
     def _create_notes_group(self) -> QGroupBox:
         """Create the session notes group box."""
-        gb_notes = QGroupBox("Initial notes")
+        gb_notes = QGroupBox("Session notes")
         gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding) 
 
         layout = QVBoxLayout(gb_notes)
@@ -555,7 +567,7 @@ class Step3View(BaseStepView):
         # Instructions
         instructions = QLabel(
             "Enter your observations and notes below. "
-            "Each annotation+ programming settings will be saved with the current timestamp."
+            "Annotations will be saved with timestamp, parameters, and scale scores."
         )
         instructions.setWordWrap(True)
         instructions.setStyleSheet("color: #64748b; padding: 5px;")

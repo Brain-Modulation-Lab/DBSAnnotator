@@ -36,8 +36,8 @@ Developed at the **Brain Modulation Lab, Massachusetts General Hospital**.
    :caption: User Guide
 
    workflow_session
-   workflow_longitudinal
    workflow_annotations
+   longitudinal_report
    output_format
 
 .. toctree::
@@ -45,6 +45,12 @@ Developed at the **Brain Modulation Lab, Massachusetts General Hospital**.
    :caption: Reference
 
    faq
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer Guide
+
+   contributing
 
 ----
 

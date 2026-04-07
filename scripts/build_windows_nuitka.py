@@ -33,8 +33,8 @@ ENTRYPOINT = PROJECT_ROOT / "run.py"
 
 # Data files to include (src_path:dest_path)
 DATA_FILES = [
-    (ICONS_DIR / "logobml.ico", "icons"),
-    (ICONS_DIR / "logobml.png", "icons"),
+    (ICONS_DIR / "logoneutral.ico", "icons"),
+    (ICONS_DIR / "logoneutral.png", "icons"),
     (STYLES_DIR / "dark_theme.qss", "styles"),
     (STYLES_DIR / "light_theme.qss", "styles"),
     (CONFIG_DIR / "clinical_presets.json", "config"),
@@ -118,7 +118,7 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
     ])
 
     # Icon
-    icon_path = ICONS_DIR / "logobml.ico"
+    icon_path = ICONS_DIR / "logoneutral.ico"
     if icon_path.exists():
         cmd.append(f"--windows-icon-from-ico={icon_path}")
 

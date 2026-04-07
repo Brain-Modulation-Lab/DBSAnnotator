@@ -13,8 +13,8 @@ APP_VERSION = "v0.3_testing"
 ORGANIZATION_NAME = "BML"
 
 # File paths (relative to executable)
-ICON_FILENAME = "logobml.png"
-ICO_FILENAME = "logobml.ico"
+ICON_FILENAME = "logoneutral.png"
+ICO_FILENAME = "logoneutral.ico"
 STYLE_FILENAME = "style.qss"
 ICONS_DIR = "icons"
 

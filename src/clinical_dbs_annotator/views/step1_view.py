@@ -37,14 +37,12 @@ from ..config import (
     PRESET_BUTTONS,
     STIMULATION_LIMITS,
 )
-from ..ui import create_horizontal_line
+from ..ui import IncrementWidget, create_horizontal_line, FileDropLineEdit, AmplitudeSplitWidget, get_cathode_labels
 from ..ui.clinical_scales_settings_dialog import ClinicalScalesSettingsDialog
 from ..utils.resources import resource_path
 from .base_view import BaseStepView
 from ..models import ElectrodeCanvas
-# Import configuration
-from ..config_electrode_models import ContactState, ElectrodeModel, ELECTRODE_MODELS, MANUFACTURERS, get_all_manufacturers
-from ..ui import FileDropLineEdit, AmplitudeSplitWidget, get_cathode_labels
+from ..config_electrode_models import ContactState, ElectrodeModel, ELECTRODE_MODELS, MANUFACTURERS, get_all_manufacturers 
 
 
 class Step1View(BaseStepView):
@@ -129,6 +127,7 @@ class Step1View(BaseStepView):
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
+        
         # Left side: File + Initial settings
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
@@ -213,7 +212,6 @@ class Step1View(BaseStepView):
         left_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         left_group_layout = QVBoxLayout()
         
-        # Use custom layout instead of FormLayout for better height control
         freq_row = QHBoxLayout()
         freq_row.addWidget(QLabel("Frequency:"))
         freq_row.addStretch()
@@ -221,7 +219,15 @@ class Step1View(BaseStepView):
         self.left_stim_freq_edit.setMaximumWidth(80)
         self.left_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
         self.left_stim_freq_edit.setValidator(QIntValidator(freq_limits["min"], freq_limits["max"]))
-        freq_row.addWidget(self.left_stim_freq_edit)
+        left_freq_widget = IncrementWidget(
+            self.left_stim_freq_edit,
+            step1=freq_limits["step1"],
+            step2=freq_limits["step2"],
+            decimals=0,
+            min_value=freq_limits["min"],
+            max_value=freq_limits["max"],
+        )
+        freq_row.addWidget(left_freq_widget)
         
         amp_row = QHBoxLayout()
         amp_row.addWidget(QLabel("Amplitude:"))
@@ -230,7 +236,15 @@ class Step1View(BaseStepView):
         self.left_amp_edit.setMaximumWidth(80)
         self.left_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
         self.left_amp_edit.setValidator(QDoubleValidator(amp_limits["min"], amp_limits["max"], amp_limits["decimals"]))
-        amp_row.addWidget(self.left_amp_edit)
+        left_amp_widget = IncrementWidget(
+            self.left_amp_edit,
+            step1=amp_limits["step1"],
+            step2=amp_limits["step2"],
+            decimals=1,
+            min_value=amp_limits["min"],
+            max_value=amp_limits["max"],
+        )
+        amp_row.addWidget(left_amp_widget)
         
         pw_row = QHBoxLayout()
         pw_row.addWidget(QLabel("Pulse width:"))
@@ -239,7 +253,15 @@ class Step1View(BaseStepView):
         self.left_pw_edit.setMaximumWidth(80)
         self.left_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
         self.left_pw_edit.setValidator(QIntValidator(pw_limits["min"], pw_limits["max"]))
-        pw_row.addWidget(self.left_pw_edit)
+        left_pw_widget = IncrementWidget(
+            self.left_pw_edit,
+            step1=pw_limits["step1"],
+            step2=pw_limits["step2"],
+            decimals=0,
+            min_value=pw_limits["min"],
+            max_value=pw_limits["max"],
+        )
+        pw_row.addWidget(left_pw_widget)
         
         self.left_amp_split = AmplitudeSplitWidget(self.left_amp_edit)
 
@@ -257,6 +279,7 @@ class Step1View(BaseStepView):
         self.left_config_label = QLabel()
         self.left_config_label.setWordWrap(True)
         self.left_config_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.left_config_label.setTextFormat(Qt.RichText)
         left_config_layout.addWidget(self.left_config_label)
         left_group_layout.addWidget(self.left_config_box)
         left_group_layout.addStretch(1)
@@ -266,7 +289,6 @@ class Step1View(BaseStepView):
         right_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         right_group_layout = QVBoxLayout()
         
-        # Use custom layout instead of FormLayout for better height control
         freq_row = QHBoxLayout()
         freq_row.addWidget(QLabel("Frequency:"))
         freq_row.addStretch()
@@ -274,7 +296,15 @@ class Step1View(BaseStepView):
         self.right_stim_freq_edit.setMaximumWidth(80)
         self.right_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
         self.right_stim_freq_edit.setValidator(QIntValidator(freq_limits["min"], freq_limits["max"]))
-        freq_row.addWidget(self.right_stim_freq_edit)
+        right_freq_widget = IncrementWidget(
+            self.right_stim_freq_edit,
+            step1=freq_limits["step1"],
+            step2=freq_limits["step2"],
+            decimals=0,
+            min_value=freq_limits["min"],
+            max_value=freq_limits["max"],
+        )
+        freq_row.addWidget(right_freq_widget)
         
         amp_row = QHBoxLayout()
         amp_row.addWidget(QLabel("Amplitude:"))
@@ -283,7 +313,15 @@ class Step1View(BaseStepView):
         self.right_amp_edit.setMaximumWidth(80)
         self.right_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
         self.right_amp_edit.setValidator(QDoubleValidator(amp_limits["min"], amp_limits["max"], amp_limits["decimals"]))
-        amp_row.addWidget(self.right_amp_edit)
+        right_amp_widget = IncrementWidget(
+            self.right_amp_edit,
+            step1=amp_limits["step1"],
+            step2=amp_limits["step2"],
+            decimals=1,
+            min_value=amp_limits["min"],
+            max_value=amp_limits["max"],
+        )
+        amp_row.addWidget(right_amp_widget)
         
         pw_row = QHBoxLayout()
         pw_row.addWidget(QLabel("Pulse width:"))
@@ -292,7 +330,15 @@ class Step1View(BaseStepView):
         self.right_pw_edit.setMaximumWidth(80)
         self.right_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
         self.right_pw_edit.setValidator(QIntValidator(pw_limits["min"], pw_limits["max"]))
-        pw_row.addWidget(self.right_pw_edit)
+        right_pw_widget = IncrementWidget(
+            self.right_pw_edit,
+            step1=pw_limits["step1"],
+            step2=pw_limits["step2"],
+            decimals=0,
+            min_value=pw_limits["min"],
+            max_value=pw_limits["max"],
+        )
+        pw_row.addWidget(right_pw_widget)
         
         self.right_amp_split = AmplitudeSplitWidget(self.right_amp_edit)
 
@@ -310,6 +356,7 @@ class Step1View(BaseStepView):
         self.right_config_label = QLabel()
         self.right_config_label.setWordWrap(True)
         self.right_config_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.right_config_label.setTextFormat(Qt.RichText)
         right_config_layout.addWidget(self.right_config_label)
         right_group_layout.addWidget(self.right_config_box)
         right_group_layout.addStretch(1)
@@ -325,10 +372,27 @@ class Step1View(BaseStepView):
         sidebar_widget = QWidget()
         sidebar_widget.setLayout(sidebar_layout)
         sidebar_scroll = QScrollArea()
-        sidebar_scroll.setWidget(sidebar_widget)
+        sidebar_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
+        
         sidebar_scroll.setWidgetResizable(True)
-        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sidebar_scroll.setFrameShape(QFrame.NoFrame)
+        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        sidebar_scroll.setWidget(sidebar_widget)
+
+
+
+
+
+
 
         electrodes_layout = QVBoxLayout()
         electrodes_row = QHBoxLayout()
@@ -776,7 +840,7 @@ class Step1View(BaseStepView):
         # Instructions
         instructions = QLabel(
             "Enter your observations and notes below. "
-            "Each annotation + programming settings will be saved with the current timestamp."
+            "Annotations will be saved with timestamp, parameters, and scale scores."
         )
         instructions.setWordWrap(True)
         instructions.setStyleSheet("color: #64748b; padding: 5px;")
@@ -939,15 +1003,42 @@ class Step1View(BaseStepView):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to load file: {str(e)}")
     
+    def _parse_amplitude_for_display(self, amplitude_str: str) -> str:
+        """Parse amplitude string for display: sum underscore-separated values.
+        
+        If the string contains underscores (e.g., "2.5_2.5"), sum the values
+        and return the total ("5.0"). Otherwise return the original string.
+        """
+        if not amplitude_str:
+            return amplitude_str
+        
+        # Check if this is a split amplitude (contains underscore)
+        if '_' in amplitude_str:
+            try:
+                # Split and sum all numeric parts
+                parts = amplitude_str.split('_')
+                total = sum(float(p) for p in parts if p.strip())
+                # Format with at least one decimal place
+                return f"{total:.1f}".rstrip('0').rstrip('.') if '.' in f"{total:.1f}" else str(int(total))
+            except (ValueError, TypeError):
+                # If parsing fails, return original
+                return amplitude_str
+        
+        return amplitude_str
+    
     def _load_stimulation_parameters(self, row: dict) -> None:
         """Restore stimulation edits + electrode selections from a TSV row."""
         # Text fields
         try:
             self.left_stim_freq_edit.setText(str(row.get("left_stim_freq", "") or ""))
-            self.left_amp_edit.setText(str(row.get("left_amplitude", "") or ""))
+        # Parse amplitude to show total sum if split
+            left_amp_raw = str(row.get("left_amplitude", "") or "")
+            self.left_amp_edit.setText(self._parse_amplitude_for_display(left_amp_raw))
             self.left_pw_edit.setText(str(row.get("left_pulse_width", "") or ""))
             self.right_stim_freq_edit.setText(str(row.get("right_stim_freq", "") or ""))
-            self.right_amp_edit.setText(str(row.get("right_amplitude", "") or ""))
+            # Parse amplitude to show total sum if split
+            right_amp_raw = str(row.get("right_amplitude", "") or "")
+            self.right_amp_edit.setText(self._parse_amplitude_for_display(right_amp_raw))
             self.right_pw_edit.setText(str(row.get("right_pulse_width", "") or ""))
         except Exception:
             pass
@@ -965,6 +1056,16 @@ class Step1View(BaseStepView):
             pass
 
         self.update_configuration_display()
+        
+        # Update amplitude split widgets with original split values if present
+        left_amp_raw = str(row.get("left_amplitude", "") or "")
+        right_amp_raw = str(row.get("right_amplitude", "") or "")
+        
+        if hasattr(self, "left_amp_split") and left_amp_raw and '_' in left_amp_raw:
+            self.left_amp_split.set_amplitude_from_split(left_amp_raw)
+        
+        if hasattr(self, "right_amp_split") and right_amp_raw and '_' in right_amp_raw:
+            self.right_amp_split.set_amplitude_from_split(right_amp_raw)
 
     def create_new_file(self) -> None:
         """Create new file with BIDS-style naming."""

@@ -61,9 +61,9 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
 
     cmd.extend(
         [
-            f"--icon={ICONS_DIR / 'logobml.ico'}",
-            f"--add-data={ICONS_DIR / 'logobml.ico'};icons",
-            f"--add-data={ICONS_DIR / 'logobml.png'};icons",
+            f"--icon={ICONS_DIR / 'logoneutral.ico'}",
+            f"--add-data={ICONS_DIR / 'logoneutral.ico'};icons",
+            f"--add-data={ICONS_DIR / 'logoneutral.png'};icons",
             f"--add-data={styles_dir / 'dark_theme.qss'};styles",
             f"--add-data={styles_dir / 'light_theme.qss'};styles",
             f"--add-data={config_dir / 'clinical_presets.json'};config",
@@ -96,12 +96,12 @@ def main():
     parser.add_argument("--onedir", action="store_true", help="Build as a folder (onedir) instead of a single exe (onefile)")
     args = parser.parse_args()
 
-    if not (ICONS_DIR / "logobml.ico").exists():
-        print(f"Error: Icon file not found at {ICONS_DIR / 'logobml.ico'}")
+    if not (ICONS_DIR / "logoneutral.ico").exists():
+        print(f"Error: Icon file not found at {ICONS_DIR / 'logoneutral.ico'}")
         return 1
 
-    if not (ICONS_DIR / "logobml.png").exists():
-        print(f"Error: Logo file not found at {ICONS_DIR / 'logobml.png'}")
+    if not (ICONS_DIR / "logoneutral.png").exists():
+        print(f"Error: Logo file not found at {ICONS_DIR / 'logoneutral.png'}")
         return 1
 
     if not build_windows_exe(console=args.console, onefile=not args.onedir):
