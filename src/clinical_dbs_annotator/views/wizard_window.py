@@ -467,7 +467,7 @@ class WizardWindow(QWidget):
             ReportSectionsDialog,
         )
         dialog = LongitudinalScaleDialog(scales, self)
-        if dialog.exec() != dialog.accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
 
         prefs = dialog.get_scale_prefs()
@@ -480,7 +480,7 @@ class WizardWindow(QWidget):
             ("programming_summary", "Programming Summary", False),
         ]
         sec_dialog = ReportSectionsDialog(section_defs, self, title="Report Sections")
-        if sec_dialog.exec() != sec_dialog.accepted:
+        if sec_dialog.exec() != QDialog.Accepted:
             return
         sections = sec_dialog.get_selected_sections()
 
@@ -690,7 +690,7 @@ class WizardWindow(QWidget):
         dialog = ScaleOptimizationDialog(
             scales, self, title="Scale Optimization — Session Report"
         )
-        if dialog.exec() != dialog.accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
 
         prefs = dialog.get_scale_prefs()
@@ -704,7 +704,7 @@ class WizardWindow(QWidget):
             ("programming_summary", "Programming Summary", True),
         ]
         sec_dialog = ReportSectionsDialog(section_defs, self, title="Report Sections")
-        if sec_dialog.exec() != sec_dialog.accepted:
+        if sec_dialog.exec() != QDialog.Accepted:
             return
         sections = sec_dialog.get_selected_sections()
 

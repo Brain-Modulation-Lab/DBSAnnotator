@@ -128,7 +128,7 @@ class AnnotationsFileView(QWidget):
         buttons.rejected.connect(dialog.reject)
         layout.addRow(buttons)
 
-        if dialog.exec() != QDialog.accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
 
         patient_id = patient_edit.text().strip() or "01"
