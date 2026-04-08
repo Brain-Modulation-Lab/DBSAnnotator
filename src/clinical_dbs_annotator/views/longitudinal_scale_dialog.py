@@ -12,9 +12,9 @@ single-session export.
 """
 
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDoubleValidator
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QDoubleValidator
+from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QDialog,

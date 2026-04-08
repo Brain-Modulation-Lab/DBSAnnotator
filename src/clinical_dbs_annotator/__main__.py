@@ -10,8 +10,7 @@ import sys
 import tempfile
 import traceback
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from .utils import get_theme_manager
 from .views import WizardWindow
@@ -31,10 +30,6 @@ def main() -> int:
         except ImportError:
             print("Error: pytz is required. Install with: pip install pytz")
             return 1
-
-        # Enable high DPI support
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
         # Create application
         app = QApplication(sys.argv)
@@ -56,7 +51,7 @@ def main() -> int:
         window.show()
 
         # Run application
-        return app.exec_()
+        return app.exec()
 
     except Exception:
         print("FATAL ERROR:")

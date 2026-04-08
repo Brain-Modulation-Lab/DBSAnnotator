@@ -1,5 +1,5 @@
 Contributing to Clinical DBS Annotator
-====================================
+======================================
 
 We welcome contributions to the Clinical DBS Annotator! This document provides guidelines for contributors who want to help improve this open-source software for deep brain stimulation research.
 
@@ -15,7 +15,7 @@ Prerequisites
 
 To contribute to this project, you should have:
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - Git installed and configured
 - Basic knowledge of PyQt5/PyQt6 (helpful but not required)
 - Understanding of deep brain stimulation concepts (helpful but not required)
@@ -30,31 +30,16 @@ Development Setup
       git clone https://github.com/yourusername/App_ClinicalDBSAnnot.git
       cd App_ClinicalDBSAnnot
 
-2. **Create a virtual environment**:
+2. **Make sure uv is installed. Then, create a virtual environment and install dependencies**:
+   .. code-block:: bash
+      
+      uv sync
+
+3. **Run the application** to verify installation:
 
    .. code-block:: bash
 
-      python -m venv .venv
-      source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-3. **Install dependencies**:
-
-   .. code-block:: bash
-
-      pip install -r requirements.txt
-      pip install -r docs/requirements.txt
-
-4. **Install in development mode**:
-
-   .. code-block:: bash
-
-      pip install -e .
-
-5. **Run the application** to verify installation:
-
-   .. code-block:: bash
-
-      python -m clinical_dbs_annotator
+      uv run python -m clinical_dbs_annotator
 
 Types of Contributions
 ----------------------
@@ -110,7 +95,7 @@ We accept code contributions through pull requests. Please follow these guidelin
 5. **Push to your fork** and create a pull request
 
 Documentation Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Documentation is crucial for research software. We welcome:
 
@@ -275,7 +260,7 @@ We are committed to providing a welcoming and inclusive environment. Please:
 - Be patient with different perspectives
 
 Communication Channels
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 - **GitHub Issues**: For bug reports and feature requests
 - **GitHub Discussions**: For general questions and ideas
@@ -345,7 +330,7 @@ We use GitHub Actions for:
 - **Package building**
 
 Specialized Contributions
-------------------------
+--------------------------
 
 Clinical Domain Experts
 ~~~~~~~~~~~~~~~~~~~~~~~

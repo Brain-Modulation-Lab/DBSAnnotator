@@ -72,5 +72,5 @@ Next Steps
 ----------
 
 * If you are starting a programming session → :doc:`workflow_session`
-* If you want to generate a longitudinal report → :doc:`workflow_longitudinal`
+* If you want to generate a longitudinal report → :doc:`longitudinal_report`
 * If you want to record free annotations → :doc:`workflow_annotations`

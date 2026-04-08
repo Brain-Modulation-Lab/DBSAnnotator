@@ -7,8 +7,8 @@ handles file naming and text annotations.
 
 import os
 
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import (
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
@@ -106,7 +106,7 @@ class AnnotationsFileView(QWidget):
         """Create new file with BIDS-style naming via a dialog."""
         from datetime import datetime
 
-        from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
 
         dialog = QDialog(self)
         dialog.setWindowTitle("New Session Information")
@@ -128,7 +128,7 @@ class AnnotationsFileView(QWidget):
         buttons.rejected.connect(dialog.reject)
         layout.addRow(buttons)
 
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.accepted:
             return
 
         patient_id = patient_edit.text().strip() or "01"

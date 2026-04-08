@@ -15,5 +15,5 @@ pytest --cov=clinical_dbs_annotator --cov-report=html
 ## Dependencies
 
 - pytest
-- pytest-qt (PyQt5 widget testing)
+- pytest-qt (Qt widget testing)
 - pytest-cov (coverage reporting)

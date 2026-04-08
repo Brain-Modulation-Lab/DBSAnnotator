@@ -5,9 +5,9 @@ Dialog for editing clinical scales presets.
 import json
 import os
 
-from PyQt5.QtCore import QEvent, Qt, pyqtSignal
-from PyQt5.QtGui import QCloseEvent, QFont
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtGui import QCloseEvent, QFont
+from PySide6.QtWidgets import (
     QDialog,
     QFormLayout,
     QGroupBox,
@@ -27,7 +27,7 @@ from ..utils.resources import resource_path
 class ClinicalScalesSettingsDialog(QDialog):
     """Dialog for editing clinical scales presets."""
 
-    presets_changed = pyqtSignal(dict)
+    presets_changed = Signal(dict)
 
     def __init__(self, current_presets: dict[str, list[str]], parent=None, original_presets=None):
         """Initialize with existing presets.

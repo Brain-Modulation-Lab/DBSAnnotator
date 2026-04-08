@@ -6,7 +6,7 @@ and resolution, ensuring consistent appearance across different displays.
 """
 
 
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 
 def get_dpi_scale() -> float:

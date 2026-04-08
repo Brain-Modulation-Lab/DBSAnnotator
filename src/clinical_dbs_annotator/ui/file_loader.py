@@ -7,7 +7,7 @@ with the dropped file path.
 
 from collections.abc import Callable
 
-from PyQt5.QtWidgets import QLineEdit
+from PySide6.QtWidgets import QLineEdit
 
 
 class FileDropLineEdit(QLineEdit):

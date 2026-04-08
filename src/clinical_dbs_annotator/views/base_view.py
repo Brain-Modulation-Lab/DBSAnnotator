@@ -5,7 +5,7 @@ This module provides the base class that all step views inherit from,
 containing common functionality and UI elements.
 """
 
-from PyQt5.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 
 class BaseStepView(QWidget):

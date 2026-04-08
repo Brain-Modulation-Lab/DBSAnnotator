@@ -1,9 +1,9 @@
 # Clinical DBS Annotator
 
-A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built with PyQt5 for clinicians and researchers working with DBS systems (Medtronic Percept and others).
+A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built for clinicians and researchers working with DBS systems (Medtronic Percept and others).
 
-**Version:** 0.3 (testing)
-**Author:** Lucia Poma (lpoma@mgh.harvard.edu) — Brain Modulation Lab, MGH
+**Version:** 0.3.0-beta
+**Author:** Lucia Poma (lucia.poma@wysscenter.ch)
 
 ## For End Users
 
@@ -88,7 +88,7 @@ python -m clinical_dbs_annotator
 App_ClinicalDBSAnnot/
 ├── src/clinical_dbs_annotator/   # Application source code
 │   ├── models/                   #   Data models (session, scales, stimulation, electrode)
-│   ├── views/                    #   PyQt5 views (step0-3, annotations, wizard window)
+│   ├── views/                    #   Qt views (step0-3, annotations, wizard window)
 │   ├── controllers/              #   Business logic (wizard controller)
 │   ├── ui/                       #   Reusable UI widgets and dialogs
 │   ├── utils/                    #   Utilities (export, themes, responsive, resources)
@@ -130,5 +130,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Contact
 
-Lucia Poma — lpoma@mgh.harvard.edu
-Brain Modulation Lab, Massachusetts General Hospital
+Lucia Poma — lucia.poma@wysscenter.ch

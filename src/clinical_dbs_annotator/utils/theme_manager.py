@@ -9,7 +9,7 @@ import os
 from enum import Enum
 from typing import Optional
 
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from .resources import resource_path
 

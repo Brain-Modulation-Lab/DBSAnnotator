@@ -10,8 +10,8 @@ import csv
 import os
 import re
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
     QGroupBox,

@@ -8,9 +8,9 @@ Provides a dialog for creating, editing, and deleting session-scale presets
 import json
 import os
 
-from PyQt5.QtCore import QEvent, Qt, pyqtSignal
-from PyQt5.QtGui import QCloseEvent, QFont
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtGui import QCloseEvent, QFont
+from PySide6.QtWidgets import (
     QDialog,
     QFormLayout,
     QGroupBox,
@@ -30,7 +30,7 @@ from ..utils.resources import resource_path
 class SessionScalesSettingsDialog(QDialog):
     """Dialog for managing session-scale presets (add / edit / delete)."""
 
-    presets_changed = pyqtSignal(dict)
+    presets_changed = Signal(dict)
 
     def __init__(
         self,
