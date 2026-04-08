@@ -121,19 +121,39 @@ class Step1View(BaseStepView):
         if btn:
             btn.setIcon(self._create_settings_icon())
 
+    def _is_single_grouped_directional(self, cathode_labels: list[str], canvas) -> bool:
+        """Check if a single cathode label represents a grouped directional contact."""
+        if len(cathode_labels) != 1 or not canvas or not canvas.model:
+            return False
+        
+        lbl = cathode_labels[0]
+        # Check if this is a grouped contact (no segment suffix) that could be directional
+        if len(lbl) >= 2 and lbl[0] == 'E' and lbl[1:].isdigit():
+            try:
+                contact_idx = int(lbl[1:])
+                return (canvas.model.is_directional and 
+                       canvas.model.is_level_directional(contact_idx))
+            except (ValueError, IndexError):
+                pass
+        return False
+
     def _on_left_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
         """Callback when left electrode canvas validation state changes."""
         self._left_selection_valid = is_valid
         self.update_configuration_display()
         if hasattr(self, "left_amp_split"):
-            self.left_amp_split.update_cathodes(get_cathode_labels(self.left_canvas))
+            left_labels = get_cathode_labels(self.left_canvas)
+            left_is_grouped = self._is_single_grouped_directional(left_labels, self.left_canvas)
+            self.left_amp_split.update_cathodes(left_labels, left_is_grouped)
 
     def _on_right_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
         """Callback when right electrode canvas validation state changes."""
         self._right_selection_valid = is_valid
         self.update_configuration_display()
         if hasattr(self, "right_amp_split"):
-            self.right_amp_split.update_cathodes(get_cathode_labels(self.right_canvas))
+            right_labels = get_cathode_labels(self.right_canvas)
+            right_is_grouped = self._is_single_grouped_directional(right_labels, self.right_canvas)
+            self.right_amp_split.update_cathodes(right_labels, right_is_grouped)
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
@@ -567,13 +587,15 @@ class Step1View(BaseStepView):
                 state = canvas.contact_states[contact_id]
                 state_str = "Anodic (+)" if state == ContactState.ANODIC else "Cathodic (-)"
 
-                if model.is_directional:
+                if model.is_directional and model.is_level_directional(contact_idx):
+                    # This contact has segments - show segment label
                     segment_labels = ['a', 'b', 'c']
                     contact_name = f"C{contact_idx}{segment_labels[seg_idx]}"
                 else:
+                    # This contact is a ring contact - no segment label
                     contact_name = f"C{contact_idx}"
 
-                lines.append(f"  • {contact_name}: {state_str}")
+                lines.append(f"  &bull; {contact_name}: {state_str}")
         else:
             lines.append("<i>No active contacts</i>")
 
@@ -611,21 +633,34 @@ class Step1View(BaseStepView):
 
         if model.is_directional:
             for contact_idx in range(model.num_contacts):
-                seg_states = [canvas.contact_states.get((contact_idx, seg), ContactState.OFF) for seg in range(3)]
-                if all(s == ContactState.ANODIC for s in seg_states):
-                    anode_items.append(f"E{contact_idx}")
-                    continue
-                if all(s == ContactState.CATHODIC for s in seg_states):
-                    cathode_items.append(f"E{contact_idx}")
-                    continue
+                # Check if this contact level is directional (has segments)
+                is_contact_directional = model.is_level_directional(contact_idx)
+                
+                if is_contact_directional:
+                    # This contact has segments - check individual segments
+                    seg_states = [canvas.contact_states.get((contact_idx, seg), ContactState.OFF) for seg in range(3)]
+                    if all(s == ContactState.ANODIC for s in seg_states):
+                        anode_items.append(f"E{contact_idx}")
+                        continue
+                    if all(s == ContactState.CATHODIC for s in seg_states):
+                        cathode_items.append(f"E{contact_idx}")
+                        continue
 
-                seg_labels = ["a", "b", "c"]
-                for seg, seg_state in enumerate(seg_states):
-                    if seg_state == ContactState.ANODIC:
-                        anode_items.append(f"E{contact_idx}{seg_labels[seg]}")
-                    elif seg_state == ContactState.CATHODIC:
-                        cathode_items.append(f"E{contact_idx}{seg_labels[seg]}")
+                    seg_labels = ["a", "b", "c"]
+                    for seg, seg_state in enumerate(seg_states):
+                        if seg_state == ContactState.ANODIC:
+                            anode_items.append(f"E{contact_idx}{seg_labels[seg]}")
+                        elif seg_state == ContactState.CATHODIC:
+                            cathode_items.append(f"E{contact_idx}{seg_labels[seg]}")
+                else:
+                    # This contact is a ring contact - no segments
+                    state = canvas.contact_states.get((contact_idx, 0), ContactState.OFF)
+                    if state == ContactState.ANODIC:
+                        anode_items.append(f"E{contact_idx}")
+                    elif state == ContactState.CATHODIC:
+                        cathode_items.append(f"E{contact_idx}")
         else:
+            # Non-directional model - all contacts are ring contacts
             for contact_idx in range(model.num_contacts):
                 state = canvas.contact_states.get((contact_idx, 0), ContactState.OFF)
                 if state == ContactState.ANODIC:
@@ -709,9 +744,13 @@ class Step1View(BaseStepView):
         canvas.update()
         # Refresh amplitude split widget for this canvas
         if canvas is self.left_canvas and hasattr(self, "left_amp_split"):
-            self.left_amp_split.update_cathodes(get_cathode_labels(self.left_canvas))
+            left_labels = get_cathode_labels(self.left_canvas)
+            left_is_grouped = self._is_single_grouped_directional(left_labels, self.left_canvas)
+            self.left_amp_split.update_cathodes(left_labels, left_is_grouped)
         elif canvas is self.right_canvas and hasattr(self, "right_amp_split"):
-            self.right_amp_split.update_cathodes(get_cathode_labels(self.right_canvas))
+            right_labels = get_cathode_labels(self.right_canvas)
+            right_is_grouped = self._is_single_grouped_directional(right_labels, self.right_canvas)
+            self.right_amp_split.update_cathodes(right_labels, right_is_grouped)
 
     def reset_all(self):
         """Reset all contacts and case"""

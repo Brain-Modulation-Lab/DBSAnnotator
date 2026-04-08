@@ -138,7 +138,7 @@ class Step3View(BaseStepView):
         scales_group = self._create_session_scales_group()
         right_layout.addWidget(scales_group)
         right_layout.addWidget(create_horizontal_line())
-        notes_group = self._create_notes_group()
+        notes_group = self._create_session_notes_group()
         right_layout.addWidget(notes_group)
 
         #left_container.setMinimumWidth(500)
@@ -399,14 +399,18 @@ class Step3View(BaseStepView):
         self._left_selection_valid = bool(is_valid)
         self.update_configuration_display()
         if hasattr(self, "left_amp_split"):
-            self.left_amp_split.update_cathodes(get_cathode_labels(self.left_canvas))
+            cathode_labels = get_cathode_labels(self.left_canvas)
+            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.left_canvas)
+            self.left_amp_split.update_cathodes(cathode_labels, is_single_grouped)
 
     def _on_right_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
         """Callback when right electrode canvas validation state changes."""
         self._right_selection_valid = bool(is_valid)
         self.update_configuration_display()
         if hasattr(self, "right_amp_split"):
-            self.right_amp_split.update_cathodes(get_cathode_labels(self.right_canvas))
+            cathode_labels = get_cathode_labels(self.right_canvas)
+            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.right_canvas)
+            self.right_amp_split.update_cathodes(cathode_labels, is_single_grouped)
 
     def set_electrode_model(self, model) -> None:
         """Set the electrode model on both canvases and refresh display."""
@@ -523,21 +527,29 @@ class Step3View(BaseStepView):
 
         if model.is_directional:
             for contact_idx in range(model.num_contacts):
-                seg_states = [canvas.contact_states.get((contact_idx, seg), ContactState.OFF) for seg in range(3)]
-                if all(s == ContactState.ANODIC for s in seg_states):
-                    anode_items.append(f"E{contact_idx}")
-                    continue
-                if all(s == ContactState.CATHODIC for s in seg_states):
-                    cathode_items.append(f"E{contact_idx}")
-                    continue
-
-                seg_labels = ["a", "b", "c"]
-                for seg, seg_state in enumerate(seg_states):
-                    if seg_state == ContactState.ANODIC:
-                        anode_items.append(f"E{contact_idx}{seg_labels[seg]}")
-                    elif seg_state == ContactState.CATHODIC:
-                        cathode_items.append(f"E{contact_idx}{seg_labels[seg]}")
+                # Check if this contact level is directional (has segments)
+                is_contact_directional = model.is_level_directional(contact_idx)
+                
+                if is_contact_directional:
+                    # This contact has segments - check individual segments
+                    seg_states = [canvas.contact_states.get((contact_idx, seg), ContactState.OFF) for seg in range(3)]
+                    
+                    # Always show individual segments, never group them
+                    seg_labels = ["a", "b", "c"]
+                    for seg, seg_state in enumerate(seg_states):
+                        if seg_state == ContactState.ANODIC:
+                            anode_items.append(f"E{contact_idx}{seg_labels[seg]}")
+                        elif seg_state == ContactState.CATHODIC:
+                            cathode_items.append(f"E{contact_idx}{seg_labels[seg]}")
+                else:
+                    # This contact is a ring contact - no segments
+                    state = canvas.contact_states.get((contact_idx, 0), ContactState.OFF)
+                    if state == ContactState.ANODIC:
+                        anode_items.append(f"E{contact_idx}")
+                    elif state == ContactState.CATHODIC:
+                        cathode_items.append(f"E{contact_idx}")
         else:
+            # Non-directional model - all contacts are ring contacts
             for contact_idx in range(model.num_contacts):
                 state = canvas.contact_states.get((contact_idx, 0), ContactState.OFF)
                 if state == ContactState.ANODIC:
@@ -547,20 +559,64 @@ class Step3View(BaseStepView):
 
         return "_".join(anode_items), "_".join(cathode_items)
 
+    def _is_single_grouped_directional(self, cathode_labels: list[str], canvas) -> bool:
+        """Check if we have a single grouped directional contact (all 3 segments selected)."""
+        if len(cathode_labels) != 1:
+            return False
+        
+        lbl = cathode_labels[0]
+        # Check if this is a grouped contact (E1, E2, etc., not E1a, E1b)
+        is_grouped = (len(lbl) >= 2 and lbl[0] == 'E' and lbl[1:].isdigit())
+        
+        if not is_grouped:
+            return False
+        
+        # Verify that this contact actually has all 3 segments selected on the canvas
+        try:
+            contact_idx = int(lbl[1:])
+            model = canvas.model
+            if not model or not model.is_directional:
+                return False
+            
+            # Check if this contact level is directional
+            if not model.is_level_directional(contact_idx):
+                return False
+            
+            # Check if all 3 segments are cathodic
+            seg_states = [
+                canvas.contact_states.get((contact_idx, seg), ContactState.OFF)
+                for seg in range(3)
+            ]
+            return all(state == ContactState.CATHODIC for state in seg_states)
+        except (ValueError, IndexError):
+            return False
+
     def _create_session_scales_group(self) -> QGroupBox:
         """Create the session scales group box."""
-        gb_session = QGroupBox("Session scales")
+        gb_scales = QGroupBox("Session scales")
+        gb_scales.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        self.step3_session_scales_form = QFormLayout(gb_session)
+        layout = QVBoxLayout(gb_scales)
+        layout.setSpacing(10)
+
+        # Instructions
+        instructions = QLabel(
+            "Record the patient's clinical scales below. "
+            "Scores will be saved with timestamp and stimulation parameters."
+        )
+        instructions.setWordWrap(True)
+        instructions.setStyleSheet("color: #64748b; padding: 5px;")
+        layout.addWidget(instructions)
+
+        # Scales form
+        self.step3_session_scales_form = QFormLayout()
         self.step3_session_scales_form.setLabelAlignment(Qt.AlignRight)
         self.step3_session_scales_form.setFormAlignment(Qt.AlignTop)
-        self.step3_session_scales_form.setHorizontalSpacing(18)
-        self.step3_session_scales_form.setVerticalSpacing(10)
+        layout.addLayout(self.step3_session_scales_form)
 
-        return gb_session
+        return gb_scales
 
-    def _create_notes_group(self) -> QGroupBox:
-        """Create the session notes group box."""
+    def _create_session_notes_group(self) -> QGroupBox:
         gb_notes = QGroupBox("Session notes")
         gb_notes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -789,6 +845,10 @@ class Step3View(BaseStepView):
         canvas.update()
         # Refresh amplitude split widget for this canvas
         if canvas is self.left_canvas and hasattr(self, "left_amp_split"):
-            self.left_amp_split.update_cathodes(get_cathode_labels(self.left_canvas))
+            cathode_labels = get_cathode_labels(self.left_canvas)
+            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.left_canvas)
+            self.left_amp_split.update_cathodes(cathode_labels, is_single_grouped)
         elif canvas is self.right_canvas and hasattr(self, "right_amp_split"):
-            self.right_amp_split.update_cathodes(get_cathode_labels(self.right_canvas))
+            cathode_labels = get_cathode_labels(self.right_canvas)
+            is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.right_canvas)
+            self.right_amp_split.update_cathodes(cathode_labels, is_single_grouped)
