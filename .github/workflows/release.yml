@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up uv with Python
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv
         with:
           python-version: "3.14"
           enable-cache: true
