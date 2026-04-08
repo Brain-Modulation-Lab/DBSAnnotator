@@ -1,0 +1,39 @@
+name: CI - Lint
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv with Python
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Sync dependencies (locked, dev)
+        run: |
+          uv sync --locked --dev
+
+      - name: Run ruff (as in pre-commit)
+        run: |
+          uv run ruff check --exclude tests .
+
+      # Tests are temporarily disabled in CI until they are ready.
+      # To re-enable, uncomment the step below once tests are stable.
+      # - name: Run pytest
+      #   run: |
+      #     uv run pytest
+
