@@ -54,7 +54,7 @@ class Step2View(BaseStepView):
         self.session_scales_rows: list[
             tuple[QLineEdit, QLineEdit, QLineEdit, QHBoxLayout, None, None]
         ] = []
-        self.active_preset_button: Optional[QPushButton] = None  # Track active preset
+        self.active_preset_button: QPushButton | None = None  # Track active preset
         self._setup_ui()
 
     def get_header_title(self) -> str:

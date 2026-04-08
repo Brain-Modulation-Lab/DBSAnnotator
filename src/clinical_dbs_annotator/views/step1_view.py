@@ -1015,7 +1015,7 @@ class Step1View(BaseStepView):
 
     def _parse_amplitude_for_display(self, amplitude_str: str) -> str:
         """Parse amplitude string for display: sum underscore-separated values.
-        
+
         If the string contains underscores (e.g., "2.5_2.5"), sum the values
         and return the total ("5.0"). Otherwise return the original string.
         """

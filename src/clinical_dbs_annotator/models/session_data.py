@@ -130,14 +130,6 @@ class SessionData:
             pass
         self.session_start_time = datetime.now()
 
-    def is_file_open(self) -> bool:
-        """
-        Check if a TSV file is currently open.
-
-        Returns:
-            True if file is open, False otherwise
-        """
-        return self.tsv_file is not None and self.tsv_writer is not None
 
     def close_file(self) -> None:
         """Close the TSV file if it's open."""

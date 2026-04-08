@@ -277,7 +277,7 @@ class AmplitudeSplitWidget(QWidget):
 
     def update_main_amplitude_from_split(self, split_text: str) -> None:
         """Update the main amplitude field to show the sum of split values.
-        
+
         When loading a file with split amplitude (e.g., "2.5_2.5"),
         this method calculates the sum and updates the main field.
         """
@@ -297,7 +297,7 @@ class AmplitudeSplitWidget(QWidget):
 
     def set_amplitude_from_split(self, split_text: str) -> None:
         """Set amplitude from split values and update percentages.
-        
+
         When loading a file with split amplitude (e.g., "2.5_2.5"),
         this method:
         1. Updates the main amplitude field to show the sum

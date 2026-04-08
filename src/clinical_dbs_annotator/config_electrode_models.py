@@ -26,11 +26,11 @@ class StimulationRule:
     def validate_configuration(contact_states, case_state):
         """
         Validate stimulation configuration according to clinical rules
-        
+
         Args:
             contact_states (dict): Dictionary of {(contact_idx, segment_idx): ContactState}
             case_state (ContactState): State of the case
-            
+
         Returns:
             tuple: (is_valid, error_message)
         """
@@ -73,11 +73,11 @@ class StimulationRule:
     def get_suggested_fix(contact_states, case_state):
         """
         Suggest a fix for invalid configuration
-        
+
         Args:
             contact_states (dict): Dictionary of contact states
             case_state (ContactState): State of the case
-            
+
         Returns:
             str: Suggestion message
         """
@@ -410,10 +410,10 @@ MANUFACTURERS = {
 def get_model_by_name(name):
     """
     Get electrode model by name
-    
+
     Args:
         name (str): Model name
-        
+
     Returns:
         ElectrodeModel: Electrode model object or None if not found
     """
@@ -423,7 +423,7 @@ def get_model_by_name(name):
 def get_all_model_names():
     """
     Get list of all electrode model names
-    
+
     Returns:
         list: List of model names
     """
@@ -433,10 +433,10 @@ def get_all_model_names():
 def get_models_by_manufacturer(manufacturer):
     """
     Get list of models for a specific manufacturer
-    
+
     Args:
         manufacturer (str): Manufacturer name
-        
+
     Returns:
         list: List of model names for the manufacturer
     """
@@ -446,7 +446,7 @@ def get_models_by_manufacturer(manufacturer):
 def get_all_manufacturers():
     """
     Get list of all manufacturers
-    
+
     Returns:
         list: List of manufacturer names
     """

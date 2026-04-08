@@ -7,7 +7,6 @@ switching between dark and light themes at runtime.
 
 import os
 from enum import Enum
-from typing import Optional
 
 from PySide6.QtWidgets import QApplication
 
@@ -28,7 +27,7 @@ class ThemeManager:
     and persisting theme preferences.
     """
 
-    _instance: Optional["ThemeManager"] = None
+    _instance: ThemeManager | None = None
     _current_theme: Theme = Theme.LIGHT
 
     def __new__(cls):

@@ -4,6 +4,7 @@ Dialog for editing clinical scales presets.
 
 import json
 import os
+import typing
 
 from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QCloseEvent, QFont
@@ -114,7 +115,7 @@ class ClinicalScalesSettingsDialog(QDialog):
 
         # Handle deselection by clicking empty space in the list
         self.presets_list.viewport().installEventFilter(self)
-
+    @typing.override
     def eventFilter(self, obj, event):
         """Handle clicks on empty space for deselection."""
         if obj == self.presets_list.viewport() and event.type() == QEvent.MouseButtonPress:
@@ -125,6 +126,7 @@ class ClinicalScalesSettingsDialog(QDialog):
                     self._clear_selection()
         return super().eventFilter(obj, event)
 
+    @typing.override
     def mousePressEvent(self, event):
         """Deselect preset when clicking outside the list widget."""
         # If user clicks outside the list, clear selection
@@ -249,6 +251,7 @@ class ClinicalScalesSettingsDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error saving presets: {e}")
 
+    @typing.override
     def closeEvent(self, event: QCloseEvent):
         """Handle dialog close event to save changes."""
         # Save changes before closing

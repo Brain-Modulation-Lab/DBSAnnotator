@@ -5,7 +5,7 @@ This is the main entry point for running the Clinical DBS Annotator application
 from Visual Studio or any IDE.
 
 Usage:
-    python run.py 
+    python run.py
 """
 
 import sys

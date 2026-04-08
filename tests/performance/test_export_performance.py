@@ -170,7 +170,7 @@ class TestExportMemory(unittest.TestCase):
             initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 
             # Export multiple times
-            for i in range(5):
+            for _i in range(5):
                 with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as excel_file:
                     with patch('PyQt5.QtWidgets.QFileDialog.getSaveFileName', return_value=(excel_file.name, "Excel Files (*.xlsx)")):
                         with patch('PyQt5.QtWidgets.QMessageBox.information'):

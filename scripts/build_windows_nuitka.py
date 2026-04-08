@@ -140,7 +140,7 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
     # Execute
     try:
         import subprocess
-        result = subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
+        subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
         print("\n✅ Build completed successfully!")
 
         # Show output location

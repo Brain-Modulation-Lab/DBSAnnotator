@@ -422,7 +422,7 @@ class WizardController:
     def export_session_word(self, parent, scale_prefs=None, sections=None) -> None:
         """
         Export current session data to Word format.
-        
+
         Args:
             parent: The parent widget for dialogs
             scale_prefs: Scale optimization prefs from the dialog
@@ -434,7 +434,7 @@ class WizardController:
     def export_session_pdf(self, parent, scale_prefs=None, sections=None) -> None:
         """
         Export current session data to PDF format.
-        
+
         Args:
             parent: The parent widget for dialogs
             scale_prefs: Scale optimization prefs from the dialog

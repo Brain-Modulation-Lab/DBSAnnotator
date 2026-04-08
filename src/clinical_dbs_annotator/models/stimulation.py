@@ -52,7 +52,7 @@ class StimulationParameters:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "StimulationParameters":
+    def from_dict(cls, data: dict) -> StimulationParameters:
         """Create StimulationParameters from a dictionary."""
         return cls(
             left_frequency=data.get("left_stim_freq"),
@@ -67,7 +67,7 @@ class StimulationParameters:
             right_pulse_width=data.get("right_pulse_width"),
         )
 
-    def copy(self) -> "StimulationParameters":
+    def copy(self) -> StimulationParameters:
         """Create a copy of the stimulation parameters."""
         return StimulationParameters(
             left_frequency=self.left_frequency,

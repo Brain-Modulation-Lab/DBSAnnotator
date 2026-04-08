@@ -6,6 +6,7 @@ navigation, and coordinates views with the controller.
 """
 
 import os
+import typing
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
@@ -303,7 +304,7 @@ class WizardWindow(QWidget):
     def _update_theme_button_icon(self) -> None:
         """Update the theme toggle button icon based on current theme."""
         theme_manager = get_theme_manager()
-        current_theme = theme_manager.get_current_theme()
+        theme_manager.get_current_theme()
 
         # Show the icon for what the button will switch TO
         # (opposite of current theme)
@@ -331,7 +332,7 @@ class WizardWindow(QWidget):
         desc_text.setReadOnly(True)
         desc_text.setHtml("""
         <h3>About this application</h3>
-        <p>Clinical DBS Annotator is a specialized tool for clinicians and researchers 
+        <p>Clinical DBS Annotator is a specialized tool for clinicians and researchers
         working with Deep Brain Stimulation (DBS) systems. This application provides:</p>
         <ul>
             <li>Interactive electrode visualization and configuration</li>
@@ -356,14 +357,14 @@ class WizardWindow(QWidget):
             <li>Add session annotations and notes</li>
             <li>Export your session data for documentation</li>
         </ol>
-        
+
         <h3>Support & Contact</h3>
         <p><b>GitHub Repository:</b> <a href='https://github.com/your-username/clinical-dbs-annotator'>https://github.com/your-username/clinical-dbs-annotator</a></p>
-        <p>For bug reports, feature requests, or general support, please visit our GitHub repository 
+        <p>For bug reports, feature requests, or general support, please visit our GitHub repository
         or contact Lucia Poma directly at</b> <a href='mailto:lucia.poma@wysscenter.ch'>lucia.poma@wysscenter.ch</a></p>.
-        
+
         <h3>License</h3>
-        <p>This software is released under an open-source license. Please see the GitHub repository 
+        <p>This software is released under an open-source license. Please see the GitHub repository
         for detailed licensing information.</p>
         """)
 
@@ -614,11 +615,13 @@ class WizardWindow(QWidget):
         finally:
             self._is_clamping = False
 
+    @typing.override
     def resizeEvent(self, event):
         """Re-clamp to screen on every resize."""
         super().resizeEvent(event)
         self._clamp_to_screen()
 
+    @typing.override
     def moveEvent(self, event):
         """Re-clamp to screen on every move."""
         super().moveEvent(event)
@@ -873,7 +876,8 @@ class WizardWindow(QWidget):
                 self._step3_prepared = True
             except Exception as e:
                 print(f"[ERROR] prepare_step3 retry failed: {e}")
-                import traceback; traceback.print_exc()
+                import traceback
+                traceback.print_exc()
         else:
             # Only refresh scales if definitions changed; keep everything else as-is
             self.controller.refresh_step3_scales(self.step3_view)

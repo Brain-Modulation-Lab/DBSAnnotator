@@ -5,6 +5,8 @@ with anodic/cathodic modes and case (ground) support
 Based on Lead-DBS repository models
 """
 
+import typing
+
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QBrush,
@@ -188,7 +190,7 @@ class ElectrodeCanvas(QWidget):
                 new_states[contact_id] = state
 
         self._apply_change_if_valid(new_states, self.case_state)
-
+    @typing.override
     def mousePressEvent(self, event):
         """Handle clicks on contacts, rings and case"""
         if event.button() == Qt.LeftButton:
@@ -223,6 +225,7 @@ class ElectrodeCanvas(QWidget):
                 self.cycle_case_state()
                 return
 
+    @typing.override
     def mouseMoveEvent(self, event):
         """Handle hover over contacts, rings and case"""
         old_hovered_contact = self.hovered_contact
@@ -260,6 +263,7 @@ class ElectrodeCanvas(QWidget):
 
         return base_color, border_color, border_width
 
+    @typing.override
     def paintEvent(self, event):
         """Render the electrode lead, contacts, case, and labels."""
         if not self.model:
@@ -336,7 +340,7 @@ class ElectrodeCanvas(QWidget):
         contact_height_px = self.model.contact_height * scale
         # E0 is the last contact (index 0), positioned after all other contacts and their spacing
         e0_y_position = start_y + 2 * scale  # Initial offset
-        for i in range(self.model.num_contacts - 1):  # All contacts except E0
+        for _ in range(self.model.num_contacts - 1):  # All contacts except E0
             e0_y_position += contact_height_px + (self.model.contact_spacing + 1.0) * scale
 
         # Lead body end position depends on electrode type
@@ -445,7 +449,7 @@ class ElectrodeCanvas(QWidget):
                 self.ring_rects[contact_idx] = ring_cap_rect
 
                 #  Directional electrode with 3D metallic segments
-                segment_width = lead_width * 0.5
+                lead_width * 0.5
                 extension = base_extension
 
                 # Helper function to draw 3D segment
@@ -784,6 +788,7 @@ class ElectrodeCanvas(QWidget):
             painter.drawText(ring_cap_rect, Qt.AlignCenter, "Ring")
 
 
+    @typing.override
     def resizeEvent(self, event):
         """Redraw when window is resized"""
         super().resizeEvent(event)

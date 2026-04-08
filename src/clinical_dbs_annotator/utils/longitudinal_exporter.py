@@ -177,10 +177,10 @@ class LongitudinalExporter:
             df_all["is_initial"] = (
                 pd.to_numeric(df_all["is_initial"], errors="coerce").fillna(0).astype(int)
             )
-            df_initial = df_all[df_all["is_initial"] == 1]
+            df_all[df_all["is_initial"] == 1]
             df_session = df_all[df_all["is_initial"] == 0]
         else:
-            df_initial = df_all.iloc[0:0]
+            df_all.iloc[0:0]
             df_session = df_all
 
         doc = Document()
@@ -316,7 +316,7 @@ class LongitudinalExporter:
                                 sv_lines = [s.strip() for s in sv.split("\n") if s.strip()]
 
                                 # Store scales, keeping first non-NaN value per scale name
-                                for name, val in zip(sn_lines, sv_lines):
+                                for name, val in zip(sn_lines, sv_lines, strict=False):
                                     if val != "NaN" and val.strip() != "NaN":
                                         if name not in all_scales:
                                             all_scales[name] = val
@@ -349,7 +349,7 @@ class LongitudinalExporter:
         from docx.enum.text import WD_BREAK
 
         any_rendered = False
-        for fp_idx, fp in enumerate(file_paths):
+        for _fp_idx, fp in enumerate(file_paths):
             basename = os.path.basename(fp)
             sub = df_all[df_all["_source_file"] == basename].copy()
             if sub.empty:
@@ -430,7 +430,7 @@ class LongitudinalExporter:
 
             # Remove borders
             tbl = t._tbl
-            tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr()
+            tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr() # noqa: N806
             borders = OxmlElement("w:tblBorders")
             for bname in ("top", "left", "bottom", "right", "insideH", "insideV"):
                 b = OxmlElement(f"w:{bname}")
@@ -856,7 +856,7 @@ class LongitudinalExporter:
                         # Calculate weighted average of proximity scores
                         total_weight = sum(weights)
                         if total_weight > 0:
-                            index_vals[s] = sum(w * s for w, s in zip(weights, weighted_scores)) / total_weight
+                            index_vals[s] = sum(w * s for w, s in zip(weights, weighted_scores, strict=False)) / total_weight
                         else:
                             index_vals[s] = 0.5  # Default neutral value
 
@@ -1226,7 +1226,7 @@ class LongitudinalExporter:
     @staticmethod
     def _set_cell_border_top(cell, sz=12):
         try:
-            tcPr = cell._tc.get_or_add_tcPr()
+            tcPr = cell._tc.get_or_add_tcPr() # noqa: N806
             borders = OxmlElement("w:tcBorders")
             top = OxmlElement("w:top")
             top.set(qn("w:val"), "single")

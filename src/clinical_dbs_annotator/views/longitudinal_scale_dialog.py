@@ -174,8 +174,6 @@ class ScaleOptimizationDialog(QDialog):
         toggleable = [name_label, range_label, best_if_label,
                       btn_low, btn_high, btn_custom, custom_edit]
 
-        DISABLED_STYLE = "color: rgba(128,128,128,0.4);"
-
         def _on_toggled(checked, widgets=toggleable):
             for w in widgets:
                 w.setEnabled(checked)
@@ -183,7 +181,7 @@ class ScaleOptimizationDialog(QDialog):
                     default = w.property("_default_style")
                     w.setStyleSheet(default if default else "")
                 else:
-                    w.setStyleSheet(DISABLED_STYLE)
+                    w.setStyleSheet("color: rgba(128,128,128,0.4);") # disabled style
 
         checkbox.toggled.connect(_on_toggled)
 

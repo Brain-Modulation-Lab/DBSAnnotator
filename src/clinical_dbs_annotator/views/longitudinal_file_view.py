@@ -9,6 +9,7 @@ longitudinal report.
 import csv
 import os
 import re
+import typing
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -52,6 +53,7 @@ class FileDropZone(QWidget):
             f"border-radius: 8px; background: transparent; }}"
         )
 
+    @typing.override
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -59,10 +61,12 @@ class FileDropZone(QWidget):
             return
         super().dragEnterEvent(event)
 
+    @typing.override
     def dragLeaveEvent(self, event):
         self._update_style(False)
         super().dragLeaveEvent(event)
 
+    @typing.override
     def dropEvent(self, event):
         self._update_style(False)
         if event.mimeData().hasUrls():

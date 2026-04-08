@@ -30,7 +30,7 @@ from ..models import ElectrodeCanvas
 class SessionExporter:
     """
     Handles exporting session data to various formats.
-    
+
     This class provides methods to export the collected session data
     to Word and PDF.
     """
@@ -38,7 +38,7 @@ class SessionExporter:
     def __init__(self, session_data):
         """
         Initialize the session exporter.
-        
+
         Args:
             session_data: The SessionData instance containing collected data
         """
@@ -220,7 +220,7 @@ class SessionExporter:
     def _read_session_data(self) -> pd.DataFrame | None:
         """
         Read session data from the TSV file.
-        
+
         Returns:
             DataFrame with session data or None if error
         """
@@ -303,7 +303,7 @@ class SessionExporter:
                         scale_names.append(name_str)
                         scale_values.append(val_str)
 
-            for sn, sv in zip(scale_names, scale_values):
+            for sn, sv in zip(scale_names, scale_values, strict=False):
                 doc.add_paragraph(f'{sn}: {sv}')
 
             notes = str(latest_init.get('notes', '') or '')
@@ -368,18 +368,24 @@ class SessionExporter:
                 if amp_col in df.columns:
                     r = _param_range(df[amp_col])
                     val = f"{r[0]:.1f} - {r[1]:.1f} mA" if isinstance(r, tuple) else (f"{float(r):.1f} mA" if r != "N/A" else r)
-                    if side_label == 'L': amp_l = val
-                    else: amp_r = val
+                    if side_label == 'L':
+                        amp_l = val
+                    else:
+                        amp_r = val
                 if freq_col in df.columns:
                     r = _param_range(df[freq_col])
                     val = f"{r[0]:.0f} - {r[1]:.0f} Hz" if isinstance(r, tuple) else (f"{float(r):.0f} Hz" if r != "N/A" else r)
-                    if side_label == 'L': freq_l = val
-                    else: freq_r = val
+                    if side_label == 'L':
+                        freq_l = val
+                    else:
+                        freq_r = val
                 if pw_col in df.columns:
                     r = _param_range(df[pw_col])
                     val = f"{r[0]:.0f} - {r[1]:.0f} µs" if isinstance(r, tuple) else (f"{float(r):.0f} µs" if r != "N/A" else r)
-                    if side_label == 'L': pw_l = val
-                    else: pw_r = val
+                    if side_label == 'L':
+                        pw_l = val
+                    else:
+                        pw_r = val
         except Exception:
             pass
 
@@ -402,7 +408,7 @@ class SessionExporter:
     def _create_lateral_table_data(self, df):
         """
         Create lateral table structure for Word and PDF exports.
-        
+
         Returns DataFrame with lateral structure:
         - Left side parameters in first row
         - Right side parameters in second row
@@ -606,7 +612,7 @@ class SessionExporter:
                         # Remove corresponding name-value pairs where value is NaN
                         filtered_names = []
                         filtered_values = []
-                        for name, val in zip(sn_parts, sv_parts):
+                        for name, val in zip(sn_parts, sv_parts, strict=False):
                             if val != 'NaN' and val.strip() != 'NaN':
                                 filtered_names.append(name)
                                 filtered_values.append(val)
@@ -890,7 +896,7 @@ class SessionExporter:
                         # Calculate weighted average of proximity scores
                         total_weight = sum(weights)
                         if total_weight > 0:
-                            index_vals[b] = sum(w * s for w, s in zip(weights, weighted_scores)) / total_weight
+                            index_vals[b] = sum(w * s for w, s in zip(weights, weighted_scores, strict=False)) / total_weight
                         else:
                             index_vals[b] = 0.5  # Default neutral value
 
@@ -951,7 +957,7 @@ class SessionExporter:
     def _find_best_and_second_best_blocks(self, lateral_df: pd.DataFrame) -> tuple:
         """
         Find block_ids with the best and second-best scores based on optimization preferences.
-        
+
         Returns a tuple: (best_block_ids, second_best_block_ids)
         Each is a list (may have multiple if tied).
         """
@@ -1055,7 +1061,7 @@ class SessionExporter:
     def _highlight_cells_green(self, row_cells, intensity: str = "best") -> None:
         """
         Apply green background to all cells in a row.
-        
+
         Args:
             row_cells: List of cells to highlight
             intensity: "best" for darker green, "second" for lighter green
@@ -1074,8 +1080,8 @@ class SessionExporter:
         """Set top border of a cell to specified size (in eighths of a point)."""
         try:
             tc = cell._tc
-            tcPr = tc.get_or_add_tcPr()
-            tcBorders = OxmlElement('w:tcBorders')
+            tcPr = tc.get_or_add_tcPr() # noqa: N806
+            tcBorders = OxmlElement('w:tcBorders') # noqa: N806
             top = OxmlElement('w:top')
             top.set(qn('w:val'), 'single')
             top.set(qn('w:sz'), str(sz))
@@ -1089,8 +1095,8 @@ class SessionExporter:
     def _set_paragraph_bottom_border(self, paragraph, sz: int = 6, color: str = '000000') -> None:
         """Draw a bottom border line under a Word paragraph."""
         try:
-            pPr = paragraph._p.get_or_add_pPr()
-            pBdr = OxmlElement('w:pBdr')
+            pPr = paragraph._p.get_or_add_pPr() # noqa: N806
+            pBdr = OxmlElement('w:pBdr') # noqa: N806
             bottom = OxmlElement('w:bottom')
             bottom.set(qn('w:val'), 'single')
             bottom.set(qn('w:sz'), str(sz))
@@ -1288,7 +1294,7 @@ class SessionExporter:
 
         # Remove all borders
         tbl = t._tbl
-        tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr()
+        tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr() # noqa: N806
         borders = OxmlElement('w:tblBorders')
         for border_name in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
             border = OxmlElement(f'w:{border_name}')
@@ -1416,11 +1422,11 @@ class SessionExporter:
     def export_to_word(self, parent: QWidget | None = None, sections=None) -> bool:
         """
         Export session data to Word format.
-        
+
         Args:
             parent: Parent widget for dialog display
             sections: List of section keys to include
-            
+
         Returns:
             True if export was successful, False otherwise
         """

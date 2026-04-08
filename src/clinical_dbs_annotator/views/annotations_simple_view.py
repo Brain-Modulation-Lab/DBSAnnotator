@@ -93,7 +93,7 @@ class AnnotationsFileView(QWidget):
                         bid_raw = row.get("block_id", "")
                         if bid_raw is None or bid_raw == "":
                             continue
-                        bid = int(float(bid_raw))
+                        int(float(bid_raw))
                     except Exception:
                         continue
 

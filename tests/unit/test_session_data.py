@@ -75,6 +75,5 @@ class TestSessionDataWriting:
     def test_write_clinical_scales(self, session_data_with_file):
         """Test writing clinical scales to TSV."""
         sd, path = session_data_with_file
-        scales = [("Scale1", "5"), ("Scale2", "3")]
         # This tests the interface - actual implementation may vary
         assert sd.is_file_open()

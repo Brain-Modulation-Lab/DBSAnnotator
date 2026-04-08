@@ -6,6 +6,8 @@ section labels, and horizontal lines.
 """
 
 
+import typing
+
 from PySide6.QtCore import QEvent, QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
@@ -220,7 +222,7 @@ class ScaleProgressWidget(QWidget):
     Internal values are integers; UI displays value / 4.0 to represent 0.25 steps.
     """
 
-    valueChanged = Signal(int)
+    valueChanged = Signal(int) # noqa: N815
 
     def __init__(self, parent=None):
         """Initialize the scale progress widget with default range 0-10."""
@@ -360,6 +362,7 @@ class ScaleProgressWidget(QWidget):
         pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
         return QIcon(pixmap)
 
+    @typing.override
     def eventFilter(self, obj, event):
         """Handle mouse press/move/release on the progress bar for drag interaction."""
         if obj == self.progress_bar:
@@ -427,25 +430,30 @@ class ScaleProgressWidget(QWidget):
             self.valueChanged.emit(self._value)
 
     # Public API (mirrors old InteractiveProgressBar)
+    @typing.override
     def setMinimum(self, value: int) -> None:
         """Set the minimum internal value."""
         self._minimum = int(value)
         self.progress_bar.setMinimum(int(value))
 
+    @typing.override
     def setMaximum(self, value: int) -> None:
         """Set the maximum internal value."""
         self._maximum = int(value)
         self.progress_bar.setMaximum(int(value))
 
+    @typing.override
     def setValue(self, value: int) -> None:
         """Set the current value and update the progress bar."""
         self._value = int(value)
         self.progress_bar.setValue(int(value))
 
+    @typing.override
     def setFormat(self, format_str: str) -> None:
         """Set the text format displayed on the progress bar."""
         self.progress_bar.setFormat(format_str)
 
+    @typing.override
     def setFixedWidth(self, width: int) -> None:
         """Override to allocate space for arrow buttons alongside the bar."""
         # Same reserve logic as previous implementation
@@ -453,6 +461,7 @@ class ScaleProgressWidget(QWidget):
         self.progress_bar.setFixedWidth(bar_width)
         super().setFixedWidth(width)
 
+    @typing.override
     def setToolTip(self, tooltip: str) -> None:
         """Forward the tooltip to the inner progress bar."""
         self.progress_bar.setToolTip(tooltip)
@@ -461,10 +470,12 @@ class ScaleProgressWidget(QWidget):
         """Return the current internal value."""
         return self._value
 
+    @typing.override
     def isDisabled(self) -> bool:
         """Return True if the widget is in disabled state."""
         return self._disabled
 
+    @typing.override
     def setDisabled(self, disabled: bool) -> None:
         """Set the disabled state."""
         if self._disabled != disabled:

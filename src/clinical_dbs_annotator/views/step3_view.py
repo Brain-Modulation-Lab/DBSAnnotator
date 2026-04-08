@@ -699,7 +699,7 @@ class Step3View(BaseStepView):
     def _parse_amplitude_total(self, amp_str: str) -> str:
         """
         Parse amplitude string and return the total value.
-        
+
         If the string contains underscores (e.g., "1.5_1.0"), calculate the sum.
         Otherwise, return the string as-is.
         """
