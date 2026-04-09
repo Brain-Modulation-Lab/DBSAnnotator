@@ -501,12 +501,16 @@ class SessionExporter:
             right_row["block_id"] = block_id
 
             # Common columns (non-lateral) - use combined scales with internal lines
-            left_row["group_ID"] = first_row.get("group_ID", "")
+            left_row["program_ID"] = first_row.get("program_ID") or first_row.get(
+                "group_ID", ""
+            )
             left_row["scale_name"] = combined_scale_name
             left_row["scale_value"] = combined_scale_value
             left_row["notes"] = first_row.get("notes", "")
 
-            right_row["group_ID"] = first_row.get("group_ID", "")
+            right_row["program_ID"] = first_row.get("program_ID") or first_row.get(
+                "group_ID", ""
+            )
             right_row["scale_name"] = combined_scale_name
             right_row["scale_value"] = combined_scale_value
             right_row["notes"] = first_row.get("notes", "")

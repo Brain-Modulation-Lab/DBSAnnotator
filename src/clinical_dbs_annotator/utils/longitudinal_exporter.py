@@ -1111,7 +1111,7 @@ class LongitudinalExporter:
                 "_global_entry_id": entry_id,
                 "source": source_label,
                 "date": date_val,
-                "program_ID": first.get("program_ID", ""),
+                "program_ID": first.get("program_ID") or first.get("group_ID", ""),
                 "scale_name": combined_sn,
                 "scale_value": combined_sv,
                 "notes": first.get("notes", ""),
