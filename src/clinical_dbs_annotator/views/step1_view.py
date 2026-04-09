@@ -1266,8 +1266,10 @@ class Step1View(BaseStepView):
                     except Exception:
                         pass
 
-                # Load program
-                program_val = latest_initial.get("program_ID", None)
+                # Load program (backward compatibility: use group_ID if program_ID not present)
+                program_val = latest_initial.get("program_ID") or latest_initial.get(
+                    "group_ID"
+                )
                 if program_val not in (None, "") and hasattr(self, "group_combo"):
                     try:
                         self.group_combo.setCurrentText(str(program_val))
