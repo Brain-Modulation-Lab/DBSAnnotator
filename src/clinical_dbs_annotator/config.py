@@ -27,8 +27,8 @@ WINDOW_SIZE_RATIO = {
 
 # Responsive window size ratios based on screen size
 RESPONSIVE_WINDOW_RATIOS = {
-    "small": {"width": 0.9, "height": 0.85},   # < 1400px width
-    "medium": {"width": 0.85, "height": 0.8}, # 1400-1919px width
+    "small": {"width": 0.9, "height": 0.85},  # < 1400px width
+    "medium": {"width": 0.85, "height": 0.8},  # 1400-1919px width
     "large": {"width": 0.75, "height": 0.75},  # >= 1920px width
 }
 
@@ -99,33 +99,34 @@ SESSION_SCALE_LIMITS = {
 
 CLINICAL_SCALES_PRESETS: dict[str, list[str]] = {
     "OCD": [
-        "Y-BOCS",   # Yale–Brown Obsessive–Compulsive Scale
-        "Y-BOCS-o", "Y-BOCS-c",
-        "MADRS",    # Montgomery–Åsberg Depression Rating Scale
-        "OCI-R",    # Obsessive–Compulsive Inventory – Revised
+        "Y-BOCS",  # Yale–Brown Obsessive–Compulsive Scale
+        "Y-BOCS-o",
+        "Y-BOCS-c",
+        "MADRS",  # Montgomery–Åsberg Depression Rating Scale
+        "OCI-R",  # Obsessive–Compulsive Inventory – Revised
     ],
     "MDD": [
-        "MADRS",    # Montgomery–Åsberg Depression Rating Scale
-        "HAM-D",    # Hamilton Depression Rating Scale
-        "BDI-II",   # Beck Depression Inventory – Second Edition
+        "MADRS",  # Montgomery–Åsberg Depression Rating Scale
+        "HAM-D",  # Hamilton Depression Rating Scale
+        "BDI-II",  # Beck Depression Inventory – Second Edition
     ],
     "PD": [
         "MDS-UPDRS",  # Movement Disorder Society – Unified Parkinson’s Disease Rating Scale
         "UPDRS-III",  # Unified Parkinson’s Disease Rating Scale part III
-        "PDQ-39",     # Parkinson’s Disease Questionnaire (39-item)
-        "UDysRS",     # Unified Dyskinesia Rating Scale
+        "PDQ-39",  # Parkinson’s Disease Questionnaire (39-item)
+        "UDysRS",  # Unified Dyskinesia Rating Scale
     ],
     "ET": [
         "FTM-TRS",  # Fahn–Tolosa–Marin Tremor Rating Scale
-        "TETRAS",   # The Essential Tremor Rating Assessment Scale
+        "TETRAS",  # The Essential Tremor Rating Assessment Scale
     ],
     "Dystonia": [
         "BFMDRS",  # Burke–Fahn–Marsden Dystonia Rating Scale
         "TWSTRS",  # Toronto Western Spasmodic Torticollis Rating Scale
     ],
     "TS": [
-        "YGTSS",   # Yale Global Tic Severity Scale
-        "PUTS",    # Premonitory Urge for Tics Scale
+        "YGTSS",  # Yale Global Tic Severity Scale
+        "PUTS",  # Premonitory Urge for Tics Scale
         "TS-CGI",  # Tourette Syndrome Clinical Global Impression
         "Y-BOCS",  # Yale–Brown Obsessive–Compulsive Scale
     ],

@@ -5,7 +5,6 @@ This module provides functions to scale UI elements based on screen DPI
 and resolution, ensuring consistent appearance across different displays.
 """
 
-
 from PySide6.QtWidgets import QApplication
 
 

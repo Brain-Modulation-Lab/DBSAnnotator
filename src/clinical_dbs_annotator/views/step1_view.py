@@ -117,7 +117,8 @@ class Step1View(BaseStepView):
     def _get_theme_icon_color(self) -> str:
         """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
         from ..utils.theme_manager import get_theme_manager
-        return get_theme_manager().get_theme_color('Icon')
+
+        return get_theme_manager().get_theme_color("Icon")
 
     def refresh_theme_icons(self) -> None:
         """Refresh icons that depend on the current theme (call after theme toggle)."""
@@ -132,12 +133,14 @@ class Step1View(BaseStepView):
 
         lbl = cathode_labels[0]
         # Check if this is a grouped contact (no segment suffix) that could be directional
-        if len(lbl) >= 2 and lbl[0] == 'E' and lbl[1:].isdigit():
+        if len(lbl) >= 2 and lbl[0] == "E" and lbl[1:].isdigit():
             try:
                 contact_idx = int(lbl[1:])
-                return (canvas.model.is_directional and
-                       canvas.model.is_level_directional(contact_idx))
-            except (ValueError, IndexError):
+                return (
+                    canvas.model.is_directional
+                    and canvas.model.is_level_directional(contact_idx)
+                )
+            except ValueError, IndexError:
                 pass
         return False
 
@@ -147,7 +150,9 @@ class Step1View(BaseStepView):
         self.update_configuration_display()
         if hasattr(self, "left_amp_split"):
             left_labels = get_cathode_labels(self.left_canvas)
-            left_is_grouped = self._is_single_grouped_directional(left_labels, self.left_canvas)
+            left_is_grouped = self._is_single_grouped_directional(
+                left_labels, self.left_canvas
+            )
             self.left_amp_split.update_cathodes(left_labels, left_is_grouped)
 
     def _on_right_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
@@ -156,7 +161,9 @@ class Step1View(BaseStepView):
         self.update_configuration_display()
         if hasattr(self, "right_amp_split"):
             right_labels = get_cathode_labels(self.right_canvas)
-            right_is_grouped = self._is_single_grouped_directional(right_labels, self.right_canvas)
+            right_is_grouped = self._is_single_grouped_directional(
+                right_labels, self.right_canvas
+            )
             self.right_amp_split.update_cathodes(right_labels, right_is_grouped)
 
     def _setup_ui(self) -> None:
@@ -252,7 +259,9 @@ class Step1View(BaseStepView):
         self.left_stim_freq_edit = QLineEdit()
         self.left_stim_freq_edit.setMaximumWidth(80)
         self.left_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
-        self.left_stim_freq_edit.setValidator(QIntValidator(freq_limits["min"], freq_limits["max"]))
+        self.left_stim_freq_edit.setValidator(
+            QIntValidator(freq_limits["min"], freq_limits["max"])
+        )
         left_freq_widget = IncrementWidget(
             self.left_stim_freq_edit,
             step1=freq_limits["step1"],
@@ -269,7 +278,11 @@ class Step1View(BaseStepView):
         self.left_amp_edit = QLineEdit()
         self.left_amp_edit.setMaximumWidth(80)
         self.left_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
-        self.left_amp_edit.setValidator(QDoubleValidator(amp_limits["min"], amp_limits["max"], amp_limits["decimals"]))
+        self.left_amp_edit.setValidator(
+            QDoubleValidator(
+                amp_limits["min"], amp_limits["max"], amp_limits["decimals"]
+            )
+        )
         left_amp_widget = IncrementWidget(
             self.left_amp_edit,
             step1=amp_limits["step1"],
@@ -286,7 +299,9 @@ class Step1View(BaseStepView):
         self.left_pw_edit = QLineEdit()
         self.left_pw_edit.setMaximumWidth(80)
         self.left_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
-        self.left_pw_edit.setValidator(QIntValidator(pw_limits["min"], pw_limits["max"]))
+        self.left_pw_edit.setValidator(
+            QIntValidator(pw_limits["min"], pw_limits["max"])
+        )
         left_pw_widget = IncrementWidget(
             self.left_pw_edit,
             step1=pw_limits["step1"],
@@ -329,7 +344,9 @@ class Step1View(BaseStepView):
         self.right_stim_freq_edit = QLineEdit()
         self.right_stim_freq_edit.setMaximumWidth(80)
         self.right_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
-        self.right_stim_freq_edit.setValidator(QIntValidator(freq_limits["min"], freq_limits["max"]))
+        self.right_stim_freq_edit.setValidator(
+            QIntValidator(freq_limits["min"], freq_limits["max"])
+        )
         right_freq_widget = IncrementWidget(
             self.right_stim_freq_edit,
             step1=freq_limits["step1"],
@@ -346,7 +363,11 @@ class Step1View(BaseStepView):
         self.right_amp_edit = QLineEdit()
         self.right_amp_edit.setMaximumWidth(80)
         self.right_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
-        self.right_amp_edit.setValidator(QDoubleValidator(amp_limits["min"], amp_limits["max"], amp_limits["decimals"]))
+        self.right_amp_edit.setValidator(
+            QDoubleValidator(
+                amp_limits["min"], amp_limits["max"], amp_limits["decimals"]
+            )
+        )
         right_amp_widget = IncrementWidget(
             self.right_amp_edit,
             step1=amp_limits["step1"],
@@ -363,7 +384,9 @@ class Step1View(BaseStepView):
         self.right_pw_edit = QLineEdit()
         self.right_pw_edit.setMaximumWidth(80)
         self.right_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
-        self.right_pw_edit.setValidator(QIntValidator(pw_limits["min"], pw_limits["max"]))
+        self.right_pw_edit.setValidator(
+            QIntValidator(pw_limits["min"], pw_limits["max"])
+        )
         right_pw_widget = IncrementWidget(
             self.right_pw_edit,
             step1=pw_limits["step1"],
@@ -384,7 +407,9 @@ class Step1View(BaseStepView):
         self.right_config_box = QFrame()
         self.right_config_box.setStyleSheet("background: transparent; border: none;")
         self.right_config_box.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.right_config_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.right_config_box.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
         right_config_layout = QVBoxLayout(self.right_config_box)
         right_config_layout.setContentsMargins(6, 4, 6, 4)
         self.right_config_label = QLabel()
@@ -422,19 +447,15 @@ class Step1View(BaseStepView):
         sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         sidebar_scroll.setWidget(sidebar_widget)
 
-
-
-
-
-
-
         electrodes_layout = QVBoxLayout()
         electrodes_row = QHBoxLayout()
 
         self.left_canvas_group = QGroupBox("Left electrode")
         self.left_canvas_group.setCheckable(True)
         self.left_canvas_group.setChecked(True)
-        self.left_canvas_group.toggled.connect(lambda checked: self._toggle_electrode('left', checked))
+        self.left_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("left", checked)
+        )
         left_canvas_layout = QVBoxLayout()
         left_canvas_layout.addWidget(self.left_canvas, 1)
         self.left_canvas_group.setLayout(left_canvas_layout)
@@ -442,7 +463,9 @@ class Step1View(BaseStepView):
         self.right_canvas_group = QGroupBox("Right electrode")
         self.right_canvas_group.setCheckable(True)
         self.right_canvas_group.setChecked(True)
-        self.right_canvas_group.toggled.connect(lambda checked: self._toggle_electrode('right', checked))
+        self.right_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("right", checked)
+        )
         right_canvas_layout = QVBoxLayout()
         right_canvas_layout.addWidget(self.right_canvas, 1)
         self.right_canvas_group.setLayout(right_canvas_layout)
@@ -476,7 +499,9 @@ class Step1View(BaseStepView):
             row.setContentsMargins(0, 0, 0, 0)
             swatch = QLabel()
             swatch.setFixedSize(16, 12)
-            swatch.setStyleSheet(f"background-color: {color}; border: 1px solid {border};")
+            swatch.setStyleSheet(
+                f"background-color: {color}; border: 1px solid {border};"
+            )
             label = QLabel(text)
             row.addWidget(swatch)
             row.addSpacing(6)
@@ -491,10 +516,12 @@ class Step1View(BaseStepView):
         layout.addStretch(1)
         return layout
 
-# functions for the electrode visualization
+    # functions for the electrode visualization
     def populate_models(self, manufacturer):
         """Populate model combo box based on selected manufacturer"""
-        self.model_combo.blockSignals(True)  # Prevent triggering on_model_changed during population
+        self.model_combo.blockSignals(
+            True
+        )  # Prevent triggering on_model_changed during population
         self.model_combo.clear()
 
         if manufacturer == "All Manufacturers":
@@ -530,7 +557,9 @@ class Step1View(BaseStepView):
 
     def update_configuration_display(self):
         """Update stimulation configuration display"""
-        if not hasattr(self, "left_config_label") or not hasattr(self, "right_config_label"):
+        if not hasattr(self, "left_config_label") or not hasattr(
+            self, "right_config_label"
+        ):
             return
 
         self.left_config_label.setText("✓ Configuration valid")
@@ -545,7 +574,9 @@ class Step1View(BaseStepView):
                 self.left_config_box.setStyleSheet("border: 2px solid #cc0000;")
                 self.left_config_label.setStyleSheet("color: #cc0000;")
                 self.left_config_label.setProperty("class", "")
-                self.left_config_label.setText("Invalid configuration: violates selection rules")
+                self.left_config_label.setText(
+                    "Invalid configuration: violates selection rules"
+                )
             else:
                 self.left_config_box.setStyleSheet("")
                 self.left_config_label.setStyleSheet("")
@@ -562,7 +593,9 @@ class Step1View(BaseStepView):
                 self.right_config_box.setStyleSheet("border: 2px solid #cc0000;")
                 self.right_config_label.setStyleSheet("color: #cc0000;")
                 self.right_config_label.setProperty("class", "")
-                self.right_config_label.setText("Invalid configuration: violates selection rules")
+                self.right_config_label.setText(
+                    "Invalid configuration: violates selection rules"
+                )
             else:
                 self.right_config_box.setStyleSheet("")
                 self.right_config_label.setStyleSheet("")
@@ -595,11 +628,13 @@ class Step1View(BaseStepView):
             for contact_id in sorted(canvas.contact_states.keys()):
                 contact_idx, seg_idx = contact_id
                 state = canvas.contact_states[contact_id]
-                state_str = "Anodic (+)" if state == ContactState.ANODIC else "Cathodic (-)"
+                state_str = (
+                    "Anodic (+)" if state == ContactState.ANODIC else "Cathodic (-)"
+                )
 
                 if model.is_directional and model.is_level_directional(contact_idx):
                     # This contact has segments - show segment label
-                    segment_labels = ['a', 'b', 'c']
+                    segment_labels = ["a", "b", "c"]
                     contact_name = f"C{contact_idx}{segment_labels[seg_idx]}"
                 else:
                     # This contact is a ring contact - no segment label
@@ -648,7 +683,10 @@ class Step1View(BaseStepView):
 
                 if is_contact_directional:
                     # This contact has segments - check individual segments
-                    seg_states = [canvas.contact_states.get((contact_idx, seg), ContactState.OFF) for seg in range(3)]
+                    seg_states = [
+                        canvas.contact_states.get((contact_idx, seg), ContactState.OFF)
+                        for seg in range(3)
+                    ]
                     if all(s == ContactState.ANODIC for s in seg_states):
                         anode_items.append(f"E{contact_idx}")
                         continue
@@ -664,7 +702,9 @@ class Step1View(BaseStepView):
                             cathode_items.append(f"E{contact_idx}{seg_labels[seg]}")
                 else:
                     # This contact is a ring contact - no segments
-                    state = canvas.contact_states.get((contact_idx, 0), ContactState.OFF)
+                    state = canvas.contact_states.get(
+                        (contact_idx, 0), ContactState.OFF
+                    )
                     if state == ContactState.ANODIC:
                         anode_items.append(f"E{contact_idx}")
                     elif state == ContactState.CATHODIC:
@@ -680,7 +720,9 @@ class Step1View(BaseStepView):
 
         return "_".join(anode_items), "_".join(cathode_items)
 
-    def _apply_contact_text_to_canvas(self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str) -> None:
+    def _apply_contact_text_to_canvas(
+        self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str
+    ) -> None:
         """Parse anode/cathode token strings and set the corresponding canvas states."""
         model = canvas.model
         if not model:
@@ -755,11 +797,15 @@ class Step1View(BaseStepView):
         # Refresh amplitude split widget for this canvas
         if canvas is self.left_canvas and hasattr(self, "left_amp_split"):
             left_labels = get_cathode_labels(self.left_canvas)
-            left_is_grouped = self._is_single_grouped_directional(left_labels, self.left_canvas)
+            left_is_grouped = self._is_single_grouped_directional(
+                left_labels, self.left_canvas
+            )
             self.left_amp_split.update_cathodes(left_labels, left_is_grouped)
         elif canvas is self.right_canvas and hasattr(self, "right_amp_split"):
             right_labels = get_cathode_labels(self.right_canvas)
-            right_is_grouped = self._is_single_grouped_directional(right_labels, self.right_canvas)
+            right_is_grouped = self._is_single_grouped_directional(
+                right_labels, self.right_canvas
+            )
             self.right_amp_split.update_cathodes(right_labels, right_is_grouped)
 
     def reset_all(self):
@@ -790,8 +836,12 @@ class Step1View(BaseStepView):
         print(f"Timestamp: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}")
         print()
 
-        print(f"LEFT  Anode: {self.get_left_anode_text()} | Cathode: {self.get_left_cathode_text()}")
-        print(f"RIGHT Anode: {self.get_right_anode_text()} | Cathode: {self.get_right_cathode_text()}")
+        print(
+            f"LEFT  Anode: {self.get_left_anode_text()} | Cathode: {self.get_left_cathode_text()}"
+        )
+        print(
+            f"RIGHT Anode: {self.get_right_anode_text()} | Cathode: {self.get_right_cathode_text()}"
+        )
         print("=" * 60 + "\n")
 
     def _create_upload_tsv_group(self) -> QGroupBox:
@@ -808,7 +858,9 @@ class Step1View(BaseStepView):
         self.file_path_edit.setReadOnly(True)
         self.file_path_edit.setClearButtonEnabled(False)
         self.file_path_edit.textChanged.connect(self._on_file_path_changed)
-        self.file_path_edit.setPlaceholderText("Drop a .tsv annotation file or use the buttons")
+        self.file_path_edit.setPlaceholderText(
+            "Drop a .tsv annotation file or use the buttons"
+        )
 
         open_button = QPushButton()
         open_button.setText("Open")
@@ -840,7 +892,7 @@ class Step1View(BaseStepView):
         # Preset buttons
         preset_row = QHBoxLayout()
         self.preset_buttons = []
-        #preset_row.addStretch(1)
+        # preset_row.addStretch(1)
 
         # Settings button
         settings_btn = QPushButton()
@@ -860,7 +912,7 @@ class Step1View(BaseStepView):
 
         # Container for dynamic scale rows - expands to show all rows
         scroll_content = QWidget()
-      # scroll_content.setStyleSheet("background: transparent; border: none;")
+        # scroll_content.setStyleSheet("background: transparent; border: none;")
         scroll_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.clinical_scales_container = QVBoxLayout(scroll_content)
         self.clinical_scales_container.setContentsMargins(0, 0, 0, 0)
@@ -876,7 +928,7 @@ class Step1View(BaseStepView):
                 background: transparent;
             }
         """)
-       #scroll_area.setAttribute(Qt.WA_TranslucentBackground, True)
+        # scroll_area.setAttribute(Qt.WA_TranslucentBackground, True)
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QScrollArea.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -892,7 +944,7 @@ class Step1View(BaseStepView):
         """Toggle electrode enable/disable state for canvas and settings."""
         from PySide6.QtWidgets import QGraphicsOpacityEffect
 
-        if side == 'left':
+        if side == "left":
             self.left_electrode_enabled = checked
             self.left_group.setEnabled(checked)
             self.left_canvas.setEnabled(checked)
@@ -904,7 +956,7 @@ class Step1View(BaseStepView):
                     widget.setGraphicsEffect(effect)
                 else:
                     widget.setGraphicsEffect(None)
-        elif side == 'right':
+        elif side == "right":
             self.right_electrode_enabled = checked
             self.right_group.setEnabled(checked)
             self.right_canvas.setEnabled(checked)
@@ -928,7 +980,9 @@ class Step1View(BaseStepView):
                 item.widget().deleteLater()
 
         for scale_name in scales:
-            self._add_clinical_scale_row(scale_name, with_minus=True, on_remove=self.on_remove_callback)
+            self._add_clinical_scale_row(
+                scale_name, with_minus=True, on_remove=self.on_remove_callback
+            )
 
         self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
         self.clinical_scales_container.addStretch()
@@ -1014,11 +1068,11 @@ class Step1View(BaseStepView):
                         try:
                             session_id = int(float(session_id_raw))
                             # Keep the row with the highest session_id for each session
-                            if session_id not in initial_rows or bid > initial_rows[session_id]["block_id"]:
-                                initial_rows[session_id] = {
-                                    "row": row,
-                                    "block_id": bid
-                                }
+                            if (
+                                session_id not in initial_rows
+                                or bid > initial_rows[session_id]["block_id"]
+                            ):
+                                initial_rows[session_id] = {"row": row, "block_id": bid}
                             max_session_id = max(max_session_id, session_id)
                         except Exception:
                             continue
@@ -1054,12 +1108,16 @@ class Step1View(BaseStepView):
                 with open(file_path, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
                     for row in reader:
-                        if (row.get("session_ID") == str(max_session_id) and
-                            row.get("is_initial") == "1"):
+                        if (
+                            row.get("session_ID") == str(max_session_id)
+                            and row.get("is_initial") == "1"
+                        ):
                             sname = row.get("scale_name", None)
                             sval = row.get("scale_value", None)
                             if sname not in (None, ""):
-                                block0_scales.append((str(sname), "" if sval is None else str(sval)))
+                                block0_scales.append(
+                                    (str(sname), "" if sval is None else str(sval))
+                                )
 
                 # Load notes
                 notes_val = latest_initial.get("notes", None)
@@ -1076,7 +1134,11 @@ class Step1View(BaseStepView):
                 # Store scales for later if callbacks not ready yet
                 self._pending_scales = block0_scales if block0_scales else []
 
-                if block0_scales and hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
+                if (
+                    block0_scales
+                    and hasattr(self, "on_add_callback")
+                    and hasattr(self, "on_remove_callback")
+                ):
                     for _, _, row_layout in self.clinical_scales_rows:
                         while row_layout.count():
                             item = row_layout.takeAt(0)
@@ -1096,9 +1158,16 @@ class Step1View(BaseStepView):
                             item.widget().deleteLater()
 
                     for scale_name, scale_value in block0_scales:
-                        self._add_clinical_scale_row(scale_name, scale_value, with_minus=True, on_remove=self.on_remove_callback)
+                        self._add_clinical_scale_row(
+                            scale_name,
+                            scale_value,
+                            with_minus=True,
+                            on_remove=self.on_remove_callback,
+                        )
 
-                    self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
+                    self._add_clinical_scale_row(
+                        "", with_plus=True, on_add=self.on_add_callback
+                    )
                     self.clinical_scales_container.addStretch()
                     self._pending_scales = []  # Clear pending since we loaded them
 
@@ -1117,14 +1186,18 @@ class Step1View(BaseStepView):
             return amplitude_str
 
         # Check if this is a split amplitude (contains underscore)
-        if '_' in amplitude_str:
+        if "_" in amplitude_str:
             try:
                 # Split and sum all numeric parts
-                parts = amplitude_str.split('_')
+                parts = amplitude_str.split("_")
                 total = sum(float(p) for p in parts if p.strip())
                 # Format with at least one decimal place
-                return f"{total:.1f}".rstrip('0').rstrip('.') if '.' in f"{total:.1f}" else str(int(total))
-            except (ValueError, TypeError):
+                return (
+                    f"{total:.1f}".rstrip("0").rstrip(".")
+                    if "." in f"{total:.1f}"
+                    else str(int(total))
+                )
+            except ValueError, TypeError:
                 # If parsing fails, return original
                 return amplitude_str
 
@@ -1135,14 +1208,16 @@ class Step1View(BaseStepView):
         # Text fields
         try:
             self.left_stim_freq_edit.setText(str(row.get("left_stim_freq", "") or ""))
-        # Parse amplitude to show total sum if split
+            # Parse amplitude to show total sum if split
             left_amp_raw = str(row.get("left_amplitude", "") or "")
             self.left_amp_edit.setText(self._parse_amplitude_for_display(left_amp_raw))
             self.left_pw_edit.setText(str(row.get("left_pulse_width", "") or ""))
             self.right_stim_freq_edit.setText(str(row.get("right_stim_freq", "") or ""))
             # Parse amplitude to show total sum if split
             right_amp_raw = str(row.get("right_amplitude", "") or "")
-            self.right_amp_edit.setText(self._parse_amplitude_for_display(right_amp_raw))
+            self.right_amp_edit.setText(
+                self._parse_amplitude_for_display(right_amp_raw)
+            )
             self.right_pw_edit.setText(str(row.get("right_pulse_width", "") or ""))
         except Exception:
             pass
@@ -1154,8 +1229,12 @@ class Step1View(BaseStepView):
         right_cathode = str(row.get("right_cathode", "") or "")
 
         try:
-            self._apply_contact_text_to_canvas(self.left_canvas, left_anode, left_cathode)
-            self._apply_contact_text_to_canvas(self.right_canvas, right_anode, right_cathode)
+            self._apply_contact_text_to_canvas(
+                self.left_canvas, left_anode, left_cathode
+            )
+            self._apply_contact_text_to_canvas(
+                self.right_canvas, right_anode, right_cathode
+            )
         except Exception:
             pass
 
@@ -1165,10 +1244,10 @@ class Step1View(BaseStepView):
         left_amp_raw = str(row.get("left_amplitude", "") or "")
         right_amp_raw = str(row.get("right_amplitude", "") or "")
 
-        if hasattr(self, "left_amp_split") and left_amp_raw and '_' in left_amp_raw:
+        if hasattr(self, "left_amp_split") and left_amp_raw and "_" in left_amp_raw:
             self.left_amp_split.set_amplitude_from_split(left_amp_raw)
 
-        if hasattr(self, "right_amp_split") and right_amp_raw and '_' in right_amp_raw:
+        if hasattr(self, "right_amp_split") and right_amp_raw and "_" in right_amp_raw:
             self.right_amp_split.set_amplitude_from_split(right_amp_raw)
 
     def create_new_file(self) -> None:
@@ -1219,7 +1298,9 @@ class Step1View(BaseStepView):
         run_id = f"run-{run_num}"
         default_name = f"{subject_id}_{session_id}_{task}_{run_id}_events.tsv"
 
-        default_path = os.path.join(start_dir, default_name) if start_dir else default_name
+        default_path = (
+            os.path.join(start_dir, default_name) if start_dir else default_name
+        )
 
         file_path, _ = QFileDialog.getSaveFileName(
             self,
@@ -1240,7 +1321,10 @@ class Step1View(BaseStepView):
         return self.findChild(QPushButton, f"preset_{preset_name}")
 
     def update_clinical_scales(
-        self, preset_scales: list[str], on_add_callback: Callable, on_remove_callback: Callable
+        self,
+        preset_scales: list[str],
+        on_add_callback: Callable,
+        on_remove_callback: Callable,
     ) -> None:
         """
         Update the clinical scales UI with the given scales.
@@ -1255,7 +1339,7 @@ class Step1View(BaseStepView):
         self.on_remove_callback = on_remove_callback
 
         # Check if we have pending scales from file load
-        if hasattr(self, '_pending_scales') and self._pending_scales:
+        if hasattr(self, "_pending_scales") and self._pending_scales:
             # Use pending scales instead of preset_scales
             scales_to_load = self._pending_scales
             self._pending_scales = []
@@ -1300,7 +1384,9 @@ class Step1View(BaseStepView):
                 )
             else:
                 # Legacy: just a name string
-                self._add_clinical_scale_row(item, with_minus=True, on_remove=on_remove_callback)
+                self._add_clinical_scale_row(
+                    item, with_minus=True, on_remove=on_remove_callback
+                )
 
         # Add empty row with add button
         self._add_clinical_scale_row("", with_plus=True, on_add=on_add_callback)
@@ -1336,6 +1422,7 @@ class Step1View(BaseStepView):
                         def handler():
                             self._set_active_preset_button(button)
                             self._apply_preset_scales(scales)
+
                         return handler
 
                     btn.clicked.connect(create_preset_handler(preset_scales, btn))
@@ -1363,7 +1450,7 @@ class Step1View(BaseStepView):
         if not isinstance(scales, list):
             return
 
-        if hasattr(self, 'on_add_callback') and hasattr(self, 'on_remove_callback'):
+        if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
             # Clear existing scales first
             for _, _, row_layout in self.clinical_scales_rows:
                 while row_layout.count():
@@ -1388,10 +1475,14 @@ class Step1View(BaseStepView):
 
             # Add the preset scales
             for scale_name in scales:
-                self._add_clinical_scale_row(scale_name, with_minus=True, on_remove=self.on_remove_callback)
+                self._add_clinical_scale_row(
+                    scale_name, with_minus=True, on_remove=self.on_remove_callback
+                )
 
             # Add empty row with add button
-            self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
+            self._add_clinical_scale_row(
+                "", with_plus=True, on_add=self.on_add_callback
+            )
 
             # Add stretch at the very bottom
             self.clinical_scales_container.addStretch()
@@ -1455,7 +1546,7 @@ class Step1View(BaseStepView):
 
         if os.path.exists(presets_file):
             try:
-                with open(presets_file, encoding='utf-8') as f:
+                with open(presets_file, encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
                 print(f"Error loading clinical presets: {e}")
@@ -1466,7 +1557,9 @@ class Step1View(BaseStepView):
 
     def _open_clinical_scales_settings(self):
         """Open the clinical scales settings dialog."""
-        dialog = ClinicalScalesSettingsDialog(self.clinical_presets, self, PRESET_BUTTONS)
+        dialog = ClinicalScalesSettingsDialog(
+            self.clinical_presets, self, PRESET_BUTTONS
+        )
         dialog.presets_changed.connect(self._on_presets_changed)
         dialog.exec()
 
@@ -1480,7 +1573,7 @@ class Step1View(BaseStepView):
             presets_file = resource_path("config/clinical_presets.json")
             os.makedirs(os.path.dirname(presets_file), exist_ok=True)
 
-            with open(presets_file, 'w', encoding='utf-8') as f:
+            with open(presets_file, "w", encoding="utf-8") as f:
                 json.dump(new_presets, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
@@ -1505,7 +1598,7 @@ class Step1View(BaseStepView):
         self._refresh_preset_buttons()
 
         # Reconnect buttons with new scales
-        if hasattr(self, 'on_add_callback') and hasattr(self, 'on_remove_callback'):
+        if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
             self._connect_preset_buttons()
 
             # If we found a current preset, check if it was modified
@@ -1565,7 +1658,10 @@ class Step1View(BaseStepView):
 
             # Ensure exactly one stretch before the settings button
             stretch_index = settings_index - 1
-            if stretch_index < 0 or not (preset_row.itemAt(stretch_index) and preset_row.itemAt(stretch_index).spacerItem()):
+            if stretch_index < 0 or not (
+                preset_row.itemAt(stretch_index)
+                and preset_row.itemAt(stretch_index).spacerItem()
+            ):
                 preset_row.insertStretch(settings_index, 1)
                 settings_index += 1
                 stretch_index = settings_index - 1
@@ -1599,5 +1695,5 @@ class Step1View(BaseStepView):
                 stretch_index += 1
 
             # Reconnect all preset buttons after refresh
-            if hasattr(self, 'on_add_callback') and hasattr(self, 'on_remove_callback'):
+            if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
                 self._connect_preset_buttons()

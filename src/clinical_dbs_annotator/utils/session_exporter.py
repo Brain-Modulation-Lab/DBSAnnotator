@@ -51,17 +51,18 @@ class SessionExporter:
         """Set scale optimization preferences for best block calculation."""
         self.scale_optimization_prefs = prefs or []
 
-    def _generate_bids_report_filename(self, extension: str = '.docx') -> str:
+    def _generate_bids_report_filename(self, extension: str = ".docx") -> str:
         """Generate BIDS-friendly report filename from TSV file path."""
-        tsv_path = getattr(self.session_data, 'file_path', '') or ''
-        today_str = datetime.now().astimezone().strftime('%Y%m%d')
+        tsv_path = getattr(self.session_data, "file_path", "") or ""
+        today_str = datetime.now().astimezone().strftime("%Y%m%d")
 
         if tsv_path:
             base = os.path.basename(tsv_path)
             import re
-            sub_match = re.search(r'sub-([^_]+)', base)
-            run_match = re.search(r'run-([0-9]+)', base)
-            task_match = re.search(r'task-([^_]+)', base)
+
+            sub_match = re.search(r"sub-([^_]+)", base)
+            run_match = re.search(r"run-([0-9]+)", base)
+            task_match = re.search(r"task-([^_]+)", base)
             patient_id = sub_match.group(1) if sub_match else "unknown"
             run_num = run_match.group(1) if run_match else "01"
             task = task_match.group(1) if task_match else "programming"
@@ -73,15 +74,16 @@ class SessionExporter:
 
     def _extract_bids_info_from_path(self) -> tuple:
         """Extract patient ID and session number from BIDS filename."""
-        tsv_path = getattr(self.session_data, 'file_path', '') or ''
+        tsv_path = getattr(self.session_data, "file_path", "") or ""
         patient_id = ""
         session_num = ""
         if tsv_path:
             base = os.path.basename(tsv_path)
             # Parse sub-XXX and ses-XXX from filename
             import re
-            sub_match = re.search(r'sub-([^_]+)', base)
-            ses_match = re.search(r'ses-([^_]+)', base)
+
+            sub_match = re.search(r"sub-([^_]+)", base)
+            ses_match = re.search(r"ses-([^_]+)", base)
             if sub_match:
                 patient_id = sub_match.group(1)
             if ses_match:
@@ -146,7 +148,6 @@ class SessionExporter:
         timer.timeout.connect(_close_msg)
         timer.start(max(0, int(msecs)))
 
-
     def _convert_docx_to_pdf(self, docx_path: str, pdf_path: str) -> None:
         """Convert a Word document to PDF using the best available method.
 
@@ -162,6 +163,7 @@ class SessionExporter:
         # 1. Try docx2pdf
         try:
             from docx2pdf import convert as _docx2pdf_convert
+
             _docx2pdf_convert(docx_path, pdf_path)
             if os.path.exists(pdf_path):
                 return
@@ -181,7 +183,9 @@ class SessionExporter:
             )
             subprocess.run(
                 ["powershell", "-NoProfile", "-Command", ps_script],
-                check=True, capture_output=True, timeout=60,
+                check=True,
+                capture_output=True,
+                timeout=60,
             )
             if os.path.exists(pdf_path):
                 return
@@ -194,9 +198,18 @@ class SessionExporter:
             try:
                 out_dir = os.path.dirname(os.path.abspath(pdf_path))
                 subprocess.run(
-                    [soffice, "--headless", "--convert-to", "pdf",
-                     "--outdir", out_dir, os.path.abspath(docx_path)],
-                    check=True, capture_output=True, timeout=60,
+                    [
+                        soffice,
+                        "--headless",
+                        "--convert-to",
+                        "pdf",
+                        "--outdir",
+                        out_dir,
+                        os.path.abspath(docx_path),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    timeout=60,
                 )
                 # LibreOffice outputs with same basename
                 lo_output = os.path.join(
@@ -225,8 +238,8 @@ class SessionExporter:
             DataFrame with session data or None if error
         """
         try:
-            if hasattr(self.session_data, 'file_path') and self.session_data.file_path:
-                return pd.read_csv(self.session_data.file_path, sep='\t')
+            if hasattr(self.session_data, "file_path") and self.session_data.file_path:
+                return pd.read_csv(self.session_data.file_path, sep="\t")
             return None
         except Exception:
             return None
@@ -275,9 +288,15 @@ class SessionExporter:
 
         return self._pick_latest_row(df)
 
-    def _add_summary_section(self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame, df_final: pd.DataFrame) -> None:
+    def _add_summary_section(
+        self,
+        doc: Document,
+        df: pd.DataFrame,
+        df_initial: pd.DataFrame,
+        df_final: pd.DataFrame,
+    ) -> None:
         """Add the initial clinical notes section to the Word document."""
-        doc.add_heading('Initial Clinical Notes', level=1)
+        doc.add_heading("Initial Clinical Notes", level=1)
 
         latest_init = self._pick_latest_session_row(df_initial)
 
@@ -304,17 +323,23 @@ class SessionExporter:
                         scale_values.append(val_str)
 
             for sn, sv in zip(scale_names, scale_values, strict=False):
-                doc.add_paragraph(f'{sn}: {sv}')
+                doc.add_paragraph(f"{sn}: {sv}")
 
-            notes = str(latest_init.get('notes', '') or '')
+            notes = str(latest_init.get("notes", "") or "")
             if notes.strip():
-                doc.add_paragraph(f'Initial Notes: {notes}')
+                doc.add_paragraph(f"Initial Notes: {notes}")
 
-    def _add_programming_summary(self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame, df_final: pd.DataFrame) -> None:
+    def _add_programming_summary(
+        self,
+        doc: Document,
+        df: pd.DataFrame,
+        df_initial: pd.DataFrame,
+        df_final: pd.DataFrame,
+    ) -> None:
         """Add programming summary with session statistics."""
         from docx.shared import Pt
 
-        doc.add_heading('Programming Summary', level=1)
+        doc.add_heading("Programming Summary", level=1)
 
         if df is None or df.empty:
             doc.add_paragraph("No session data available.")
@@ -323,15 +348,15 @@ class SessionExporter:
         # Session duration (from first to last timestamp)
         duration_str = "N/A"
         try:
-            if 'time' in df.columns and 'date' in df.columns:
+            if "time" in df.columns and "date" in df.columns:
                 timestamps = pd.to_datetime(
-                    df['date'].astype(str) + ' ' + df['time'].astype(str),
-                    errors='coerce',
+                    df["date"].astype(str) + " " + df["time"].astype(str),
+                    errors="coerce",
                 ).dropna()
-            elif 'time' in df.columns:
-                timestamps = pd.to_datetime(df['time'], errors='coerce').dropna()
+            elif "time" in df.columns:
+                timestamps = pd.to_datetime(df["time"], errors="coerce").dropna()
             else:
-                timestamps = pd.Series(dtype='datetime64[ns]')
+                timestamps = pd.Series(dtype="datetime64[ns]")
             if len(timestamps) >= 2:
                 duration = timestamps.max() - timestamps.min()
                 total_mins = int(duration.total_seconds() / 60)
@@ -347,12 +372,12 @@ class SessionExporter:
         # Number of configurations tested
         df_normalized = self._normalize_block_id_column(df)
         num_configs = 0
-        if 'block_id' in df_normalized.columns:
-            num_configs = df_normalized['block_id'].nunique()
+        if "block_id" in df_normalized.columns:
+            num_configs = df_normalized["block_id"].nunique()
 
         # Parameter ranges per side (Left / Right)
         def _param_range(series):
-            vals = pd.to_numeric(series, errors='coerce').dropna()
+            vals = pd.to_numeric(series, errors="coerce").dropna()
             if len(vals) == 0:
                 return "N/A"
             if vals.min() == vals.max():
@@ -361,28 +386,40 @@ class SessionExporter:
 
         amp_l = amp_r = freq_l = freq_r = pw_l = pw_r = "N/A"
         try:
-            for prefix, side_label in [('left_', 'L'), ('right_', 'R')]:
+            for prefix, side_label in [("left_", "L"), ("right_", "R")]:
                 amp_col = f"{prefix}amplitude"
                 freq_col = f"{prefix}stim_freq"
                 pw_col = f"{prefix}pulse_width"
                 if amp_col in df.columns:
                     r = _param_range(df[amp_col])
-                    val = f"{r[0]:.1f} - {r[1]:.1f} mA" if isinstance(r, tuple) else (f"{float(r):.1f} mA" if r != "N/A" else r)
-                    if side_label == 'L':
+                    val = (
+                        f"{r[0]:.1f} - {r[1]:.1f} mA"
+                        if isinstance(r, tuple)
+                        else (f"{float(r):.1f} mA" if r != "N/A" else r)
+                    )
+                    if side_label == "L":
                         amp_l = val
                     else:
                         amp_r = val
                 if freq_col in df.columns:
                     r = _param_range(df[freq_col])
-                    val = f"{r[0]:.0f} - {r[1]:.0f} Hz" if isinstance(r, tuple) else (f"{float(r):.0f} Hz" if r != "N/A" else r)
-                    if side_label == 'L':
+                    val = (
+                        f"{r[0]:.0f} - {r[1]:.0f} Hz"
+                        if isinstance(r, tuple)
+                        else (f"{float(r):.0f} Hz" if r != "N/A" else r)
+                    )
+                    if side_label == "L":
                         freq_l = val
                     else:
                         freq_r = val
                 if pw_col in df.columns:
                     r = _param_range(df[pw_col])
-                    val = f"{r[0]:.0f} - {r[1]:.0f} µs" if isinstance(r, tuple) else (f"{float(r):.0f} µs" if r != "N/A" else r)
-                    if side_label == 'L':
+                    val = (
+                        f"{r[0]:.0f} - {r[1]:.0f} µs"
+                        if isinstance(r, tuple)
+                        else (f"{float(r):.0f} µs" if r != "N/A" else r)
+                    )
+                    if side_label == "L":
                         pw_l = val
                     else:
                         pw_r = val
@@ -421,8 +458,8 @@ class SessionExporter:
         df = self._normalize_block_id_column(df)
 
         # Group by block_id to consolidate multiple scales
-        if 'block_id' in df.columns:
-            grouped = df.groupby('block_id', sort=False, dropna=False)
+        if "block_id" in df.columns:
+            grouped = df.groupby("block_id", sort=False, dropna=False)
         else:
             grouped = [(0, df)]
 
@@ -438,11 +475,11 @@ class SessionExporter:
             scale_pairs = []
             seen_pairs = set()
             for _, row in block_df.iterrows():
-                sname = row.get('scale_name', '')
-                sval = row.get('scale_value', '')
+                sname = row.get("scale_name", "")
+                sval = row.get("scale_value", "")
                 if pd.notna(sname) and str(sname).strip():
                     name_str = str(sname).strip()
-                    val_str = str(sval) if pd.notna(sval) else ''
+                    val_str = str(sval) if pd.notna(sval) else ""
                     key = (name_str, val_str)
                     if key not in seen_pairs:
                         seen_pairs.add(key)
@@ -452,55 +489,55 @@ class SessionExporter:
             scale_values = [p[1] for p in scale_pairs]
 
             # Join multiple scales with newlines for internal separation
-            combined_scale_name = '\n'.join(scale_names) if scale_names else ''
-            combined_scale_value = '\n'.join(scale_values) if scale_values else ''
+            combined_scale_name = "\n".join(scale_names) if scale_names else ""
+            combined_scale_value = "\n".join(scale_values) if scale_values else ""
 
             # Left side row
             left_row = {}
             right_row = {}
 
             # Keep block_id in the output for styling logic (excluded from display columns later)
-            left_row['block_id'] = block_id
-            right_row['block_id'] = block_id
+            left_row["block_id"] = block_id
+            right_row["block_id"] = block_id
 
             # Common columns (non-lateral) - use combined scales with internal lines
-            left_row['group_ID'] = first_row.get('group_ID', '')
-            left_row['scale_name'] = combined_scale_name
-            left_row['scale_value'] = combined_scale_value
-            left_row['notes'] = first_row.get('notes', '')
+            left_row["group_ID"] = first_row.get("group_ID", "")
+            left_row["scale_name"] = combined_scale_name
+            left_row["scale_value"] = combined_scale_value
+            left_row["notes"] = first_row.get("notes", "")
 
-            right_row['group_ID'] = first_row.get('group_ID', '')
-            right_row['scale_name'] = combined_scale_name
-            right_row['scale_value'] = combined_scale_value
-            right_row['notes'] = first_row.get('notes', '')
+            right_row["group_ID"] = first_row.get("group_ID", "")
+            right_row["scale_name"] = combined_scale_name
+            right_row["scale_value"] = combined_scale_value
+            right_row["notes"] = first_row.get("notes", "")
 
             # Lateral columns - map to generic names
             lateral_mappings = {
-                'left_stim_freq': 'frequency',
-                'left_cathode': 'cathode',
-                'left_anode': 'anode',
-                'left_amplitude': 'amplitude',
-                'left_pulse_width': 'pulse_width',
-                'right_stim_freq': 'frequency',
-                'right_cathode': 'cathode',
-                'right_anode': 'anode',
-                'right_amplitude': 'amplitude',
-                'right_pulse_width': 'pulse_width',
+                "left_stim_freq": "frequency",
+                "left_cathode": "cathode",
+                "left_anode": "anode",
+                "left_amplitude": "amplitude",
+                "left_pulse_width": "pulse_width",
+                "right_stim_freq": "frequency",
+                "right_cathode": "cathode",
+                "right_anode": "anode",
+                "right_amplitude": "amplitude",
+                "right_pulse_width": "pulse_width",
             }
 
             # Left side parameters
             for left_col, generic_col in lateral_mappings.items():
-                if left_col.startswith('left_'):
-                    left_row[generic_col] = first_row.get(left_col, '')
+                if left_col.startswith("left_"):
+                    left_row[generic_col] = first_row.get(left_col, "")
 
             # Right side parameters
             for right_col, generic_col in lateral_mappings.items():
-                if right_col.startswith('right_'):
-                    right_row[generic_col] = first_row.get(right_col, '')
+                if right_col.startswith("right_"):
+                    right_row[generic_col] = first_row.get(right_col, "")
 
             # Add lateral indicator
-            left_row['laterality'] = 'L'
-            right_row['laterality'] = 'R'
+            left_row["laterality"] = "L"
+            right_row["laterality"] = "R"
 
             lateral_data.append(left_row)
             lateral_data.append(right_row)
@@ -509,7 +546,7 @@ class SessionExporter:
 
     def _add_session_data_table(self, doc: Document, df_table: pd.DataFrame) -> None:
         """Add the lateral session-data table to the Word document."""
-        doc.add_heading('Session Data', level=1)
+        doc.add_heading("Session Data", level=1)
 
         if df_table is None or df_table.empty:
             return
@@ -520,38 +557,57 @@ class SessionExporter:
         # Chart BEFORE the table
         self._add_scales_timeline_chart(doc, lateral_df)
 
-        columns_to_exclude = ['date', 'time', 'onset', 'block_id', 'session_ID', 'is_initial', 'electrode_model']
-        display_columns = [col for col in lateral_df.columns if col not in columns_to_exclude]
+        columns_to_exclude = [
+            "date",
+            "time",
+            "onset",
+            "block_id",
+            "session_ID",
+            "is_initial",
+            "electrode_model",
+        ]
+        display_columns = [
+            col for col in lateral_df.columns if col not in columns_to_exclude
+        ]
 
-        lateral_cols = ['laterality', 'frequency', 'anode', 'cathode', 'amplitude', 'pulse_width']
-        common_cols = ['group_ID', 'scale_name', 'scale_value', 'notes']
+        lateral_cols = [
+            "laterality",
+            "frequency",
+            "anode",
+            "cathode",
+            "amplitude",
+            "pulse_width",
+        ]
+        common_cols = ["group_ID", "scale_name", "scale_value", "notes"]
 
         lateral_cols = [col for col in lateral_cols if col in display_columns]
         common_cols = [col for col in common_cols if col in display_columns]
         ordered_columns = lateral_cols + common_cols
 
         table = doc.add_table(rows=lateral_df.shape[0] + 1, cols=len(ordered_columns))
-        table.style = 'Table Grid'
+        table.style = "Table Grid"
         table.autofit = False
 
         # Define column widths in inches
         section = doc.sections[0]
-        page_width_inches = (section.page_width - section.left_margin - section.right_margin) / 914400
+        page_width_inches = (
+            section.page_width - section.left_margin - section.right_margin
+        ) / 914400
 
         base_in = {
-            'laterality': 0.30,
-            'group_ID': 0.40,
-            'frequency': 0.50,
-            'anode': 0.45,
-            'cathode': 0.60,
-            'amplitude': 0.60,
-            'pulse_width': 0.50,
-            'scale_name': 1.10,
-            'scale_value': 0.60,
+            "laterality": 0.30,
+            "group_ID": 0.40,
+            "frequency": 0.50,
+            "anode": 0.45,
+            "cathode": 0.60,
+            "amplitude": 0.60,
+            "pulse_width": 0.50,
+            "scale_name": 1.10,
+            "scale_value": 0.60,
         }
         widths_in = [base_in.get(c, 0.5) for c in ordered_columns]
-        if 'notes' in ordered_columns:
-            notes_idx = ordered_columns.index('notes')
+        if "notes" in ordered_columns:
+            notes_idx = ordered_columns.index("notes")
             used = sum(w for j, w in enumerate(widths_in) if j != notes_idx)
             widths_in[notes_idx] = max(2.5, page_width_inches - used)
 
@@ -570,27 +626,37 @@ class SessionExporter:
                     run.font.bold = True
 
         # Find best and second-best blocks for green highlighting
-        best_block_ids, second_best_ids = self._find_best_and_second_best_blocks(lateral_df)
+        best_block_ids, second_best_ids = self._find_best_and_second_best_blocks(
+            lateral_df
+        )
 
         prev_block_id = None
-        scale_name_idx = ordered_columns.index('scale_name') if 'scale_name' in ordered_columns else -1
-        scale_value_idx = ordered_columns.index('scale_value') if 'scale_value' in ordered_columns else -1
+        scale_name_idx = (
+            ordered_columns.index("scale_name")
+            if "scale_name" in ordered_columns
+            else -1
+        )
+        scale_value_idx = (
+            ordered_columns.index("scale_value")
+            if "scale_value" in ordered_columns
+            else -1
+        )
 
         for i, (_, row) in enumerate(lateral_df.iterrows()):
             row_cells = table.rows[i + 1].cells
 
             # Highlight best block(s) with darker green, second-best with lighter green
-            current_block_id = row.get('block_id', None)
+            current_block_id = row.get("block_id", None)
             if best_block_ids and current_block_id in best_block_ids:
                 self._highlight_cells_green(row_cells, intensity="best")
             elif second_best_ids and current_block_id in second_best_ids:
                 self._highlight_cells_green(row_cells, intensity="second")
 
-            current_block_id = row.get('block_id', None)
+            current_block_id = row.get("block_id", None)
             if (
                 prev_block_id is not None
                 and current_block_id != prev_block_id
-                and row.get('laterality') == 'L'
+                and row.get("laterality") == "L"
             ):
                 for cell in row_cells:
                     self._set_cell_border_top(cell, sz=24)
@@ -600,30 +666,30 @@ class SessionExporter:
             scale_value_lines = None
             if scale_name_idx >= 0 and scale_value_idx >= 0:
                 try:
-                    raw_sn = row.get('scale_name', '')
-                    raw_sv = row.get('scale_value', '')
-                    sn_text = str(raw_sn) if pd.notna(raw_sn) else ''
-                    sv_text = str(raw_sv) if pd.notna(raw_sv) else ''
+                    raw_sn = row.get("scale_name", "")
+                    raw_sv = row.get("scale_value", "")
+                    sn_text = str(raw_sn) if pd.notna(raw_sn) else ""
+                    sv_text = str(raw_sv) if pd.notna(raw_sv) else ""
 
                     # Filter out NaN scales from display - remove both name and value
-                    if sv_text == 'NaN' or 'NaN' in sv_text:
-                        sn_parts = [s for s in sn_text.split('\n') if s.strip()]
-                        sv_parts = [s for s in sv_text.split('\n') if s.strip()]
+                    if sv_text == "NaN" or "NaN" in sv_text:
+                        sn_parts = [s for s in sn_text.split("\n") if s.strip()]
+                        sv_parts = [s for s in sv_text.split("\n") if s.strip()]
                         # Remove corresponding name-value pairs where value is NaN
                         filtered_names = []
                         filtered_values = []
                         for name, val in zip(sn_parts, sv_parts, strict=False):
-                            if val != 'NaN' and val.strip() != 'NaN':
+                            if val != "NaN" and val.strip() != "NaN":
                                 filtered_names.append(name)
                                 filtered_values.append(val)
-                        sn_text = '\n'.join(filtered_names)
-                        sv_text = '\n'.join(filtered_values)
+                        sn_text = "\n".join(filtered_names)
+                        sv_text = "\n".join(filtered_values)
 
-                    scale_name_lines = sn_text.split('\n') if sn_text else ['']
-                    scale_value_lines = sv_text.split('\n') if sv_text else ['']
+                    scale_name_lines = sn_text.split("\n") if sn_text else [""]
+                    scale_value_lines = sv_text.split("\n") if sv_text else [""]
                     max_len = max(len(scale_name_lines), len(scale_value_lines))
-                    scale_name_lines += [''] * (max_len - len(scale_name_lines))
-                    scale_value_lines += [''] * (max_len - len(scale_value_lines))
+                    scale_name_lines += [""] * (max_len - len(scale_name_lines))
+                    scale_value_lines += [""] * (max_len - len(scale_value_lines))
                 except Exception:
                     scale_name_lines = None
                     scale_value_lines = None
@@ -633,46 +699,58 @@ class SessionExporter:
                     continue
 
                 # Format numeric values: use int for frequency/pulse_width when no decimals
-                cell_value = str(row[col]) if pd.notna(row[col]) else ''
-                if col in ['frequency', 'pulse_width']:
+                cell_value = str(row[col]) if pd.notna(row[col]) else ""
+                if col in ["frequency", "pulse_width"]:
                     try:
                         val = float(row[col])
                         if val.is_integer():
                             cell_value = str(int(val))
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         pass
 
                 if col in common_cols:
                     merged_target_cell = None
                     did_merge = False
-                    if row.get('laterality') == 'R' and i > 0:
+                    if row.get("laterality") == "R" and i > 0:
                         prev_cell = table.rows[i].cells[j]
                         prev_cell.merge(row_cells[j])
-                        row_cells[j].text = ''
+                        row_cells[j].text = ""
                         merged_target_cell = prev_cell
                         did_merge = True
 
-                    target_cell = merged_target_cell if did_merge and merged_target_cell is not None else row_cells[j]
-                    if col == 'scale_name' and scale_name_lines is not None and len(scale_name_lines) > 1:
+                    target_cell = (
+                        merged_target_cell
+                        if did_merge and merged_target_cell is not None
+                        else row_cells[j]
+                    )
+                    if (
+                        col == "scale_name"
+                        and scale_name_lines is not None
+                        and len(scale_name_lines) > 1
+                    ):
                         target_cell.text = "\n".join(scale_name_lines)
-                    elif col == 'scale_value' and scale_value_lines is not None and len(scale_value_lines) > 1:
+                    elif (
+                        col == "scale_value"
+                        and scale_value_lines is not None
+                        and len(scale_value_lines) > 1
+                    ):
                         target_cell.text = "\n".join(scale_value_lines)
                     else:
                         target_cell.text = cell_value
-                elif col == 'cathode' and '_' in cell_value:
+                elif col == "cathode" and "_" in cell_value:
                     # Multi-contact cathode: show stacked with Total label
-                    contacts = cell_value.replace('_', '\n')
-                    row_cells[j].text = contacts + '\nTotal'
-                elif col == 'amplitude' and '_' in cell_value:
+                    contacts = cell_value.replace("_", "\n")
+                    row_cells[j].text = contacts + "\nTotal"
+                elif col == "amplitude" and "_" in cell_value:
                     # Multi-contact amplitude: show stacked values with total
-                    parts = cell_value.split('_')
+                    parts = cell_value.split("_")
                     try:
                         # Validate all parts are numbers and calculate total
                         values = [float(p) for p in parts]
                         total = sum(values)
-                        total_str = f"{total:.2f}".rstrip('0').rstrip('.')
-                        row_cells[j].text = '\n'.join(parts) + f'\n{total_str}'
-                    except (ValueError, TypeError):
+                        total_str = f"{total:.2f}".rstrip("0").rstrip(".")
+                        row_cells[j].text = "\n".join(parts) + f"\n{total_str}"
+                    except ValueError, TypeError:
                         row_cells[j].text = cell_value
                 else:
                     row_cells[j].text = cell_value
@@ -680,7 +758,9 @@ class SessionExporter:
         # Add legend and clinical disclaimer below table
         self._add_table_legend(doc, best_block_ids, second_best_ids)
 
-    def _add_table_legend(self, doc: Document, best_ids: list, second_ids: list) -> None:
+    def _add_table_legend(
+        self, doc: Document, best_ids: list, second_ids: list
+    ) -> None:
         """Add color legend and clinical disclaimer below the session data table."""
         from docx.shared import Pt, RGBColor
 
@@ -736,44 +816,49 @@ class SessionExporter:
         disclaimer_run.font.size = Pt(9)
         disclaimer_run.font.italic = True
 
-    def _add_scales_timeline_chart(self, doc: Document, lateral_df: pd.DataFrame) -> None:
+    def _add_scales_timeline_chart(
+        self, doc: Document, lateral_df: pd.DataFrame
+    ) -> None:
         """Add a rainbow-colored timeline chart of session scales with a general index line."""
         import math as _math
         from io import BytesIO
 
         # Guard: need valid input
         if lateral_df is None or lateral_df.empty:
-            doc.add_paragraph('No session data available for chart.')
+            doc.add_paragraph("No session data available for chart.")
             return
-        if 'scale_name' not in lateral_df.columns or 'scale_value' not in lateral_df.columns:
-            doc.add_paragraph('No scale columns found in session data.')
+        if (
+            "scale_name" not in lateral_df.columns
+            or "scale_value" not in lateral_df.columns
+        ):
+            doc.add_paragraph("No scale columns found in session data.")
             return
-        if 'block_id' not in lateral_df.columns:
-            doc.add_paragraph('No block ID column found in session data.')
+        if "block_id" not in lateral_df.columns:
+            doc.add_paragraph("No block ID column found in session data.")
             return
 
         # Use L rows only to avoid duplicates
-        if 'laterality' in lateral_df.columns:
-            df_l = lateral_df[lateral_df['laterality'] == 'L'].copy()
+        if "laterality" in lateral_df.columns:
+            df_l = lateral_df[lateral_df["laterality"] == "L"].copy()
         else:
             df_l = lateral_df.copy()
         if df_l.empty:
-            df_l = lateral_df.drop_duplicates(subset=['block_id']).copy()
+            df_l = lateral_df.drop_duplicates(subset=["block_id"]).copy()
 
         # Collect scale values per block
         scale_data = {}  # scale_name -> {block_id: value}
         for _, row in df_l.iterrows():
             try:
-                block_id = int(row.get('block_id', 0))
-            except (ValueError, TypeError):
+                block_id = int(row.get("block_id", 0))
+            except ValueError, TypeError:
                 continue
-            names = str(row.get('scale_name', '') or '').split('\n')
-            values = str(row.get('scale_value', '') or '').split('\n')
+            names = str(row.get("scale_name", "") or "").split("\n")
+            values = str(row.get("scale_value", "") or "").split("\n")
             for i, name in enumerate(names):
                 name = name.strip()
                 if not name:
                     continue
-                val_str = values[i].strip() if i < len(values) else ''
+                val_str = values[i].strip() if i < len(values) else ""
                 try:
                     val = float(val_str)
                 except ValueError:
@@ -783,12 +868,12 @@ class SessionExporter:
                 scale_data.setdefault(name, {})[block_id] = val
 
         if not scale_data:
-            doc.add_paragraph('No numeric scale values recorded for this session.')
+            doc.add_paragraph("No numeric scale values recorded for this session.")
             return
 
         all_blocks = sorted({b for pts in scale_data.values() for b in pts})
         if not all_blocks:
-            doc.add_paragraph('No configuration blocks with scale data found.')
+            doc.add_paragraph("No configuration blocks with scale data found.")
             return
 
         try:
@@ -799,36 +884,45 @@ class SessionExporter:
             pg.setConfigOptions(useOpenGL=False, antialias=True)
 
             n_scales = len(scale_data)
-            rainbow = [QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
-                        for i in range(n_scales)]
+            rainbow = [
+                QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
+                for i in range(n_scales)
+            ]
 
             has_index = n_scales >= 2
             win = pg.GraphicsLayoutWidget()
-            win.setBackground('w')
+            win.setBackground("w")
             win.resize(1050, 500)  # Single plot, larger for right-side legend
 
             # --- Main scales chart with General Index on same plot ---
             p1 = win.addPlot(row=0, col=0)
-            p1.setTitle('Session Scales Timeline', color='k', size='14pt')
-            p1.setLabel('left', 'Scale Value', color='k', size='14pt', font='Arial')
-            p1.setLabel('bottom', 'Block', color='k', size='14pt', font='Arial')
-            p1.getAxis('left').setStyle(tickFont=QFont('Arial', 10))
-            p1.getAxis('bottom').setStyle(tickFont=QFont('Arial', 10))
+            p1.setTitle("Session Scales Timeline", color="k", size="14pt")
+            p1.setLabel("left", "Scale Value", color="k", size="14pt", font="Arial")
+            p1.setLabel("bottom", "Block", color="k", size="14pt", font="Arial")
+            p1.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
+            p1.getAxis("bottom").setStyle(tickFont=QFont("Arial", 10))
             p1.showGrid(x=True, y=True, alpha=0.3)
             # Legend on right side external - increase offset and add background
-            legend = p1.addLegend(offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white))
-            legend.setLabelTextColor('k')
+            legend = p1.addLegend(
+                offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white)
+            )
+            legend.setLabelTextColor("k")
 
             # Plot individual scales with original values (no normalization)
             for idx, (sname, pts) in enumerate(scale_data.items()):
                 c = rainbow[idx]
                 xs = sorted(pts.keys())
                 ys = [pts[x] for x in xs]
-                p1.plot(xs, ys,
-                        pen=pg.mkPen(c, width=2),
-                        symbol='o', symbolPen=pg.mkPen(c, width=1),
-                        symbolBrush=pg.mkBrush(c), symbolSize=8,
-                        name=sname)
+                p1.plot(
+                    xs,
+                    ys,
+                    pen=pg.mkPen(c, width=2),
+                    symbol="o",
+                    symbolPen=pg.mkPen(c, width=1),
+                    symbolBrush=pg.mkBrush(c),
+                    symbolSize=8,
+                    name=sname,
+                )
 
             # --- General Index on same plot (if >= 2 scales) ---
             if has_index:
@@ -844,9 +938,15 @@ class SessionExporter:
                                 scale_targets[name] = {"type": "max", "value": smax}
                             elif mode == "custom":
                                 try:
-                                    scale_targets[name] = {"type": "custom", "value": float(custom_val)}
+                                    scale_targets[name] = {
+                                        "type": "custom",
+                                        "value": float(custom_val),
+                                    }
                                 except ValueError:
-                                    scale_targets[name] = {"type": "custom", "value": 0.0}
+                                    scale_targets[name] = {
+                                        "type": "custom",
+                                        "value": 0.0,
+                                    }
 
                 index_vals = {}
                 for b in all_blocks:
@@ -869,19 +969,39 @@ class SessionExporter:
                                     distance = original_value
                                     max_possible = max(scale_data[scale_name].values())
                                     # Normalize: 0 = at target (min), 1 = worst (max)
-                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                    normalized_score = (
+                                        distance / max_possible
+                                        if max_possible > 0
+                                        else 0
+                                    )
                                 elif target_type == "max":
                                     # For maximization: higher values are better
-                                    distance = max(scale_data[scale_name].values()) - original_value
-                                    max_possible = max(scale_data[scale_name].values()) - min(scale_data[scale_name].values())
+                                    distance = (
+                                        max(scale_data[scale_name].values())
+                                        - original_value
+                                    )
+                                    max_possible = max(
+                                        scale_data[scale_name].values()
+                                    ) - min(scale_data[scale_name].values())
                                     # Normalize: 0 = at target (max), 1 = worst (min)
-                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                    normalized_score = (
+                                        distance / max_possible
+                                        if max_possible > 0
+                                        else 0
+                                    )
                                 elif target_type == "custom":
                                     # For custom target: absolute distance from target
                                     distance = abs(original_value - target_value)
-                                    max_distance = max(abs(v - target_value) for v in scale_data[scale_name].values())
+                                    max_distance = max(
+                                        abs(v - target_value)
+                                        for v in scale_data[scale_name].values()
+                                    )
                                     # Normalize: 0 = at target, 1 = worst
-                                    normalized_score = distance / max_distance if max_distance > 0 else 0
+                                    normalized_score = (
+                                        distance / max_distance
+                                        if max_distance > 0
+                                        else 0
+                                    )
 
                                 # Convert to proximity score (higher is better)
                                 proximity_score = 1.0 - normalized_score
@@ -890,13 +1010,23 @@ class SessionExporter:
                             else:
                                 # No target defined: use neutral score
                                 weighted_scores.append(0.5)  # Neutral middle value
-                                weights.append(0.5)  # Lower weight for scales without targets
+                                weights.append(
+                                    0.5
+                                )  # Lower weight for scales without targets
 
                     if weighted_scores and weights:
                         # Calculate weighted average of proximity scores
                         total_weight = sum(weights)
                         if total_weight > 0:
-                            index_vals[b] = sum(w * s for w, s in zip(weights, weighted_scores, strict=False)) / total_weight
+                            index_vals[b] = (
+                                sum(
+                                    w * s
+                                    for w, s in zip(
+                                        weights, weighted_scores, strict=False
+                                    )
+                                )
+                                / total_weight
+                            )
                         else:
                             index_vals[b] = 0.5  # Default neutral value
 
@@ -904,16 +1034,22 @@ class SessionExporter:
                     ix = sorted(index_vals.keys())
                     iy = [index_vals[x] for x in ix]
                     # Thicker black line for General Index
-                    p1.plot(ix, iy,
-                            pen=pg.mkPen('k', width=5),
-                            symbol='d', symbolPen='k', symbolBrush='k',
-                            symbolSize=10, name='General Index')
+                    p1.plot(
+                        ix,
+                        iy,
+                        pen=pg.mkPen("k", width=5),
+                        symbol="d",
+                        symbolPen="k",
+                        symbolBrush="k",
+                        symbolSize=10,
+                        name="General Index",
+                    )
 
             # --- Export to PNG → Word ---
             pixmap = win.grab()
             qbuf = QBuffer()
             qbuf.open(QIODevice.OpenModeFlag.WriteOnly)
-            pixmap.save(qbuf, 'PNG')
+            pixmap.save(qbuf, "PNG")
             qbuf.close()
             img_buf = BytesIO(bytes(qbuf.data()))
             doc.add_picture(img_buf, width=Inches(6))
@@ -923,7 +1059,7 @@ class SessionExporter:
             del win
 
         except Exception as e:
-            doc.add_paragraph(f'Chart generation error: {e}')
+            doc.add_paragraph(f"Chart generation error: {e}")
 
     def _column_header(self, col: str) -> str:
         """Map an internal column name to a human-readable table header."""
@@ -940,7 +1076,7 @@ class SessionExporter:
         }
         if col in placeholder_map and placeholder_map[col] is not None:
             return str(placeholder_map[col])
-        return str(col).replace('_', ' ').title()
+        return str(col).replace("_", " ").title()
 
     def _pick_latest_row(self, df: pd.DataFrame) -> pd.Series | None:
         """Return the row with the highest block_id, or the last row."""
@@ -963,9 +1099,12 @@ class SessionExporter:
         """
         if lateral_df is None or lateral_df.empty:
             return [], []
-        if 'block_id' not in lateral_df.columns or 'scale_value' not in lateral_df.columns:
+        if (
+            "block_id" not in lateral_df.columns
+            or "scale_value" not in lateral_df.columns
+        ):
             return [], []
-        if 'scale_name' not in lateral_df.columns:
+        if "scale_name" not in lateral_df.columns:
             return [], []
 
         try:
@@ -977,21 +1116,21 @@ class SessionExporter:
                     pref_lookup[name.strip().lower()] = (mode, custom_val)
 
             # Get unique blocks (use only L rows to avoid double counting)
-            df_l = lateral_df[lateral_df.get('laterality', '') == 'L'].copy()
+            df_l = lateral_df[lateral_df.get("laterality", "") == "L"].copy()
             if df_l.empty:
-                df_l = lateral_df.drop_duplicates(subset=['block_id']).copy()
+                df_l = lateral_df.drop_duplicates(subset=["block_id"]).copy()
 
             block_scores = {}
             for _, row in df_l.iterrows():
-                block_id = row.get('block_id')
+                block_id = row.get("block_id")
                 if block_id is None:
                     continue
 
-                scale_name_str = str(row.get('scale_name', '') or '')
-                scale_val_str = str(row.get('scale_value', '') or '')
+                scale_name_str = str(row.get("scale_name", "") or "")
+                scale_val_str = str(row.get("scale_value", "") or "")
 
-                names = scale_name_str.split('\n')
-                values = scale_val_str.split('\n')
+                names = scale_name_str.split("\n")
+                values = scale_val_str.split("\n")
 
                 # Calculate weighted score for this block
                 total_score = 0.0
@@ -1008,6 +1147,7 @@ class SessionExporter:
                         continue
 
                     import math as _math
+
                     if _math.isnan(val):
                         continue
 
@@ -1045,13 +1185,17 @@ class SessionExporter:
 
             # Best blocks (lowest score)
             best_score = unique_scores[0]
-            best_blocks = [bid for bid, score in block_scores.items() if score == best_score]
+            best_blocks = [
+                bid for bid, score in block_scores.items() if score == best_score
+            ]
 
             # Second best blocks (second lowest score, if exists)
             second_best_blocks = []
             if len(unique_scores) > 1:
                 second_score = unique_scores[1]
-                second_best_blocks = [bid for bid, score in block_scores.items() if score == second_score]
+                second_best_blocks = [
+                    bid for bid, score in block_scores.items() if score == second_score
+                ]
 
             return best_blocks, second_best_blocks
 
@@ -1067,11 +1211,11 @@ class SessionExporter:
             intensity: "best" for darker green, "second" for lighter green
         """
         # Best = darker green, Second = lighter green
-        color = 'C3E6CB' if intensity == "best" else 'E8F5E9'
+        color = "C3E6CB" if intensity == "best" else "E8F5E9"
         for cell in row_cells:
             try:
-                shading_elm = OxmlElement('w:shd')
-                shading_elm.set(qn('w:fill'), color)
+                shading_elm = OxmlElement("w:shd")
+                shading_elm.set(qn("w:fill"), color)
                 cell._tc.get_or_add_tcPr().append(shading_elm)
             except Exception:
                 pass
@@ -1080,56 +1224,66 @@ class SessionExporter:
         """Set top border of a cell to specified size (in eighths of a point)."""
         try:
             tc = cell._tc
-            tcPr = tc.get_or_add_tcPr() # noqa: N806
-            tcBorders = OxmlElement('w:tcBorders') # noqa: N806
-            top = OxmlElement('w:top')
-            top.set(qn('w:val'), 'single')
-            top.set(qn('w:sz'), str(sz))
-            top.set(qn('w:space'), '0')
-            top.set(qn('w:color'), '000000')
+            tcPr = tc.get_or_add_tcPr()  # noqa: N806
+            tcBorders = OxmlElement("w:tcBorders")  # noqa: N806
+            top = OxmlElement("w:top")
+            top.set(qn("w:val"), "single")
+            top.set(qn("w:sz"), str(sz))
+            top.set(qn("w:space"), "0")
+            top.set(qn("w:color"), "000000")
             tcBorders.append(top)
             tcPr.append(tcBorders)
         except Exception:
             pass
 
-    def _set_paragraph_bottom_border(self, paragraph, sz: int = 6, color: str = '000000') -> None:
+    def _set_paragraph_bottom_border(
+        self, paragraph, sz: int = 6, color: str = "000000"
+    ) -> None:
         """Draw a bottom border line under a Word paragraph."""
         try:
-            pPr = paragraph._p.get_or_add_pPr() # noqa: N806
-            pBdr = OxmlElement('w:pBdr') # noqa: N806
-            bottom = OxmlElement('w:bottom')
-            bottom.set(qn('w:val'), 'single')
-            bottom.set(qn('w:sz'), str(sz))
-            bottom.set(qn('w:space'), '1')
-            bottom.set(qn('w:color'), str(color))
+            pPr = paragraph._p.get_or_add_pPr()  # noqa: N806
+            pBdr = OxmlElement("w:pBdr")  # noqa: N806
+            bottom = OxmlElement("w:bottom")
+            bottom.set(qn("w:val"), "single")
+            bottom.set(qn("w:sz"), str(sz))
+            bottom.set(qn("w:space"), "1")
+            bottom.set(qn("w:color"), str(color))
             pBdr.append(bottom)
             pPr.append(pBdr)
         except Exception:
             pass
 
-    def _write_multiline_cell_with_dividers(self, cell, lines: list, divider_sz: int = 12, divider_color: str = '000000') -> None:
+    def _write_multiline_cell_with_dividers(
+        self, cell, lines: list, divider_sz: int = 12, divider_color: str = "000000"
+    ) -> None:
         """Write each line as its own paragraph and draw a full-width divider under each line except the last."""
         try:
-            cell.text = ''
+            cell.text = ""
             if not lines:
                 return
 
             p0 = cell.paragraphs[0]
             p0.text = str(lines[0])
             if len(lines) > 1:
-                self._set_paragraph_bottom_border(p0, sz=divider_sz, color=divider_color)
+                self._set_paragraph_bottom_border(
+                    p0, sz=divider_sz, color=divider_color
+                )
 
             for k in range(1, len(lines)):
                 p = cell.add_paragraph(str(lines[k]))
                 if k < len(lines) - 1:
-                    self._set_paragraph_bottom_border(p, sz=divider_sz, color=divider_color)
+                    self._set_paragraph_bottom_border(
+                        p, sz=divider_sz, color=divider_color
+                    )
         except Exception:
             try:
                 cell.text = "\n".join([str(x) for x in (lines or [])])
             except Exception:
                 pass
 
-    def _apply_contact_tokens_to_canvas(self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str) -> None:
+    def _apply_contact_tokens_to_canvas(
+        self, canvas: ElectrodeCanvas, anode_text: str, cathode_text: str
+    ) -> None:
         """Parse anode/cathode token strings and set the corresponding canvas states."""
         model = canvas.model
         if not model:
@@ -1193,10 +1347,12 @@ class SessionExporter:
 
         # Force white background by temporarily overriding paintEvent
         original_paint = canvas.paintEvent
+
         def white_bg_paint(event):
             painter = QPainter(canvas)
             painter.fillRect(canvas.rect(), Qt.white)
             original_paint(event)
+
         canvas.paintEvent = white_bg_paint
 
         pixmap = QPixmap(canvas.size())
@@ -1206,6 +1362,7 @@ class SessionExporter:
         # Crop white borders
         image = pixmap.toImage()
         from PySide6.QtGui import QColor as _QColor
+
         # Find bounding box of non-white content
         left, top, right, bottom = image.width(), image.height(), 0, 0
         white_rgb = _QColor(Qt.white).rgb()
@@ -1231,7 +1388,9 @@ class SessionExporter:
         cropped.save(tmp.name, "PNG")
         return tmp.name
 
-    def _add_electrode_config_section(self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame) -> None:
+    def _add_electrode_config_section(
+        self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame
+    ) -> None:
         """Add the initial vs final electrode configuration images to the document."""
         if df is None or df.empty:
             return
@@ -1240,7 +1399,9 @@ class SessionExporter:
 
         dfc = df.copy()
         dfc["session_ID"] = pd.to_numeric(dfc["session_ID"], errors="coerce")
-        dfc["is_initial"] = pd.to_numeric(dfc["is_initial"], errors="coerce").fillna(0).astype(int)
+        dfc["is_initial"] = (
+            pd.to_numeric(dfc["is_initial"], errors="coerce").fillna(0).astype(int)
+        )
 
         df_init = dfc[dfc["is_initial"] == 1]
         df_final = dfc[dfc["is_initial"] == 0]
@@ -1252,7 +1413,9 @@ class SessionExporter:
         final_session = int(dfc.loc[df_final.index, "session_ID"].max())
 
         init_row = self._pick_latest_row(df_init[df_init["session_ID"] == init_session])
-        final_row = self._pick_latest_row(df_final[df_final["session_ID"] == final_session])
+        final_row = self._pick_latest_row(
+            df_final[df_final["session_ID"] == final_session]
+        )
 
         if init_row is None or final_row is None:
             return
@@ -1263,10 +1426,26 @@ class SessionExporter:
             return
 
         paths = {
-            "Init L": self._render_electrode_png(init_model, str(init_row.get("left_anode", "") or ""), str(init_row.get("left_cathode", "") or "")),
-            "Init R": self._render_electrode_png(init_model, str(init_row.get("right_anode", "") or ""), str(init_row.get("right_cathode", "") or "")),
-            "Final L": self._render_electrode_png(final_model, str(final_row.get("left_anode", "") or ""), str(final_row.get("left_cathode", "") or "")),
-            "Final R": self._render_electrode_png(final_model, str(final_row.get("right_anode", "") or ""), str(final_row.get("right_cathode", "") or "")),
+            "Init L": self._render_electrode_png(
+                init_model,
+                str(init_row.get("left_anode", "") or ""),
+                str(init_row.get("left_cathode", "") or ""),
+            ),
+            "Init R": self._render_electrode_png(
+                init_model,
+                str(init_row.get("right_anode", "") or ""),
+                str(init_row.get("right_cathode", "") or ""),
+            ),
+            "Final L": self._render_electrode_png(
+                final_model,
+                str(final_row.get("left_anode", "") or ""),
+                str(final_row.get("left_cathode", "") or ""),
+            ),
+            "Final R": self._render_electrode_png(
+                final_model,
+                str(final_row.get("right_anode", "") or ""),
+                str(final_row.get("right_cathode", "") or ""),
+            ),
         }
 
         if not all(paths.values()):
@@ -1276,13 +1455,13 @@ class SessionExporter:
 
         # Add electrode model info
         latest_init = self._pick_latest_session_row(df_initial)
-        model = str(latest_init.get('electrode_model', '') or '')
+        model = str(latest_init.get("electrode_model", "") or "")
         manufacturer = self._get_manufacturer_for_model(model)
         if model:
             if manufacturer:
-                doc.add_paragraph(f'Electrode model: {manufacturer} | {model}')
+                doc.add_paragraph(f"Electrode model: {manufacturer} | {model}")
             else:
-                doc.add_paragraph(f'Electrode model: {model}')
+                doc.add_paragraph(f"Electrode model: {model}")
 
         # 4 columns x 4 rows table, no borders
         # Row 0: "Initial Settings" (merged cols 0-1), "Final Settings" (merged cols 2-3)
@@ -1294,14 +1473,14 @@ class SessionExporter:
 
         # Remove all borders
         tbl = t._tbl
-        tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr() # noqa: N806
-        borders = OxmlElement('w:tblBorders')
-        for border_name in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
-            border = OxmlElement(f'w:{border_name}')
-            border.set(qn('w:val'), 'none')
-            border.set(qn('w:sz'), '0')
-            border.set(qn('w:space'), '0')
-            border.set(qn('w:color'), 'auto')
+        tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr()  # noqa: N806
+        borders = OxmlElement("w:tblBorders")
+        for border_name in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            border = OxmlElement(f"w:{border_name}")
+            border.set(qn("w:val"), "none")
+            border.set(qn("w:sz"), "0")
+            border.set(qn("w:space"), "0")
+            border.set(qn("w:color"), "auto")
             borders.append(border)
         tblPr.append(borders)
 
@@ -1329,12 +1508,29 @@ class SessionExporter:
 
         # Captions in order: Init L, Init R, Final L, Final R
         all_captions = [
-            (str(init_row.get("left_anode", "") or ""), str(init_row.get("left_cathode", "") or "")),
-            (str(init_row.get("right_anode", "") or ""), str(init_row.get("right_cathode", "") or "")),
-            (str(final_row.get("left_anode", "") or ""), str(final_row.get("left_cathode", "") or "")),
-            (str(final_row.get("right_anode", "") or ""), str(final_row.get("right_cathode", "") or "")),
+            (
+                str(init_row.get("left_anode", "") or ""),
+                str(init_row.get("left_cathode", "") or ""),
+            ),
+            (
+                str(init_row.get("right_anode", "") or ""),
+                str(init_row.get("right_cathode", "") or ""),
+            ),
+            (
+                str(final_row.get("left_anode", "") or ""),
+                str(final_row.get("left_cathode", "") or ""),
+            ),
+            (
+                str(final_row.get("right_anode", "") or ""),
+                str(final_row.get("right_cathode", "") or ""),
+            ),
         ]
-        all_img_paths = [paths["Init L"], paths["Init R"], paths["Final L"], paths["Final R"]]
+        all_img_paths = [
+            paths["Init L"],
+            paths["Init R"],
+            paths["Final L"],
+            paths["Final R"],
+        ]
 
         # Row 2: Config text
         for c, (anode_txt, cathode_txt) in enumerate(all_captions):
@@ -1370,9 +1566,15 @@ class SessionExporter:
                 )
                 return False
 
-            default_filename = self._generate_bids_report_filename('.pdf')
-            start_dir = os.path.dirname(getattr(self.session_data, 'file_path', '') or '')
-            start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
+            default_filename = self._generate_bids_report_filename(".pdf")
+            start_dir = os.path.dirname(
+                getattr(self.session_data, "file_path", "") or ""
+            )
+            start_path = (
+                os.path.join(start_dir, default_filename)
+                if start_dir
+                else default_filename
+            )
 
             from PySide6.QtWidgets import QFileDialog
 
@@ -1436,32 +1638,39 @@ class SessionExporter:
                 QMessageBox.warning(
                     parent,
                     "No Session Data",
-                    "No session file is currently open. Please start a session first."
+                    "No session file is currently open. Please start a session first.",
                 )
                 return False
 
             # Generate BIDS-friendly default filename from TSV path
-            default_filename = self._generate_bids_report_filename('.docx')
+            default_filename = self._generate_bids_report_filename(".docx")
 
             # Use same directory as TSV file
-            start_dir = os.path.dirname(getattr(self.session_data, 'file_path', '') or '')
-            start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
+            start_dir = os.path.dirname(
+                getattr(self.session_data, "file_path", "") or ""
+            )
+            start_path = (
+                os.path.join(start_dir, default_filename)
+                if start_dir
+                else default_filename
+            )
 
             # Get save location
             from PySide6.QtWidgets import QFileDialog
+
             file_path, _ = QFileDialog.getSaveFileName(
                 parent,
                 "Export Session Report",
                 start_path,
-                "Word Files (*.docx);;All Files (*)"
+                "Word Files (*.docx);;All Files (*)",
             )
 
             if not file_path:
                 return False  # User cancelled
 
             # Ensure .docx extension
-            if not file_path.endswith('.docx'):
-                file_path += '.docx'
+            if not file_path.endswith(".docx"):
+                file_path += ".docx"
 
             ok = self._export_to_word_path(file_path, sections=sections)
             if not ok:
@@ -1484,7 +1693,7 @@ class SessionExporter:
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export session data to Word:\n{str(e)}"
+                f"Failed to export session data to Word:\n{str(e)}",
             )
             return False
 
@@ -1497,51 +1706,66 @@ class SessionExporter:
         df = df.copy()
         df = self._normalize_block_id_column(df)
         if "is_initial" in df.columns:
-            df["is_initial"] = pd.to_numeric(df["is_initial"], errors="coerce").fillna(0).astype(int)
+            df["is_initial"] = (
+                pd.to_numeric(df["is_initial"], errors="coerce").fillna(0).astype(int)
+            )
 
-        df_initial = df[df.get("is_initial", 0) == 1] if "is_initial" in df.columns else df.iloc[0:0]
-        df_table = df[df.get("is_initial", 0) != 1] if "is_initial" in df.columns else df
+        df_initial = (
+            df[df.get("is_initial", 0) == 1]
+            if "is_initial" in df.columns
+            else df.iloc[0:0]
+        )
+        df_table = (
+            df[df.get("is_initial", 0) != 1] if "is_initial" in df.columns else df
+        )
 
         doc = Document()
 
         section = doc.sections[0]
-        section.left_margin = Inches(0.5)   # default  ~1.0
+        section.left_margin = Inches(0.5)  # default  ~1.0
         section.right_margin = Inches(0.5)  # default  ~1.0
         section.top_margin = Inches(0.75)
         section.bottom_margin = Inches(0.75)
 
-        title = doc.add_heading('Clinical DBS Session Report', 0)
+        title = doc.add_heading("Clinical DBS Session Report", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        doc.add_paragraph(f'Generated on: {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")} by {__app_name__} v{__version__}')
+        doc.add_paragraph(
+            f"Generated on: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')} by {__app_name__} v{__version__}"
+        )
 
         patient_id, session_num = self._extract_bids_info_from_path()
         if patient_id or session_num:
             info_parts = []
             if patient_id:
-                info_parts.append(f'Patient ID: {patient_id}')
+                info_parts.append(f"Patient ID: {patient_id}")
             if session_num:
-                info_parts.append(f'Session: {session_num}')
-            doc.add_paragraph('    '.join(info_parts))
+                info_parts.append(f"Session: {session_num}")
+            doc.add_paragraph("    ".join(info_parts))
 
         # Determine which sections to include (default: all)
-        all_keys = ["initial_notes", "session_data", "electrode_config", "programming_summary"]
+        all_keys = [
+            "initial_notes",
+            "session_data",
+            "electrode_config",
+            "programming_summary",
+        ]
         active = set(sections) if sections is not None else set(all_keys)
 
         if "initial_notes" in active:
-            doc.add_paragraph('')
+            doc.add_paragraph("")
             self._add_summary_section(doc, df, df_initial, df_table)
 
         if "session_data" in active:
-            doc.add_paragraph('')
+            doc.add_paragraph("")
             self._add_session_data_table(doc, df_table)
 
         if "electrode_config" in active:
-            doc.add_paragraph('')
+            doc.add_paragraph("")
             self._add_electrode_config_section(doc, df, df_initial)
 
         if "programming_summary" in active:
-            doc.add_paragraph('')
+            doc.add_paragraph("")
             self._add_programming_summary(doc, df, df_initial, df_table)
 
         doc.save(file_path)
@@ -1554,8 +1778,8 @@ class SessionExporter:
         patient_id, session_num = self._extract_bids_info_from_path()
 
         if patient_id or session_num:
-            doc.add_paragraph('')
-            doc.add_paragraph('')
+            doc.add_paragraph("")
+            doc.add_paragraph("")
 
             footer_para = doc.add_paragraph()
             footer_run = footer_para.add_run("─" * 50)
@@ -1644,7 +1868,9 @@ class SessionExporter:
 
         title = doc.add_heading("Annotations Report", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        doc.add_paragraph(f"Generated on: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')} by {__app_name__} v{__version__}")
+        doc.add_paragraph(
+            f"Generated on: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')} by {__app_name__} v{__version__}"
+        )
         doc.add_paragraph("")
 
         for t, a in annotations:
@@ -1672,9 +1898,16 @@ class SessionExporter:
                     pass
 
             from PySide6.QtWidgets import QFileDialog
-            default_filename = self._generate_bids_report_filename('.docx')
-            start_dir = os.path.dirname(getattr(self.session_data, "file_path", "") or "")
-            start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
+
+            default_filename = self._generate_bids_report_filename(".docx")
+            start_dir = os.path.dirname(
+                getattr(self.session_data, "file_path", "") or ""
+            )
+            start_path = (
+                os.path.join(start_dir, default_filename)
+                if start_dir
+                else default_filename
+            )
             file_path, _ = QFileDialog.getSaveFileName(
                 parent,
                 "Export Annotations Report",
@@ -1728,9 +1961,16 @@ class SessionExporter:
                     pass
 
             from PySide6.QtWidgets import QFileDialog
-            default_filename = self._generate_bids_report_filename('.pdf')
-            start_dir = os.path.dirname(getattr(self.session_data, "file_path", "") or "")
-            start_path = os.path.join(start_dir, default_filename) if start_dir else default_filename
+
+            default_filename = self._generate_bids_report_filename(".pdf")
+            start_dir = os.path.dirname(
+                getattr(self.session_data, "file_path", "") or ""
+            )
+            start_path = (
+                os.path.join(start_dir, default_filename)
+                if start_dir
+                else default_filename
+            )
             pdf_path, _ = QFileDialog.getSaveFileName(
                 parent,
                 "Export Annotations Report",

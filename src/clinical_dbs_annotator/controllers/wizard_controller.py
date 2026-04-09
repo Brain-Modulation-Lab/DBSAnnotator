@@ -5,7 +5,6 @@ This module contains the main controller that coordinates between the
 views and models, handling user interactions and data flow.
 """
 
-
 from PySide6.QtWidgets import QMessageBox
 
 from ..config import (
@@ -48,6 +47,7 @@ class WizardController:
         """Lazy-load SessionExporter to avoid heavy imports at startup."""
         if self._session_exporter is None:
             from ..utils.session_exporter import SessionExporter
+
             self._session_exporter = SessionExporter(self.session_data)
         return self._session_exporter
 
@@ -176,7 +176,12 @@ class WizardController:
         """
         preset_scales = []
         for row_data in view.session_scales_rows[:-1]:
-            name_edit, scale1_edit, scale2_edit, row_layout = row_data[0], row_data[1], row_data[2], row_data[3]
+            name_edit, scale1_edit, scale2_edit, row_layout = (
+                row_data[0],
+                row_data[1],
+                row_data[2],
+                row_data[3],
+            )
             if row_layout != layout:
                 name = name_edit.text()
                 minval = scale1_edit.text()
@@ -211,7 +216,9 @@ class WizardController:
         if not self.session_data.is_file_open():
             if getattr(view, "current_file_mode", None) == "existing":
                 start_block_id = getattr(view, "next_block_id", None)
-                self.session_data.open_file_append(file_path, start_block_id=start_block_id)
+                self.session_data.open_file_append(
+                    file_path, start_block_id=start_block_id
+                )
             else:
                 self.session_data.open_file(file_path)
 
@@ -225,8 +232,16 @@ class WizardController:
 
         # Collect stimulation parameters
         # Use split amplitude text when multiple cathodes are active
-        left_amp_text = view.left_amp_split.get_amplitude_text() if hasattr(view, 'left_amp_split') else view.left_amp_edit.text()
-        right_amp_text = view.right_amp_split.get_amplitude_text() if hasattr(view, 'right_amp_split') else view.right_amp_edit.text()
+        left_amp_text = (
+            view.left_amp_split.get_amplitude_text()
+            if hasattr(view, "left_amp_split")
+            else view.left_amp_edit.text()
+        )
+        right_amp_text = (
+            view.right_amp_split.get_amplitude_text()
+            if hasattr(view, "right_amp_split")
+            else view.right_amp_edit.text()
+        )
         stimulation = StimulationParameters(
             left_frequency=view.left_stim_freq_edit.text(),
             left_cathode=view.get_left_cathode_text(),
@@ -243,7 +258,9 @@ class WizardController:
         notes = view.notes_edit.toPlainText()
         group = view.group_combo.currentText() if hasattr(view, "group_combo") else ""
 
-        electrode_model = view.model_combo.currentText() if hasattr(view, "model_combo") else ""
+        electrode_model = (
+            view.model_combo.currentText() if hasattr(view, "model_combo") else ""
+        )
         self.session_data.write_clinical_scales(
             clinical_scales,
             stimulation,
@@ -255,7 +272,9 @@ class WizardController:
         # Store stimulation for next step
         self.current_stimulation = stimulation
         self.current_group = group
-        self.current_electrode_model_name = view.model_combo.currentText() if hasattr(view, "model_combo") else ""
+        self.current_electrode_model_name = (
+            view.model_combo.currentText() if hasattr(view, "model_combo") else ""
+        )
 
         return True
 
@@ -334,7 +353,11 @@ class WizardController:
         Args:
             view: The Step3View instance
         """
-        current_names = [name for name, _ in view.session_scale_value_edits] if hasattr(view, "session_scale_value_edits") else []
+        current_names = (
+            [name for name, _ in view.session_scale_value_edits]
+            if hasattr(view, "session_scale_value_edits")
+            else []
+        )
         new_names = [n for n, _, _ in self.session_scales_data]
         if current_names != new_names:
             view.update_session_scales(self.session_scales_data)
@@ -366,8 +389,16 @@ class WizardController:
 
         # Collect current stimulation parameters
         # Use split amplitude text when multiple cathodes are active
-        left_amp_text = view.left_amp_split.get_amplitude_text() if hasattr(view, 'left_amp_split') else view.session_left_amp_edit.text()
-        right_amp_text = view.right_amp_split.get_amplitude_text() if hasattr(view, 'right_amp_split') else view.session_right_amp_edit.text()
+        left_amp_text = (
+            view.left_amp_split.get_amplitude_text()
+            if hasattr(view, "left_amp_split")
+            else view.session_left_amp_edit.text()
+        )
+        right_amp_text = (
+            view.right_amp_split.get_amplitude_text()
+            if hasattr(view, "right_amp_split")
+            else view.session_right_amp_edit.text()
+        )
         stimulation = StimulationParameters(
             left_frequency=view.session_left_stim_freq_edit.text(),
             left_cathode=view.get_left_cathode_text(),
@@ -409,7 +440,7 @@ class WizardController:
             "Confirm Close Session",
             "Are you sure you want to close the current session? The session will be saved before closing.",
             QMessageBox.Ok | QMessageBox.Cancel,
-            QMessageBox.Cancel
+            QMessageBox.Cancel,
         )
 
         if reply == QMessageBox.Ok:
@@ -471,13 +502,13 @@ class WizardController:
             parent,
             "Save Annotations File",
             os.path.join(start_dir, "annot.tsv") if start_dir else "annot.tsv",
-            "TSV Files (*.tsv);;All Files (*)"
+            "TSV Files (*.tsv);;All Files (*)",
         )
 
         if file_path:
             # Ensure .tsv extension
-            if not file_path.endswith('.tsv'):
-                file_path += '.tsv'
+            if not file_path.endswith(".tsv"):
+                file_path += ".tsv"
             view.file_path_edit.setText(file_path)
 
     def validate_annotations_file(self, view, parent) -> bool:

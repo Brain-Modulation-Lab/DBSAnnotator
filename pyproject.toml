@@ -2,7 +2,7 @@
 name = "clinical-dbs-annotator"
 description = "A graphical user interface for annotating DBS clinical programming sessions"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 authors = [
     { name = "Lucia Poma", email = "lucia.poma@wysscenter.ch" }
 ]
@@ -14,9 +14,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Environment :: X11 Applications :: Qt",

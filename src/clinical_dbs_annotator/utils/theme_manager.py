@@ -15,6 +15,7 @@ from .resources import resource_path
 
 class Theme(Enum):
     """Available application themes."""
+
     DARK = "dark"
     LIGHT = "light"
 
@@ -165,15 +166,16 @@ class ThemeManager:
             str: Hex color string, or '#888888' as fallback
         """
         import re
+
         try:
             qss_content = self.load_stylesheet(self._current_theme)
-            pattern = rf'{color_name}\s*:\s*(#[0-9a-fA-F]{{6}})'
+            pattern = rf"{color_name}\s*:\s*(#[0-9a-fA-F]{{6}})"
             match = re.search(pattern, qss_content)
             if match:
                 return match.group(1)
         except Exception:
             pass
-        return '#888888'
+        return "#888888"
 
     def get_theme_icon(self, theme: Theme) -> str:
         """

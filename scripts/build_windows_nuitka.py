@@ -30,10 +30,13 @@ CONFIG_DIR = SRC_DIR / "clinical_dbs_annotator" / "config"
 NAME = "ClinicalDBSAnnotator"
 ENTRYPOINT = PROJECT_ROOT / "run.py"
 
+
 def _read_version() -> str:
     init_path = SRC_DIR / "clinical_dbs_annotator" / "__init__.py"
     text = init_path.read_text(encoding="utf-8")
-    m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE)
+    m = re.search(
+        r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE
+    )
     if not m:
         raise RuntimeError(f"Could not determine version from {init_path}")
     return m.group(1)
@@ -80,6 +83,7 @@ QT_PLUGINS = [
     "imageformats",
 ]
 
+
 def build_nuitka(console: bool = False, onefile: bool = False) -> None:
     """Build the executable with Nuitka."""
     DIST_DIR.mkdir(exist_ok=True)
@@ -118,20 +122,24 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
 
     cmd.append("--follow-imports")
 
-    cmd.extend([
-        "--enable-plugin=pyside6",
-    ])
+    cmd.extend(
+        [
+            "--enable-plugin=pyside6",
+        ]
+    )
 
     icon_path = ICONS_DIR / "logoneutral.ico"
     if icon_path.exists():
         cmd.append(f"--windows-icon-from-ico={icon_path}")
 
-    cmd.extend([
-        "--windows-company-name=Brain Modulation Lab",
-        "--windows-product-name=Clinical DBS Annotator",
-        f"--windows-file-version={BASE_VERSION}",
-        f"--windows-product-version={BASE_VERSION}",
-    ])
+    cmd.extend(
+        [
+            "--windows-company-name=Brain Modulation Lab",
+            "--windows-product-name=Clinical DBS Annotator",
+            f"--windows-file-version={BASE_VERSION}",
+            f"--windows-product-version={BASE_VERSION}",
+        ]
+    )
 
     cmd.append(str(ENTRYPOINT))
 
@@ -141,6 +149,7 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
 
     try:
         import subprocess
+
         subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
         print("\n✅ Build completed successfully!")
 
@@ -151,7 +160,7 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
 
         if exe_path.exists():
             print(f"📦 Executable: {exe_path}")
-            print(f"📊 Size: {exe_path.stat().st_size / (1024*1024):.1f} MB")
+            print(f"📊 Size: {exe_path.stat().st_size / (1024 * 1024):.1f} MB")
         else:
             print("⚠️  Executable not found at expected location")
 
@@ -162,12 +171,19 @@ def build_nuitka(console: bool = False, onefile: bool = False) -> None:
         print("\n❌ Nuitka not found. Install it with: pip install nuitka")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build Windows executable with Nuitka")
-    parser.add_argument("--console", action="store_true",
-                       help="Include console window (useful for debugging)")
-    parser.add_argument("--onefile", action="store_true",
-                       help="Create single .exe file (default: directory bundle)")
+    parser.add_argument(
+        "--console",
+        action="store_true",
+        help="Include console window (useful for debugging)",
+    )
+    parser.add_argument(
+        "--onefile",
+        action="store_true",
+        help="Create single .exe file (default: directory bundle)",
+    )
 
     args = parser.parse_args()
 

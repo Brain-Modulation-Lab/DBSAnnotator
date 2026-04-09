@@ -25,7 +25,9 @@ class TestSessionExporter:
 
         exporter = SessionExporter(mock_session_data)
 
-        with patch('clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning') as mock_warning:
+        with patch(
+            "clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning"
+        ) as mock_warning:
             result = exporter.export_to_excel()
 
             mock_warning.assert_called_once()
@@ -39,8 +41,12 @@ class TestSessionExporter:
 
         exporter = SessionExporter(mock_session_data)
 
-        with patch.object(exporter, '_read_session_data', return_value=None), \
-             patch('clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning') as mock_warning:
+        with (
+            patch.object(exporter, "_read_session_data", return_value=None),
+            patch(
+                "clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning"
+            ) as mock_warning,
+        ):
             result = exporter.export_to_excel()
 
             mock_warning.assert_called_once()
@@ -58,9 +64,16 @@ class TestSessionExporter:
         mock_df = Mock()
         mock_df.empty = False
 
-        with patch.object(exporter, '_read_session_data', return_value=mock_df), \
-             patch('clinical_dbs_annotator.utils.session_exporter.QFileDialog.getSaveFileName', return_value=("", "")), \
-             patch('clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning') as mock_warning:
+        with (
+            patch.object(exporter, "_read_session_data", return_value=mock_df),
+            patch(
+                "clinical_dbs_annotator.utils.session_exporter.QFileDialog.getSaveFileName",
+                return_value=("", ""),
+            ),
+            patch(
+                "clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning"
+            ) as mock_warning,
+        ):
             result = exporter.export_to_excel()
 
             mock_warning.assert_not_called()
@@ -74,10 +87,7 @@ class TestSessionExporter:
         exporter = SessionExporter(mock_session_data)
 
         # Create test DataFrame with dates
-        df = pd.DataFrame({
-            'date': ['2024-01-01', '2024-01-05'],
-            'scale_value': [1, 2]
-        })
+        df = pd.DataFrame({"date": ["2024-01-01", "2024-01-05"], "scale_value": [1, 2]})
 
         date_range = exporter._get_date_range(df)
         assert date_range == "2024-01-01 to 2024-01-05"
@@ -90,9 +100,7 @@ class TestSessionExporter:
         exporter = SessionExporter(mock_session_data)
 
         # Create test DataFrame without dates
-        df = pd.DataFrame({
-            'scale_value': [1, 2]
-        })
+        df = pd.DataFrame({"scale_value": [1, 2]})
 
         date_range = exporter._get_date_range(df)
         assert date_range == "N/A"
@@ -105,13 +113,15 @@ class TestSessionExporter:
         exporter = SessionExporter(mock_session_data)
 
         # Create test DataFrame
-        df = pd.DataFrame({
-            'date': ['2024-01-01', '2024-01-02'],
-            'scale_name': ['Mood', 'Anxiety'],
-            'scale_value': [5, 7],
-            'left_amplitude': [3.0, 3.5],
-            'right_amplitude': [4.0, 4.2]
-        })
+        df = pd.DataFrame(
+            {
+                "date": ["2024-01-01", "2024-01-02"],
+                "scale_name": ["Mood", "Anxiety"],
+                "scale_value": [5, 7],
+                "left_amplitude": [3.0, 3.5],
+                "right_amplitude": [4.0, 4.2],
+            }
+        )
 
         # Create mock Excel writer
         mock_writer = Mock()
@@ -120,17 +130,23 @@ class TestSessionExporter:
         exporter._create_summary_sheet(mock_writer, df)
 
         # Verify that to_excel was called
-        assert mock_writer.book.create_sheet.called or True  # Basic check that method runs
+        assert (
+            mock_writer.book.create_sheet.called or True
+        )  # Basic check that method runs
 
     def test_export_to_pdf_placeholder(self):
         """Test PDF export placeholder."""
         mock_session_data = Mock(spec=SessionData)
         exporter = SessionExporter(mock_session_data)
 
-        with patch('clinical_dbs_annotator.utils.session_exporter.QMessageBox.information') as mock_info:
+        with patch(
+            "clinical_dbs_annotator.utils.session_exporter.QMessageBox.information"
+        ) as mock_info:
             result = exporter.export_to_pdf()
 
-            mock_info.assert_called_once_with(None, "Coming Soon", "PDF export will be available in a future version.")
+            mock_info.assert_called_once_with(
+                None, "Coming Soon", "PDF export will be available in a future version."
+            )
             assert result is False
 
     def test_export_to_word_placeholder(self):
@@ -138,8 +154,14 @@ class TestSessionExporter:
         mock_session_data = Mock(spec=SessionData)
         exporter = SessionExporter(mock_session_data)
 
-        with patch('clinical_dbs_annotator.utils.session_exporter.QMessageBox.information') as mock_info:
+        with patch(
+            "clinical_dbs_annotator.utils.session_exporter.QMessageBox.information"
+        ) as mock_info:
             result = exporter.export_to_word()
 
-            mock_info.assert_called_once_with(None, "Coming Soon", "Word export will be available in a future version.")
+            mock_info.assert_called_once_with(
+                None,
+                "Coming Soon",
+                "Word export will be available in a future version.",
+            )
             assert result is False

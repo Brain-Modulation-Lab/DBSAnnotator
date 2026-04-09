@@ -82,6 +82,7 @@ class AnnotationsFileView(QWidget):
     def _load_existing_file(self, file_path: str) -> None:
         """Load an existing TSV file and populate the path field."""
         import csv
+
         try:
             self.file_path_edit.setText(file_path)
             self.current_file_mode = "existing"
@@ -97,10 +98,8 @@ class AnnotationsFileView(QWidget):
                     except Exception:
                         continue
 
-
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to load file: {str(e)}")
-
 
     def create_new_file(self) -> None:
         """Create new file with BIDS-style naming via a dialog."""
@@ -144,7 +143,9 @@ class AnnotationsFileView(QWidget):
         run_id = f"run-{run_num}"
         default_name = f"{subject_id}_{session_id}_{task}_{run_id}_events.tsv"
 
-        default_path = os.path.join(start_dir, default_name) if start_dir else default_name
+        default_path = (
+            os.path.join(start_dir, default_name) if start_dir else default_name
+        )
 
         file_path, _ = QFileDialog.getSaveFileName(
             self,
@@ -174,7 +175,9 @@ class AnnotationsFileView(QWidget):
         self.file_path_edit.setReadOnly(True)
         self.file_path_edit.setClearButtonEnabled(False)
         self.file_path_edit.textChanged.connect(self._on_file_path_changed)
-        self.file_path_edit.setPlaceholderText("Drop a .tsv annotation file or use the buttons")
+        self.file_path_edit.setPlaceholderText(
+            "Drop a .tsv annotation file or use the buttons"
+        )
 
         open_button = QPushButton()
         open_button.setText("Open")
@@ -240,7 +243,7 @@ class AnnotationsSessionView(QWidget):
     def _create_annotation_group(self) -> QGroupBox:
         """Create the annotation input group box."""
         gb_annotation = QGroupBox("Session Annotations")
-     #   gb_annotation.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        #   gb_annotation.setFont(QFont("Segoe UI", 10, QFont.Bold))
 
         layout = QVBoxLayout(gb_annotation)
         layout.setSpacing(10)

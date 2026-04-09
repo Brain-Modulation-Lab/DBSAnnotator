@@ -38,7 +38,9 @@ class FileDropZone(QWidget):
         self.setAcceptDrops(True)
         self.setMinimumHeight(80)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self._label = QLabel("Drop .tsv annotation files here\nor use the Add Files button")
+        self._label = QLabel(
+            "Drop .tsv annotation files here\nor use the Add Files button"
+        )
         self._label.setAlignment(Qt.AlignCenter)
         self._label.setStyleSheet("color: #64748b; padding: 10px;")
         self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)

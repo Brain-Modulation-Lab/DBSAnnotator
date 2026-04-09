@@ -32,41 +32,43 @@ class TestExportIntegration(unittest.TestCase):
         # Create sample data
         self.sample_data = [
             {
-                'date': '2024-01-15',
-                'time': '09:30:00',
-                'block_id': '1',
-                'scale_name': 'YBOCS',
-                'scale_value': '20',
-                'stim_freq': '130',
-                'left_contact': 'e1-e3',
-                'left_amplitude': '3.5',
-                'left_pulse_width': '60',
-                'right_contact': 'e2-e4',
-                'right_amplitude': '4.0',
-                'right_pulse_width': '60',
-                'notes': 'Baseline measurement'
+                "date": "2024-01-15",
+                "time": "09:30:00",
+                "block_id": "1",
+                "scale_name": "YBOCS",
+                "scale_value": "20",
+                "stim_freq": "130",
+                "left_contact": "e1-e3",
+                "left_amplitude": "3.5",
+                "left_pulse_width": "60",
+                "right_contact": "e2-e4",
+                "right_amplitude": "4.0",
+                "right_pulse_width": "60",
+                "notes": "Baseline measurement",
             },
             {
-                'date': '2024-01-15',
-                'time': '10:30:00',
-                'block_id': '2',
-                'scale_name': 'YBOCS',
-                'scale_value': '18',
-                'stim_freq': '130',
-                'left_contact': 'e1-e3',
-                'left_amplitude': '4.0',
-                'left_pulse_width': '60',
-                'right_contact': 'e2-e4',
-                'right_amplitude': '4.5',
-                'right_pulse_width': '60',
-                'notes': 'After stimulation'
-            }
+                "date": "2024-01-15",
+                "time": "10:30:00",
+                "block_id": "2",
+                "scale_name": "YBOCS",
+                "scale_value": "18",
+                "stim_freq": "130",
+                "left_contact": "e1-e3",
+                "left_amplitude": "4.0",
+                "left_pulse_width": "60",
+                "right_contact": "e2-e4",
+                "right_amplitude": "4.5",
+                "right_pulse_width": "60",
+                "notes": "After stimulation",
+            },
         ]
 
         # Create temporary TSV file
-        self.temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False)
+        self.temp_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".tsv", delete=False
+        )
         df = pd.DataFrame(self.sample_data)
-        df.to_csv(self.temp_file.name, sep='\t', index=False)
+        df.to_csv(self.temp_file.name, sep="\t", index=False)
         self.temp_file.close()
 
         # Create session data with temporary file
@@ -80,11 +82,11 @@ class TestExportIntegration(unittest.TestCase):
         """Clean up test environment."""
         Path(self.temp_file.name).unlink(missing_ok=True)
 
-    @patch('PyQt5.QtWidgets.QFileDialog.getSaveFileName')
-    @patch('PyQt5.QtWidgets.QMessageBox.information')
+    @patch("PyQt5.QtWidgets.QFileDialog.getSaveFileName")
+    @patch("PyQt5.QtWidgets.QMessageBox.information")
     def test_excel_export_integration(self, mock_msgbox, mock_file_dialog):
         """Test Excel export integration."""
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as excel_file:
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as excel_file:
             excel_path = excel_file.name
 
         mock_file_dialog.return_value = (excel_path, "Excel Files (*.xlsx)")
@@ -95,11 +97,11 @@ class TestExportIntegration(unittest.TestCase):
         self.assertTrue(Path(excel_path).exists())
         mock_msgbox.assert_called_once()
 
-    @patch('PyQt5.QtWidgets.QFileDialog.getSaveFileName')
-    @patch('PyQt5.QtWidgets.QMessageBox.information')
+    @patch("PyQt5.QtWidgets.QFileDialog.getSaveFileName")
+    @patch("PyQt5.QtWidgets.QMessageBox.information")
     def test_word_export_integration(self, mock_msgbox, mock_file_dialog):
         """Test Word export integration."""
-        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as word_file:
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as word_file:
             word_path = word_file.name
 
         mock_file_dialog.return_value = (word_path, "Word Files (*.docx)")
@@ -110,11 +112,11 @@ class TestExportIntegration(unittest.TestCase):
         self.assertTrue(Path(word_path).exists())
         mock_msgbox.assert_called_once()
 
-    @patch('PyQt5.QtWidgets.QFileDialog.getSaveFileName')
-    @patch('PyQt5.QtWidgets.QMessageBox.information')
+    @patch("PyQt5.QtWidgets.QFileDialog.getSaveFileName")
+    @patch("PyQt5.QtWidgets.QMessageBox.information")
     def test_pdf_export_integration(self, mock_msgbox, mock_file_dialog):
         """Test PDF export integration."""
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as pdf_file:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as pdf_file:
             pdf_path = pdf_file.name
 
         mock_file_dialog.return_value = (pdf_path, "PDF Files (*.pdf)")
@@ -131,7 +133,7 @@ class TestExportIntegration(unittest.TestCase):
         empty_session = SessionData()
         empty_exporter = SessionExporter(empty_session)
 
-        with patch('PyQt5.QtWidgets.QMessageBox.warning') as mock_warning:
+        with patch("PyQt5.QtWidgets.QMessageBox.warning") as mock_warning:
             result = empty_exporter.export_to_excel()
             self.assertFalse(result)
             mock_warning.assert_called_once()
@@ -143,7 +145,7 @@ class TestExportIntegration(unittest.TestCase):
         no_file_session.file_path = None
         no_file_exporter = SessionExporter(no_file_session)
 
-        with patch('PyQt5.QtWidgets.QMessageBox.warning') as mock_warning:
+        with patch("PyQt5.QtWidgets.QMessageBox.warning") as mock_warning:
             result = no_file_exporter.export_to_excel()
             self.assertFalse(result)
             mock_warning.assert_called_once()
@@ -171,5 +173,5 @@ class TestExportUIIntegration(unittest.TestCase):
         self.assertIsNotNone(self.step3_view.export_pdf_action)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

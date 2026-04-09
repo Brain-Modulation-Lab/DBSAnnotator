@@ -21,10 +21,13 @@ SRC_DIR = PROJECT_ROOT / "src"
 APP_NAME = "ClinicalDBSAnnot"
 PLATFORM = "macOS"
 
+
 def _read_version() -> str:
     init_path = SRC_DIR / "clinical_dbs_annotator" / "__init__.py"
     text = init_path.read_text(encoding="utf-8")
-    m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE)
+    m = re.search(
+        r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE
+    )
     if not m:
         raise RuntimeError(f"Could not determine version from {init_path}")
     return m.group(1)
@@ -141,8 +144,14 @@ def build_macos_app(*, console: bool, onefile: bool):
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--console", action="store_true", help="Build with console window")
-    parser.add_argument("--onedir", action="store_true", help="Build as a folder (onedir) instead of a single bundle (onefile)")
+    parser.add_argument(
+        "--console", action="store_true", help="Build with console window"
+    )
+    parser.add_argument(
+        "--onedir",
+        action="store_true",
+        help="Build as a folder (onedir) instead of a single bundle (onefile)",
+    )
     parser.add_argument(
         "--mac-logo-png",
         type=Path,

@@ -45,9 +45,7 @@ class Step0View(QWidget):
         notes_buttons_layout.setSpacing(30)
 
         # Full mode button
-        self.full_mode_button = QPushButton(
-            "Complete workflow"
-        )
+        self.full_mode_button = QPushButton("Complete workflow")
         self.full_mode_button.setObjectName("full_mode_button")
         self.full_mode_button.setCursor(Qt.PointingHandCursor)
         notes_buttons_layout.addWidget(self.full_mode_button)
@@ -75,7 +73,7 @@ class Step0View(QWidget):
         # Longitudinal report button
         longitudinal_buttons_layout = QHBoxLayout()
         longitudinal_buttons_layout.setAlignment(Qt.AlignCenter)
-        #longitudinal_buttons_layout.setSpacing(10)
+        # longitudinal_buttons_layout.setSpacing(10)
 
         self.longitudinal_report_button = QPushButton("Create Longitudinal Report")
         self.longitudinal_report_button.setObjectName("longitudinal_report_button")

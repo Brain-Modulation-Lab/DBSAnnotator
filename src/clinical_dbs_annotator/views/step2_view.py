@@ -48,7 +48,9 @@ class Step2View(BaseStepView):
         """
         super().__init__()
         self.parent_style = parent_style
-        self.session_presets: dict[str, list[tuple[str, str, str]]] = self._load_session_presets()
+        self.session_presets: dict[str, list[tuple[str, str, str]]] = (
+            self._load_session_presets()
+        )
         self.preset_buttons: list[QPushButton] = []
         # Each row: (name_edit, min_edit, max_edit, row_layout, None, None)
         self.session_scales_rows: list[
@@ -78,7 +80,8 @@ class Step2View(BaseStepView):
     def _get_theme_icon_color(self) -> str:
         """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
         from ..utils.theme_manager import get_theme_manager
-        return get_theme_manager().get_theme_color('Icon')
+
+        return get_theme_manager().get_theme_color("Icon")
 
     def refresh_theme_icons(self) -> None:
         """Refresh icons that depend on the current theme (call after theme toggle)."""
@@ -91,7 +94,7 @@ class Step2View(BaseStepView):
         # Session scales group
         session_group = self._create_session_scales_group()
         self.main_layout.addWidget(session_group)
-        #self.main_layout.addStretch(1)
+        # self.main_layout.addStretch(1)
 
         self.next_button = QPushButton("Next")
         self.next_button.setIcon(self.parent_style.standardIcon(QStyle.SP_ArrowForward))
@@ -169,12 +172,14 @@ class Step2View(BaseStepView):
                 for name, scales in (raw or {}).items():
                     try:
                         presets[name] = [
-                            (scale[0], scale[1], scale[2]) if len(scale) == 3
-                            else (scale[0], scale[1], scale[2]) if len(scale) >= 3
+                            (scale[0], scale[1], scale[2])
+                            if len(scale) == 3
+                            else (scale[0], scale[1], scale[2])
+                            if len(scale) >= 3
                             else (scale[0], "", "")
                             for scale in scales
                         ]
-                    except (IndexError, TypeError):
+                    except IndexError, TypeError:
                         presets[name] = []
                 return presets
             except Exception as e:
@@ -247,7 +252,8 @@ class Step2View(BaseStepView):
 
         stretch_index = settings_index - 1
         if stretch_index < 0 or not (
-            preset_row.itemAt(stretch_index) and preset_row.itemAt(stretch_index).spacerItem()
+            preset_row.itemAt(stretch_index)
+            and preset_row.itemAt(stretch_index).spacerItem()
         ):
             preset_row.insertStretch(settings_index, 1)
             settings_index += 1
@@ -294,6 +300,7 @@ class Step2View(BaseStepView):
                 def handler():
                     self._set_active_preset_button(button)
                     self._apply_preset_scales(scales)
+
                 return handler
 
             btn.clicked.connect(create_handler(preset_scales, btn))
@@ -345,7 +352,9 @@ class Step2View(BaseStepView):
                     on_remove=self.on_remove_callback,
                 )
 
-            self._add_session_scale_row("", "", "", with_plus=True, on_add=self.on_add_callback)
+            self._add_session_scale_row(
+                "", "", "", with_plus=True, on_add=self.on_add_callback
+            )
 
             # Add stretch at very bottom
             self.session_scales_container.addStretch()
@@ -473,4 +482,6 @@ class Step2View(BaseStepView):
         row.addStretch(1)
 
         self.session_scales_container.addLayout(row)
-        self.session_scales_rows.append((name_edit, scale1_edit, scale2_edit, row, None, None))
+        self.session_scales_rows.append(
+            (name_edit, scale1_edit, scale2_edit, row, None, None)
+        )

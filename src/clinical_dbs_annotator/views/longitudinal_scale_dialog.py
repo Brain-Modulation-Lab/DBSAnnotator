@@ -11,7 +11,6 @@ This dialog is shared by both the longitudinal workflow and the Step-3
 single-session export.
 """
 
-
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtWidgets import (
@@ -91,9 +90,7 @@ class ScaleOptimizationDialog(QDialog):
         layout.addWidget(scroll, 1)
 
         # Dialog buttons
-        btn_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-        )
+        btn_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         btn_box.accepted.connect(self.accept)
         btn_box.rejected.connect(self.reject)
         layout.addWidget(btn_box)
@@ -171,8 +168,15 @@ class ScaleOptimizationDialog(QDialog):
         self._rows_layout.addLayout(row_layout)
 
         # Collect widgets whose opacity we toggle on check/uncheck
-        toggleable = [name_label, range_label, best_if_label,
-                      btn_low, btn_high, btn_custom, custom_edit]
+        toggleable = [
+            name_label,
+            range_label,
+            best_if_label,
+            btn_low,
+            btn_high,
+            btn_custom,
+            custom_edit,
+        ]
 
         def _on_toggled(checked, widgets=toggleable):
             for w in widgets:
@@ -181,7 +185,7 @@ class ScaleOptimizationDialog(QDialog):
                     default = w.property("_default_style")
                     w.setStyleSheet(default if default else "")
                 else:
-                    w.setStyleSheet("color: rgba(128,128,128,0.4);") # disabled style
+                    w.setStyleSheet("color: rgba(128,128,128,0.4);")  # disabled style
 
         checkbox.toggled.connect(_on_toggled)
 
@@ -231,7 +235,12 @@ class ReportSectionsDialog(QDialog):
     the original order.
     """
 
-    def __init__(self, sections: list[tuple[str, str, bool]], parent=None, title: str = "Report Sections"):
+    def __init__(
+        self,
+        sections: list[tuple[str, str, bool]],
+        parent=None,
+        title: str = "Report Sections",
+    ):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setMinimumWidth(340)

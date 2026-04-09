@@ -150,9 +150,7 @@ class TestSessionData:
 
     def test_open_and_close_file(self):
         """Test opening and closing a TSV file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".tsv"
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".tsv") as tmp:
             tmp_path = tmp.name
 
         try:
@@ -172,9 +170,7 @@ class TestSessionData:
 
     def test_write_clinical_scales(self):
         """Test writing clinical scales to file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".tsv"
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".tsv") as tmp:
             tmp_path = tmp.name
 
         try:
@@ -204,9 +200,7 @@ class TestSessionData:
 
     def test_write_session_scales(self):
         """Test writing session scales to file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".tsv"
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".tsv") as tmp:
             tmp_path = tmp.name
 
         try:
@@ -236,9 +230,7 @@ class TestSessionData:
 
     def test_context_manager(self):
         """Test using SessionData as context manager."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".tsv"
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".tsv") as tmp:
             tmp_path = tmp.name
 
         try:

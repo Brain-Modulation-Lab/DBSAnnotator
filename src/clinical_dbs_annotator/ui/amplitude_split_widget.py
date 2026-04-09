@@ -6,7 +6,6 @@ percentage rows below the total amplitude field.  Each row displays the
 contact label, an editable percentage, and a read-only computed mA value.
 """
 
-
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtWidgets import (
@@ -54,7 +53,9 @@ class AmplitudeSplitWidget(QWidget):
     # Public API
     # ------------------------------------------------------------------
 
-    def update_cathodes(self, cathode_labels: list[str], is_single_grouped_directional: bool = False) -> None:
+    def update_cathodes(
+        self, cathode_labels: list[str], is_single_grouped_directional: bool = False
+    ) -> None:
         """Rebuild the rows to match the current set of active cathodes.
 
         Called by the parent view whenever the electrode canvas changes.
@@ -71,7 +72,9 @@ class AmplitudeSplitWidget(QWidget):
         # Use the passed parameter to determine if this is a single grouped directional contact
 
         # Hide widget if no cathodes, or single non-grouped cathode
-        if len(cathode_labels) == 0 or (len(cathode_labels) == 1 and not is_single_grouped_directional):
+        if len(cathode_labels) == 0 or (
+            len(cathode_labels) == 1 and not is_single_grouped_directional
+        ):
             self._clear_rows()
             self._cathode_labels = []
             self._percentages.clear()
@@ -118,7 +121,7 @@ class AmplitudeSplitWidget(QWidget):
         # Multiple cathodes - use regular logic
         try:
             total_amp = float(total_text)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return total_text
 
         parts = []
@@ -161,10 +164,12 @@ class AmplitudeSplitWidget(QWidget):
         self._clear_rows()
 
         # Check if we have a single grouped contact (E1, E2, etc.)
-        if (len(self._cathode_labels) == 1 and
-            len(self._cathode_labels[0]) >= 2 and
-            self._cathode_labels[0][0] == 'E' and
-            self._cathode_labels[0][1:].isdigit()):
+        if (
+            len(self._cathode_labels) == 1
+            and len(self._cathode_labels[0]) >= 2
+            and self._cathode_labels[0][0] == "E"
+            and self._cathode_labels[0][1:].isdigit()
+        ):
             # Create segment rows for grouped contact
             self._create_segment_rows_only(self._cathode_labels[0])
         else:
@@ -208,16 +213,16 @@ class AmplitudeSplitWidget(QWidget):
 
         row_layout.addStretch(1)
 
-        is_last = (index == len(self._cathode_labels) - 1)
+        is_last = index == len(self._cathode_labels) - 1
 
         # Connect editing
         if is_last:
             pct_edit.setReadOnly(True)
-            pct_edit.setStyleSheet("background: transparent; border: none; color: #64748b;")
-        else:
-            pct_edit.editingFinished.connect(
-                lambda lbl_=lbl: self._on_pct_edited(lbl_)
+            pct_edit.setStyleSheet(
+                "background: transparent; border: none; color: #64748b;"
             )
+        else:
+            pct_edit.editingFinished.connect(lambda lbl_=lbl: self._on_pct_edited(lbl_))
             pct_edit.textChanged.connect(
                 lambda _text, lbl_=lbl: self._on_pct_text_changed(lbl_)
             )
@@ -229,14 +234,18 @@ class AmplitudeSplitWidget(QWidget):
         """Create only segment rows for a grouped directional contact (no main row)."""
         seg_labels = ["a", "b", "c"]
         parent_percentage = self._percentages.get(parent_lbl, 0.0)
-        segment_percentage = round(parent_percentage / 3.0, 1)  # Equal split by default, rounded to 1 decimal
+        segment_percentage = round(
+            parent_percentage / 3.0, 1
+        )  # Equal split by default, rounded to 1 decimal
 
         for seg_idx, seg_label in enumerate(seg_labels):
             seg_lbl = f"{parent_lbl}{seg_label}"
 
             row_w = QWidget()
             row_layout = QHBoxLayout(row_w)
-            row_layout.setContentsMargins(20, 0, 0, 0)  # Regular indentation (not extra)
+            row_layout.setContentsMargins(
+                20, 0, 0, 0
+            )  # Regular indentation (not extra)
             row_layout.setSpacing(4)
 
             # Segment label
@@ -270,10 +279,12 @@ class AmplitudeSplitWidget(QWidget):
             self._percentages[seg_lbl] = segment_percentage
 
             # Connect editing for segment rows
-            is_last = (seg_idx == len(seg_labels) - 1)
+            is_last = seg_idx == len(seg_labels) - 1
             if is_last:
                 pct_edit.setReadOnly(True)
-                pct_edit.setStyleSheet("background: transparent; border: none; color: #64748b;")
+                pct_edit.setStyleSheet(
+                    "background: transparent; border: none; color: #64748b;"
+                )
             else:
                 pct_edit.editingFinished.connect(
                     lambda lbl_=seg_lbl: self._on_pct_edited(lbl_)
@@ -284,7 +295,6 @@ class AmplitudeSplitWidget(QWidget):
 
             self._rows[seg_lbl] = (row_w, pct_edit, ma_label)
             self._layout.addWidget(row_w)
-
 
     def _on_pct_edited(self, edited_label: str) -> None:
         """Called when user finishes editing a percentage field."""
@@ -346,7 +356,7 @@ class AmplitudeSplitWidget(QWidget):
         """Recompute the mA labels from the total amplitude and percentages."""
         try:
             total_amp = float(self._amp_edit.text())
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             total_amp = 0.0
 
         # Update all rows (both main contacts and segments)
@@ -365,18 +375,18 @@ class AmplitudeSplitWidget(QWidget):
         When loading a file with split amplitude (e.g., "2.5_2.5"),
         this method calculates the sum and updates the main field.
         """
-        if not split_text or '_' not in split_text:
+        if not split_text or "_" not in split_text:
             return
 
         try:
-            parts = split_text.split('_')
+            parts = split_text.split("_")
             total = sum(float(p) for p in parts if p.strip())
             # Format without unnecessary decimal places
             if total.is_integer():
                 self._amp_edit.setText(str(int(total)))
             else:
-                self._amp_edit.setText(f"{total:.1f}".rstrip('0').rstrip('.'))
-        except (ValueError, TypeError):
+                self._amp_edit.setText(f"{total:.1f}".rstrip("0").rstrip("."))
+        except ValueError, TypeError:
             pass
 
     def set_amplitude_from_split(self, split_text: str) -> None:
@@ -387,7 +397,7 @@ class AmplitudeSplitWidget(QWidget):
         1. Updates the main amplitude field to show the sum
         2. Updates the percentage distribution to match the split
         """
-        if not split_text or '_' not in split_text:
+        if not split_text or "_" not in split_text:
             return
 
         # Update main amplitude field
@@ -395,7 +405,7 @@ class AmplitudeSplitWidget(QWidget):
 
         # Parse split values and update percentages
         try:
-            parts = split_text.split('_')
+            parts = split_text.split("_")
             values = [float(p) for p in parts if p.strip()]
             total = sum(values)
 
@@ -413,7 +423,7 @@ class AmplitudeSplitWidget(QWidget):
             # Update the UI rows
             self._rebuild_rows()
 
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             # If parsing fails, use equal split
             self._redistribute_percentages()
 

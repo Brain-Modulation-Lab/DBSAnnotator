@@ -49,7 +49,9 @@ class TestFullWorkflow(unittest.TestCase):
         # Mock scale selection
         mock_scale = MagicMock()
         mock_scale.text = "YBOCS"
-        self.wizard.step2_view.clinical_scales_list.selectedItems.return_value = [mock_scale]
+        self.wizard.step2_view.clinical_scales_list.selectedItems.return_value = [
+            mock_scale
+        ]
 
         QTest.mouseClick(self.wizard.step2_view.next_button, Qt.LeftButton)
         self.assertEqual(self.wizard.current_step, 3)
@@ -68,13 +70,15 @@ class TestFullWorkflow(unittest.TestCase):
         self.assertTrue(self.wizard.step3_view.isVisible())
         self.assertFalse(self.wizard.step1_view.isVisible())
 
-    @patch('PyQt5.QtWidgets.QFileDialog.getSaveFileName')
+    @patch("PyQt5.QtWidgets.QFileDialog.getSaveFileName")
     def test_session_data_persistence(self, mock_file_dialog):
         """Test session data is properly saved and loaded."""
         mock_file_dialog.return_value = ("test_session.tsv", "TSV Files (*.tsv)")
 
         # Create temporary file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".tsv", delete=False
+        ) as temp_file:
             temp_path = temp_file.name
 
         # Mock file dialog to return our temp file
@@ -87,18 +91,20 @@ class TestFullWorkflow(unittest.TestCase):
         # Insert test data
         mock_view = MagicMock()
         mock_view.get_session_data.return_value = {
-            'date': '2024-01-15',
-            'time': '09:30:00',
-            'scale_name': 'YBOCS',
-            'scale_value': '20',
-            'notes': 'Test measurement'
+            "date": "2024-01-15",
+            "time": "09:30:00",
+            "scale_name": "YBOCS",
+            "scale_value": "20",
+            "notes": "Test measurement",
         }
 
         self.wizard.controller.insert_session_row(mock_view)
 
         # Verify data was saved
         self.assertEqual(len(self.wizard.controller.session_data.data), 1)
-        self.assertEqual(self.wizard.controller.session_data.data[0]['scale_name'], 'YBOCS')
+        self.assertEqual(
+            self.wizard.controller.session_data.data[0]["scale_name"], "YBOCS"
+        )
 
     def test_navigation_backward_forward(self):
         """Test backward and forward navigation."""
@@ -147,7 +153,7 @@ class TestErrorHandling(unittest.TestCase):
         # Step 1: Leave required fields empty
         self.wizard.step1_view.patient_id_edit.setText("")
 
-        with patch('PyQt5.QtWidgets.QMessageBox.warning') as mock_warning:
+        with patch("PyQt5.QtWidgets.QMessageBox.warning") as mock_warning:
             QTest.mouseClick(self.wizard.step1_view.next_button, Qt.LeftButton)
 
             # Should show warning and not navigate
@@ -159,19 +165,19 @@ class TestErrorHandling(unittest.TestCase):
         # Test with invalid file path
         self.wizard.controller.session_data.file_path = "/invalid/path/file.tsv"
 
-        with patch('PyQt5.QtWidgets.QMessageBox.critical') as mock_critical:
+        with patch("PyQt5.QtWidgets.QMessageBox.critical") as mock_critical:
             result = self.wizard.controller.session_data.save_data()
 
             self.assertFalse(result)
             mock_critical.assert_called()
 
-    @patch('PyQt5.QtWidgets.QMessageBox.question')
+    @patch("PyQt5.QtWidgets.QMessageBox.question")
     def test_session_close_with_unsaved_data(self, mock_question):
         """Test session close with unsaved data."""
         mock_question.return_value = QMessageBox.Cancel
 
         # Setup unsaved data
-        self.wizard.controller.session_data.data = [{'test': 'data'}]
+        self.wizard.controller.session_data.data = [{"test": "data"}]
         self.wizard.controller.session_data.modified = True
 
         self.wizard.controller.close_session(self.wizard)
@@ -205,11 +211,11 @@ class TestUIResponsiveness(unittest.TestCase):
     def test_theme_switching(self):
         """Test theme switching during workflow."""
         # Test light theme
-        self.wizard.apply_theme('light')
+        self.wizard.apply_theme("light")
         self.assertIsNotNone(self.wizard.styleSheet())
 
         # Test dark theme
-        self.wizard.apply_theme('dark')
+        self.wizard.apply_theme("dark")
         self.assertIsNotNone(self.wizard.styleSheet())
 
         # Verify theme is applied to all views
@@ -239,13 +245,16 @@ class TestAccessibility(unittest.TestCase):
         """Test buttons have tooltips."""
         buttons_with_tooltips = [
             (self.wizard.step0_view.start_button, "Start new DBS session"),
-            (self.wizard.step1_view.next_button, "Proceed to clinical scales selection"),
+            (
+                self.wizard.step1_view.next_button,
+                "Proceed to clinical scales selection",
+            ),
             (self.wizard.step2_view.next_button, "Proceed to session recording"),
-            (self.wizard.step3_view.insert_button, "Insert session data")
+            (self.wizard.step3_view.insert_button, "Insert session data"),
         ]
 
         for button, expected_tooltip in buttons_with_tooltips:
-            if hasattr(button, 'toolTip'):
+            if hasattr(button, "toolTip"):
                 self.assertIn(expected_tooltip.lower(), button.toolTip().lower())
 
     def test_high_contrast_mode(self):
@@ -255,8 +264,8 @@ class TestAccessibility(unittest.TestCase):
 
         # Verify high contrast styles are applied
         stylesheet = self.wizard.styleSheet()
-        self.assertIn('high-contrast', stylesheet.lower())
+        self.assertIn("high-contrast", stylesheet.lower())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

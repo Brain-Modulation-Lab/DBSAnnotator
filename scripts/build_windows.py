@@ -19,10 +19,13 @@ SRC_DIR = PROJECT_ROOT / "src"
 APP_NAME = "ClinicalDBSAnnotator"
 PLATFORM = "Windows"
 
+
 def _read_version() -> str:
     init_path = SRC_DIR / "clinical_dbs_annotator" / "__init__.py"
     text = init_path.read_text(encoding="utf-8")
-    m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE)
+    m = re.search(
+        r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE
+    )
     if not m:
         raise RuntimeError(f"Could not determine version from {init_path}")
     return m.group(1)
@@ -41,7 +44,9 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
     config_dir = SRC_DIR / "clinical_dbs_annotator" / "config"
 
     cmd = [
-        sys.executable, "-m", "PyInstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--noconfirm",
         "--clean",
         f"--name={name}",
@@ -97,8 +102,14 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--console", action="store_true", help="Build with console window")
-    parser.add_argument("--onedir", action="store_true", help="Build as a folder (onedir) instead of a single exe (onefile)")
+    parser.add_argument(
+        "--console", action="store_true", help="Build with console window"
+    )
+    parser.add_argument(
+        "--onedir",
+        action="store_true",
+        help="Build as a folder (onedir) instead of a single exe (onefile)",
+    )
     args = parser.parse_args()
 
     if not (ICONS_DIR / "logoneutral.ico").exists():

@@ -21,12 +21,13 @@ class TestSessionData:
     def session_data(self):
         """Create a fresh SessionData instance."""
         from clinical_dbs_annotator.models import SessionData
+
         return SessionData()
 
     @pytest.fixture
     def temp_tsv_path(self):
         """Create a temporary TSV file path."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
             path = f.name
         yield path
         if os.path.exists(path):
@@ -63,8 +64,9 @@ class TestSessionDataWriting:
     def session_data_with_file(self):
         """Create SessionData with an open temp file."""
         from clinical_dbs_annotator.models import SessionData
+
         sd = SessionData()
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
             path = f.name
         sd.open_file(path)
         yield sd, path

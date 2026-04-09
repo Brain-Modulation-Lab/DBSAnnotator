@@ -39,7 +39,9 @@ class TestWizardController(unittest.TestCase):
 
     def test_stimulation_parameters_initialization(self):
         """Test stimulation parameters initialization."""
-        self.assertIsInstance(self.controller.current_stimulation, StimulationParameters)
+        self.assertIsInstance(
+            self.controller.current_stimulation, StimulationParameters
+        )
 
     def test_add_clinical_scale(self):
         """Test adding clinical scales."""
@@ -60,50 +62,52 @@ class TestWizardController(unittest.TestCase):
     def test_validate_stimulation_parameters_valid(self):
         """Test validation of valid stimulation parameters."""
         params = {
-            'left_frequency': '130',
-            'left_cathode': 'e1',
-            'left_anode': 'e3',
-            'left_amplitude': '3.5',
-            'left_pulse_width': '60',
-            'right_frequency': '130',
-            'right_cathode': 'e2',
-            'right_anode': 'e4',
-            'right_amplitude': '4.0',
-            'right_pulse_width': '60'
+            "left_frequency": "130",
+            "left_cathode": "e1",
+            "left_anode": "e3",
+            "left_amplitude": "3.5",
+            "left_pulse_width": "60",
+            "right_frequency": "130",
+            "right_cathode": "e2",
+            "right_anode": "e4",
+            "right_amplitude": "4.0",
+            "right_pulse_width": "60",
         }
 
         result = self.controller.validate_stimulation_parameters(params)
-        self.assertTrue(result['valid'])
-        self.assertEqual(len(result['errors']), 0)
+        self.assertTrue(result["valid"])
+        self.assertEqual(len(result["errors"]), 0)
 
     def test_validate_stimulation_parameters_invalid(self):
         """Test validation of invalid stimulation parameters."""
         params = {
-            'left_frequency': '999',  # Invalid frequency
-            'left_cathode': 'e1',
-            'left_anode': 'e3',
-            'left_amplitude': '15.0',  # Invalid amplitude
-            'left_pulse_width': '60',
-            'right_frequency': '130',
-            'right_cathode': 'e2',
-            'right_anode': 'e4',
-            'right_amplitude': '4.0',
-            'right_pulse_width': '60'
+            "left_frequency": "999",  # Invalid frequency
+            "left_cathode": "e1",
+            "left_anode": "e3",
+            "left_amplitude": "15.0",  # Invalid amplitude
+            "left_pulse_width": "60",
+            "right_frequency": "130",
+            "right_cathode": "e2",
+            "right_anode": "e4",
+            "right_amplitude": "4.0",
+            "right_pulse_width": "60",
         }
 
         result = self.controller.validate_stimulation_parameters(params)
-        self.assertFalse(result['valid'])
-        self.assertGreater(len(result['errors']), 0)
+        self.assertFalse(result["valid"])
+        self.assertGreater(len(result["errors"]), 0)
 
-    @patch('PyQt5.QtWidgets.QMessageBox.question')
+    @patch("PyQt5.QtWidgets.QMessageBox.question")
     def test_close_session_confirmation(self, mock_question):
         """Test session close confirmation."""
         mock_question.return_value = QMessageBox.Yes
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".tsv", delete=False
+        ) as temp_file:
             # Setup session with file
             self.controller.session_data.file_path = temp_file.name
-            self.controller.session_data.data = [{'test': 'data'}]
+            self.controller.session_data.data = [{"test": "data"}]
 
             self.controller.close_session(MagicMock())
 
@@ -144,11 +148,11 @@ class TestWizardControllerDataManagement(unittest.TestCase):
         """Test inserting session data row."""
         mock_view = MagicMock()
         mock_view.get_session_data.return_value = {
-            'date': '2024-01-15',
-            'time': '09:30:00',
-            'scale_name': 'YBOCS',
-            'scale_value': '20',
-            'notes': 'Test note'
+            "date": "2024-01-15",
+            "time": "09:30:00",
+            "scale_name": "YBOCS",
+            "scale_value": "20",
+            "notes": "Test note",
         }
 
         initial_count = len(self.controller.session_data.data)
@@ -162,30 +166,30 @@ class TestWizardControllerDataManagement(unittest.TestCase):
         valid_values = ["10", "20.5", "30"]
         for value in valid_values:
             result = self.controller.validate_scale_value(value)
-            self.assertTrue(result['valid'])
+            self.assertTrue(result["valid"])
 
         # Invalid values
         invalid_values = ["-5", "abc", "1000"]
         for value in invalid_values:
             result = self.controller.validate_scale_value(value)
-            self.assertFalse(result['valid'])
+            self.assertFalse(result["valid"])
 
     def test_get_session_statistics(self):
         """Test session statistics calculation."""
         # Setup test data
         self.controller.session_data.data = [
-            {'scale_name': 'YBOCS', 'scale_value': '20'},
-            {'scale_name': 'YBOCS', 'scale_value': '18'},
-            {'scale_name': 'HAM-D', 'scale_value': '15'}
+            {"scale_name": "YBOCS", "scale_value": "20"},
+            {"scale_name": "YBOCS", "scale_value": "18"},
+            {"scale_name": "HAM-D", "scale_value": "15"},
         ]
 
         stats = self.controller.get_session_statistics()
 
-        self.assertIn('total_records', stats)
-        self.assertIn('scales', stats)
-        self.assertIn('value_ranges', stats)
-        self.assertEqual(stats['total_records'], 3)
+        self.assertIn("total_records", stats)
+        self.assertIn("scales", stats)
+        self.assertIn("value_ranges", stats)
+        self.assertEqual(stats["total_records"], 3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

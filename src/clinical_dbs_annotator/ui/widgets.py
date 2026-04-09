@@ -5,7 +5,6 @@ This module provides reusable UI components such as increment buttons,
 section labels, and horizontal lines.
 """
 
-
 import typing
 
 from PySide6.QtCore import QEvent, QSize, Qt, Signal
@@ -126,9 +125,7 @@ class IncrementWidget(QWidget):
 
         self.setMaximumWidth(self.sizeHint().width())
 
-    def _create_button_column(
-        self, step: float, double: bool = False
-    ) -> QVBoxLayout:
+    def _create_button_column(self, step: float, double: bool = False) -> QVBoxLayout:
         """
         Create a column of up/down buttons.
 
@@ -197,7 +194,7 @@ class IncrementWidget(QWidget):
         """
         try:
             value = float(self.line_edit.text())
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             value = 0.0
 
         value += delta
@@ -222,7 +219,7 @@ class ScaleProgressWidget(QWidget):
     Internal values are integers; UI displays value / 4.0 to represent 0.25 steps.
     """
 
-    valueChanged = Signal(int) # noqa: N815
+    valueChanged = Signal(int)  # noqa: N815
 
     def __init__(self, parent=None):
         """Initialize the scale progress widget with default range 0-10."""
@@ -245,11 +242,15 @@ class ScaleProgressWidget(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(2)
 
-        self.left_single_btn = self._create_icon_button(self._create_lr_arrow_icon("left", False), 18, 18)
+        self.left_single_btn = self._create_icon_button(
+            self._create_lr_arrow_icon("left", False), 18, 18
+        )
         self.left_single_btn.setToolTip("-0.25")
         self.left_single_btn.clicked.connect(lambda: self._adjust_value(-1))
 
-        self.left_double_btn = self._create_icon_button(self._create_lr_arrow_icon("left", True), 24, 18)
+        self.left_double_btn = self._create_icon_button(
+            self._create_lr_arrow_icon("left", True), 24, 18
+        )
         self.left_double_btn.setToolTip("-0.5")
         self.left_double_btn.clicked.connect(lambda: self._adjust_value(-2))
 
@@ -270,11 +271,15 @@ class ScaleProgressWidget(QWidget):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(2)
 
-        self.right_single_btn = self._create_icon_button(self._create_lr_arrow_icon("right", False), 18, 18)
+        self.right_single_btn = self._create_icon_button(
+            self._create_lr_arrow_icon("right", False), 18, 18
+        )
         self.right_single_btn.setToolTip("+0.25")
         self.right_single_btn.clicked.connect(lambda: self._adjust_value(1))
 
-        self.right_double_btn = self._create_icon_button(self._create_lr_arrow_icon("right", True), 24, 18)
+        self.right_double_btn = self._create_icon_button(
+            self._create_lr_arrow_icon("right", True), 24, 18
+        )
         self.right_double_btn.setToolTip("+0.5")
         self.right_double_btn.clicked.connect(lambda: self._adjust_value(2))
 

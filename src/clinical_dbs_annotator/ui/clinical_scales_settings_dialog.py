@@ -30,7 +30,9 @@ class ClinicalScalesSettingsDialog(QDialog):
 
     presets_changed = Signal(dict)
 
-    def __init__(self, current_presets: dict[str, list[str]], parent=None, original_presets=None):
+    def __init__(
+        self, current_presets: dict[str, list[str]], parent=None, original_presets=None
+    ):
         """Initialize with existing presets.
 
         Args:
@@ -115,10 +117,14 @@ class ClinicalScalesSettingsDialog(QDialog):
 
         # Handle deselection by clicking empty space in the list
         self.presets_list.viewport().installEventFilter(self)
+
     @typing.override
     def eventFilter(self, obj, event):
         """Handle clicks on empty space for deselection."""
-        if obj == self.presets_list.viewport() and event.type() == QEvent.MouseButtonPress:
+        if (
+            obj == self.presets_list.viewport()
+            and event.type() == QEvent.MouseButtonPress
+        ):
             if event.button() == Qt.LeftButton:
                 # Check if click is on empty space
                 item = self.presets_list.itemAt(event.pos())
@@ -149,7 +155,7 @@ class ClinicalScalesSettingsDialog(QDialog):
         file_presets = {}
         if os.path.exists(self.presets_file):
             try:
-                with open(self.presets_file, encoding='utf-8') as f:
+                with open(self.presets_file, encoding="utf-8") as f:
                     file_presets = json.load(f)
             except Exception as e:
                 print(f"Error loading presets from file: {e}")
@@ -184,7 +190,7 @@ class ClinicalScalesSettingsDialog(QDialog):
 
         if preset_name in self.current_presets:
             self.preset_name_edit.setText(preset_name)
-            self.scales_edit.setText(', '.join(self.current_presets[preset_name]))
+            self.scales_edit.setText(", ".join(self.current_presets[preset_name]))
 
     def _add_update_preset(self):
         """Add or update a preset."""
@@ -194,7 +200,7 @@ class ClinicalScalesSettingsDialog(QDialog):
         if not name or not scales_text:
             return
 
-        scales = [scale.strip() for scale in scales_text.split(',') if scale.strip()]
+        scales = [scale.strip() for scale in scales_text.split(",") if scale.strip()]
 
         self.current_presets[name] = scales
         self._update_presets_list()
@@ -220,9 +226,10 @@ class ClinicalScalesSettingsDialog(QDialog):
         preset_name = item.data(Qt.UserRole)
 
         reply = QMessageBox.question(
-            self, "Confirm Delete",
+            self,
+            "Confirm Delete",
             f"Are you sure you want to delete preset '{preset_name}'?",
-            QMessageBox.Yes | QMessageBox.No
+            QMessageBox.Yes | QMessageBox.No,
         )
 
         if reply == QMessageBox.Yes:
@@ -241,7 +248,7 @@ class ClinicalScalesSettingsDialog(QDialog):
             os.makedirs(os.path.dirname(self.presets_file), exist_ok=True)
 
             # Save all presets to file
-            with open(self.presets_file, 'w', encoding='utf-8') as f:
+            with open(self.presets_file, "w", encoding="utf-8") as f:
                 json.dump(self.current_presets, f, indent=2, ensure_ascii=False)
 
             # Emit presets for UI
@@ -260,7 +267,7 @@ class ClinicalScalesSettingsDialog(QDialog):
             os.makedirs(os.path.dirname(self.presets_file), exist_ok=True)
 
             # Save all presets to file
-            with open(self.presets_file, 'w', encoding='utf-8') as f:
+            with open(self.presets_file, "w", encoding="utf-8") as f:
                 json.dump(self.current_presets, f, indent=2, ensure_ascii=False)
 
             # Emit the presets for the UI

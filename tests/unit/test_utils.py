@@ -31,7 +31,7 @@ class TestAnimateButton(unittest.TestCase):
         """Set up test environment."""
         self.app = QApplication(sys.argv)
 
-    @patch('PyQt5.QtCore.QTimer.singleShot')
+    @patch("PyQt5.QtCore.QTimer.singleShot")
     def test_animate_button_success(self, mock_timer):
         """Test successful button animation."""
         mock_button = MagicMock()
@@ -41,7 +41,7 @@ class TestAnimateButton(unittest.TestCase):
         mock_timer.assert_called()
         mock_button.setStyleSheet.assert_called()
 
-    @patch('PyQt5.QtCore.QTimer.singleShot')
+    @patch("PyQt5.QtCore.QTimer.singleShot")
     def test_animate_button_error(self, mock_timer):
         """Test error button animation."""
         mock_button = MagicMock()
@@ -63,19 +63,19 @@ class TestThemeManager(unittest.TestCase):
         """Test getting available themes."""
         themes = theme_manager.get_available_themes()
         self.assertIsInstance(themes, list)
-        self.assertIn('light', themes)
-        self.assertIn('dark', themes)
+        self.assertIn("light", themes)
+        self.assertIn("dark", themes)
 
     def test_apply_theme(self):
         """Test applying themes."""
         mock_app = MagicMock()
 
         # Test light theme
-        theme_manager.apply_theme(mock_app, 'light')
+        theme_manager.apply_theme(mock_app, "light")
         mock_app.setStyleSheet.assert_called()
 
         # Test dark theme
-        theme_manager.apply_theme(mock_app, 'dark')
+        theme_manager.apply_theme(mock_app, "dark")
         mock_app.setStyleSheet.assert_called()
 
     def test_get_current_theme(self):
@@ -84,26 +84,26 @@ class TestThemeManager(unittest.TestCase):
 
         # Test default theme
         current = theme_manager.get_current_theme(mock_app)
-        self.assertIn(current, ['light', 'dark'])
+        self.assertIn(current, ["light", "dark"])
 
     def test_save_theme_preference(self):
         """Test saving theme preference."""
-        with patch('builtins.open', create=True) as mock_open:
+        with patch("builtins.open", create=True) as mock_open:
             mock_file = MagicMock()
             mock_open.return_value.__enter__.return_value = mock_file
 
-            theme_manager.save_theme_preference('dark')
-            mock_file.write.assert_called_with('dark')
+            theme_manager.save_theme_preference("dark")
+            mock_file.write.assert_called_with("dark")
 
     def test_load_theme_preference(self):
         """Test loading theme preference."""
-        with patch('builtins.open', create=True) as mock_open:
+        with patch("builtins.open", create=True) as mock_open:
             mock_file = MagicMock()
-            mock_file.read.return_value = 'light'
+            mock_file.read.return_value = "light"
             mock_open.return_value.__enter__.return_value = mock_file
 
             theme = theme_manager.load_theme_preference()
-            self.assertEqual(theme, 'light')
+            self.assertEqual(theme, "light")
 
 
 class TestResponsive(unittest.TestCase):
@@ -159,16 +159,16 @@ class TestGraphics(unittest.TestCase):
     def test_get_icon(self):
         """Test icon loading."""
         # Test existing icon
-        icon = graphics.get_icon('save')
+        icon = graphics.get_icon("save")
         self.assertIsNotNone(icon)
 
         # Test non-existing icon
-        icon = graphics.get_icon('nonexistent')
+        icon = graphics.get_icon("nonexistent")
         self.assertIsNone(icon)
 
     def test_create_colored_icon(self):
         """Test colored icon creation."""
-        icon = graphics.create_colored_icon('#FF0000', 16, 16)
+        icon = graphics.create_colored_icon("#FF0000", 16, 16)
         self.assertIsNotNone(icon)
         self.assertEqual(icon.size().width(), 16)
         self.assertEqual(icon.size().height(), 16)
@@ -190,30 +190,30 @@ class TestResources(unittest.TestCase):
     def test_get_stylesheet(self):
         """Test stylesheet loading."""
         # Test existing stylesheet
-        css = resources.get_stylesheet('main')
+        css = resources.get_stylesheet("main")
         self.assertIsInstance(css, str)
         self.assertGreater(len(css), 0)
 
         # Test non-existing stylesheet
-        css = resources.get_stylesheet('nonexistent')
-        self.assertEqual(css, '')
+        css = resources.get_stylesheet("nonexistent")
+        self.assertEqual(css, "")
 
     def test_get_resource_path(self):
         """Test resource path resolution."""
-        path = resources.get_resource_path('icons', 'save.png')
+        path = resources.get_resource_path("icons", "save.png")
         self.assertIsInstance(path, Path)
         self.assertTrue(path.exists())
 
     def test_load_json_resource(self):
         """Test JSON resource loading."""
-        mock_data = {'test': 'data'}
+        mock_data = {"test": "data"}
 
-        with patch('builtins.open', create=True) as mock_open:
+        with patch("builtins.open", create=True) as mock_open:
             mock_file = MagicMock()
             mock_file.read.return_value = '{"test": "data"}'
             mock_open.return_value.__enter__.return_value = mock_file
 
-            data = resources.load_json_resource('test.json')
+            data = resources.load_json_resource("test.json")
             self.assertEqual(data, mock_data)
 
 
@@ -225,40 +225,40 @@ class TestUtilityFunctions(unittest.TestCase):
         from clinical_dbs_annotator.utils import format_clinical_scale_name
 
         # Test normal formatting
-        formatted = format_clinical_scale_name('ybocs')
-        self.assertEqual(formatted, 'YBOCS')
+        formatted = format_clinical_scale_name("ybocs")
+        self.assertEqual(formatted, "YBOCS")
 
         # Test already formatted
-        formatted = format_clinical_scale_name('HAM-D')
-        self.assertEqual(formatted, 'HAM-D')
+        formatted = format_clinical_scale_name("HAM-D")
+        self.assertEqual(formatted, "HAM-D")
 
     def test_validate_amplitude_value(self):
         """Test amplitude value validation."""
         from clinical_dbs_annotator.utils import validate_amplitude_value
 
         # Test valid values
-        valid_values = ['0.5', '3.5', '10.0']
+        valid_values = ["0.5", "3.5", "10.0"]
         for value in valid_values:
             result = validate_amplitude_value(value)
-            self.assertTrue(result['valid'])
+            self.assertTrue(result["valid"])
 
         # Test invalid values
-        invalid_values = ['-1.0', '15.0', 'abc', '']
+        invalid_values = ["-1.0", "15.0", "abc", ""]
         for value in invalid_values:
             result = validate_amplitude_value(value)
-            self.assertFalse(result['valid'])
+            self.assertFalse(result["valid"])
 
     def test_format_frequency_value(self):
         """Test frequency value formatting."""
         from clinical_dbs_annotator.utils import format_frequency_value
 
         # Test normal formatting
-        formatted = format_frequency_value('130')
-        self.assertEqual(formatted, '130 Hz')
+        formatted = format_frequency_value("130")
+        self.assertEqual(formatted, "130 Hz")
 
         # Test with existing Hz
-        formatted = format_frequency_value('130 Hz')
-        self.assertEqual(formatted, '130 Hz')
+        formatted = format_frequency_value("130 Hz")
+        self.assertEqual(formatted, "130 Hz")
 
     def test_generate_session_id(self):
         """Test session ID generation."""
@@ -273,5 +273,5 @@ class TestUtilityFunctions(unittest.TestCase):
         self.assertNotEqual(session_id, session_id2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

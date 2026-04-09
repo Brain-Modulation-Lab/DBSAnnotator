@@ -25,6 +25,7 @@ class StimulationParameters:
         right_amplitude: Right stimulation amplitude in mA
         right_pulse_width: Right pulse width in µs
     """
+
     left_frequency: str | None = None
     left_cathode: str | None = None
     left_anode: str | None = None

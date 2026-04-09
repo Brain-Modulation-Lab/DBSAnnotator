@@ -14,6 +14,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+
 def run_command(cmd, cwd=None):
     """Run a command and handle errors."""
     print(f"Running: {' '.join(cmd)}")
@@ -23,6 +24,7 @@ def run_command(cmd, cwd=None):
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed with exit code {e.returncode}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

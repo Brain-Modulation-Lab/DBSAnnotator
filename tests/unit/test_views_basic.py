@@ -131,5 +131,5 @@ class TestViewBasicFunctionality(unittest.TestCase):
             self.fail(f"Failed to import views: {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

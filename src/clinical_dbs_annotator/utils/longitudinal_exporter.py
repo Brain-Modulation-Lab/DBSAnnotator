@@ -46,7 +46,9 @@ class LongitudinalExporter:
         try:
             default_name = self._generate_filename(file_paths, ".docx")
             start_dir = os.path.dirname(file_paths[0]) if file_paths else ""
-            start_path = os.path.join(start_dir, default_name) if start_dir else default_name
+            start_path = (
+                os.path.join(start_dir, default_name) if start_dir else default_name
+            )
 
             file_path, _ = QFileDialog.getSaveFileName(
                 parent,
@@ -83,7 +85,9 @@ class LongitudinalExporter:
         try:
             default_name = self._generate_filename(file_paths, ".pdf")
             start_dir = os.path.dirname(file_paths[0]) if file_paths else ""
-            start_path = os.path.join(start_dir, default_name) if start_dir else default_name
+            start_path = (
+                os.path.join(start_dir, default_name) if start_dir else default_name
+            )
 
             pdf_path, _ = QFileDialog.getSaveFileName(
                 parent,
@@ -126,22 +130,28 @@ class LongitudinalExporter:
     # Report building
     # ------------------------------------------------------------------
 
-    def _build_report(self, file_paths: list[str], out_path: str, sections=None) -> bool:
+    def _build_report(
+        self, file_paths: list[str], out_path: str, sections=None
+    ) -> bool:
         """Read all files, merge, and build the Word document."""
+
         # Sort files chronologically by earliest date+time in each file
         def get_file_datetime(path):
             try:
                 df = pd.read_csv(path, sep="\t")
                 if "date" in df.columns and "time" in df.columns:
                     # Combine date and time to create datetime for sorting
-                    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], errors="coerce")
+                    df["datetime"] = pd.to_datetime(
+                        df["date"] + " " + df["time"], errors="coerce"
+                    )
                     valid_times = df["datetime"].dropna()
                     if not valid_times.empty:
                         return valid_times.min()  # Use earliest time in file
                 # Fallback to filename date if available
                 basename = os.path.basename(path)
                 import re
-                date_match = re.search(r'ses-(\d{8})', basename)
+
+                date_match = re.search(r"ses-(\d{8})", basename)
                 if date_match:
                     date_str = date_match.group(1)
                     return pd.to_datetime(date_str, format="%Y%m%d")
@@ -175,7 +185,9 @@ class LongitudinalExporter:
         # Split initial vs session rows
         if "is_initial" in df_all.columns:
             df_all["is_initial"] = (
-                pd.to_numeric(df_all["is_initial"], errors="coerce").fillna(0).astype(int)
+                pd.to_numeric(df_all["is_initial"], errors="coerce")
+                .fillna(0)
+                .astype(int)
             )
             df_all[df_all["is_initial"] == 1]
             df_session = df_all[df_all["is_initial"] == 0]
@@ -211,8 +223,17 @@ class LongitudinalExporter:
         doc.add_paragraph("")
 
         # Determine which sections to include (default: sessions_overview + session_data)
-        all_keys = ["sessions_overview", "session_data", "electrode_config", "programming_summary"]
-        active = set(sections) if sections is not None else {"sessions_overview", "session_data"}
+        all_keys = [
+            "sessions_overview",
+            "session_data",
+            "electrode_config",
+            "programming_summary",
+        ]
+        active = (
+            set(sections)
+            if sections is not None
+            else {"sessions_overview", "session_data"}
+        )
 
         # Render in the defined order
         for key in all_keys:
@@ -270,7 +291,11 @@ class LongitudinalExporter:
             row_cells[0].text = str(idx + 1)
             row_cells[1].text = basename
 
-            sub_df = df[df["_source_file"] == basename] if "_source_file" in df.columns else df
+            sub_df = (
+                df[df["_source_file"] == basename]
+                if "_source_file" in df.columns
+                else df
+            )
             date_str = ""
             if "date" in sub_df.columns and not sub_df.empty:
                 dates = sub_df["date"].dropna().unique()
@@ -295,15 +320,24 @@ class LongitudinalExporter:
                 # Filter for is_initial=1 only (baseline)
                 baseline_df = sub_df.copy()
                 if "is_initial" in baseline_df.columns:
-                    baseline_df = baseline_df[pd.to_numeric(baseline_df["is_initial"], errors="coerce").fillna(0).astype(int) == 1]
+                    baseline_df = baseline_df[
+                        pd.to_numeric(baseline_df["is_initial"], errors="coerce")
+                        .fillna(0)
+                        .astype(int)
+                        == 1
+                    ]
 
                 if not baseline_df.empty and "block_id" in baseline_df.columns:
                     try:
-                        baseline_df["block_id_num"] = pd.to_numeric(baseline_df["block_id"], errors="coerce")
+                        baseline_df["block_id_num"] = pd.to_numeric(
+                            baseline_df["block_id"], errors="coerce"
+                        )
                         max_block = baseline_df["block_id_num"].max()
 
                         # Get ALL rows with the highest block_id (there could be multiple)
-                        max_block_rows = baseline_df[baseline_df["block_id_num"] == max_block]
+                        max_block_rows = baseline_df[
+                            baseline_df["block_id_num"] == max_block
+                        ]
 
                         # Collect all scale pairs from these rows
                         all_scales = {}
@@ -312,8 +346,12 @@ class LongitudinalExporter:
                             sv = str(row.get("scale_value", "") or "").strip()
 
                             if sn and sv:
-                                sn_lines = [s.strip() for s in sn.split("\n") if s.strip()]
-                                sv_lines = [s.strip() for s in sv.split("\n") if s.strip()]
+                                sn_lines = [
+                                    s.strip() for s in sn.split("\n") if s.strip()
+                                ]
+                                sv_lines = [
+                                    s.strip() for s in sv.split("\n") if s.strip()
+                                ]
 
                                 # Store scales, keeping first non-NaN value per scale name
                                 for name, val in zip(sn_lines, sv_lines, strict=False):
@@ -326,8 +364,12 @@ class LongitudinalExporter:
                     except Exception:
                         scale_pairs = []
 
-            row_cells[4].text = "\n".join(p[0] for p in scale_pairs) if scale_pairs else ""
-            row_cells[5].text = "\n".join(p[1] for p in scale_pairs) if scale_pairs else ""
+            row_cells[4].text = (
+                "\n".join(p[0] for p in scale_pairs) if scale_pairs else ""
+            )
+            row_cells[5].text = (
+                "\n".join(p[1] for p in scale_pairs) if scale_pairs else ""
+            )
 
     def _add_electrode_config_section(
         self, doc: Document, df_all: pd.DataFrame, file_paths: list[str]
@@ -356,7 +398,11 @@ class LongitudinalExporter:
                 continue
 
             if "is_initial" in sub.columns:
-                sub["is_initial"] = pd.to_numeric(sub["is_initial"], errors="coerce").fillna(0).astype(int)
+                sub["is_initial"] = (
+                    pd.to_numeric(sub["is_initial"], errors="coerce")
+                    .fillna(0)
+                    .astype(int)
+                )
                 df_init = sub[sub["is_initial"] == 1]
                 df_final = sub[sub["is_initial"] == 0]
             else:
@@ -412,13 +458,37 @@ class LongitudinalExporter:
 
             # Render PNGs
             tmp_files = []
-            init_model = str(init_row.get("electrode_model", "") or model_name) if init_row is not None else model_name
-            final_model = str(final_row.get("electrode_model", "") or model_name) if final_row is not None else model_name
+            init_model = (
+                str(init_row.get("electrode_model", "") or model_name)
+                if init_row is not None
+                else model_name
+            )
+            final_model = (
+                str(final_row.get("electrode_model", "") or model_name)
+                if final_row is not None
+                else model_name
+            )
 
-            png_init_l = self._render_electrode_png(init_model, i_la, i_lc) if init_row is not None else None
-            png_init_r = self._render_electrode_png(init_model, i_ra, i_rc) if init_row is not None else None
-            png_final_l = self._render_electrode_png(final_model, f_la, f_lc) if final_row is not None else None
-            png_final_r = self._render_electrode_png(final_model, f_ra, f_rc) if final_row is not None else None
+            png_init_l = (
+                self._render_electrode_png(init_model, i_la, i_lc)
+                if init_row is not None
+                else None
+            )
+            png_init_r = (
+                self._render_electrode_png(init_model, i_ra, i_rc)
+                if init_row is not None
+                else None
+            )
+            png_final_l = (
+                self._render_electrode_png(final_model, f_la, f_lc)
+                if final_row is not None
+                else None
+            )
+            png_final_r = (
+                self._render_electrode_png(final_model, f_ra, f_rc)
+                if final_row is not None
+                else None
+            )
 
             for p in (png_init_l, png_init_r, png_final_l, png_final_r):
                 if p:
@@ -430,7 +500,7 @@ class LongitudinalExporter:
 
             # Remove borders
             tbl = t._tbl
-            tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr() # noqa: N806
+            tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr()  # noqa: N806
             borders = OxmlElement("w:tblBorders")
             for bname in ("top", "left", "bottom", "right", "insideH", "insideV"):
                 b = OxmlElement(f"w:{bname}")
@@ -442,7 +512,10 @@ class LongitudinalExporter:
             tblPr.append(borders)
 
             # Row 0: "Initial Settings" (merged 0-1) | "Final Settings" (merged 2-3)
-            for merged_start, merged_end, heading_text in [(0, 1, "Initial Settings"), (2, 3, "Final Settings")]:
+            for merged_start, merged_end, heading_text in [
+                (0, 1, "Initial Settings"),
+                (2, 3, "Final Settings"),
+            ]:
                 cell = t.cell(0, merged_start).merge(t.cell(0, merged_end))
                 cell.text = heading_text
                 for p in cell.paragraphs:
@@ -502,8 +575,16 @@ class LongitudinalExporter:
 
         doc.add_heading("Programming Summary", level=1)
 
-        headers = ["Session", "Configurations", "Amplitude (L)", "Amplitude (R)",
-                    "Frequency (L)", "Frequency (R)", "Pulse Width (L)", "Pulse Width (R)"]
+        headers = [
+            "Session",
+            "Configurations",
+            "Amplitude (L)",
+            "Amplitude (R)",
+            "Frequency (L)",
+            "Frequency (R)",
+            "Pulse Width (L)",
+            "Pulse Width (R)",
+        ]
         rows_data = []
 
         for fp in file_paths:
@@ -513,14 +594,21 @@ class LongitudinalExporter:
                 continue
 
             if "is_initial" in sub.columns:
-                sub_sess = sub[pd.to_numeric(sub["is_initial"], errors="coerce").fillna(0).astype(int) == 0]
+                sub_sess = sub[
+                    pd.to_numeric(sub["is_initial"], errors="coerce")
+                    .fillna(0)
+                    .astype(int)
+                    == 0
+                ]
             else:
                 sub_sess = sub
 
             label = basename.replace("_events.tsv", "").replace(".tsv", "")
 
             sub_n = self._normalize_block_id(sub_sess)
-            n_configs = sub_n["block_id"].nunique() if "block_id" in sub_n.columns else 0
+            n_configs = (
+                sub_n["block_id"].nunique() if "block_id" in sub_n.columns else 0
+            )
 
             def _range_str(series, unit=""):
                 vals = pd.to_numeric(series, errors="coerce").dropna()
@@ -538,7 +626,9 @@ class LongitudinalExporter:
             pw_l = _range_str(sub_sess.get("left_pulse_width", pd.Series()), " µs")
             pw_r = _range_str(sub_sess.get("right_pulse_width", pd.Series()), " µs")
 
-            rows_data.append([label, str(n_configs), amp_l, amp_r, freq_l, freq_r, pw_l, pw_r])
+            rows_data.append(
+                [label, str(n_configs), amp_l, amp_r, freq_l, freq_r, pw_l, pw_r]
+            )
 
         if not rows_data:
             doc.add_paragraph("No programming data available.")
@@ -561,7 +651,9 @@ class LongitudinalExporter:
         doc.add_paragraph("")
 
     def _add_longitudinal_data_table(
-        self, doc: Document, df_session: pd.DataFrame,
+        self,
+        doc: Document,
+        df_session: pd.DataFrame,
         file_paths: list[str] | None = None,
     ) -> None:
         """Add the main longitudinal data table with green highlighting."""
@@ -581,12 +673,27 @@ class LongitudinalExporter:
             lateral_df["date"] = ""
 
         columns_to_exclude = [
-            "time", "onset", "block_id", "session_ID", "source",
-            "is_initial", "electrode_model", "_source_file", "_global_entry_id",
+            "time",
+            "onset",
+            "block_id",
+            "session_ID",
+            "source",
+            "is_initial",
+            "electrode_model",
+            "_source_file",
+            "_global_entry_id",
         ]
         display_cols = [c for c in lateral_df.columns if c not in columns_to_exclude]
 
-        lateral_cols = ["date", "laterality", "frequency", "anode", "cathode", "amplitude", "pulse_width"]
+        lateral_cols = [
+            "date",
+            "laterality",
+            "frequency",
+            "anode",
+            "cathode",
+            "amplitude",
+            "pulse_width",
+        ]
         common_cols = ["group_ID", "scale_name", "scale_value", "notes"]
 
         lateral_cols = [c for c in lateral_cols if c in display_cols]
@@ -603,12 +710,20 @@ class LongitudinalExporter:
 
         # Column widths
         section = doc.sections[0]
-        page_w = (section.page_width - section.left_margin - section.right_margin) / 914400
+        page_w = (
+            section.page_width - section.left_margin - section.right_margin
+        ) / 914400
         base_w = {
-            "date": 0.65, "laterality": 0.25, "group_ID": 0.35,
-            "frequency": 0.45, "anode": 0.45, "cathode": 0.60,
-            "amplitude": 0.60, "pulse_width": 0.50,
-            "scale_name": 1.00, "scale_value": 0.55,
+            "date": 0.65,
+            "laterality": 0.25,
+            "group_ID": 0.35,
+            "frequency": 0.45,
+            "anode": 0.45,
+            "cathode": 0.60,
+            "amplitude": 0.60,
+            "pulse_width": 0.50,
+            "scale_name": 1.00,
+            "scale_value": 0.55,
         }
         widths = [base_w.get(c, 0.5) for c in ordered]
         if "notes" in ordered:
@@ -659,7 +774,7 @@ class LongitudinalExporter:
                     try:
                         v = float(val)
                         cell_text = str(int(v)) if v == int(v) else str(v)
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         pass
 
                 if col in common_cols and row.get("laterality") == "R" and i > 0:
@@ -679,7 +794,7 @@ class LongitudinalExporter:
                         total = sum(values)
                         total_str = f"{total:.2f}".rstrip("0").rstrip(".")
                         row_cells[j].text = "\n".join(parts) + f"\n{total_str}"
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         row_cells[j].text = cell_text
                 else:
                     row_cells[j].text = cell_text
@@ -701,7 +816,10 @@ class LongitudinalExporter:
         if df_session is None or df_session.empty:
             doc.add_paragraph("No session data available for chart.")
             return
-        if "scale_name" not in df_session.columns or "scale_value" not in df_session.columns:
+        if (
+            "scale_name" not in df_session.columns
+            or "scale_value" not in df_session.columns
+        ):
             doc.add_paragraph("No scale columns found in session data.")
             return
 
@@ -751,42 +869,52 @@ class LongitudinalExporter:
             pg.setConfigOptions(useOpenGL=False, antialias=True)
 
             n_scales = len(scale_data)
-            rainbow = [QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
-                        for i in range(n_scales)]
+            rainbow = [
+                QColor.fromHsvF(i / max(n_scales, 1), 0.85, 0.85)
+                for i in range(n_scales)
+            ]
 
             # Session tick labels
-            tick_labels = [s.replace("_events.tsv", "").replace(".tsv", "")
-                           for s in sources]
+            tick_labels = [
+                s.replace("_events.tsv", "").replace(".tsv", "") for s in sources
+            ]
             x_ticks = [(i, lbl) for i, lbl in enumerate(tick_labels)]
 
             has_index = n_scales >= 2
             win = pg.GraphicsLayoutWidget()
-            win.setBackground('w')
+            win.setBackground("w")
             win.resize(1050, 500)  # Single plot, larger for right-side legend
 
             # --- Main scales chart with General Index on same plot ---
             p1 = win.addPlot(row=0, col=0)
-            p1.setTitle("Longitudinal Scale Trends", color='k', size='14pt')
-            p1.setLabel('left', 'Scale Value', color='k', size='14pt', font='Arial')
-            p1.setLabel('bottom', 'Session', color='k', size='14pt', font='Arial')
-            p1.getAxis('bottom').setTicks([x_ticks])
-            p1.getAxis('left').setStyle(tickFont=QFont('Arial', 10))
-            p1.getAxis('bottom').setStyle(tickFont=QFont('Arial', 10))
+            p1.setTitle("Longitudinal Scale Trends", color="k", size="14pt")
+            p1.setLabel("left", "Scale Value", color="k", size="14pt", font="Arial")
+            p1.setLabel("bottom", "Session", color="k", size="14pt", font="Arial")
+            p1.getAxis("bottom").setTicks([x_ticks])
+            p1.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
+            p1.getAxis("bottom").setStyle(tickFont=QFont("Arial", 10))
             p1.showGrid(x=True, y=True, alpha=0.3)
             # Legend on right side external - increase offset and add background
-            legend = p1.addLegend(offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white))
-            legend.setLabelTextColor('k')
+            legend = p1.addLegend(
+                offset=(1.15, 0.5), pen=QPen(Qt.black, 1), brush=QBrush(Qt.white)
+            )
+            legend.setLabelTextColor("k")
 
             # Plot individual scales with original values (no normalization)
             for idx, (sname, pts) in enumerate(scale_data.items()):
                 c = rainbow[idx]
                 xs = sorted(pts.keys())
                 ys = [pts[x] for x in xs]
-                p1.plot(xs, ys,
-                        pen=pg.mkPen(c, width=2),
-                        symbol='o', symbolPen=pg.mkPen(c, width=1),
-                        symbolBrush=pg.mkBrush(c), symbolSize=8,
-                        name=sname)
+                p1.plot(
+                    xs,
+                    ys,
+                    pen=pg.mkPen(c, width=2),
+                    symbol="o",
+                    symbolPen=pg.mkPen(c, width=1),
+                    symbolBrush=pg.mkBrush(c),
+                    symbolSize=8,
+                    name=sname,
+                )
 
             # --- General Index on same plot (if >= 2 scales) ---
             if has_index:
@@ -804,9 +932,15 @@ class LongitudinalExporter:
                                 scale_targets[name] = {"type": "max", "value": smax}
                             elif mode == "custom":
                                 try:
-                                    scale_targets[name] = {"type": "custom", "value": float(custom_val)}
+                                    scale_targets[name] = {
+                                        "type": "custom",
+                                        "value": float(custom_val),
+                                    }
                                 except ValueError:
-                                    scale_targets[name] = {"type": "custom", "value": 0.0}
+                                    scale_targets[name] = {
+                                        "type": "custom",
+                                        "value": 0.0,
+                                    }
 
                 index_vals = {}
                 for s in all_sessions:
@@ -829,19 +963,39 @@ class LongitudinalExporter:
                                     distance = original_value
                                     max_possible = max(scale_data[scale_name].values())
                                     # Normalize: 0 = at target (min), 1 = worst (max)
-                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                    normalized_score = (
+                                        distance / max_possible
+                                        if max_possible > 0
+                                        else 0
+                                    )
                                 elif target_type == "max":
                                     # For maximization: higher values are better
-                                    distance = max(scale_data[scale_name].values()) - original_value
-                                    max_possible = max(scale_data[scale_name].values()) - min(scale_data[scale_name].values())
+                                    distance = (
+                                        max(scale_data[scale_name].values())
+                                        - original_value
+                                    )
+                                    max_possible = max(
+                                        scale_data[scale_name].values()
+                                    ) - min(scale_data[scale_name].values())
                                     # Normalize: 0 = at target (max), 1 = worst (min)
-                                    normalized_score = distance / max_possible if max_possible > 0 else 0
+                                    normalized_score = (
+                                        distance / max_possible
+                                        if max_possible > 0
+                                        else 0
+                                    )
                                 elif target_type == "custom":
                                     # For custom target: absolute distance from target
                                     distance = abs(original_value - target_value)
-                                    max_distance = max(abs(v - target_value) for v in scale_data[scale_name].values())
+                                    max_distance = max(
+                                        abs(v - target_value)
+                                        for v in scale_data[scale_name].values()
+                                    )
                                     # Normalize: 0 = at target, 1 = worst
-                                    normalized_score = distance / max_distance if max_distance > 0 else 0
+                                    normalized_score = (
+                                        distance / max_distance
+                                        if max_distance > 0
+                                        else 0
+                                    )
 
                                 # Convert to proximity score (higher is better)
                                 proximity_score = 1.0 - normalized_score
@@ -850,13 +1004,23 @@ class LongitudinalExporter:
                             else:
                                 # No target defined: use neutral score
                                 weighted_scores.append(0.5)  # Neutral middle value
-                                weights.append(0.5)  # Lower weight for scales without targets
+                                weights.append(
+                                    0.5
+                                )  # Lower weight for scales without targets
 
                     if weighted_scores and weights:
                         # Calculate weighted average of proximity scores
                         total_weight = sum(weights)
                         if total_weight > 0:
-                            index_vals[s] = sum(w * s for w, s in zip(weights, weighted_scores, strict=False)) / total_weight
+                            index_vals[s] = (
+                                sum(
+                                    w * s
+                                    for w, s in zip(
+                                        weights, weighted_scores, strict=False
+                                    )
+                                )
+                                / total_weight
+                            )
                         else:
                             index_vals[s] = 0.5  # Default neutral value
 
@@ -864,16 +1028,22 @@ class LongitudinalExporter:
                     ix = sorted(index_vals.keys())
                     iy = [index_vals[x] for x in ix]
                     # Thicker black line for General Index
-                    p1.plot(ix, iy,
-                            pen=pg.mkPen('k', width=5),
-                            symbol='d', symbolPen='k', symbolBrush='k',
-                            symbolSize=10, name='General Index')
+                    p1.plot(
+                        ix,
+                        iy,
+                        pen=pg.mkPen("k", width=5),
+                        symbol="d",
+                        symbolPen="k",
+                        symbolBrush="k",
+                        symbolSize=10,
+                        name="General Index",
+                    )
 
             # --- Export to PNG → Word ---
             pixmap = win.grab()
             qbuf = QBuffer()
             qbuf.open(QIODevice.OpenModeFlag.WriteOnly)
-            pixmap.save(qbuf, 'PNG')
+            pixmap.save(qbuf, "PNG")
             qbuf.close()
             img_buf = BytesIO(bytes(qbuf.data()))
             doc.add_picture(img_buf, width=Inches(6))
@@ -898,7 +1068,9 @@ class LongitudinalExporter:
 
         # Create a global entry id combining source file + block_id
         if "_source_file" in df.columns and "block_id" in df.columns:
-            df["_global_entry_id"] = df["_source_file"] + "_" + df["block_id"].astype(str)
+            df["_global_entry_id"] = (
+                df["_source_file"] + "_" + df["block_id"].astype(str)
+            )
         elif "block_id" in df.columns:
             df["_global_entry_id"] = df["block_id"].astype(str)
         else:
@@ -928,7 +1100,11 @@ class LongitudinalExporter:
             combined_sn = "\n".join(p[0] for p in scale_pairs) if scale_pairs else ""
             combined_sv = "\n".join(p[1] for p in scale_pairs) if scale_pairs else ""
 
-            source_label = str(first.get("_source_file", "")).replace("_events.tsv", "").replace(".tsv", "")
+            source_label = (
+                str(first.get("_source_file", ""))
+                .replace("_events.tsv", "")
+                .replace(".tsv", "")
+            )
             date_val = str(first.get("date", "") or "")
 
             common = {
@@ -942,11 +1118,15 @@ class LongitudinalExporter:
             }
 
             lat_map = {
-                "left_stim_freq": "frequency", "left_cathode": "cathode",
-                "left_anode": "anode", "left_amplitude": "amplitude",
+                "left_stim_freq": "frequency",
+                "left_cathode": "cathode",
+                "left_anode": "anode",
+                "left_amplitude": "amplitude",
                 "left_pulse_width": "pulse_width",
-                "right_stim_freq": "frequency", "right_cathode": "cathode",
-                "right_anode": "anode", "right_amplitude": "amplitude",
+                "right_stim_freq": "frequency",
+                "right_cathode": "cathode",
+                "right_anode": "anode",
+                "right_amplitude": "amplitude",
                 "right_pulse_width": "pulse_width",
             }
 
@@ -972,7 +1152,10 @@ class LongitudinalExporter:
             return [], []
         if "_global_entry_id" not in lateral_df.columns:
             return [], []
-        if "scale_name" not in lateral_df.columns or "scale_value" not in lateral_df.columns:
+        if (
+            "scale_name" not in lateral_df.columns
+            or "scale_value" not in lateral_df.columns
+        ):
             return [], []
 
         try:
@@ -997,6 +1180,7 @@ class LongitudinalExporter:
                 total = 0.0
                 has_val = False
                 import math as _math
+
                 for i, vl in enumerate(values):
                     vl = vl.strip()
                     if not vl:
@@ -1102,7 +1286,9 @@ class LongitudinalExporter:
                                 seg_map = {"a": 0, "b": 1, "c": 2}
                                 seg_char = token[-1].lower()
                                 if seg_char in seg_map:
-                                    canvas.contact_states[(idx, seg_map[seg_char])] = state
+                                    canvas.contact_states[(idx, seg_map[seg_char])] = (
+                                        state
+                                    )
                             else:
                                 idx = int(token[1:])
                                 if model.is_directional:
@@ -1119,10 +1305,12 @@ class LongitudinalExporter:
 
             # Render with white background
             original_paint = canvas.paintEvent
+
             def white_bg_paint(event):
                 painter = QPainter(canvas)
                 painter.fillRect(canvas.rect(), Qt.white)
                 original_paint(event)
+
             canvas.paintEvent = white_bg_paint
 
             pixmap = QPixmap(canvas.size())
@@ -1190,10 +1378,12 @@ class LongitudinalExporter:
             "scale_name": PLACEHOLDERS.get("scale_name", "Scale"),
             "scale_value": PLACEHOLDERS.get("scale_value", "Value"),
             "frequency": PLACEHOLDERS.get("frequency", "Freq"),
-            "anode": "+", "cathode": "-",
+            "anode": "+",
+            "cathode": "-",
             "amplitude": PLACEHOLDERS.get("amplitude", "Amp"),
             "pulse_width": PLACEHOLDERS.get("pulse_width", "PW"),
-            "group_ID": "Grp", "laterality": "",
+            "group_ID": "Grp",
+            "laterality": "",
         }
         return m.get(col, col.replace("_", " ").title())
 
@@ -1226,7 +1416,7 @@ class LongitudinalExporter:
     @staticmethod
     def _set_cell_border_top(cell, sz=12):
         try:
-            tcPr = cell._tc.get_or_add_tcPr() # noqa: N806
+            tcPr = cell._tc.get_or_add_tcPr()  # noqa: N806
             borders = OxmlElement("w:tcBorders")
             top = OxmlElement("w:top")
             top.set(qn("w:val"), "single")
@@ -1238,7 +1428,9 @@ class LongitudinalExporter:
         except Exception:
             pass
 
-    def _add_table_legend(self, doc: Document, best_ids: list, second_ids: list) -> None:
+    def _add_table_legend(
+        self, doc: Document, best_ids: list, second_ids: list
+    ) -> None:
         if not best_ids and not second_ids:
             return
 
@@ -1317,6 +1509,7 @@ class LongitudinalExporter:
 
         try:
             from docx2pdf import convert as _convert
+
             _convert(docx_path, pdf_path)
             if os.path.exists(pdf_path):
                 return
@@ -1335,7 +1528,9 @@ class LongitudinalExporter:
             )
             subprocess.run(
                 ["powershell", "-NoProfile", "-Command", ps],
-                check=True, capture_output=True, timeout=60,
+                check=True,
+                capture_output=True,
+                timeout=60,
             )
             if os.path.exists(pdf_path):
                 return
@@ -1347,9 +1542,18 @@ class LongitudinalExporter:
             try:
                 out_dir = os.path.dirname(os.path.abspath(pdf_path))
                 subprocess.run(
-                    [soffice, "--headless", "--convert-to", "pdf",
-                     "--outdir", out_dir, os.path.abspath(docx_path)],
-                    check=True, capture_output=True, timeout=60,
+                    [
+                        soffice,
+                        "--headless",
+                        "--convert-to",
+                        "pdf",
+                        "--outdir",
+                        out_dir,
+                        os.path.abspath(docx_path),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    timeout=60,
                 )
                 lo_out = os.path.join(
                     out_dir, os.path.splitext(os.path.basename(docx_path))[0] + ".pdf"
@@ -1362,6 +1566,7 @@ class LongitudinalExporter:
                 errors.append(f"LibreOffice: {e}")
 
         raise RuntimeError(
-            "Could not convert to PDF:\n" + "\n".join(errors)
+            "Could not convert to PDF:\n"
+            + "\n".join(errors)
             + "\n\nPlease export to Word and convert manually."
         )

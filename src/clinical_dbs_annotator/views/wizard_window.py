@@ -223,7 +223,9 @@ class WizardWindow(QWidget):
         title_container.addWidget(self.header_title_label)
 
         self.header_subtitle_label = QLabel("")
-        self.header_subtitle_label.setStyleSheet("font-size: 8pt; color: #64748b; margin-top: -2px;")
+        self.header_subtitle_label.setStyleSheet(
+            "font-size: 8pt; color: #64748b; margin-top: -2px;"
+        )
         self.header_subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         title_container.addWidget(self.header_subtitle_label)
 
@@ -395,8 +397,12 @@ class WizardWindow(QWidget):
     def _connect_step0_signals(self) -> None:
         """Connect Step 0 mode selection signals."""
         self.step0_view.full_mode_button.clicked.connect(self._select_full_mode)
-        self.step0_view.annotations_only_button.clicked.connect(self._select_annotations_only_mode)
-        self.step0_view.longitudinal_report_button.clicked.connect(self._select_longitudinal_report)
+        self.step0_view.annotations_only_button.clicked.connect(
+            self._select_annotations_only_mode
+        )
+        self.step0_view.longitudinal_report_button.clicked.connect(
+            self._select_longitudinal_report
+        )
 
     def _select_full_mode(self) -> None:
         """Handle selection of full workflow mode."""
@@ -446,7 +452,8 @@ class WizardWindow(QWidget):
         files = self.longitudinal_file_view.get_loaded_files()
         if not files:
             QMessageBox.warning(
-                self, "No Files",
+                self,
+                "No Files",
                 "Please load at least one annotation file before creating a report.",
             )
             return
@@ -455,7 +462,8 @@ class WizardWindow(QWidget):
         scales = LongitudinalFileView.extract_session_scales_from_files(files)
         if not scales:
             QMessageBox.warning(
-                self, "No Session Scales",
+                self,
+                "No Session Scales",
                 "No session scales (is_initial=0) were found in the loaded files.\n"
                 "The report cannot determine the best entry without scale data.",
             )
@@ -466,6 +474,7 @@ class WizardWindow(QWidget):
             LongitudinalScaleDialog,
             ReportSectionsDialog,
         )
+
         dialog = LongitudinalScaleDialog(scales, self)
         if dialog.exec() != QDialog.Accepted:
             return
@@ -497,18 +506,21 @@ class WizardWindow(QWidget):
         """Load full workflow views (lazy loading)."""
         if self.step1_view is None:
             from .step1_view import Step1View
+
             self.step1_view = Step1View(self.style())
             self.stack.addWidget(self.step1_view)
             self._connect_step1_signals()
 
         if self.step2_view is None:
             from .step2_view import Step2View
+
             self.step2_view = Step2View(self.style())
             self.stack.addWidget(self.step2_view)
             self._connect_step2_signals()
 
         if self.step3_view is None:
             from .step3_view import Step3View
+
             self.step3_view = Step3View(self.style())
             self.stack.addWidget(self.step3_view)
             self._connect_step3_signals()
@@ -517,12 +529,14 @@ class WizardWindow(QWidget):
         """Load annotations-only workflow views (lazy loading)."""
         if self.annotations_file_view is None:
             from .annotations_simple_view import AnnotationsFileView
+
             self.annotations_file_view = AnnotationsFileView(self)
             self.stack.addWidget(self.annotations_file_view)
             self._connect_annotations_file_signals()
 
         if self.annotations_session_view is None:
             from .annotations_simple_view import AnnotationsSessionView
+
             self.annotations_session_view = AnnotationsSessionView(self)
             self.stack.addWidget(self.annotations_session_view)
             self._connect_annotations_session_signals()
@@ -540,10 +554,14 @@ class WizardWindow(QWidget):
         if hasattr(self, "stack"):
             self.stack.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self.stack.setFixedWidth(compact_width - 40)  # Account for margins
-            self.stack.setFixedHeight(compact_height - 100)  # Prevent vertical scrollbar
+            self.stack.setFixedHeight(
+                compact_height - 100
+            )  # Prevent vertical scrollbar
             self.stack.adjustSize()
         if hasattr(self, "stack_scroll_area"):
-            self.stack_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.stack_scroll_area.setSizePolicy(
+                QSizePolicy.Expanding, QSizePolicy.Expanding
+            )
 
         # Center the compact window on screen
         screen = self.app.primaryScreen()
@@ -563,7 +581,9 @@ class WizardWindow(QWidget):
             self.stack.setMaximumWidth(16777215)  # Remove fixed width
             self.stack.setMaximumHeight(16777215)  # Remove fixed height
         if hasattr(self, "stack_scroll_area"):
-            self.stack_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.stack_scroll_area.setSizePolicy(
+                QSizePolicy.Expanding, QSizePolicy.Expanding
+            )
 
         # Get original normal size
         screen = self.app.primaryScreen()
@@ -590,7 +610,9 @@ class WizardWindow(QWidget):
         # Apply new geometry and constraints (allow full maximization)
         self.setGeometry(x, y, width, height)
         self.setMinimumSize(WINDOW_MIN_SIZE["width"], WINDOW_MIN_SIZE["height"])
-        self.setMaximumSize(screen_width, screen_height)  # Allow full screen maximization
+        self.setMaximumSize(
+            screen_width, screen_height
+        )  # Allow full screen maximization
 
         self._clamp_to_screen()
 
@@ -600,7 +622,10 @@ class WizardWindow(QWidget):
             return
         self._is_clamping = True
         try:
-            screen = self.app.screenAt(self.frameGeometry().center()) or self.app.primaryScreen()
+            screen = (
+                self.app.screenAt(self.frameGeometry().center())
+                or self.app.primaryScreen()
+            )
             rect = screen.availableGeometry()
             geo = self.geometry()
 
@@ -634,8 +659,8 @@ class WizardWindow(QWidget):
             btn = self.step1_view.get_preset_button(preset_name)
             if btn:
                 btn.clicked.connect(
-                    lambda checked, name=preset_name: self.controller.apply_clinical_preset(
-                        name, self.step1_view
+                    lambda checked, name=preset_name: (
+                        self.controller.apply_clinical_preset(name, self.step1_view)
                     )
                 )
 
@@ -687,6 +712,7 @@ class WizardWindow(QWidget):
             return
 
         from .longitudinal_scale_dialog import ScaleOptimizationDialog
+
         dialog = ScaleOptimizationDialog(
             scales, self, title="Scale Optimization — Session Report"
         )
@@ -697,6 +723,7 @@ class WizardWindow(QWidget):
 
         # Show section selection dialog
         from .longitudinal_scale_dialog import ReportSectionsDialog
+
         section_defs = [
             ("initial_notes", "Initial Clinical Notes", True),
             ("session_data", "Session Data", True),
@@ -709,9 +736,13 @@ class WizardWindow(QWidget):
         sections = sec_dialog.get_selected_sections()
 
         if fmt == "word":
-            self.controller.export_session_word(self, scale_prefs=prefs, sections=sections)
+            self.controller.export_session_word(
+                self, scale_prefs=prefs, sections=sections
+            )
         else:
-            self.controller.export_session_pdf(self, scale_prefs=prefs, sections=sections)
+            self.controller.export_session_pdf(
+                self, scale_prefs=prefs, sections=sections
+            )
 
     def _create_nav_bar(self) -> QHBoxLayout:
         """
@@ -805,14 +836,20 @@ class WizardWindow(QWidget):
         # Newer UI manages file open/new internally.
         if hasattr(self.annotations_file_view, "browse_button"):
             self.annotations_file_view.browse_button.clicked.connect(
-                lambda: self.controller.browse_save_location_simple(self.annotations_file_view, self)
+                lambda: self.controller.browse_save_location_simple(
+                    self.annotations_file_view, self
+                )
             )
-        self.annotations_file_view.next_button.clicked.connect(self._go_to_annotations_session)
+        self.annotations_file_view.next_button.clicked.connect(
+            self._go_to_annotations_session
+        )
 
     def _go_to_annotations_session(self) -> None:
         """Navigate to annotations session (annotations-only workflow)."""
         # Validate file info
-        if not self.controller.validate_annotations_file(self.annotations_file_view, self):
+        if not self.controller.validate_annotations_file(
+            self.annotations_file_view, self
+        ):
             return
 
         # Create annotations session view if needed
@@ -828,7 +865,9 @@ class WizardWindow(QWidget):
     def _connect_annotations_session_signals(self) -> None:
         """Connect signals for annotations session view."""
         self.annotations_session_view.insert_button.clicked.connect(
-            lambda: self.controller.insert_simple_annotation(self.annotations_session_view)
+            lambda: self.controller.insert_simple_annotation(
+                self.annotations_session_view
+            )
         )
         self.annotations_session_view.close_button.clicked.connect(
             lambda: self.controller.close_session(self)
@@ -869,7 +908,7 @@ class WizardWindow(QWidget):
             self.stack.addWidget(self.step3_view)
             self._connect_step3_signals()
             self._step3_prepared = True
-        elif not getattr(self, '_step3_prepared', False):
+        elif not getattr(self, "_step3_prepared", False):
             # Step 3 was created but preparation failed previously — retry
             try:
                 self.controller.prepare_step3(self.step3_view)
@@ -877,6 +916,7 @@ class WizardWindow(QWidget):
             except Exception as e:
                 print(f"[ERROR] prepare_step3 retry failed: {e}")
                 import traceback
+
                 traceback.print_exc()
         else:
             # Only refresh scales if definitions changed; keep everything else as-is

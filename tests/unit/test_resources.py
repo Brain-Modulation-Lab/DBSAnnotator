@@ -38,6 +38,6 @@ class TestPackageDirectory:
         """Test that _PACKAGE_DIR is properly set."""
         from clinical_dbs_annotator.utils import resources
 
-        assert hasattr(resources, '_PACKAGE_DIR')
+        assert hasattr(resources, "_PACKAGE_DIR")
         assert os.path.isdir(resources._PACKAGE_DIR)
-        assert 'clinical_dbs_annotator' in resources._PACKAGE_DIR
+        assert "clinical_dbs_annotator" in resources._PACKAGE_DIR

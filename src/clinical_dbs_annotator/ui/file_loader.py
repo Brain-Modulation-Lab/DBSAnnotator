@@ -4,6 +4,7 @@ File drag-and-drop line edit widget.
 Provides a QLineEdit subclass that accepts file drops, invoking a callback
 with the dropped file path.
 """
+
 import typing
 from collections.abc import Callable
 
@@ -23,6 +24,7 @@ class FileDropLineEdit(QLineEdit):
         super().__init__(parent)
         self._on_file_dropped = on_file_dropped
         self.setAcceptDrops(True)
+
     @typing.override
     def dragEnterEvent(self, event):
         """Accept drag events that carry file URLs."""
@@ -30,6 +32,7 @@ class FileDropLineEdit(QLineEdit):
             event.acceptProposedAction()
             return
         super().dragEnterEvent(event)
+
     @typing.override
     def dropEvent(self, event):
         """Handle file drop: extract first URL and invoke callback."""

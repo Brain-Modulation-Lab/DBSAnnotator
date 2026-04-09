@@ -26,7 +26,9 @@ def get_version() -> str:
     except Exception as e:
         init_path = Path(__file__).with_name("__init__.py")
         text = init_path.read_text(encoding="utf-8")
-        m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE)
+        m = re.search(
+            r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE
+        )
         if not m:
             raise RuntimeError(f"Could not determine version from {init_path}") from e
         return m.group(1)
@@ -43,4 +45,3 @@ def get_pep440_base_version() -> str:
     if not m:
         raise RuntimeError(f"Could not extract base version from {v!r}")
     return m.group(1)
-

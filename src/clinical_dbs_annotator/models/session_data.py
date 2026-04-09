@@ -67,7 +67,9 @@ class SessionData:
         self.tsv_writer.writeheader()
         self.session_start_time = datetime.now()
 
-    def open_file_append(self, file_path: str, start_block_id: int | None = None) -> None:
+    def open_file_append(
+        self, file_path: str, start_block_id: int | None = None
+    ) -> None:
         """Open an existing TSV file in append mode and continue block numbering."""
         self.file_path = file_path
         self.close_file()
@@ -129,7 +131,6 @@ class SessionData:
             pass
         self.session_start_time = datetime.now()
 
-
     def close_file(self) -> None:
         """Close the TSV file if it's open."""
         if self.tsv_file:
@@ -176,7 +177,9 @@ class SessionData:
             raise ValueError("TSV file not opened. Call open_file() first.")
 
         tz = self._resolve_timezone()
-        now_localized = datetime.now(tz) if tz is not None else datetime.now().astimezone()
+        now_localized = (
+            datetime.now(tz) if tz is not None else datetime.now().astimezone()
+        )
         time_str = now_localized.strftime("%H:%M:%S")
         today = now_localized.strftime("%Y-%m-%d")
         tz_str = self._timezone_string(now_localized)
@@ -242,7 +245,9 @@ class SessionData:
             raise ValueError("TSV file not opened. Call open_file() first.")
 
         tz = self._resolve_timezone()
-        now_localized = datetime.now(tz) if tz is not None else datetime.now().astimezone()
+        now_localized = (
+            datetime.now(tz) if tz is not None else datetime.now().astimezone()
+        )
         time_str = now_localized.strftime("%H:%M:%S")
         today = now_localized.strftime("%Y-%m-%d")
         tz_str = self._timezone_string(now_localized)
@@ -320,7 +325,9 @@ class SessionData:
             IOError: If file cannot be created
         """
         if self.is_file_open():
-            raise ValueError("A file is already open. Close it before initializing a new one.")
+            raise ValueError(
+                "A file is already open. Close it before initializing a new one."
+            )
 
         self.file_path = filepath
 
@@ -342,7 +349,9 @@ class SessionData:
     def open_simple_file_append(self, filepath: str) -> None:
         """Open an existing annotations-only TSV file in append mode (or create if missing)."""
         if self.is_file_open():
-            raise ValueError("A file is already open. Close it before opening another file.")
+            raise ValueError(
+                "A file is already open. Close it before opening another file."
+            )
 
         self.file_path = filepath
 
@@ -389,7 +398,6 @@ class SessionData:
 
         # Get current time
         from datetime import datetime
-
 
         now_localized = datetime.now().astimezone()
         time_str = now_localized.strftime("%H:%M:%S")

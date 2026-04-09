@@ -117,7 +117,10 @@ class SessionScalesSettingsDialog(QDialog):
 
     def eventFilter(self, obj, event):  # noqa: N802
         """Deselect preset when clicking empty space in the list."""
-        if obj == self.presets_list.viewport() and event.type() == QEvent.MouseButtonPress:
+        if (
+            obj == self.presets_list.viewport()
+            and event.type() == QEvent.MouseButtonPress
+        ):
             if event.button() == Qt.LeftButton:
                 item = self.presets_list.itemAt(event.pos())
                 if item is None:
@@ -278,7 +281,9 @@ class SessionScalesSettingsDialog(QDialog):
     def _save_presets_to_file(self):
         """Persist all presets to the JSON configuration file."""
         os.makedirs(os.path.dirname(self.presets_file), exist_ok=True)
-        serializable = {k: [list(x) for x in v] for k, v in self.current_presets.items()}
+        serializable = {
+            k: [list(x) for x in v] for k, v in self.current_presets.items()
+        }
         with open(self.presets_file, "w", encoding="utf-8") as f:
             json.dump(serializable, f, indent=2, ensure_ascii=False)
 

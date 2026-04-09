@@ -17,12 +17,15 @@ class ClinicalScale:
         name: The name of the clinical scale (e.g., "YBOCS", "MADRS")
         value: The score/value for this scale (optional)
     """
+
     name: str
     value: str | None = None
 
     def is_valid(self) -> bool:
         """Check if the scale has both name and value."""
-        return bool(self.name and self.name.strip() and self.value and self.value.strip())
+        return bool(
+            self.name and self.name.strip() and self.value and self.value.strip()
+        )
 
     def __repr__(self) -> str:
         return f"ClinicalScale(name='{self.name}', value='{self.value}')"
@@ -39,6 +42,7 @@ class SessionScale:
         max_value: Maximum value for the scale
         current_value: Current value during session (optional)
     """
+
     name: str
     min_value: str = "0"
     max_value: str = "10"
