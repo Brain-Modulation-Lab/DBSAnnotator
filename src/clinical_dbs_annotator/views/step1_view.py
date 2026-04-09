@@ -247,6 +247,12 @@ class Step1View(BaseStepView):
         group_row = QGroupBox("Program")
         group_row_layout = QHBoxLayout()
         self.group_combo = QComboBox()
+        self.group_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # Prevent focus rectangle on dropdown
+        self.group_combo.view().window().setAttribute(
+            Qt.WA_TranslucentBackground, False
+        )
+        self.group_combo.view().setStyleSheet("QAbstractItemView { outline: none; }")
         # Load program names from config
         program_config = get_program_config_manager()
         programs = program_config.get_all_programs()
@@ -258,9 +264,11 @@ class Step1View(BaseStepView):
         edit_programs_btn = QPushButton()
         edit_programs_btn.setIcon(self._create_settings_icon())
         edit_programs_btn.setToolTip("Edit program names")
-        edit_programs_btn.setFixedSize(24, 24)
+        edit_programs_btn.setObjectName("programSettingsButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
+
+        group_row_layout.addStretch()
 
         group_row.setLayout(group_row_layout)
 

@@ -64,6 +64,7 @@ QComboBox {
     padding: 6px 10px;
     font-size: 12px;
     font-weight: 500;
+    min-width: 120px;
 }
 
 QComboBox:hover {
@@ -101,12 +102,12 @@ QComboBox QAbstractItemView {
     selection-color: white;
     padding: 4px;
     font-size: 12px;
+    show-decoration-selected: 0;
 }
 
 QComboBox QAbstractItemView::item {
     background-color: #334155;
     padding: 8px 12px;
-    border-bottom: 1px solid #475569;
     min-height: 20px;
 }
 
@@ -117,6 +118,7 @@ QComboBox QAbstractItemView::item:hover {
 QComboBox QAbstractItemView::item:selected {
     background-color: #f59e0b;
     color: white;
+    border-radius: 4px;
 }
 
 
@@ -301,6 +303,19 @@ QGroupBox::title {
     background-color: #1e293b;
 }
 
+QGroupBox::indicator:unchecked {
+    border: 1px solid #64748b;
+    border-radius: 2px;
+    margin-top: 2px;
+}
+
+QGroupBox::indicator:checked {
+    border: 1px solid #64748b;
+    border-radius: 2px;
+    margin-top: 2px;
+    image: url(checkbox_check_dark.svg);
+}
+
 /* Horizontal Lines */
 QFrame[frameShape="4"] {
     background: #334155;
@@ -371,6 +386,26 @@ QPushButton#theme_toggle:hover {
 }
 
 QPushButton#theme_toggle:pressed {
+    background-color: #1e293b;
+}
+
+/* Program Settings Button - Square with same height as dropdown */
+QPushButton#programSettingsButton {
+    background-color: #334155;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    icon-size: 16px;
+}
+
+QPushButton#programSettingsButton:hover {
+    background-color: #475569;
+    border-color: #f59e0b;
+}
+
+QPushButton#programSettingsButton:pressed {
     background-color: #1e293b;
 }
 

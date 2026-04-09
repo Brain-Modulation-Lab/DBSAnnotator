@@ -94,13 +94,26 @@ class ThemeManager:
         Raises:
             FileNotFoundError: If stylesheet file doesn't exist
         """
+        import re
+
         path = self.get_theme_stylesheet_path(theme)
 
         if not os.path.exists(path):
             raise FileNotFoundError(f"Theme stylesheet not found: {path}")
 
         with open(path, encoding="utf-8") as f:
-            return f.read()
+            content = f.read()
+
+        base_dir = os.path.dirname(path)
+
+        def _resolve(match):
+            url = match.group(1).strip().strip("\"'")
+            if not os.path.isabs(url):
+                abs_url = os.path.normpath(os.path.join(base_dir, url))
+                return f"url({abs_url.replace(os.sep, '/')})"
+            return match.group(0)
+
+        return re.sub(r"url\(([^)]+)\)", _resolve, content)
 
     def apply_theme(self, theme: Theme, app: QApplication = None) -> None:
         """

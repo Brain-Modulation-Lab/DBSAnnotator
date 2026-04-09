@@ -14,6 +14,8 @@ from unittest.mock import MagicMock, patch
 # Add src directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
+from PyQt5.QtWidgets import QMessageBox
+
 from clinical_dbs_annotator.controllers.wizard_controller import WizardController
 from clinical_dbs_annotator.models import SessionData, StimulationParameters
 

@@ -8,6 +8,7 @@ and main window creation.
 import logging
 import sys
 
+import PySide6.QtSvg  # noqa: F401 - required to enable SVG rendering in QSS
 from PySide6.QtWidgets import QApplication
 
 from .logging_config import setup_logging
