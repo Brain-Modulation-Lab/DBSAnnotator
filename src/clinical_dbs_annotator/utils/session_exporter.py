@@ -464,12 +464,12 @@ class SessionExporter:
             right_row['block_id'] = block_id
 
             # Common columns (non-lateral) - use combined scales with internal lines
-            left_row['group_ID'] = first_row.get('group_ID', '')
+            left_row['program_ID'] = first_row.get('program_ID', '')
             left_row['scale_name'] = combined_scale_name
             left_row['scale_value'] = combined_scale_value
             left_row['notes'] = first_row.get('notes', '')
 
-            right_row['group_ID'] = first_row.get('group_ID', '')
+            right_row['program_ID'] = first_row.get('program_ID', '')
             right_row['scale_name'] = combined_scale_name
             right_row['scale_value'] = combined_scale_value
             right_row['notes'] = first_row.get('notes', '')
@@ -524,7 +524,7 @@ class SessionExporter:
         display_columns = [col for col in lateral_df.columns if col not in columns_to_exclude]
 
         lateral_cols = ['laterality', 'frequency', 'anode', 'cathode', 'amplitude', 'pulse_width']
-        common_cols = ['group_ID', 'scale_name', 'scale_value', 'notes']
+        common_cols = ['program_ID', 'scale_name', 'scale_value', 'notes']
 
         lateral_cols = [col for col in lateral_cols if col in display_columns]
         common_cols = [col for col in common_cols if col in display_columns]
@@ -540,7 +540,7 @@ class SessionExporter:
 
         base_in = {
             'laterality': 0.30,
-            'group_ID': 0.40,
+            'program_ID': 0.40,
             'frequency': 0.50,
             'anode': 0.45,
             'cathode': 0.60,
@@ -935,7 +935,7 @@ class SessionExporter:
             "cathode": "-",
             "amplitude": PLACEHOLDERS.get("amplitude"),
             "pulse_width": PLACEHOLDERS.get("pulse_width"),
-            "group_ID": "grp",
+            "program_ID": "Prog",
             "laterality": "",
         }
         if col in placeholder_map and placeholder_map[col] is not None:

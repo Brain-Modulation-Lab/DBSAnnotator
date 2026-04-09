@@ -358,7 +358,7 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 QPushButton#theme_toggle {
     background-color: #334155;
     border: 1px solid #475569;
-    border-radius: 16px;
+    border-radius: 20px;
     width: 40px;
     height: 40px;
     padding: 0;

@@ -170,7 +170,7 @@ class SessionData:
                 "date": today,
                 "time": time_str,
                 "block_id": self.block_id,
-                "group_ID": group,
+                "program_ID": group,
                 "session_ID": self.session_id,
                 "is_initial": 1,  # Clinical scales are from view1, so is_initial = 1
                 "scale_name": None,
@@ -187,7 +187,7 @@ class SessionData:
                     "date": today,
                     "time": time_str,
                     "block_id": self.block_id,
-                    "group_ID": group,
+                    "program_ID": group,
                     "session_ID": self.session_id,
                     "is_initial": 1,  # Clinical scales are from view1, so is_initial = 1
                     "scale_name": scale.name,
@@ -234,7 +234,7 @@ class SessionData:
                 "date": today,
                 "time": time_str,
                 "block_id": self.block_id,
-                "group_ID": group,
+                "program_ID": group,
                 "session_ID": self.session_id,
                 "is_initial": 0,  # Session scales are from view3, so is_initial = 0
                 "scale_name": None,
@@ -251,7 +251,7 @@ class SessionData:
                     "date": today,
                     "time": time_str,
                     "block_id": self.block_id,
-                    "group_ID": group,
+                    "program_ID": group,
                     "session_ID": self.session_id,
                     "is_initial": 0,  # Session scales are from view3, so is_initial = 0
                     "scale_name": scale.name,

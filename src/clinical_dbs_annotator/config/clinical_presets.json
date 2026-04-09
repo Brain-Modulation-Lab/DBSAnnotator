@@ -1,11 +1,11 @@
 {
+  "MDD": [
+    "MADRS"
+  ],
   "OCD": [
     "Y-BOCS",
     "Y-BOCS-o",
     "Y-BOCS-c",
-    "MADRS"
-  ],
-  "MDD": [
     "MADRS"
   ],
   "PD": [

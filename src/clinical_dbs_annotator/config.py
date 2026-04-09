@@ -57,7 +57,7 @@ TSV_COLUMNS = [
     "date",
     "time",
     "block_id",
-    "group_ID",
+    "program_ID",
     "session_ID",
     "is_initial",
     "scale_name",

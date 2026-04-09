@@ -7,16 +7,20 @@ session data including stimulation parameters and scale values.
 
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDoubleValidator, QIntValidator
+from PySide6.QtGui import QDoubleValidator, QIcon, QIntValidator
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMenu,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -39,6 +43,10 @@ from ..ui import (
     ScaleProgressWidget,
     create_horizontal_line,
     get_cathode_labels,
+)
+from ..utils.program_config_manager import (
+    ProgramConfigManager,
+    get_program_config_manager,
 )
 from .base_view import BaseStepView
 
@@ -83,6 +91,18 @@ class Step3View(BaseStepView):
     def get_header_title(self) -> str:
         """Return the wizard header title for Step 3."""
         return "Programming Session Ongoing"
+
+    def _create_settings_icon(self) -> QIcon:
+        """Create an SVG gear icon coloured to match the current theme."""
+        # Get theme-appropriate icon color
+        fill_color = "#f59e0b"  # Default amber color for dark theme
+
+        svg = f"""
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
+        </svg>
+        """
+        return QIcon(svg)
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
@@ -204,12 +224,24 @@ class Step3View(BaseStepView):
         #container.setMinimumWidth(380)
         sidebar_layout = QVBoxLayout(container)
 
-        group_row = QGroupBox("Group")
+        group_row = QGroupBox("Program")
         group_row_layout = QHBoxLayout()
         self.group_combo = QComboBox()
-        self.group_combo.addItems(["A", "B", "C", "D", "None"])
+        # Load program names from config
+        program_config = get_program_config_manager()
+        programs = program_config.get_all_programs()
+        self.group_combo.addItems(programs)
         self.group_combo.setCurrentIndex(0)
         group_row_layout.addWidget(self.group_combo)
+
+        # Add edit button for program names
+        edit_programs_btn = QPushButton()
+        edit_programs_btn.setIcon(self._create_settings_icon())
+        edit_programs_btn.setToolTip("Edit program names")
+        edit_programs_btn.setFixedSize(24, 24)
+        edit_programs_btn.clicked.connect(self._edit_program_names)
+        group_row_layout.addWidget(edit_programs_btn)
+
         group_row.setLayout(group_row_layout)
 
         freq_limits = STIMULATION_LIMITS["frequency"]
@@ -745,7 +777,7 @@ class Step3View(BaseStepView):
         right_anode: str,
         right_amp: str,
         right_pw: str,
-        group: str,
+        program: str,
     ) -> None:
         """
         Set initial stimulation parameters from previous step.
@@ -777,9 +809,9 @@ class Step3View(BaseStepView):
         if hasattr(self, "_current_model") and self._current_model:
             self.set_electrode_model(self._current_model)
 
-        if hasattr(self, "group_combo") and group:
+        if hasattr(self, "group_combo") and program:
             try:
-                self.group_combo.setCurrentText(str(group))
+                self.group_combo.setCurrentText(str(program))
             except Exception:
                 pass
 
@@ -890,3 +922,111 @@ class Step3View(BaseStepView):
             cathode_labels = get_cathode_labels(self.right_canvas)
             is_single_grouped = self._is_single_grouped_directional(cathode_labels, self.right_canvas)
             self.right_amp_split.update_cathodes(cathode_labels, is_single_grouped)
+
+    def _edit_program_names(self) -> None:
+        """Open dialog to edit custom program names."""
+        program_config = get_program_config_manager()
+        custom_programs = program_config.get_custom_programs()
+        default_programs = ProgramConfigManager.DEFAULT_PROGRAMS
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Edit Program Names")
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        # List widget to show custom programs
+        list_widget = QListWidget()
+        list_widget.addItems(custom_programs)
+        layout.addWidget(list_widget)
+
+        # Input for new program name
+        input_layout = QHBoxLayout()
+        new_program_edit = QLineEdit()
+        new_program_edit.setPlaceholderText("New program name...")
+        input_layout.addWidget(new_program_edit)
+
+        add_btn = QPushButton("Add")
+        add_btn.clicked.connect(lambda: self._add_program_to_list(new_program_edit.text(), list_widget, program_config))
+        input_layout.addWidget(add_btn)
+        layout.addLayout(input_layout)
+
+        # Edit and remove buttons
+        button_layout = QHBoxLayout()
+        edit_btn = QPushButton("Edit Selected")
+        remove_btn = QPushButton("Remove Selected")
+        button_layout.addWidget(edit_btn)
+        button_layout.addWidget(remove_btn)
+        layout.addLayout(button_layout)
+
+        # Connect edit/remove buttons
+        edit_btn.clicked.connect(lambda: self._edit_selected_program(list_widget, program_config, default_programs))
+        remove_btn.clicked.connect(lambda: self._remove_selected_program(list_widget, program_config, default_programs))
+
+        # Dialog buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec() == QDialog.Accepted:
+            # Refresh combo box with updated programs
+            current_text = self.group_combo.currentText()
+            programs = program_config.get_all_programs()
+            self.group_combo.clear()
+            self.group_combo.addItems(programs)
+            if current_text in programs:
+                self.group_combo.setCurrentText(current_text)
+            else:
+                self.group_combo.setCurrentIndex(0)
+
+    def _add_program_to_list(self, name: str, list_widget: QListWidget, program_config: ProgramConfigManager) -> None:
+        """Add a new program to the list."""
+        if not name or name in ProgramConfigManager.DEFAULT_PROGRAMS:
+            QMessageBox.warning(self, "Error", "Program name cannot be empty or match default programs.")
+            return
+
+        if program_config.add_program(name):
+            list_widget.addItem(name)
+        else:
+            QMessageBox.warning(self, "Error", "Program name already exists.")
+
+    def _edit_selected_program(self, list_widget: QListWidget, program_config: ProgramConfigManager, default_programs: list[str]) -> None:
+        """Edit the selected program name."""
+        current_item = list_widget.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Error", "No program selected.")
+            return
+
+        old_name = current_item.text()
+        from PySide6.QtWidgets import QInputDialog
+
+        new_name, ok = QInputDialog.getText(self, "Edit Program", "New program name:", QLineEdit.Normal, old_name)
+        if ok and new_name:
+            if new_name in default_programs:
+                QMessageBox.warning(self, "Error", "Cannot rename to a default program name.")
+                return
+
+            if program_config.update_program(old_name, new_name):
+                current_item.setText(new_name)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to update program name.")
+
+    def _remove_selected_program(self, list_widget: QListWidget, program_config: ProgramConfigManager, default_programs: list[str]) -> None:
+        """Remove the selected program name."""
+        current_item = list_widget.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Error", "No program selected.")
+            return
+
+        name = current_item.text()
+        if name in default_programs:
+            QMessageBox.warning(self, "Error", "Cannot remove default programs.")
+            return
+
+        reply = QMessageBox.question(self, "Confirm", f"Remove program '{name}'?", QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            if program_config.remove_program(name):
+                list_widget.takeItem(list_widget.row(current_item))
+            else:
+                QMessageBox.warning(self, "Error", "Failed to remove program.")
