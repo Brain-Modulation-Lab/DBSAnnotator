@@ -230,19 +230,6 @@ QPushButton#full_mode_button, QPushButton#annotations_only_button, QPushButton#l
     font-size: 12px;
     font-weight: 600;
     border: 2px solid #475569;
-
-    /* 3D gradient + glossy highlight */
-    background: qlineargradient(
-        x1: 0, y1: 0, x2: 0, y2: 1,
-        stop: 0 rgba(255,255,255,0.06),
-        stop: 0.03 #3f4b59,
-        stop: 0.5 #334155,
-        stop: 1 #22303a
-    );
-
-    /* icon default size if later aggiungi immagini */
-    qproperty-iconSize: 64px 64px;
-
     outline: none;
 }
 
@@ -329,23 +316,25 @@ QFrame[frameShape="4"] {
 QRadioButton, QCheckBox {
     spacing: 6px;
     color: #f1f5f9;
+    background: transparent;
 }
 
 QRadioButton::indicator, QCheckBox::indicator {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    border: 1px solid #475569;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #64748b;
+    border-radius: 2px;
     background-color: #334155;
 }
 
 QRadioButton::indicator:checked, QCheckBox::indicator:checked {
-    background-color: #f59e0b;
-    border-color: #b45309;
+    border: 1px solid #64748b;
+    background-color: #334155;
+    image: url(checkbox_check_dark.svg);
 }
 
 QRadioButton::indicator:hover, QCheckBox::indicator:hover {
-    border-color: #f59e0b;
+    border-color: #64748b;
 }
 
 /* Scrollbars */
@@ -464,6 +453,22 @@ QPushButton[class="best-if-btn"] {
     border-radius: 3px;
     background-color: #334155;
     color: #f1f5f9;
+}
+
+/* Scale Add/Remove Buttons */
+QPushButton#scale_add_btn, QPushButton#scale_remove_btn {
+    padding: 0px;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    background-color: #334155;
+    color: #f1f5f9;
+}
+
+QPushButton#scale_add_btn:hover, QPushButton#scale_remove_btn:hover {
+    background-color: #475569;
+    border-color: #f59e0b;
 }
 
 QPushButton[class="best-if-btn"]:checked {

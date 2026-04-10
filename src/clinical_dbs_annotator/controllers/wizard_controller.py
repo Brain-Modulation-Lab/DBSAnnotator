@@ -9,13 +9,10 @@ import csv
 
 from PySide6.QtWidgets import QMessageBox
 
-from ..config import (
-    CLINICAL_SCALES_PRESETS,
-    SESSION_SCALES_PRESETS,
-)
 from ..config_electrode_models import ELECTRODE_MODELS
 from ..models import ClinicalScale, SessionData, SessionScale, StimulationParameters
 from ..utils import animate_button
+from ..utils.scale_preset_manager import get_scale_preset_manager
 
 
 class WizardController:
@@ -61,7 +58,9 @@ class WizardController:
             preset_name: Name of the preset (e.g., "OCD", "MDD")
             view: The Step1View instance to update
         """
-        preset = CLINICAL_SCALES_PRESETS.get(preset_name, [])
+        preset_manager = get_scale_preset_manager()
+        clinical_presets = preset_manager.get_clinical_presets()
+        preset = clinical_presets.get(preset_name, [])
         view.update_clinical_scales(
             preset,
             on_add_callback=lambda: self.on_add_clinical_scale(view),
@@ -76,19 +75,19 @@ class WizardController:
             preset_name: Name of the preset (e.g., "OCD", "MDD")
             view: The Step2View instance to update
         """
-        preset = []
-        if hasattr(view, "session_presets"):
-            try:
-                preset = view.session_presets.get(preset_name, [])
-            except Exception:
-                preset = []
-        if not preset:
-            preset = SESSION_SCALES_PRESETS.get(preset_name, [])
+        preset_manager = get_scale_preset_manager()
+        session_presets = preset_manager.get_session_presets()
+        preset = session_presets.get(preset_name, [])
         view.update_session_scales(
             preset,
             on_add_callback=lambda: self.on_add_session_scale(view),
             on_remove_callback=lambda row: self.on_remove_session_scale(view, row),
         )
+
+        # Set the active preset button
+        preset_btn = view.get_preset_button(preset_name)
+        if preset_btn:
+            view._set_active_preset_button(preset_btn)
 
     def on_add_clinical_scale(self, view) -> None:
         """
@@ -293,6 +292,30 @@ class WizardController:
             on_add_callback=lambda: self.on_add_session_scale(view),
             on_remove_callback=lambda row: self.on_remove_session_scale(view, row),
         )
+
+    def auto_select_session_preset(self, view, step1_view) -> None:
+        """
+        Auto-select session preset if clinical preset with same name was selected.
+
+        Args:
+            view: The Step2View instance
+            step1_view: The Step1View instance to read active preset from
+        """
+        # Read the active preset name from the step1_view's active button
+        active_preset_name = None
+        if step1_view and step1_view.active_preset_button is not None:
+            obj_name = step1_view.active_preset_button.objectName()
+            # objectName is like "preset_OCD" -> extract "OCD"
+            if obj_name.startswith("preset_"):
+                active_preset_name = obj_name[len("preset_") :]
+
+        if active_preset_name:
+            preset_manager = get_scale_preset_manager()
+            session_presets = preset_manager.get_session_presets()
+
+            if active_preset_name in session_presets:
+                # Apply the matching session preset
+                self.apply_session_preset(active_preset_name, view)
 
     def validate_step2(self, view) -> bool:
         """

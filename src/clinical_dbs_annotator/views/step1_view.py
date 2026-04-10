@@ -5,13 +5,12 @@ This module contains the view for the first step of the wizard where users
 configure initial settings, stimulation parameters, and clinical scales.
 """
 
-import json
 import os
 from collections.abc import Callable
 from datetime import datetime
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QDoubleValidator, QIcon, QIntValidator, QPixmap
+from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -58,7 +57,7 @@ from ..utils.program_config_manager import (
     ProgramConfigManager,
     get_program_config_manager,
 )
-from ..utils.resources import resource_path
+from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
 
 
@@ -73,19 +72,20 @@ class Step1View(BaseStepView):
     - Initial notes
     """
 
-    def __init__(self, parent_style):
+    def __init__(self, parent_style=None):
         """
         Initialize Step 1 view.
 
         Args:
-            parent_style: Parent widget style for icon access
+            parent_style: Parent widget style for icon access (deprecated, kept for compatibility)
         """
         super().__init__()
-        self.parent_style = parent_style
+        # parent_style is now set in BaseStepView.__init__
         self.clinical_scales_rows: list[tuple[QLineEdit, QLineEdit, QHBoxLayout]] = []
         self.current_file_mode = None  # Track file mode: 'existing', 'new', or None
         self.next_block_id: int | None = None
         self.active_preset_button: QPushButton | None = None  # Track active preset
+        self.clinical_presets: dict[str, list[str]] = self._load_clinical_presets()
 
         self.left_canvas = ElectrodeCanvas()
         self.right_canvas = ElectrodeCanvas()
@@ -93,45 +93,16 @@ class Step1View(BaseStepView):
         # Electrode disable state
         self.left_electrode_enabled = True
         self.right_electrode_enabled = True
-        self.left_canvas.validation_callback = self._on_left_canvas_validation
-        self.right_canvas.validation_callback = self._on_right_canvas_validation
         self._left_selection_valid = True
         self._right_selection_valid = True
-
-        # Load custom presets
-        self.clinical_presets = self._load_clinical_presets()
+        self.left_canvas.validation_callback = self._on_left_canvas_validation
+        self.right_canvas.validation_callback = self._on_right_canvas_validation
 
         self._setup_ui()
 
     def get_header_title(self) -> str:
         """Return the wizard header title for Step 1."""
         return "Clinical Programming Session Setup"
-
-    def _create_settings_icon(self) -> QIcon:
-        """Create an SVG gear icon coloured to match the current theme."""
-        # Get theme-appropriate icon color from theme definitions
-        fill_color = self._get_theme_icon_color()
-
-        svg = f"""
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
-        </svg>
-        """
-        pixmap = QPixmap()
-        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
-        return QIcon(pixmap)
-
-    def _get_theme_icon_color(self) -> str:
-        """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
-        from ..utils.theme_manager import get_theme_manager
-
-        return get_theme_manager().get_theme_color("Icon")
-
-    def refresh_theme_icons(self) -> None:
-        """Refresh icons that depend on the current theme (call after theme toggle)."""
-        btn = self.findChild(QPushButton, "settings_clincal_scales")
-        if btn:
-            btn.setIcon(self._create_settings_icon())
 
     def _is_single_grouped_directional(self, cathode_labels: list[str], canvas) -> bool:
         """Check if a single cathode label represents a grouped directional contact."""
@@ -267,8 +238,6 @@ class Step1View(BaseStepView):
         edit_programs_btn.setObjectName("programSettingsButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
-
-        group_row_layout.addStretch()
 
         group_row.setLayout(group_row_layout)
 
@@ -472,6 +441,7 @@ class Step1View(BaseStepView):
         sidebar_scroll.setFrameShape(QFrame.NoFrame)
         sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        sidebar_scroll.setMinimumWidth(380)
         sidebar_scroll.setWidget(sidebar_widget)
 
         electrodes_layout = QVBoxLayout()
@@ -513,35 +483,6 @@ class Step1View(BaseStepView):
             self.on_model_changed(self.model_combo.currentText())
 
         return gb_init
-
-    def _create_electrode_legend_layout(self) -> QHBoxLayout:
-        """Create the colour legend row for electrode contact states."""
-        layout = QHBoxLayout()
-        layout.addStretch(1)
-
-        def legend_item(color: str, text: str, border: str) -> QWidget:
-            w = QWidget()
-            w.setStyleSheet("background-color: transparent;")
-            row = QHBoxLayout(w)
-            row.setContentsMargins(0, 0, 0, 0)
-            swatch = QLabel()
-            swatch.setFixedSize(16, 12)
-            swatch.setStyleSheet(
-                f"background-color: {color}; border: 1px solid {border};"
-            )
-            label = QLabel(text)
-            row.addWidget(swatch)
-            row.addSpacing(6)
-            row.addWidget(label)
-            return w
-
-        layout.addWidget(legend_item("#969696", "OFF", "#333333"))
-        layout.addSpacing(18)
-        layout.addWidget(legend_item("#ff6464", "Anodic (+)", "#c83232"))
-        layout.addSpacing(18)
-        layout.addWidget(legend_item("#6496ff", "Cathodic (-)", "#3264c8"))
-        layout.addStretch(1)
-        return layout
 
     # functions for the electrode visualization
     def populate_models(self, manufacturer):
@@ -995,25 +936,6 @@ class Step1View(BaseStepView):
                 else:
                     widget.setGraphicsEffect(None)
 
-    def _apply_preset_scales(self, scales: list[str]) -> None:
-        """Apply a list of preset scales to the clinical scales container."""
-        # Remove any existing stretches from container
-        while self.clinical_scales_container.count():
-            item = self.clinical_scales_container.takeAt(0)
-            if item.spacerItem():
-                # Just remove the stretch, no widget to delete
-                continue
-            elif item.widget():
-                item.widget().deleteLater()
-
-        for scale_name in scales:
-            self._add_clinical_scale_row(
-                scale_name, with_minus=True, on_remove=self.on_remove_callback
-            )
-
-        self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
-        self.clinical_scales_container.addStretch()
-
     def _create_notes_group(self) -> QGroupBox:
         """Create the initial notes group box."""
         gb_notes = QGroupBox("Initial notes")
@@ -1278,12 +1200,19 @@ class Step1View(BaseStepView):
 
                 # Load clinical scales
                 block0_scales = []
-                # Re-read file to get all scales from the latest initial session
+                latest_block_id = initial_rows[max_session_id]["block_id"]
+                # Re-read file to get scales from the latest initial block only
                 with open(file_path, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
                     for row in reader:
+                        try:
+                            bid = int(float(row.get("block_id", "")))
+                            sid = int(float(row.get("session_ID", "")))
+                        except ValueError, TypeError:
+                            continue
                         if (
-                            row.get("session_ID") == str(max_session_id)
+                            sid == max_session_id
+                            and bid == latest_block_id
                             and row.get("is_initial") == "1"
                         ):
                             sname = row.get("scale_name", None)
@@ -1292,6 +1221,15 @@ class Step1View(BaseStepView):
                                 block0_scales.append(
                                     (str(sname), "" if sval is None else str(sval))
                                 )
+
+                # Deduplicate scales by name (keep last occurrence)
+                seen_scales = set()
+                deduplicated_scales = []
+                for name, value in reversed(block0_scales):
+                    if name not in seen_scales:
+                        seen_scales.add(name)
+                        deduplicated_scales.append((name, value))
+                block0_scales = list(reversed(deduplicated_scales))
 
                 # Load notes
                 notes_val = latest_initial.get("notes", None)
@@ -1344,6 +1282,16 @@ class Step1View(BaseStepView):
                     )
                     self.clinical_scales_container.addStretch()
                     self._pending_scales = []  # Clear pending since we loaded them
+
+                    # Detect and select matching clinical preset
+                    loaded_scale_names = [name for name, _ in block0_scales]
+                    for preset_name, preset_scales in self.clinical_presets.items():
+                        # Check if loaded scales match or are a subset of preset scales
+                        if all(name in preset_scales for name in loaded_scale_names):
+                            # Select the matching preset button
+                            preset_btn = self.get_preset_button(preset_name)
+                            if preset_btn:
+                                self._set_active_preset_button(preset_btn)
 
                 self.update_configuration_display()
 
@@ -1606,9 +1554,13 @@ class Step1View(BaseStepView):
         """Set the active preset button and update visual state."""
         # Clear previous active button
         if self.active_preset_button is not None:
-            self.active_preset_button.setProperty("active", "false")
-            self.active_preset_button.style().unpolish(self.active_preset_button)
-            self.active_preset_button.style().polish(self.active_preset_button)
+            try:
+                self.active_preset_button.setProperty("active", "false")
+                self.active_preset_button.style().unpolish(self.active_preset_button)
+                self.active_preset_button.style().polish(self.active_preset_button)
+            except RuntimeError:
+                pass
+            self.active_preset_button = None
 
         # Set new active button
         self.active_preset_button = button
@@ -1618,45 +1570,86 @@ class Step1View(BaseStepView):
             button.style().polish(button)
 
     def _apply_preset_scales(self, scales: list[str]):
-        """Apply a preset's scales to the clinical scales section."""
+        """Apply a preset's scales to the clinical scales section.
+
+        If same preset is clicked: keep existing scales with values, add missing scales.
+        If different preset is clicked: replace all scales with preset scales.
+        """
         if not isinstance(scales, list):
             return
 
         if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
-            # Clear existing scales first
-            for _, _, row_layout in self.clinical_scales_rows:
+            # Get existing scale names - with and without values
+            existing_scales_with_values = set()
+            all_existing_scale_names = set()
+            for name_edit, score_edit, _ in self.clinical_scales_rows:
+                name = name_edit.text().strip()
+                value = score_edit.text().strip()
+                if name:
+                    all_existing_scale_names.add(name)
+                    if value:
+                        existing_scales_with_values.add(name)
+
+            # Find the empty row (with add button) index
+            add_button_row_index = -1
+            for i, (name_edit, _, _) in enumerate(self.clinical_scales_rows):
+                if (
+                    name_edit.text().strip() == ""
+                ):  # Empty name indicates add button row
+                    add_button_row_index = i
+                    break
+
+            # Remove only the add button row temporarily
+            if add_button_row_index >= 0:
+                name_edit, score_edit, row_layout = self.clinical_scales_rows[
+                    add_button_row_index
+                ]
                 while row_layout.count():
                     item = row_layout.takeAt(0)
                     widget = item.widget()
                     if widget is not None:
                         widget.deleteLater()
                 self.clinical_scales_container.removeItem(row_layout)
-            self.clinical_scales_rows = []
+                self.clinical_scales_rows.pop(add_button_row_index)
 
-            # Also remove any stretches from container
-            while self.clinical_scales_container.count():
-                item = self.clinical_scales_container.takeAt(0)
-                if item.spacerItem():
-                    # Just remove the stretch, no widget to delete
-                    continue
-                elif item.widget():
-                    item.widget().deleteLater()
-                else:
-                    # Remove layout items
-                    continue
+            # Check if this is the same preset as before (by checking if all existing scales with values are in the new preset)
+            is_same_preset = all(name in scales for name in existing_scales_with_values)
 
-            # Add the preset scales
-            for scale_name in scales:
-                self._add_clinical_scale_row(
-                    scale_name, with_minus=True, on_remove=self.on_remove_callback
-                )
+            if is_same_preset and existing_scales_with_values:
+                # Same preset: keep existing scales, add only truly missing scales (not present at all)
+                for scale_name in scales:
+                    if scale_name not in all_existing_scale_names:
+                        self._add_clinical_scale_row(
+                            scale_name,
+                            with_minus=True,
+                            on_remove=self.on_remove_callback,
+                        )
+            else:
+                # Different preset or no existing scales: clear all and add preset scales
+                for _, _, row_layout in self.clinical_scales_rows:
+                    while row_layout.count():
+                        item = row_layout.takeAt(0)
+                        widget = item.widget()
+                        if widget is not None:
+                            widget.deleteLater()
+                    self.clinical_scales_container.removeItem(row_layout)
+                self.clinical_scales_rows = []
 
-            # Add empty row with add button
+                for scale_name in scales:
+                    self._add_clinical_scale_row(
+                        scale_name, with_minus=True, on_remove=self.on_remove_callback
+                    )
+
+            # Add empty row with add button back at the end
             self._add_clinical_scale_row(
                 "", with_plus=True, on_add=self.on_add_callback
             )
 
-            # Add stretch at the very bottom
+            # Remove any existing stretches and add one at the very bottom
+            for i in range(self.clinical_scales_container.count() - 1, -1, -1):
+                item = self.clinical_scales_container.itemAt(i)
+                if item and item.spacerItem():
+                    self.clinical_scales_container.takeAt(i)
             self.clinical_scales_container.addStretch()
 
     def _add_clinical_scale_row(
@@ -1679,25 +1672,28 @@ class Step1View(BaseStepView):
         score_edit = QLineEdit()
         score_edit.setPlaceholderText(PLACEHOLDERS["scale_score"])
         score_edit.setMaximumWidth(50)
+        score_edit.setValidator(QIntValidator())
         score_edit.setText(value)
 
         btn = None
         if with_plus:
             btn = QPushButton("+")
             btn.setToolTip("Add clinical scale")
-            btn.setMaximumWidth(24)
+            btn.setFixedSize(20, 20)
+            btn.setObjectName("scale_add_btn")
             if on_add:
                 btn.clicked.connect(on_add)
         elif with_minus:
             btn = QPushButton("-")
             btn.setToolTip("Remove clinical scale")
-            btn.setMaximumWidth(24)
+            btn.setFixedSize(20, 20)
+            btn.setObjectName("scale_remove_btn")
             if on_remove:
                 btn.clicked.connect(lambda: on_remove(row))
         else:
             # Fallback placeholder (prevents UnboundLocalError)
             btn = QLabel("")
-            btn.setFixedWidth(24)
+            btn.setFixedSize(20, 20)
 
         # Add widgets to row
         row.addWidget(QLabel("Name:"))
@@ -1713,19 +1709,9 @@ class Step1View(BaseStepView):
         self.clinical_scales_rows.append((name_edit, score_edit, row))
 
     def _load_clinical_presets(self) -> dict[str, list[str]]:
-        """Load clinical presets from config file."""
-        presets_file = resource_path("config/clinical_presets.json")
-
-        if os.path.exists(presets_file):
-            try:
-                with open(presets_file, encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Error loading clinical presets: {e}")
-                return {}
-        else:
-            # Create default presets if file doesn't exist
-            return {k: list(v) for k, v in PRESET_BUTTONS.items()}
+        """Load clinical presets from ScalePresetManager."""
+        preset_manager = get_scale_preset_manager()
+        return preset_manager.get_clinical_presets()
 
     def _open_clinical_scales_settings(self):
         """Open the clinical scales settings dialog."""
@@ -1740,14 +1726,10 @@ class Step1View(BaseStepView):
         old_presets = self.clinical_presets
         self.clinical_presets = new_presets
 
-        # Save all presets to file immediately
+        # Save all presets using ScalePresetManager
         try:
-            presets_file = resource_path("config/clinical_presets.json")
-            os.makedirs(os.path.dirname(presets_file), exist_ok=True)
-
-            with open(presets_file, "w", encoding="utf-8") as f:
-                json.dump(new_presets, f, indent=2, ensure_ascii=False)
-
+            preset_manager = get_scale_preset_manager()
+            preset_manager.save_clinical_presets(new_presets)
         except Exception as e:
             print(f"Error saving presets: {e}")
 

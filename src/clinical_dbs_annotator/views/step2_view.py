@@ -5,12 +5,10 @@ This module contains the view for the second step where users configure
 the session tracking scales that will be used during the programming session.
 """
 
-import json
-import os
 from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QFont, QIcon, QPixmap
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
@@ -24,9 +22,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..config import PLACEHOLDERS, PRESET_BUTTONS, SESSION_SCALES_PRESETS
+from ..config import PLACEHOLDERS, PRESET_BUTTONS
 from ..ui.session_scales_settings_dialog import SessionScalesSettingsDialog
-from ..utils.resources import resource_path
+from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
 
 
@@ -39,15 +37,15 @@ class Step2View(BaseStepView):
     - Configuration of scale ranges (min/max values)
     """
 
-    def __init__(self, parent_style):
+    def __init__(self, parent_style=None):
         """
         Initialize Step 2 view.
 
         Args:
-            parent_style: Parent widget style for icon access
+            parent_style: Parent widget style for icon access (deprecated, kept for compatibility)
         """
         super().__init__()
-        self.parent_style = parent_style
+        # parent_style is now set in BaseStepView.__init__
         self.session_presets: dict[str, list[tuple[str, str, str]]] = (
             self._load_session_presets()
         )
@@ -62,32 +60,6 @@ class Step2View(BaseStepView):
     def get_header_title(self) -> str:
         """Return the wizard header title for Step 2."""
         return "Session Scale Configuration"
-
-    def _create_settings_icon(self) -> QIcon:
-        """Create an SVG gear icon coloured to match the current theme."""
-        # Get theme-appropriate icon color from theme definitions
-        fill_color = self._get_theme_icon_color()
-
-        svg = f"""
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
-        </svg>
-        """
-        pixmap = QPixmap()
-        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
-        return QIcon(pixmap)
-
-    def _get_theme_icon_color(self) -> str:
-        """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
-        from ..utils.theme_manager import get_theme_manager
-
-        return get_theme_manager().get_theme_color("Icon")
-
-    def refresh_theme_icons(self) -> None:
-        """Refresh icons that depend on the current theme (call after theme toggle)."""
-        btn = self.findChild(QPushButton, "settings_session_scales")
-        if btn:
-            btn.setIcon(self._create_settings_icon())
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
@@ -161,32 +133,9 @@ class Step2View(BaseStepView):
         return self.findChild(QPushButton, f"preset2_{preset_name}")
 
     def _load_session_presets(self) -> dict[str, list[tuple[str, str, str]]]:
-        """Load session presets from JSON file."""
-        presets_file = resource_path("config/session_scales_presets.json")
-
-        if os.path.exists(presets_file):
-            try:
-                with open(presets_file, encoding="utf-8") as f:
-                    raw = json.load(f)
-                presets: dict[str, list[tuple[str, str, str]]] = {}
-                for name, scales in (raw or {}).items():
-                    try:
-                        presets[name] = [
-                            (scale[0], scale[1], scale[2])
-                            if len(scale) == 3
-                            else (scale[0], scale[1], scale[2])
-                            if len(scale) >= 3
-                            else (scale[0], "", "")
-                            for scale in scales
-                        ]
-                    except IndexError, TypeError:
-                        presets[name] = []
-                return presets
-            except Exception as e:
-                print(f"Error loading session presets: {e}")
-                return {}
-        else:
-            return {k: list(v) for k, v in SESSION_SCALES_PRESETS.items()}
+        """Load session presets from ScalePresetManager."""
+        preset_manager = get_scale_preset_manager()
+        return preset_manager.get_session_presets()
 
     def _open_session_scales_settings(self):
         """Open the session scales settings dialog."""
@@ -198,12 +147,10 @@ class Step2View(BaseStepView):
         """Handle presets change from settings dialog and persist to JSON."""
         self.session_presets = new_presets
 
+        # Save all presets using ScalePresetManager
         try:
-            presets_file = resource_path("config/session_scales_presets.json")
-            os.makedirs(os.path.dirname(presets_file), exist_ok=True)
-            serializable = {k: [list(x) for x in v] for k, v in new_presets.items()}
-            with open(presets_file, "w", encoding="utf-8") as f:
-                json.dump(serializable, f, indent=2, ensure_ascii=False)
+            preset_manager = get_scale_preset_manager()
+            preset_manager.save_session_presets(new_presets)
         except Exception as e:
             print(f"Error saving session presets: {e}")
 
@@ -309,9 +256,13 @@ class Step2View(BaseStepView):
         """Set the active preset button and update visual state."""
         # Clear previous active button
         if self.active_preset_button is not None:
-            self.active_preset_button.setProperty("active", "false")
-            self.active_preset_button.style().unpolish(self.active_preset_button)
-            self.active_preset_button.style().polish(self.active_preset_button)
+            try:
+                self.active_preset_button.setProperty("active", "false")
+                self.active_preset_button.style().unpolish(self.active_preset_button)
+                self.active_preset_button.style().polish(self.active_preset_button)
+            except RuntimeError:
+                pass
+            self.active_preset_button = None
 
         # Set new active button
         self.active_preset_button = button
@@ -412,7 +363,7 @@ class Step2View(BaseStepView):
     def get_session_scales_data(self) -> list[tuple[str, str, str]]:
         """
         Get session scale definitions (name, min, max) for use by the
-        ScaleOptimizationDialog at export time.
+        ScaleTargetValuesDialog at export time.
 
         Returns:
             List of (name, min, max) tuples for scales that have all fields filled.
@@ -458,17 +409,20 @@ class Step2View(BaseStepView):
         if with_plus:
             btn = QPushButton("+")
             btn.setToolTip("Add session scale")
-            btn.setMaximumWidth(24)
+            btn.setFixedSize(20, 20)
+            btn.setObjectName("scale_add_btn")
             if on_add:
                 btn.clicked.connect(on_add)
         elif with_minus:
             btn = QPushButton("-")
             btn.setToolTip("Remove session scale")
-            btn.setMaximumWidth(24)
+            btn.setFixedSize(20, 20)
+            btn.setObjectName("scale_remove_btn")
             if on_remove:
                 btn.clicked.connect(lambda: on_remove(row))
         else:
             btn = QLabel("")
+            btn.setFixedSize(20, 20)
 
         row.addWidget(QLabel("Name:"))
         row.addWidget(name_edit)

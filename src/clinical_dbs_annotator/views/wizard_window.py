@@ -31,7 +31,6 @@ from ..config import (
     APP_NAME,
     APP_VERSION,
     BASE_DPI,
-    CLINICAL_SCALES_PRESETS,
     FONT_SCALE_ENABLED,
     ICON_FILENAME,
     ICONS_DIR,
@@ -43,8 +42,9 @@ from ..config import (
 )
 from ..controllers import WizardController
 from ..utils import get_theme_manager, resource_path, rounded_pixmap
-from .annotations_simple_view import AnnotationsFileView, AnnotationsSessionView
-from .longitudinal_file_view import LongitudinalFileView
+from ..utils.scale_preset_manager import get_scale_preset_manager
+from .annotation_only_view import AnnotationsFileView, AnnotationsSessionView
+from .longitudinal_report_view import LongitudinalReportView as LongitudinalFileView
 from .step0_view import Step0View
 from .step1_view import Step1View
 from .step2_view import Step2View
@@ -470,12 +470,12 @@ class WizardWindow(QWidget):
             return
 
         # Show scale optimization dialog
-        from .longitudinal_scale_dialog import (
-            LongitudinalScaleDialog,
+        from .export_dialog import (
             ReportSectionsDialog,
+            ScaleTargetValuesDialog,
         )
 
-        dialog = LongitudinalScaleDialog(scales, self)
+        dialog = ScaleTargetValuesDialog(scales, self)
         if dialog.exec() != QDialog.Accepted:
             return
 
@@ -528,14 +528,14 @@ class WizardWindow(QWidget):
     def _load_annotations_only_views(self) -> None:
         """Load annotations-only workflow views (lazy loading)."""
         if self.annotations_file_view is None:
-            from .annotations_simple_view import AnnotationsFileView
+            from .annotation_only_view import AnnotationsFileView
 
             self.annotations_file_view = AnnotationsFileView(self)
             self.stack.addWidget(self.annotations_file_view)
             self._connect_annotations_file_signals()
 
         if self.annotations_session_view is None:
-            from .annotations_simple_view import AnnotationsSessionView
+            from .annotation_only_view import AnnotationsSessionView
 
             self.annotations_session_view = AnnotationsSessionView(self)
             self.stack.addWidget(self.annotations_session_view)
@@ -655,7 +655,9 @@ class WizardWindow(QWidget):
     def _connect_step1_signals(self) -> None:
         """Connect Step 1 view signals to controller."""
         # Connect preset buttons
-        for preset_name in CLINICAL_SCALES_PRESETS.keys():
+        preset_manager = get_scale_preset_manager()
+        clinical_presets = preset_manager.get_clinical_presets()
+        for preset_name in clinical_presets.keys():
             btn = self.step1_view.get_preset_button(preset_name)
             if btn:
                 btn.clicked.connect(
@@ -681,7 +683,21 @@ class WizardWindow(QWidget):
     def _connect_step2_signals(self) -> None:
         """Connect Step 2 view signals to controller."""
         self.controller.prepare_step2(self.step2_view)
+        # Connect preset buttons
+        preset_manager = get_scale_preset_manager()
+        session_presets = preset_manager.get_session_presets()
+        for preset_name in session_presets.keys():
+            btn = self.step2_view.get_preset_button(preset_name)
+            if btn:
+                btn.clicked.connect(
+                    lambda checked, name=preset_name: (
+                        self.controller.apply_session_preset(name, self.step2_view)
+                    )
+                )
         self.step2_view.next_button.clicked.connect(self._go_to_step3)
+
+        # Auto-select session preset if clinical scales match
+        # Moved to _go_to_step2 to be called every time navigating to step2
 
     def _connect_step3_signals(self) -> None:
         """Connect Step 3 view signals to controller."""
@@ -718,18 +734,16 @@ class WizardWindow(QWidget):
                 self.controller.export_session_pdf(self)
             return
 
-        from .longitudinal_scale_dialog import ScaleOptimizationDialog
+        from .export_dialog import ScaleTargetValuesDialog
 
-        dialog = ScaleOptimizationDialog(
-            scales, self, title="Scale Optimization — Session Report"
-        )
+        dialog = ScaleTargetValuesDialog(scales, self)
         if dialog.exec() != QDialog.Accepted:
             return
 
         prefs = dialog.get_scale_prefs()
 
         # Show section selection dialog
-        from .longitudinal_scale_dialog import ReportSectionsDialog
+        from .export_dialog import ReportSectionsDialog
 
         section_defs = [
             ("initial_notes", "Initial Clinical Notes", True),
@@ -906,6 +920,9 @@ class WizardWindow(QWidget):
         self.current_step = 2
         self.stack.setCurrentWidget(self.step2_view)
         self._update_ui_state()
+
+        # Auto-select session preset if clinical preset was selected
+        self.controller.auto_select_session_preset(self.step2_view, self.step1_view)
 
     def _go_to_step3(self) -> None:
         """Navigate to Step 3 after validating Step 2."""

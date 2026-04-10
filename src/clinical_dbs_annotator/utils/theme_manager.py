@@ -8,7 +8,8 @@ switching between dark and light themes at runtime.
 import os
 from enum import Enum
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import QApplication, QToolTip
 
 from .resources import resource_path
 
@@ -141,6 +142,17 @@ class ThemeManager:
             print(f"Warning: Could not load theme: {e}")
             # Fallback to no stylesheet
             app.setStyleSheet("")
+
+        # Set QToolTip palette explicitly — QSS QToolTip{} rules are ignored
+        # on some platforms (e.g. Windows native style) for non-main windows
+        tooltip_palette = QPalette()
+        if theme == Theme.DARK:
+            tooltip_palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#334155"))
+            tooltip_palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#f1f5f9"))
+        else:
+            tooltip_palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#ffffff"))
+            tooltip_palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#0f172a"))
+        QToolTip.setPalette(tooltip_palette)
 
     def toggle_theme(self, app: QApplication = None) -> Theme:
         """

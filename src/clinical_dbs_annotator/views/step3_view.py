@@ -6,7 +6,7 @@ session data including stimulation parameters and scale values.
 """
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDoubleValidator, QIcon, QIntValidator, QPixmap
+from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -63,15 +63,15 @@ class Step3View(BaseStepView):
 
     undo_requested = Signal()
 
-    def __init__(self, parent_style):
+    def __init__(self, parent_style=None):
         """
         Initialize Step 3 view.
 
         Args:
-            parent_style: Parent widget style for icon access
+            parent_style: Parent widget style for icon access (deprecated, kept for compatibility)
         """
         super().__init__()
-        self.parent_style = parent_style
+        # parent_style is now set in BaseStepView.__init__
         self.session_scale_value_edits = []
         self.step3_session_scales_form: QFormLayout = None
 
@@ -93,26 +93,6 @@ class Step3View(BaseStepView):
         """Return the wizard header title for Step 3."""
         return "Programming Session Ongoing"
 
-    def _create_settings_icon(self) -> QIcon:
-        """Create an SVG gear icon coloured to match the current theme."""
-        # Get theme-appropriate icon color from theme definitions
-        fill_color = self._get_theme_icon_color()
-
-        svg = f"""
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" fill="{fill_color}"/>
-        </svg>
-        """
-        pixmap = QPixmap()
-        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
-        return QIcon(pixmap)
-
-    def _get_theme_icon_color(self) -> str:
-        """Get icon color from QSS theme file (Icon: #xxxxxx in Base Colors comment)."""
-        from ..utils.theme_manager import get_theme_manager
-
-        return get_theme_manager().get_theme_color("Icon")
-
     def _undo_last_entry(self) -> None:
         """Show confirmation dialog and delete the last block_ID entry from TSV."""
         reply = QMessageBox.question(
@@ -130,65 +110,15 @@ class Step3View(BaseStepView):
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
 
-        # Left macro-panel: Stimulation params + electrodes
-        left_container = QGroupBox("Session settings")
-        left_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        left_container_layout = QHBoxLayout(left_container)
-        left_container_layout.setContentsMargins(0, 0, 0, 0)
+        # Left side: Session settings (params + electrodes)
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        settings_group = self._create_session_settings_group()
+        left_layout.addWidget(settings_group)
+        left_widget.setMinimumWidth(500)
 
-        params_group = self._create_stimulation_params_group()
-
-        # Wrap sidebar in a scroll area like step1_view
-        sidebar_widget = params_group
-        sidebar_scroll = QScrollArea()
-        sidebar_scroll.setStyleSheet("""
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-        """)
-        sidebar_scroll.setWidgetResizable(True)
-        sidebar_scroll.setFrameShape(QFrame.NoFrame)
-        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        sidebar_scroll.setWidget(sidebar_widget)
-
-        left_container_layout.addWidget(sidebar_scroll, 1)
-
-        electrodes_layout = QVBoxLayout()
-        electrodes_row = QHBoxLayout()
-
-        self.left_canvas_group = QGroupBox("Left electrode")
-        self.left_canvas_group.setCheckable(True)
-        self.left_canvas_group.setChecked(True)
-        self.left_canvas_group.toggled.connect(
-            lambda checked: self._toggle_electrode("left", checked)
-        )
-        left_canvas_layout = QVBoxLayout()
-        left_canvas_layout.addWidget(self.left_canvas, 1)
-        self.left_canvas_group.setLayout(left_canvas_layout)
-
-        self.right_canvas_group = QGroupBox("Right electrode")
-        self.right_canvas_group.setCheckable(True)
-        self.right_canvas_group.setChecked(True)
-        self.right_canvas_group.toggled.connect(
-            lambda checked: self._toggle_electrode("right", checked)
-        )
-        right_canvas_layout = QVBoxLayout()
-        right_canvas_layout.addWidget(self.right_canvas, 1)
-        self.right_canvas_group.setLayout(right_canvas_layout)
-
-        electrodes_row.addWidget(self.left_canvas_group, 1)
-        electrodes_row.addWidget(self.right_canvas_group, 1)
-
-        electrodes_layout.addLayout(electrodes_row)
-        electrodes_layout.addLayout(self._create_electrode_legend_layout())
-        left_container_layout.addLayout(electrodes_layout, 2)
-
-        # Right macro-panel: Scales and notes
+        # Right side: Scales and notes
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
@@ -197,20 +127,17 @@ class Step3View(BaseStepView):
         right_layout.addWidget(create_horizontal_line())
         notes_group = self._create_session_notes_group()
         right_layout.addWidget(notes_group)
-
-        # left_container.setMinimumWidth(500)
         right_widget.setMinimumWidth(400)
 
         # Splitter: right panel shrinks first (stretch=1), left stays stable (stretch=0)
         splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(left_container)
+        splitter.addWidget(left_widget)
         splitter.addWidget(right_widget)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setChildrenCollapsible(False)
 
         self.main_layout.addWidget(splitter)
-        # self.main_layout.addStretch(1)
 
         self.undo_button = QPushButton("Undo")
         self.undo_button.setIcon(
@@ -251,12 +178,14 @@ class Step3View(BaseStepView):
         # Set menu to button
         self.export_button.setMenu(self.export_menu)
 
-    def _create_stimulation_params_group(self) -> QWidget:
-        """Create the stimulation parameters container."""
-        container = QWidget()
-        container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # container.setMinimumWidth(380)
-        sidebar_layout = QVBoxLayout(container)
+    def _create_session_settings_group(self) -> QGroupBox:
+        """Create the session settings group box."""
+        gb_session = QGroupBox("Session settings")
+        gb_session.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        container_layout = QHBoxLayout()
+
+        sidebar_layout = QVBoxLayout()
 
         group_row = QGroupBox("Program")
         group_row_layout = QHBoxLayout()
@@ -281,8 +210,6 @@ class Step3View(BaseStepView):
         edit_programs_btn.setObjectName("programSettingsButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
-
-        group_row_layout.addStretch()
 
         group_row.setLayout(group_row_layout)
 
@@ -467,36 +394,61 @@ class Step3View(BaseStepView):
         sidebar_layout.addWidget(self.right_group)
         sidebar_layout.addStretch(1)
 
-        return container
+        sidebar_widget = QWidget()
+        sidebar_widget.setLayout(sidebar_layout)
+        sidebar_scroll = QScrollArea()
+        sidebar_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
+        sidebar_scroll.setWidgetResizable(True)
+        sidebar_scroll.setFrameShape(QFrame.NoFrame)
+        sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        sidebar_scroll.setMinimumWidth(380)
+        sidebar_scroll.setWidget(sidebar_widget)
 
-    def _create_electrode_legend_layout(self) -> QHBoxLayout:
-        """Create the colour legend row for electrode contact states."""
-        layout = QHBoxLayout()
-        layout.addStretch(1)
+        electrodes_layout = QVBoxLayout()
+        electrodes_row = QHBoxLayout()
 
-        def legend_item(color: str, text: str, border: str) -> QWidget:
-            w = QWidget()
-            w.setStyleSheet("background-color: transparent;")
-            row = QHBoxLayout(w)
-            row.setContentsMargins(0, 0, 0, 0)
-            swatch = QLabel()
-            swatch.setFixedSize(16, 12)
-            swatch.setStyleSheet(
-                f"background-color: {color}; border: 1px solid {border};"
-            )
-            label = QLabel(text)
-            row.addWidget(swatch)
-            row.addSpacing(6)
-            row.addWidget(label)
-            return w
+        self.left_canvas_group = QGroupBox("Left electrode")
+        self.left_canvas_group.setCheckable(True)
+        self.left_canvas_group.setChecked(True)
+        self.left_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("left", checked)
+        )
+        left_canvas_layout = QVBoxLayout()
+        left_canvas_layout.addWidget(self.left_canvas, 1)
+        self.left_canvas_group.setLayout(left_canvas_layout)
 
-        layout.addWidget(legend_item("#969696", "OFF", "#333333"))
-        layout.addSpacing(18)
-        layout.addWidget(legend_item("#ff6464", "Anodic (+)", "#c83232"))
-        layout.addSpacing(18)
-        layout.addWidget(legend_item("#6496ff", "Cathodic (-)", "#3264c8"))
-        layout.addStretch(1)
-        return layout
+        self.right_canvas_group = QGroupBox("Right electrode")
+        self.right_canvas_group.setCheckable(True)
+        self.right_canvas_group.setChecked(True)
+        self.right_canvas_group.toggled.connect(
+            lambda checked: self._toggle_electrode("right", checked)
+        )
+        right_canvas_layout = QVBoxLayout()
+        right_canvas_layout.addWidget(self.right_canvas, 1)
+        self.right_canvas_group.setLayout(right_canvas_layout)
+
+        electrodes_row.addWidget(self.left_canvas_group, 1)
+        electrodes_row.addWidget(self.right_canvas_group, 1)
+
+        electrodes_layout.addLayout(electrodes_row)
+        electrodes_layout.addLayout(self._create_electrode_legend_layout())
+
+        container_layout.addWidget(sidebar_scroll, 0)
+        container_layout.addLayout(electrodes_layout, 1)
+
+        layout = QVBoxLayout(gb_session)
+        layout.addLayout(container_layout)
+
+        return gb_session
 
     def _on_left_canvas_validation(self, is_valid: bool, error_msg: str) -> None:
         """Callback when left electrode canvas validation state changes."""
@@ -719,15 +671,6 @@ class Step3View(BaseStepView):
 
         layout = QVBoxLayout(gb_scales)
         layout.setSpacing(10)
-
-        # Instructions
-        instructions = QLabel(
-            "Record the patient's clinical scales below. "
-            "Scores will be saved with timestamp and stimulation parameters."
-        )
-        instructions.setWordWrap(True)
-        instructions.setStyleSheet("color: #64748b; padding: 5px;")
-        layout.addWidget(instructions)
 
         # Scales form
         self.step3_session_scales_form = QFormLayout()

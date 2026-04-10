@@ -1,13 +1,12 @@
 """
-Scale optimization dialog for report generation.
+Export dialogs for report generation.
 
-Presents session scales and lets the user:
-- Enable / disable each scale via a checkbox (all enabled by default).
-  Disabled scales appear semi-transparent and are excluded from the
-  best-entry calculation.
-- Choose the optimization logic (Low / High / Custom) for each enabled scale.
+Provides:
+- ScaleTargetValuesDialog: lets the user set target values (min/max/custom)
+  for each session scale, used before exporting any report.
+- ReportSectionsDialog: lets the user choose which sections to include.
 
-This dialog is shared by both the longitudinal workflow and the Step-3
+These dialogs are shared by both the longitudinal workflow and the Step-3
 single-session export.
 """
 
@@ -28,8 +27,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..utils.theme_manager import get_theme_manager
 
-class ScaleOptimizationDialog(QDialog):
+
+class ScaleTargetValuesDialog(QDialog):
     """
     Dialog that shows session scales and lets the user pick an optimization
     mode for each, with a checkbox to include / exclude individual scales.
@@ -43,7 +44,7 @@ class ScaleOptimizationDialog(QDialog):
         self,
         scales: list[tuple[str, str, str]],
         parent=None,
-        title: str = "Scale Optimization",
+        title: str = "Select Scales Target Values",
     ):
         """
         Args:
@@ -54,6 +55,17 @@ class ScaleOptimizationDialog(QDialog):
         self.setWindowTitle(title)
         self.setMinimumWidth(680)
         self.setMinimumHeight(300)
+
+        # Apply current theme stylesheet
+        theme_manager = get_theme_manager()
+        try:
+            stylesheet = theme_manager.load_stylesheet(
+                theme_manager.get_current_theme()
+            )
+            self.setStyleSheet(stylesheet)
+        except FileNotFoundError:
+            if parent and parent.styleSheet():
+                self.setStyleSheet(parent.styleSheet())
 
         # Each entry: (name, min, max, checkbox, button_group, custom_edit, row_widgets)
         self._rows: list = []
@@ -73,6 +85,7 @@ class ScaleOptimizationDialog(QDialog):
         # Scrollable scale rows
         scroll_content = QWidget()
         scroll_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        scroll_content.setAutoFillBackground(False)
         self._rows_layout = QVBoxLayout(scroll_content)
         self._rows_layout.setContentsMargins(0, 0, 0, 0)
         self._rows_layout.setSpacing(6)
@@ -87,6 +100,15 @@ class ScaleOptimizationDialog(QDialog):
         scroll.setFrameShape(QScrollArea.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidget(scroll_content)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
         layout.addWidget(scroll, 1)
 
         # Dialog buttons
@@ -222,10 +244,6 @@ class ScaleOptimizationDialog(QDialog):
         return prefs
 
 
-# Backward-compatible alias
-LongitudinalScaleDialog = ScaleOptimizationDialog
-
-
 class ReportSectionsDialog(QDialog):
     """
     Dialog that lets the user choose which sections to include in the report.
@@ -245,6 +263,17 @@ class ReportSectionsDialog(QDialog):
         self.setWindowTitle(title)
         self.setMinimumWidth(340)
         self._checkboxes: list[tuple[str, QCheckBox]] = []
+
+        # Apply current theme stylesheet
+        theme_manager = get_theme_manager()
+        try:
+            stylesheet = theme_manager.load_stylesheet(
+                theme_manager.get_current_theme()
+            )
+            self.setStyleSheet(stylesheet)
+        except FileNotFoundError:
+            if parent and parent.styleSheet():
+                self.setStyleSheet(parent.styleSheet())
 
         layout = QVBoxLayout(self)
         layout.setSpacing(8)

@@ -114,14 +114,14 @@ class IncrementWidget(QWidget):
         hbox.setSpacing(0)
         hbox.addWidget(self.line_edit)
 
-        # Create primary increment/decrement buttons (step1)
-        vbox1 = self._create_button_column(self.step1, double=True)
-        hbox.addLayout(vbox1)
-
         # Create secondary buttons if step2 is provided
         if self.step2 is not None:
             vbox2 = self._create_button_column(self.step2, double=False)
             hbox.addLayout(vbox2)
+
+        # Create primary increment/decrement buttons (step1)
+        vbox1 = self._create_button_column(self.step1, double=True)
+        hbox.addLayout(vbox1)
 
         self.setMaximumWidth(self.sizeHint().width())
 
@@ -142,10 +142,12 @@ class IncrementWidget(QWidget):
 
         # Create up button
         btn_up = self._create_arrow_button("up", double)
+        btn_up.setToolTip(f"+{step}")
         btn_up.clicked.connect(lambda: self._adjust_value(+step))
 
         # Create down button
         btn_down = self._create_arrow_button("down", double)
+        btn_down.setToolTip(f"-{step}")
         btn_down.clicked.connect(lambda: self._adjust_value(-step))
 
         vbox.addWidget(btn_up)
@@ -242,20 +244,20 @@ class ScaleProgressWidget(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(2)
 
-        self.left_single_btn = self._create_icon_button(
-            self._create_lr_arrow_icon("left", False), 18, 18
-        )
-        self.left_single_btn.setToolTip("-0.25")
-        self.left_single_btn.clicked.connect(lambda: self._adjust_value(-1))
-
         self.left_double_btn = self._create_icon_button(
             self._create_lr_arrow_icon("left", True), 24, 18
         )
         self.left_double_btn.setToolTip("-0.5")
         self.left_double_btn.clicked.connect(lambda: self._adjust_value(-2))
 
-        left_layout.addWidget(self.left_single_btn)
+        self.left_single_btn = self._create_icon_button(
+            self._create_lr_arrow_icon("left", False), 18, 18
+        )
+        self.left_single_btn.setToolTip("-0.25")
+        self.left_single_btn.clicked.connect(lambda: self._adjust_value(-1))
+
         left_layout.addWidget(self.left_double_btn)
+        left_layout.addWidget(self.left_single_btn)
 
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -271,17 +273,17 @@ class ScaleProgressWidget(QWidget):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(2)
 
-        self.right_single_btn = self._create_icon_button(
-            self._create_lr_arrow_icon("right", False), 18, 18
-        )
-        self.right_single_btn.setToolTip("+0.25")
-        self.right_single_btn.clicked.connect(lambda: self._adjust_value(1))
-
         self.right_double_btn = self._create_icon_button(
             self._create_lr_arrow_icon("right", True), 24, 18
         )
         self.right_double_btn.setToolTip("+0.5")
         self.right_double_btn.clicked.connect(lambda: self._adjust_value(2))
+
+        self.right_single_btn = self._create_icon_button(
+            self._create_lr_arrow_icon("right", False), 18, 18
+        )
+        self.right_single_btn.setToolTip("+0.25")
+        self.right_single_btn.clicked.connect(lambda: self._adjust_value(1))
 
         self.reset_btn = self._create_icon_button(self._create_x_icon(), 18, 18)
         self.reset_btn.setToolTip("Disable/Enable")

@@ -1,0 +1,36 @@
+{
+    "clinical": {
+        "Dystonia": [
+            "BFMDRS",
+            "TWSTRS"
+        ],
+        "ET": [
+            "FTM-TRS",
+            "TETRAS"
+        ],
+        "MDD": [
+            "MADRS",
+            "HAM-D",
+            "BDI-II"
+        ],
+        "OCD": [
+            "Y-BOCS",
+            "Y-BOCS-o",
+            "Y-BOCS-c",
+            "MADRS",
+            "OCI-R"
+        ],
+        "PD": [
+            "MDS-UPDRS",
+            "UPDRS-III",
+            "PDQ-39",
+            "UDysRS"
+        ],
+        "TS": [
+            "YGTSS",
+            "PUTS",
+            "TS-CGI",
+            "Y-BOCS"
+        ]
+    }
+}
