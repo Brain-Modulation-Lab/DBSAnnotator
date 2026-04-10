@@ -686,6 +686,13 @@ class WizardWindow(QWidget):
     def _connect_step3_signals(self) -> None:
         """Connect Step 3 view signals to controller."""
         self.controller.prepare_step3(self.step3_view)
+        if hasattr(self.step3_view, "undo_button"):
+            self.step3_view.undo_button.clicked.connect(
+                self.step3_view._undo_last_entry
+            )
+        self.step3_view.undo_requested.connect(
+            lambda: self.controller.undo_last_session_entry(self.step3_view)
+        )
         self.step3_view.insert_button.clicked.connect(
             lambda: self.controller.insert_session_row(self.step3_view)
         )
@@ -792,6 +799,9 @@ class WizardWindow(QWidget):
         widgets = []
         if hasattr(current, "next_button"):
             widgets.append(current.next_button)
+
+        if hasattr(current, "undo_button"):
+            widgets.append(current.undo_button)
 
         if hasattr(current, "insert_button"):
             widgets.append(current.insert_button)

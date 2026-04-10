@@ -5,6 +5,8 @@ This module contains the main controller that coordinates between the
 views and models, handling user interactions and data flow.
 """
 
+import csv
+
 from PySide6.QtWidgets import QMessageBox
 
 from ..config import (
@@ -427,6 +429,70 @@ class WizardController:
         animate_button(view.insert_button)
         view.session_notes_edit.clear()
 
+        # Enable undo button after successful insert
+        if hasattr(view, "undo_button"):
+            view.undo_button.setEnabled(True)
+
+    def undo_last_session_entry(self, view) -> None:
+        """
+        Delete the last block_ID entry from the TSV file.
+
+        Args:
+            view: The Step3View instance
+        """
+        if not self.session_data.is_file_open():
+            QMessageBox.warning(view, "Error", "No file is currently open.")
+            return
+
+        # Get the last written block_id (current block_id is the next one to write)
+        last_written_block_id = self.session_data.block_id - 1
+
+        if last_written_block_id < 0:
+            QMessageBox.warning(view, "Error", "No entries to undo.")
+            return
+
+        # Read the TSV file and filter out rows with the last block_id
+        file_path = self.session_data.file_path
+        rows_to_keep = []
+        rows_to_delete = []
+
+        with open(file_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            fieldnames = reader.fieldnames
+
+            for row in reader:
+                block_id = row.get("block_id", "")
+                try:
+                    if int(block_id) != last_written_block_id:
+                        rows_to_keep.append(row)
+                    else:
+                        rows_to_delete.append(row)
+                except ValueError, TypeError:
+                    # If block_id is not a number, keep the row
+                    rows_to_keep.append(row)
+
+        if not rows_to_delete:
+            QMessageBox.warning(
+                view,
+                "Error",
+                f"No entries found with block_id {last_written_block_id}.",
+            )
+            return
+
+        # Decrement block_id to point to the previous entry
+        self.session_data.block_id = last_written_block_id
+
+        # Rewrite the TSV file with the filtered rows
+        with open(file_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+            writer.writeheader()
+            writer.writerows(rows_to_keep)
+
+        # Disable undo button if no more entries to undo
+        if self.session_data.block_id == 0 or len(rows_to_keep) == 0:
+            if hasattr(view, "undo_button"):
+                view.undo_button.setEnabled(False)
+
     def close_session(self, parent) -> None:
         """
         Close the current session and file.
@@ -445,9 +511,6 @@ class WizardController:
 
         if reply == QMessageBox.Ok:
             self.session_data.close_file()
-            QMessageBox.information(
-                parent, "Session closed", "Session closed and file saved."
-            )
             parent.close()
 
     def export_session_word(self, parent, scale_prefs=None, sections=None) -> None:

@@ -5,7 +5,7 @@ This module contains the view for the third step where users actively record
 session data including stimulation parameters and scale values.
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDoubleValidator, QIcon, QIntValidator, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
@@ -61,6 +61,8 @@ class Step3View(BaseStepView):
     - Data insertion and session closing
     """
 
+    undo_requested = Signal()
+
     def __init__(self, parent_style):
         """
         Initialize Step 3 view.
@@ -110,6 +112,20 @@ class Step3View(BaseStepView):
         from ..utils.theme_manager import get_theme_manager
 
         return get_theme_manager().get_theme_color("Icon")
+
+    def _undo_last_entry(self) -> None:
+        """Show confirmation dialog and delete the last block_ID entry from TSV."""
+        reply = QMessageBox.question(
+            self,
+            "Confirm Undo",
+            "Are you sure you want to delete the last session entry?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            # Emit signal to request undo
+            self.undo_requested.emit()
 
     def _setup_ui(self) -> None:
         """Set up the UI layout."""
@@ -195,6 +211,13 @@ class Step3View(BaseStepView):
 
         self.main_layout.addWidget(splitter)
         # self.main_layout.addStretch(1)
+
+        self.undo_button = QPushButton("Undo")
+        self.undo_button.setIcon(
+            self.parent_style.standardIcon(QStyle.SP_DialogCancelButton)
+        )
+        self.undo_button.setMinimumWidth(100)
+        self.undo_button.setEnabled(False)
 
         self.insert_button = QPushButton("Insert")
         self.insert_button.setIcon(
@@ -711,6 +734,7 @@ class Step3View(BaseStepView):
         self.step3_session_scales_form.setLabelAlignment(Qt.AlignRight)
         self.step3_session_scales_form.setFormAlignment(Qt.AlignTop)
         layout.addLayout(self.step3_session_scales_form)
+        layout.addStretch()
 
         return gb_scales
 
