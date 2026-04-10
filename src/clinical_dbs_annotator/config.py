@@ -84,9 +84,9 @@ TIMEZONE = "local"
 
 # Validation limits
 STIMULATION_LIMITS = {
-    "frequency": {"min": 10, "max": 200, "step1": 5, "step2": 10},
-    "amplitude": {"min": 0.0, "max": 15.0, "decimals": 2, "step1": 1.0, "step2": 0.5},
-    "pulse_width": {"min": 10, "max": 200, "step1": 5, "step2": 10},
+    "frequency": {"min": 10, "max": 200, "step1": 10, "step2": 5},
+    "amplitude": {"min": 0.0, "max": 15.0, "decimals": 2, "step1": 1, "step2": 0.5},
+    "pulse_width": {"min": 10, "max": 200, "step1": 10, "step2": 5},
 }
 
 SESSION_SCALE_LIMITS = {
@@ -100,8 +100,8 @@ SESSION_SCALE_LIMITS = {
 CLINICAL_SCALES_PRESETS: dict[str, list[str]] = {
     "OCD": [
         "Y-BOCS",  # Yale–Brown Obsessive–Compulsive Scale
-        "Y-BOCS-o",
-        "Y-BOCS-c",
+        "Y-BOCS-o",  # Yale–Brown Obsessive–Compulsive Scale - obsessions
+        "Y-BOCS-c",  # Yale–Brown Obsessive–Compulsive Scale - compulsions
         "MADRS",  # Montgomery–Åsberg Depression Rating Scale
         "OCI-R",  # Obsessive–Compulsive Inventory – Revised
     ],

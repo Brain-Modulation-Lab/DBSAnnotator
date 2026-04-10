@@ -7,7 +7,7 @@ for different steps of the annotation wizard.
 
 from .annotations_simple_view import AnnotationsFileView, AnnotationsSessionView
 from .base_view import BaseStepView
-from .longitudinal_file_view import LongitudinalFileView
+from .longitudinal_report_view import LongitudinalReportView as LongitudinalFileView
 from .step0_view import Step0View
 from .step1_view import Step1View
 from .step2_view import Step2View

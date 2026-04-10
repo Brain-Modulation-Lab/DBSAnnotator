@@ -329,23 +329,25 @@ QFrame[frameShape="4"] {
 QRadioButton, QCheckBox {
     spacing: 6px;
     color: #f1f5f9;
+    background: transparent;
 }
 
 QRadioButton::indicator, QCheckBox::indicator {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    border: 1px solid #475569;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #64748b;
+    border-radius: 2px;
     background-color: #334155;
 }
 
 QRadioButton::indicator:checked, QCheckBox::indicator:checked {
-    background-color: #f59e0b;
-    border-color: #b45309;
+    border: 1px solid #64748b;
+    background-color: #334155;
+    image: url(checkbox_check_dark.svg);
 }
 
 QRadioButton::indicator:hover, QCheckBox::indicator:hover {
-    border-color: #f59e0b;
+    border-color: #64748b;
 }
 
 /* Scrollbars */

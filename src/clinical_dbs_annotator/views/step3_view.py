@@ -720,15 +720,6 @@ class Step3View(BaseStepView):
         layout = QVBoxLayout(gb_scales)
         layout.setSpacing(10)
 
-        # Instructions
-        instructions = QLabel(
-            "Record the patient's clinical scales below. "
-            "Scores will be saved with timestamp and stimulation parameters."
-        )
-        instructions.setWordWrap(True)
-        instructions.setStyleSheet("color: #64748b; padding: 5px;")
-        layout.addWidget(instructions)
-
         # Scales form
         self.step3_session_scales_form = QFormLayout()
         self.step3_session_scales_form.setLabelAlignment(Qt.AlignRight)

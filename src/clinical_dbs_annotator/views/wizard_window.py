@@ -44,7 +44,7 @@ from ..controllers import WizardController
 from ..utils import get_theme_manager, resource_path, rounded_pixmap
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from .annotations_simple_view import AnnotationsFileView, AnnotationsSessionView
-from .longitudinal_file_view import LongitudinalFileView
+from .longitudinal_report_view import LongitudinalReportView as LongitudinalFileView
 from .step0_view import Step0View
 from .step1_view import Step1View
 from .step2_view import Step2View
@@ -470,12 +470,12 @@ class WizardWindow(QWidget):
             return
 
         # Show scale optimization dialog
-        from .longitudinal_scale_dialog import (
-            LongitudinalScaleDialog,
+        from .export_dialog import (
             ReportSectionsDialog,
+            ScaleTargetValuesDialog,
         )
 
-        dialog = LongitudinalScaleDialog(scales, self)
+        dialog = ScaleTargetValuesDialog(scales, self)
         if dialog.exec() != QDialog.Accepted:
             return
 
@@ -734,18 +734,16 @@ class WizardWindow(QWidget):
                 self.controller.export_session_pdf(self)
             return
 
-        from .longitudinal_scale_dialog import ScaleOptimizationDialog
+        from .export_dialog import ScaleTargetValuesDialog
 
-        dialog = ScaleOptimizationDialog(
-            scales, self, title="Scale Optimization — Session Report"
-        )
+        dialog = ScaleTargetValuesDialog(scales, self)
         if dialog.exec() != QDialog.Accepted:
             return
 
         prefs = dialog.get_scale_prefs()
 
         # Show section selection dialog
-        from .longitudinal_scale_dialog import ReportSectionsDialog
+        from .export_dialog import ReportSectionsDialog
 
         section_defs = [
             ("initial_notes", "Initial Clinical Notes", True),

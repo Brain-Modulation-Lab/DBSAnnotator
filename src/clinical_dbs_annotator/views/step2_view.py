@@ -389,7 +389,7 @@ class Step2View(BaseStepView):
     def get_session_scales_data(self) -> list[tuple[str, str, str]]:
         """
         Get session scale definitions (name, min, max) for use by the
-        ScaleOptimizationDialog at export time.
+        ScaleTargetValuesDialog at export time.
 
         Returns:
             List of (name, min, max) tuples for scales that have all fields filled.

@@ -84,7 +84,55 @@ class FileDropZone(QWidget):
         super().dropEvent(event)
 
 
-class LongitudinalFileView(QWidget):
+class FileDropContainer(QWidget):
+    """A container widget that accepts drops over the entire area including file list."""
+
+    def __init__(self, on_files_dropped, parent=None):
+        super().__init__(parent)
+        self._on_files_dropped = on_files_dropped
+        self.setAcceptDrops(True)
+        self._hovering = False
+
+    @typing.override
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self._hovering = True
+            self._update_style()
+            return
+        super().dragEnterEvent(event)
+
+    @typing.override
+    def dragLeaveEvent(self, event):
+        self._hovering = False
+        self._update_style()
+        super().dragLeaveEvent(event)
+
+    @typing.override
+    def dropEvent(self, event):
+        self._hovering = False
+        self._update_style()
+        if event.mimeData().hasUrls():
+            paths = []
+            for url in event.mimeData().urls():
+                local = url.toLocalFile()
+                if local and local.lower().endswith(".tsv"):
+                    paths.append(local)
+            if paths:
+                self._on_files_dropped(paths)
+            event.acceptProposedAction()
+            return
+        super().dropEvent(event)
+
+    def _update_style(self):
+        border_color = "#f59e0b" if self._hovering else "transparent"
+        self.setStyleSheet(
+            f"FileDropContainer {{ border: 2px dashed {border_color}; "
+            f"border-radius: 8px; background: transparent; }}"
+        )
+
+
+class LongitudinalReportView(QWidget):
     """
     View for loading multiple annotation TSV files for longitudinal reporting.
 
@@ -93,6 +141,8 @@ class LongitudinalFileView(QWidget):
     - Browse to add files
     - Remove individual files from the list
     - Generate a unified longitudinal report (Word/PDF)
+
+    Note: This class was renamed from LongitudinalFileView for clarity.
     """
 
     def __init__(self, parent=None):
@@ -175,7 +225,7 @@ class LongitudinalFileView(QWidget):
         layout.addLayout(btn_row)
 
         # File list with embedded drop zone
-        file_container = QWidget()
+        file_container = FileDropContainer(self._on_files_dropped)
         file_container_layout = QVBoxLayout(file_container)
         file_container_layout.setContentsMargins(0, 0, 0, 0)
         file_container_layout.setSpacing(0)
