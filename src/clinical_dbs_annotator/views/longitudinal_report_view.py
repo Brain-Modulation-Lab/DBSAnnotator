@@ -7,6 +7,7 @@ longitudinal report.
 """
 
 import csv
+import logging
 import os
 import re
 import typing
@@ -27,6 +28,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FileDropZone(QWidget):
@@ -357,6 +360,8 @@ class LongitudinalReportView(QWidget):
             List of (scale_name, min_value, max_value) tuples with observed ranges.
         """
         scale_values: dict[str, list[float]] = {}
+        read_failures: list[str] = []
+        invalid_value_count = 0
 
         for path in file_paths:
             try:
@@ -373,16 +378,30 @@ class LongitudinalReportView(QWidget):
                         try:
                             val = float(scale_value)
                         except ValueError:
+                            invalid_value_count += 1
                             continue
                         if scale_name not in scale_values:
                             scale_values[scale_name] = []
                         scale_values[scale_name].append(val)
-            except Exception as e:
-                print(f"[WARNING] Could not read {path}: {e}")
+            except Exception:
+                read_failures.append(path)
+                logger.warning(
+                    "Could not read longitudinal scales from file %s",
+                    path,
+                    exc_info=True,
+                )
 
         result = []
         for name, values in scale_values.items():
             min_v = str(min(values))
             max_v = str(max(values))
             result.append((name, min_v, max_v))
+
+        if read_failures or invalid_value_count:
+            logger.warning(
+                "Extracted longitudinal scales from %d files; read_failures=%d; invalid_values=%d",
+                len(file_paths),
+                len(read_failures),
+                invalid_value_count,
+            )
         return result

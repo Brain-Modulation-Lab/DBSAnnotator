@@ -6,6 +6,7 @@ longitudinal report in Word or PDF format, with best-entry highlighting
 based on user-selected scale optimization preferences.
 """
 
+import logging
 import os
 import re
 import tempfile
@@ -23,6 +24,8 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
+
+logger = logging.getLogger(__name__)
 
 
 class LongitudinalExporter:
@@ -72,9 +75,10 @@ class LongitudinalExporter:
                 parent, "Export Completed", f"Report saved:\n{file_path}"
             )
             return True
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export longitudinal report to Word")
             QMessageBox.critical(
-                parent, "Export Error", f"Failed to export report:\n{e}"
+                parent, "Export Error", "Failed to export report.\nSee log for details."
             )
             return False
 
@@ -114,15 +118,20 @@ class LongitudinalExporter:
                 try:
                     os.unlink(docx_tmp)
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to remove temporary Word file after PDF export: %s",
+                        docx_tmp,
+                        exc_info=True,
+                    )
 
             self._show_transient_message(
                 parent, "Export Completed", f"Report saved:\n{pdf_path}"
             )
             return True
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export longitudinal report to PDF")
             QMessageBox.critical(
-                parent, "Export Error", f"Failed to export report:\n{e}"
+                parent, "Export Error", "Failed to export report.\nSee log for details."
             )
             return False
 
@@ -158,20 +167,37 @@ class LongitudinalExporter:
                 # If no date info available, return a very old date to put it at the end
                 return pd.Timestamp("1900-01-01")
             except Exception:
+                logger.warning(
+                    "Failed to derive datetime from file, using fallback ordering: %s",
+                    path,
+                    exc_info=True,
+                )
                 return pd.Timestamp("1900-01-01")
 
         # Sort files from oldest to newest
         file_paths = sorted(file_paths, key=get_file_datetime)
 
         frames = []
+        read_failures = 0
         for path in file_paths:
             try:
                 df = pd.read_csv(path, sep="\t")
                 # Tag each row with its source file for traceability
                 df["_source_file"] = os.path.basename(path)
                 frames.append(df)
-            except Exception as e:
-                print(f"[WARNING] Could not read {path}: {e}")
+            except Exception:
+                read_failures += 1
+                logger.warning(
+                    "Could not read longitudinal input file: %s", path, exc_info=True
+                )
+
+        if read_failures:
+            logger.warning(
+                "Longitudinal report input read summary: total_files=%d read_failures=%d loaded=%d",
+                len(file_paths),
+                read_failures,
+                len(frames),
+            )
 
         if not frames:
             return False
@@ -553,6 +579,11 @@ class LongitudinalExporter:
                     try:
                         run.add_picture(png, width=Inches(1.15))
                     except Exception:
+                        logger.debug(
+                            "Failed adding electrode image to report table: %s",
+                            png,
+                            exc_info=True,
+                        )
                         pass
 
             # Cleanup temp PNG files
@@ -560,7 +591,11 @@ class LongitudinalExporter:
                 try:
                     os.unlink(pth)
                 except Exception:
-                    pass
+                    logger.debug(
+                        "Failed to delete temporary electrode image: %s",
+                        pth,
+                        exc_info=True,
+                    )
 
             doc.add_paragraph("")
 
@@ -1052,8 +1087,11 @@ class LongitudinalExporter:
             win.close()
             del win
 
-        except Exception as e:
-            doc.add_paragraph(f"Chart generation error: {e}")
+        except Exception:
+            logger.exception("Failed to generate longitudinal scale trend chart")
+            doc.add_paragraph(
+                "Chart generation error. Please check application logs for details."
+            )
 
     # ------------------------------------------------------------------
     # Data helpers
@@ -1220,6 +1258,7 @@ class LongitudinalExporter:
             )
             return best, second
         except Exception:
+            logger.exception("Failed to rank best/second-best longitudinal entries")
             return [], []
 
     # ------------------------------------------------------------------
@@ -1343,6 +1382,7 @@ class LongitudinalExporter:
             cropped.save(tmp.name, "PNG")
             return tmp.name
         except Exception:
+            logger.exception("Failed to render electrode image for report")
             return None
 
     @staticmethod

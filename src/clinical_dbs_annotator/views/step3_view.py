@@ -5,6 +5,8 @@ This module contains the view for the third step where users actively record
 session data including stimulation parameters and scale values.
 """
 
+import logging
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
@@ -48,6 +50,8 @@ from ..utils.program_config_manager import (
     get_program_config_manager,
 )
 from .base_view import BaseStepView
+
+logger = logging.getLogger(__name__)
 
 
 class Step3View(BaseStepView):
@@ -838,7 +842,11 @@ class Step3View(BaseStepView):
             try:
                 self.group_combo.setCurrentText(str(program))
             except Exception:
-                pass
+                logger.warning(
+                    "Failed to restore Step 3 program selection: %s",
+                    program,
+                    exc_info=True,
+                )
 
         if self.left_canvas.model:
             self._apply_contact_text_to_canvas(
@@ -879,8 +887,10 @@ class Step3View(BaseStepView):
 
         canvas.contact_states.clear()
         canvas.case_state = ContactState.OFF
+        parse_errors = 0
 
         def apply_tokens(text: str, state: int) -> None:
+            nonlocal parse_errors
             if not text:
                 return
             for token in text.split("_"):
@@ -908,6 +918,7 @@ class Step3View(BaseStepView):
                             else:
                                 canvas.contact_states[(idx, 0)] = state
                     except Exception:
+                        parse_errors += 1
                         continue
                     continue
 
@@ -916,6 +927,7 @@ class Step3View(BaseStepView):
                     try:
                         idx = int(idx_str)
                     except Exception:
+                        parse_errors += 1
                         continue
 
                     if model.is_directional:
@@ -929,6 +941,7 @@ class Step3View(BaseStepView):
                     try:
                         idx = int(token[:-1])
                     except Exception:
+                        parse_errors += 1
                         continue
                     seg_char = token[-1].lower()
                     seg_map = {"a": 0, "b": 1, "c": 2}
@@ -937,6 +950,11 @@ class Step3View(BaseStepView):
 
         apply_tokens(anode_text, ContactState.ANODIC)
         apply_tokens(cathode_text, ContactState.CATHODIC)
+        if parse_errors:
+            logger.warning(
+                "Skipped %d invalid contact tokens while restoring stimulation configuration",
+                parse_errors,
+            )
 
         is_valid, _ = StimulationRule.validate_configuration(
             canvas.contact_states, canvas.case_state

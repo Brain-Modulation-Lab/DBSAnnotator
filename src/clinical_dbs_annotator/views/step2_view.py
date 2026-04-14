@@ -5,6 +5,7 @@ This module contains the view for the second step where users configure
 the session tracking scales that will be used during the programming session.
 """
 
+import logging
 from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt
@@ -26,6 +27,8 @@ from ..config import PLACEHOLDERS, PRESET_BUTTONS
 from ..ui.session_scales_settings_dialog import SessionScalesSettingsDialog
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
+
+logger = logging.getLogger(__name__)
 
 
 class Step2View(BaseStepView):
@@ -151,8 +154,8 @@ class Step2View(BaseStepView):
         try:
             preset_manager = get_scale_preset_manager()
             preset_manager.save_session_presets(new_presets)
-        except Exception as e:
-            print(f"Error saving session presets: {e}")
+        except Exception:
+            logger.exception("Failed to save session presets")
 
         self._refresh_preset_buttons()
 

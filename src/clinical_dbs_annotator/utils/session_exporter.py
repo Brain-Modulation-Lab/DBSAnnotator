@@ -5,6 +5,7 @@ This module provides functionality to export session data to Word and PDF.
 """
 
 import csv
+import logging
 import os
 import shutil
 import subprocess
@@ -25,6 +26,8 @@ from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 from ..models import ElectrodeCanvas
+
+logger = logging.getLogger(__name__)
 
 
 class SessionExporter:
@@ -242,6 +245,10 @@ class SessionExporter:
                 return pd.read_csv(self.session_data.file_path, sep="\t")
             return None
         except Exception:
+            logger.exception(
+                "Failed to read session data from TSV: %s",
+                getattr(self.session_data, "file_path", None),
+            )
             return None
 
     def _normalize_block_id_column(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -367,7 +374,7 @@ class SessionExporter:
                 else:
                     duration_str = f"{total_mins} min"
         except Exception:
-            pass
+            logger.debug("Failed to compute session duration", exc_info=True)
 
         # Number of configurations tested
         df_normalized = self._normalize_block_id_column(df)
@@ -424,7 +431,10 @@ class SessionExporter:
                     else:
                         pw_r = val
         except Exception:
-            pass
+            logger.warning(
+                "Failed to compute programming summary parameter ranges",
+                exc_info=True,
+            )
 
         # Add summary paragraphs
         summary_items = [
@@ -695,6 +705,10 @@ class SessionExporter:
                     scale_name_lines += [""] * (max_len - len(scale_name_lines))
                     scale_value_lines += [""] * (max_len - len(scale_value_lines))
                 except Exception:
+                    logger.debug(
+                        "Failed to split multiline scale cells for report rendering",
+                        exc_info=True,
+                    )
                     scale_name_lines = None
                     scale_value_lines = None
 
@@ -1062,8 +1076,11 @@ class SessionExporter:
             win.close()
             del win
 
-        except Exception as e:
-            doc.add_paragraph(f"Chart generation error: {e}")
+        except Exception:
+            logger.exception("Failed to generate session scale timeline chart")
+            doc.add_paragraph(
+                "Chart generation error. Please check application logs for details."
+            )
 
     def _column_header(self, col: str) -> str:
         """Map an internal column name to a human-readable table header."""
@@ -1091,6 +1108,9 @@ class SessionExporter:
                 bid = pd.to_numeric(df["block_id"], errors="coerce")
                 return df.loc[bid.idxmax()]
             except Exception:
+                logger.debug(
+                    "Fallback to last row after block_id parse failure", exc_info=True
+                )
                 return df.iloc[-1]
         return df.iloc[-1]
 
@@ -1204,6 +1224,7 @@ class SessionExporter:
             return best_blocks, second_best_blocks
 
         except Exception:
+            logger.exception("Failed to rank best/second-best session blocks")
             return [], []
 
     def _highlight_cells_green(self, row_cells, intensity: str = "best") -> None:
@@ -1222,7 +1243,9 @@ class SessionExporter:
                 shading_elm.set(qn("w:fill"), color)
                 cell._tc.get_or_add_tcPr().append(shading_elm)
             except Exception:
-                pass
+                logger.debug(
+                    "Failed to cleanup temporary electrode image", exc_info=True
+                )
 
     def _set_cell_border_top(self, cell, sz=12):
         """Set top border of a cell to specified size (in eighths of a point)."""
@@ -1607,7 +1630,11 @@ class SessionExporter:
                 try:
                     os.unlink(docx_path)
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to remove temporary Word file after PDF export: %s",
+                        docx_path,
+                        exc_info=True,
+                    )
 
             self._show_transient_message(
                 parent,
@@ -1617,11 +1644,12 @@ class SessionExporter:
             )
             return True
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export session data to PDF")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export session data to PDF:\n{str(e)}",
+                "Failed to export session data to PDF.\nSee log for details.",
             )
             return False
 
@@ -1693,11 +1721,12 @@ class SessionExporter:
             )
             return True
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export session data to Word")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export session data to Word:\n{str(e)}",
+                "Failed to export session data to Word.\nSee log for details.",
             )
             return False
 
@@ -1804,6 +1833,10 @@ class SessionExporter:
             try:
                 file_path = self.session_data.tsv_file.name
             except Exception:
+                logger.warning(
+                    "Failed to resolve simple annotation file path from active handle",
+                    exc_info=True,
+                )
                 file_path = None
         if not file_path or not os.path.exists(file_path):
             return []
@@ -1821,6 +1854,10 @@ class SessionExporter:
                         try:
                             kk = str(k).strip().lstrip("\ufeff").lower()
                         except Exception:
+                            logger.debug(
+                                "Skipping malformed annotation key while reading TSV row",
+                                exc_info=True,
+                            )
                             continue
                         norm[kk] = v
 
@@ -1854,11 +1891,18 @@ class SessionExporter:
                             t = str(vals[0] or "") if len(vals) >= 1 else ""
                             a = str(vals[1] or "") if len(vals) >= 2 else ""
                         except Exception:
+                            logger.debug(
+                                "Failed fallback parsing for annotation row",
+                                exc_info=True,
+                            )
                             t, a = "", ""
 
                     if a.strip() or t.strip():
                         items.append((t, a))
         except Exception:
+            logger.exception(
+                "Failed to read simple annotations from TSV: %s", file_path
+            )
             return []
         return items
 
@@ -1899,7 +1943,10 @@ class SessionExporter:
                 try:
                     self.session_data.tsv_file.flush()
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to flush annotation TSV before Word export",
+                        exc_info=True,
+                    )
 
             from PySide6.QtWidgets import QFileDialog
 
@@ -1939,11 +1986,12 @@ class SessionExporter:
                 msecs=2000,
             )
             return True
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export annotations to Word")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export annotations to Word:\n{str(e)}",
+                "Failed to export annotations to Word.\nSee log for details.",
             )
             return False
 
@@ -1962,7 +2010,10 @@ class SessionExporter:
                 try:
                     self.session_data.tsv_file.flush()
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to flush annotation TSV before PDF export",
+                        exc_info=True,
+                    )
 
             from PySide6.QtWidgets import QFileDialog
 
@@ -2002,7 +2053,11 @@ class SessionExporter:
                 try:
                     os.unlink(docx_path)
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to remove temporary annotations Word file: %s",
+                        docx_path,
+                        exc_info=True,
+                    )
 
             self._show_transient_message(
                 parent,
@@ -2011,10 +2066,11 @@ class SessionExporter:
                 msecs=2000,
             )
             return True
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export annotations to PDF")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export annotations to PDF:\n{str(e)}",
+                "Failed to export annotations to PDF.\nSee log for details.",
             )
             return False

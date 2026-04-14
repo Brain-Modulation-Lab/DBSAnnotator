@@ -5,6 +5,7 @@ This module contains the view for the first step of the wizard where users
 configure initial settings, stimulation parameters, and clinical scales.
 """
 
+import logging
 import os
 from collections.abc import Callable
 from datetime import datetime
@@ -59,6 +60,8 @@ from ..utils.program_config_manager import (
 )
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
+
+logger = logging.getLogger(__name__)
 
 
 class Step1View(BaseStepView):
@@ -797,20 +800,15 @@ class Step1View(BaseStepView):
         if not left_model or not right_model:
             return
 
-        print("\n" + "=" * 60)
-        print("DBS STIMULATION CONFIGURATION")
-        print("=" * 60)
-        print(f"Model: {left_model.name}")
-        print(f"Timestamp: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}")
-        print()
-
-        print(
-            f"LEFT  Anode: {self.get_left_anode_text()} | Cathode: {self.get_left_cathode_text()}"
+        logger.info(
+            "DBS stimulation configuration | model=%s | timestamp=%s | left_anode=%s | left_cathode=%s | right_anode=%s | right_cathode=%s",
+            left_model.name,
+            datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S"),
+            self.get_left_anode_text(),
+            self.get_left_cathode_text(),
+            self.get_right_anode_text(),
+            self.get_right_cathode_text(),
         )
-        print(
-            f"RIGHT Anode: {self.get_right_anode_text()} | Cathode: {self.get_right_cathode_text()}"
-        )
-        print("=" * 60 + "\n")
 
     def _create_upload_tsv_group(self) -> QGroupBox:
         """Create the file upload group with drop zone, Open, and New buttons."""
@@ -1730,8 +1728,8 @@ class Step1View(BaseStepView):
         try:
             preset_manager = get_scale_preset_manager()
             preset_manager.save_clinical_presets(new_presets)
-        except Exception as e:
-            print(f"Error saving presets: {e}")
+        except Exception:
+            logger.exception("Failed to save clinical presets")
 
         # Check if any currently displayed preset was modified or deleted
         current_scales = []

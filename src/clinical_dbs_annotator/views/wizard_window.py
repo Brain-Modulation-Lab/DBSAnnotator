@@ -5,6 +5,7 @@ This module contains the main window that manages the wizard flow,
 navigation, and coordinates views with the controller.
 """
 
+import logging
 import os
 import typing
 
@@ -49,6 +50,8 @@ from .step0_view import Step0View
 from .step1_view import Step1View
 from .step2_view import Step2View
 from .step3_view import Step3View
+
+logger = logging.getLogger(__name__)
 
 
 class WizardWindow(QWidget):
@@ -940,11 +943,8 @@ class WizardWindow(QWidget):
             try:
                 self.controller.prepare_step3(self.step3_view)
                 self._step3_prepared = True
-            except Exception as e:
-                print(f"[ERROR] prepare_step3 retry failed: {e}")
-                import traceback
-
-                traceback.print_exc()
+            except Exception:
+                logger.exception("Step 3 preparation retry failed")
         else:
             # Only refresh scales if definitions changed; keep everything else as-is
             self.controller.refresh_step3_scales(self.step3_view)
