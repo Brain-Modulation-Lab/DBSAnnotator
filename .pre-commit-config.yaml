@@ -10,3 +10,11 @@ repos:
       - id: ruff-format
       - id: ruff-check
         args: ["--fix", "--exclude", "tests"]
+
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty check (src)
+        entry: uv run ty check src
+        language: system
+        pass_filenames: false

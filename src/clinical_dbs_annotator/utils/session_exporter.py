@@ -5,6 +5,7 @@ This module provides functionality to export session data to Word and PDF.
 """
 
 import csv
+import logging
 import os
 import shutil
 import subprocess
@@ -13,18 +14,21 @@ from datetime import datetime
 
 import pandas as pd
 from docx import Document
+from docx.document import Document as DocumentType
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QPainter, QPixmap
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 from ..models import ElectrodeCanvas
+
+logger = logging.getLogger(__name__)
 
 
 class SessionExporter:
@@ -242,6 +246,10 @@ class SessionExporter:
                 return pd.read_csv(self.session_data.file_path, sep="\t")
             return None
         except Exception:
+            logger.exception(
+                "Failed to read session data from TSV: %s",
+                getattr(self.session_data, "file_path", None),
+            )
             return None
 
     def _normalize_block_id_column(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -290,7 +298,7 @@ class SessionExporter:
 
     def _add_summary_section(
         self,
-        doc: Document,
+        doc: DocumentType,
         df: pd.DataFrame,
         df_initial: pd.DataFrame,
         df_final: pd.DataFrame,
@@ -331,7 +339,7 @@ class SessionExporter:
 
     def _add_programming_summary(
         self,
-        doc: Document,
+        doc: DocumentType,
         df: pd.DataFrame,
         df_initial: pd.DataFrame,
         df_final: pd.DataFrame,
@@ -349,10 +357,10 @@ class SessionExporter:
         duration_str = "N/A"
         try:
             if "time" in df.columns and "date" in df.columns:
-                timestamps = pd.to_datetime(
-                    df["date"].astype(str) + " " + df["time"].astype(str),
-                    errors="coerce",
-                ).dropna()
+                date_time_str = (
+                    df["date"].astype(str).str.cat(df["time"].astype(str), sep=" ")
+                )
+                timestamps = pd.to_datetime(date_time_str, errors="coerce").dropna()
             elif "time" in df.columns:
                 timestamps = pd.to_datetime(df["time"], errors="coerce").dropna()
             else:
@@ -367,7 +375,7 @@ class SessionExporter:
                 else:
                     duration_str = f"{total_mins} min"
         except Exception:
-            pass
+            logger.debug("Failed to compute session duration", exc_info=True)
 
         # Number of configurations tested
         df_normalized = self._normalize_block_id_column(df)
@@ -424,7 +432,10 @@ class SessionExporter:
                     else:
                         pw_r = val
         except Exception:
-            pass
+            logger.warning(
+                "Failed to compute programming summary parameter ranges",
+                exc_info=True,
+            )
 
         # Add summary paragraphs
         summary_items = [
@@ -604,9 +615,10 @@ class SessionExporter:
 
         # Define column widths in inches
         section = doc.sections[0]
-        page_width_inches = (
-            section.page_width - section.left_margin - section.right_margin
-        ) / 914400
+        page_width = int(section.page_width or 0)
+        left_margin = int(section.left_margin or 0)
+        right_margin = int(section.right_margin or 0)
+        page_width_inches = (page_width - left_margin - right_margin) / 914400
 
         base_in = {
             "laterality": 0.30,
@@ -705,6 +717,10 @@ class SessionExporter:
                     scale_name_lines += [""] * (max_len - len(scale_name_lines))
                     scale_value_lines += [""] * (max_len - len(scale_value_lines))
                 except Exception:
+                    logger.debug(
+                        "Failed to split multiline scale cells for report rendering",
+                        exc_info=True,
+                    )
                     scale_name_lines = None
                     scale_value_lines = None
 
@@ -773,7 +789,7 @@ class SessionExporter:
         self._add_table_legend(doc, best_block_ids, second_best_ids)
 
     def _add_table_legend(
-        self, doc: Document, best_ids: list, second_ids: list
+        self, doc: DocumentType, best_ids: list, second_ids: list
     ) -> None:
         """Add color legend and clinical disclaimer below the session data table."""
         from docx.shared import Pt, RGBColor
@@ -831,7 +847,7 @@ class SessionExporter:
         disclaimer_run.font.italic = True
 
     def _add_scales_timeline_chart(
-        self, doc: Document, lateral_df: pd.DataFrame
+        self, doc: DocumentType, lateral_df: pd.DataFrame
     ) -> None:
         """Add a rainbow-colored timeline chart of session scales with a general index line."""
         import math as _math
@@ -915,8 +931,12 @@ class SessionExporter:
         if "block_id" in df.columns:
             try:
                 bid = pd.to_numeric(df["block_id"], errors="coerce")
-                return df.loc[bid.idxmax()]
+                max_idx = bid.idxmax()
+                return df.loc[[max_idx]].iloc[0]
             except Exception:
+                logger.debug(
+                    "Fallback to last row after block_id parse failure", exc_info=True
+                )
                 return df.iloc[-1]
         return df.iloc[-1]
 
@@ -1030,6 +1050,7 @@ class SessionExporter:
             return best_blocks, second_best_blocks
 
         except Exception:
+            logger.exception("Failed to rank best/second-best session blocks")
             return [], []
 
     def _highlight_cells_green(self, row_cells, intensity: str = "best") -> None:
@@ -1048,7 +1069,9 @@ class SessionExporter:
                 shading_elm.set(qn("w:fill"), color)
                 cell._tc.get_or_add_tcPr().append(shading_elm)
             except Exception:
-                pass
+                logger.debug(
+                    "Failed to cleanup temporary electrode image", exc_info=True
+                )
 
     def _set_cell_border_top(self, cell, sz=12):
         """Set top border of a cell to specified size (in eighths of a point)."""
@@ -1122,7 +1145,7 @@ class SessionExporter:
         canvas.contact_states.clear()
         canvas.case_state = ContactState.OFF
 
-        def apply_tokens(text: str, state: ContactState) -> None:
+        def apply_tokens(text: str, state: int) -> None:
             if not text:
                 return
             for token in str(text).split("_"):
@@ -1175,16 +1198,6 @@ class SessionExporter:
             pass
         self._apply_contact_tokens_to_canvas(canvas, anode_text, cathode_text)
 
-        # Force white background by temporarily overriding paintEvent
-        original_paint = canvas.paintEvent
-
-        def white_bg_paint(event):
-            painter = QPainter(canvas)
-            painter.fillRect(canvas.rect(), Qt.white)
-            original_paint(event)
-
-        canvas.paintEvent = white_bg_paint
-
         pixmap = QPixmap(canvas.size())
         pixmap.fill(Qt.white)
         canvas.render(pixmap)
@@ -1219,7 +1232,7 @@ class SessionExporter:
         return tmp.name
 
     def _add_electrode_config_section(
-        self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame
+        self, doc: DocumentType, df: pd.DataFrame, df_initial: pd.DataFrame
     ) -> None:
         """Add the initial vs final electrode configuration images to the document."""
         if df is None or df.empty:
@@ -1380,10 +1393,11 @@ class SessionExporter:
             run.add_picture(img_path, width=Inches(1.15))
 
         for pth in paths.values():
-            try:
-                os.unlink(pth)
-            except Exception:
-                pass
+            if pth:
+                try:
+                    os.unlink(pth)
+                except Exception:
+                    pass
 
     def export_to_pdf(self, parent: QWidget | None = None, sections=None) -> bool:
         """Export session data to PDF by generating a Word report and converting it."""
@@ -1433,7 +1447,11 @@ class SessionExporter:
                 try:
                     os.unlink(docx_path)
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to remove temporary Word file after PDF export: %s",
+                        docx_path,
+                        exc_info=True,
+                    )
 
             self._show_transient_message(
                 parent,
@@ -1444,11 +1462,12 @@ class SessionExporter:
             self._open_file(pdf_path)
             return True
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export session data to PDF")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export session data to PDF:\n{str(e)}",
+                "Failed to export session data to PDF.\nSee log for details.",
             )
             return False
 
@@ -1536,11 +1555,12 @@ class SessionExporter:
             )
             return True
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export session data to Word")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export session data to Word:\n{str(e)}",
+                "Failed to export session data to Word.\nSee log for details.",
             )
             return False
 
@@ -1557,14 +1577,12 @@ class SessionExporter:
                 pd.to_numeric(df["is_initial"], errors="coerce").fillna(0).astype(int)
             )
 
-        df_initial = (
-            df[df.get("is_initial", 0) == 1]
-            if "is_initial" in df.columns
-            else df.iloc[0:0]
-        )
-        df_table = (
-            df[df.get("is_initial", 0) != 1] if "is_initial" in df.columns else df
-        )
+        if "is_initial" in df.columns:
+            df_initial = df[df["is_initial"] == 1]
+            df_table = df[df["is_initial"] != 1]
+        else:
+            df_initial = df.iloc[0:0]
+            df_table = df
 
         doc = Document()
 
@@ -1640,7 +1658,7 @@ class SessionExporter:
         doc.save(file_path)
         return True
 
-    def _add_report_footer(self, doc: Document) -> None:
+    def _add_report_footer(self, doc: DocumentType) -> None:
         """Add footer with patient ID and session number."""
         from docx.shared import Pt
 
@@ -1669,6 +1687,10 @@ class SessionExporter:
             try:
                 file_path = self.session_data.tsv_file.name
             except Exception:
+                logger.warning(
+                    "Failed to resolve simple annotation file path from active handle",
+                    exc_info=True,
+                )
                 file_path = None
         if not file_path or not os.path.exists(file_path):
             return []
@@ -1686,6 +1708,10 @@ class SessionExporter:
                         try:
                             kk = str(k).strip().lstrip("\ufeff").lower()
                         except Exception:
+                            logger.debug(
+                                "Skipping malformed annotation key while reading TSV row",
+                                exc_info=True,
+                            )
                             continue
                         norm[kk] = v
 
@@ -1719,11 +1745,18 @@ class SessionExporter:
                             t = str(vals[0] or "") if len(vals) >= 1 else ""
                             a = str(vals[1] or "") if len(vals) >= 2 else ""
                         except Exception:
+                            logger.debug(
+                                "Failed fallback parsing for annotation row",
+                                exc_info=True,
+                            )
                             t, a = "", ""
 
                     if a.strip() or t.strip():
                         items.append((t, a))
         except Exception:
+            logger.exception(
+                "Failed to read simple annotations from TSV: %s", file_path
+            )
             return []
         return items
 
@@ -1764,7 +1797,10 @@ class SessionExporter:
                 try:
                     self.session_data.tsv_file.flush()
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to flush annotation TSV before Word export",
+                        exc_info=True,
+                    )
 
             from PySide6.QtWidgets import QFileDialog
 
@@ -1804,11 +1840,12 @@ class SessionExporter:
                 msecs=2000,
             )
             return True
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export annotations to Word")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export annotations to Word:\n{str(e)}",
+                "Failed to export annotations to Word.\nSee log for details.",
             )
             return False
 
@@ -1827,7 +1864,10 @@ class SessionExporter:
                 try:
                     self.session_data.tsv_file.flush()
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to flush annotation TSV before PDF export",
+                        exc_info=True,
+                    )
 
             from PySide6.QtWidgets import QFileDialog
 
@@ -1867,7 +1907,11 @@ class SessionExporter:
                 try:
                     os.unlink(docx_path)
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Failed to remove temporary annotations Word file: %s",
+                        docx_path,
+                        exc_info=True,
+                    )
 
             self._show_transient_message(
                 parent,
@@ -1876,10 +1920,11 @@ class SessionExporter:
                 msecs=2000,
             )
             return True
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to export annotations to PDF")
             QMessageBox.critical(
                 parent,
                 "Export Error",
-                f"Failed to export annotations to PDF:\n{str(e)}",
+                "Failed to export annotations to PDF.\nSee log for details.",
             )
             return False

@@ -7,7 +7,7 @@ section labels, and horizontal lines.
 
 import typing
 
-from PySide6.QtCore import QEvent, QSize, Qt, Signal
+from PySide6.QtCore import QByteArray, QEvent, QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
@@ -168,10 +168,10 @@ class IncrementWidget(QWidget):
         """
         btn = QPushButton()
         btn.setIcon(create_arrow_icon(direction, double))
-        btn.setIconSize(QSize(*ICON_SIZES["increment"]))
-        btn.setFixedSize(
-            BUTTON_SIZES["increment"]["width"], BUTTON_SIZES["increment"]["height"]
-        )
+        icon_width, icon_height = typing.cast(tuple[int, int], ICON_SIZES["increment"])
+        btn.setIconSize(QSize(icon_width, icon_height))
+        increment_size = typing.cast(dict[str, int], BUTTON_SIZES["increment"])
+        btn.setFixedSize(increment_size["width"], increment_size["height"])
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet(
             """
@@ -353,7 +353,7 @@ class ScaleProgressWidget(QWidget):
                 """
 
         pixmap = QPixmap()
-        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
+        pixmap.loadFromData(QByteArray(svg.encode("utf-8")))
         return QIcon(pixmap)
 
     def _create_x_icon(self) -> QIcon:
@@ -366,7 +366,7 @@ class ScaleProgressWidget(QWidget):
         </svg>
         """
         pixmap = QPixmap()
-        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
+        pixmap.loadFromData(QByteArray(svg.encode("utf-8")))
         return QIcon(pixmap)
 
     @typing.override
@@ -437,26 +437,22 @@ class ScaleProgressWidget(QWidget):
             self.valueChanged.emit(self._value)
 
     # Public API (mirrors old InteractiveProgressBar)
-    @typing.override
-    def setMinimum(self, value: int) -> None:
+    def setMinimum(self, value: int) -> None:  # noqa: N802
         """Set the minimum internal value."""
         self._minimum = int(value)
         self.progress_bar.setMinimum(int(value))
 
-    @typing.override
-    def setMaximum(self, value: int) -> None:
+    def setMaximum(self, value: int) -> None:  # noqa: N802
         """Set the maximum internal value."""
         self._maximum = int(value)
         self.progress_bar.setMaximum(int(value))
 
-    @typing.override
-    def setValue(self, value: int) -> None:
+    def setValue(self, value: int) -> None:  # noqa: N802
         """Set the current value and update the progress bar."""
         self._value = int(value)
         self.progress_bar.setValue(int(value))
 
-    @typing.override
-    def setFormat(self, format_str: str) -> None:
+    def setFormat(self, format_str: str) -> None:  # noqa: N802
         """Set the text format displayed on the progress bar."""
         self.progress_bar.setFormat(format_str)
 
@@ -477,8 +473,7 @@ class ScaleProgressWidget(QWidget):
         """Return the current internal value."""
         return self._value
 
-    @typing.override
-    def isDisabled(self) -> bool:
+    def isDisabled(self) -> bool:  # noqa: N802
         """Return True if the widget is in disabled state."""
         return self._disabled
 

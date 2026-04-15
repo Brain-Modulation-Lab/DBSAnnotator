@@ -5,6 +5,7 @@ This module provides the base class that all step views inherit from,
 containing common functionality and UI elements.
 """
 
+from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -42,7 +43,7 @@ class BaseStepView(QWidget):
         </svg>
         """
         pixmap = QPixmap()
-        pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
+        pixmap.loadFromData(QByteArray(svg.encode("utf-8")))
         return QIcon(pixmap)
 
     def _get_theme_icon_color(self) -> str:

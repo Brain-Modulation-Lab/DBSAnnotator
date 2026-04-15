@@ -7,6 +7,7 @@ longitudinal report.
 """
 
 import csv
+import logging
 import os
 import re
 import typing
@@ -27,6 +28,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FileDropZone(QWidget):
@@ -364,6 +367,8 @@ class LongitudinalReportView(QWidget):
         """
         accepted = {is_initial_filter, f"{is_initial_filter}.0"}
         scale_values: dict[str, list[float]] = {}
+        read_failures: list[str] = []
+        invalid_value_count = 0
 
         for path in file_paths:
             try:
@@ -379,6 +384,7 @@ class LongitudinalReportView(QWidget):
                         try:
                             val = float(scale_value)
                         except ValueError:
+                            invalid_value_count += 1
                             continue
                         scale_values.setdefault(scale_name, []).append(val)
             except Exception as e:

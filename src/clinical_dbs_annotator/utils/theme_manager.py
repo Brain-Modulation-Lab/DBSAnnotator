@@ -5,6 +5,7 @@ This module provides a centralized theme management system that allows
 switching between dark and light themes at runtime.
 """
 
+import logging
 import os
 from enum import Enum
 
@@ -12,6 +13,8 @@ from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication, QToolTip
 
 from .resources import resource_path
+
+logger = logging.getLogger(__name__)
 
 
 class Theme(Enum):
@@ -116,7 +119,7 @@ class ThemeManager:
 
         return re.sub(r"url\(([^)]+)\)", _resolve, content)
 
-    def apply_theme(self, theme: Theme, app: QApplication = None) -> None:
+    def apply_theme(self, theme: Theme, app: QApplication | None = None) -> None:
         """
         Apply a theme to the application.
 
@@ -128,7 +131,8 @@ class ThemeManager:
             ValueError: If app is None and no QApplication instance exists
         """
         if app is None:
-            app = QApplication.instance()
+            maybe_app = QApplication.instance()
+            app = maybe_app if isinstance(maybe_app, QApplication) else None
 
         if app is None:
             raise ValueError("No QApplication instance available")
@@ -139,7 +143,7 @@ class ThemeManager:
             self._current_theme = theme
             self._save_theme()
         except FileNotFoundError as e:
-            print(f"Warning: Could not load theme: {e}")
+            logger.warning("Could not load theme stylesheet: %s", e)
             # Fallback to no stylesheet
             app.setStyleSheet("")
 
@@ -154,7 +158,7 @@ class ThemeManager:
             tooltip_palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#0f172a"))
         QToolTip.setPalette(tooltip_palette)
 
-    def toggle_theme(self, app: QApplication = None) -> Theme:
+    def toggle_theme(self, app: QApplication | None = None) -> Theme:
         """
         Toggle between dark and light themes.
 
@@ -199,7 +203,7 @@ class ThemeManager:
             if match:
                 return match.group(1)
         except Exception:
-            pass
+            logger.exception("Failed to resolve theme color '%s'", color_name)
         return "#888888"
 
     def get_theme_icon(self, theme: Theme) -> str:

@@ -5,7 +5,7 @@ This module provides functions for creating icons, rounded images,
 and button animations.
 """
 
-from PySide6.QtCore import QRectF, Qt, QTimer
+from PySide6.QtCore import QByteArray, QRectF, Qt, QTimer
 from PySide6.QtGui import QIcon, QPainter, QPainterPath, QPixmap
 
 from ..config import BUTTON_PULSE_COUNT, BUTTON_PULSE_DURATION
@@ -54,7 +54,7 @@ def create_arrow_icon(direction: str = "up", double: bool = False) -> QIcon:
             """
 
     pixmap = QPixmap()
-    pixmap.loadFromData(bytes(svg, encoding="utf-8"), "SVG")
+    pixmap.loadFromData(QByteArray(svg.encode("utf-8")))
     return QIcon(pixmap)
 
 

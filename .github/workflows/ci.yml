@@ -1,4 +1,4 @@
-name: CI - Lint
+name: CI - Lint and Type Check
 
 on:
   push:
@@ -17,21 +17,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set up uv with Python
+      - name: Set up uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
         with:
           python-version: "3.14"
           enable-cache: true
 
-      - name: Sync dependencies (locked, dev)
+      - name: Sync dependencies
         run: |
           uv sync --locked --dev
 
-      - name: Run ruff (as in pre-commit)
+      - name: Lint
         run: |
           uv run ruff check --exclude tests .
 
-      - name: Run ruff format (check)
+      - name: Format
         run: |
           uv run ruff format --check --exclude tests .
 
@@ -40,4 +40,26 @@ jobs:
       # - name: Run pytest
       #   run: |
       #     uv run pytest
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: |
+          uv sync --locked --dev
+
+      - name: Type check
+        run: |
+          uv run ty check src
 
