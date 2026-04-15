@@ -16,7 +16,7 @@ from typing import Any
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from docx.document import Document
+from docx.document import Document as DocumentType
 from docx.shared import Inches
 from matplotlib import cm
 
@@ -33,7 +33,7 @@ SECOND_GREEN = (200 / 255, 235 / 255, 205 / 255, 130 / 255)
 
 
 def parse_scale_targets(
-    prefs: list[tuple[str, str, str, str, str]],
+    prefs: list[tuple[str, str, str, str, str]] | None,
 ) -> dict[str, dict[str, Any]]:
     """Convert user preference tuples into a look-up dict.
 
@@ -322,7 +322,7 @@ def build_scales_chart(
                 bbox_to_anchor=(0.5, 1.0),
             )
 
-        fig.tight_layout(rect=[0, 0, 1, 0.93])
+        fig.tight_layout(rect=(0, 0, 1, 0.93))
 
         # ── Export to PNG bytes ─────────────────────────────────────
         buf = BytesIO()
@@ -339,7 +339,7 @@ def build_scales_chart(
 
 
 def add_chart_to_doc(
-    doc: Document,
+    doc: DocumentType,
     png_bytes: bytes | None,
     *,
     heading: str | None = None,
@@ -364,7 +364,9 @@ def add_chart_to_doc(
     if width_inches is None:
         section = doc.sections[0]
         page_w = (
-            section.page_width - section.left_margin - section.right_margin
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
         ) / 914400  # Convert twips to inches
         width_inches = max(4.0, page_w)  # Minimum 4 inches, otherwise full page
 

@@ -6,6 +6,7 @@ for a clinical DBS programming session, including TSV file writing.
 """
 
 import csv
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import TextIO
@@ -14,6 +15,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from ..config import TIMEZONE, TSV_COLUMNS
 from .clinical_scale import ClinicalScale, SessionScale
 from .stimulation import StimulationParameters
+
+logger = logging.getLogger(__name__)
 
 
 class SessionData:
@@ -82,6 +85,7 @@ class SessionData:
         # Calculate next session_id and block_id
         max_block = -1
         max_session = 0
+        parse_errors = 0
         try:
             with open(file_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="\t")
@@ -97,10 +101,22 @@ class SessionData:
                         if session_val is not None and session_val != "":
                             max_session = max(max_session, int(float(session_val)))
                     except Exception:
+                        parse_errors += 1
                         continue
         except Exception:
+            logger.warning(
+                "Failed to inspect existing session file before append: %s",
+                file_path,
+                exc_info=True,
+            )
             max_block = -1
             max_session = 0
+        if parse_errors:
+            logger.warning(
+                "Skipped %d malformed rows while opening session file in append mode: %s",
+                parse_errors,
+                file_path,
+            )
 
         if start_block_id is None:
             start_block_id = max_block + 1
@@ -112,8 +128,13 @@ class SessionData:
         try:
             with open(file_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="\t")
-                existing_fieldnames = reader.fieldnames
+                existing_fieldnames = list(reader.fieldnames or [])
         except Exception:
+            logger.warning(
+                "Failed to read existing TSV headers, using defaults: %s",
+                file_path,
+                exc_info=True,
+            )
             existing_fieldnames = None
 
         self.tsv_fieldnames = existing_fieldnames or list(TSV_COLUMNS)
@@ -128,7 +149,11 @@ class SessionData:
             if Path(file_path).stat().st_size == 0:
                 self.tsv_writer.writeheader()
         except Exception:
-            pass
+            logger.warning(
+                "Failed to initialize TSV header for file: %s",
+                file_path,
+                exc_info=True,
+            )
         self.session_start_time = datetime.now()
 
     def close_file(self) -> None:
@@ -363,8 +388,13 @@ class SessionData:
             try:
                 with open(filepath, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f, delimiter="\t")
-                    fieldnames = reader.fieldnames
+                    fieldnames = list(reader.fieldnames or [])
             except Exception:
+                logger.warning(
+                    "Failed reading annotation TSV headers, using defaults: %s",
+                    filepath,
+                    exc_info=True,
+                )
                 fieldnames = None
 
         fieldnames = fieldnames or ["date", "time", "timezone", "annotation"]
@@ -381,7 +411,11 @@ class SessionData:
                 self.tsv_writer.writeheader()
                 self.tsv_file.flush()
         except Exception:
-            pass
+            logger.warning(
+                "Failed to initialize annotation TSV header: %s",
+                filepath,
+                exc_info=True,
+            )
 
     def write_simple_annotation(self, annotation: str) -> None:
         """

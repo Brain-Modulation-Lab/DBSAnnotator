@@ -28,7 +28,7 @@ def get_dpi_scale() -> float:
     return logical_dpi / base_dpi
 
 
-def scale_value(value: int | float, dpi_scale: float = None) -> int:
+def scale_value(value: int | float, dpi_scale: float | None = None) -> int:
     """
     Scale a value based on DPI.
 
@@ -45,7 +45,7 @@ def scale_value(value: int | float, dpi_scale: float = None) -> int:
     return int(value * dpi_scale)
 
 
-def scale_font_size(base_size: int, dpi_scale: float = None) -> int:
+def scale_font_size(base_size: int, dpi_scale: float | None = None) -> int:
     """
     Scale font size based on DPI, with reasonable limits.
 
@@ -63,7 +63,9 @@ def scale_font_size(base_size: int, dpi_scale: float = None) -> int:
     return max(8, min(24, scaled))  # Clamp between 8-24pt
 
 
-def get_responsive_stylesheet_variables(dpi_scale: float = None) -> dict:
+def get_responsive_stylesheet_variables(
+    dpi_scale: float | None = None,
+) -> dict[str, str]:
     """
     Get stylesheet variables for responsive design.
 
@@ -87,7 +89,9 @@ def get_responsive_stylesheet_variables(dpi_scale: float = None) -> dict:
     }
 
 
-def apply_responsive_size_policy(widget, min_width: int = None, min_height: int = None):
+def apply_responsive_size_policy(
+    widget, min_width: int | None = None, min_height: int | None = None
+):
     """
     Apply responsive size policy to a widget.
 

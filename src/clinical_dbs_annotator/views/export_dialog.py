@@ -10,6 +10,8 @@ These dialogs are shared by both the longitudinal workflow and the Step-3
 single-session export.
 """
 
+from collections.abc import Sequence
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtWidgets import (
@@ -303,7 +305,7 @@ class ReportSectionsDialog(QDialog):
 
     def __init__(
         self,
-        sections: list[tuple[str, str, bool, list | None]],
+        sections: Sequence[tuple[str, str, bool, list | None]],
         parent=None,
         title: str = "Report Sections",
     ):

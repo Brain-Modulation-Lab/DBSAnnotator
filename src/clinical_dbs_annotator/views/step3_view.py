@@ -5,6 +5,9 @@ This module contains the view for the third step where users actively record
 session data including stimulation parameters and scale values.
 """
 
+import logging
+from typing import cast
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
@@ -13,6 +16,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QFrame,
+    QGraphicsEffect,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -49,6 +53,8 @@ from ..utils.program_config_manager import (
 )
 from .base_view import BaseStepView
 
+logger = logging.getLogger(__name__)
+
 
 class Step3View(BaseStepView):
     """
@@ -73,7 +79,7 @@ class Step3View(BaseStepView):
         super().__init__()
         # parent_style is now set in BaseStepView.__init__
         self.session_scale_value_edits = []
-        self.step3_session_scales_form: QFormLayout = None
+        self.step3_session_scales_form: QFormLayout | None = None
 
         self.left_canvas = ElectrodeCanvas()
         self.right_canvas = ElectrodeCanvas()
@@ -228,7 +234,7 @@ class Step3View(BaseStepView):
         self.session_left_stim_freq_edit.setMaximumWidth(80)
         self.session_left_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
         self.session_left_stim_freq_edit.setValidator(
-            QIntValidator(freq_limits["min"], freq_limits["max"])
+            QIntValidator(int(freq_limits["min"]), int(freq_limits["max"]))
         )
         left_freq_widget = IncrementWidget(
             self.session_left_stim_freq_edit,
@@ -248,7 +254,9 @@ class Step3View(BaseStepView):
         self.session_left_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
         self.session_left_amp_edit.setValidator(
             QDoubleValidator(
-                amp_limits["min"], amp_limits["max"], amp_limits["decimals"]
+                float(amp_limits["min"]),
+                float(amp_limits["max"]),
+                int(amp_limits["decimals"]),
             )
         )
         left_amp_widget = IncrementWidget(
@@ -268,7 +276,7 @@ class Step3View(BaseStepView):
         self.session_left_pw_edit.setMaximumWidth(80)
         self.session_left_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
         self.session_left_pw_edit.setValidator(
-            QIntValidator(pw_limits["min"], pw_limits["max"])
+            QIntValidator(int(pw_limits["min"]), int(pw_limits["max"]))
         )
         left_pw_widget = IncrementWidget(
             self.session_left_pw_edit,
@@ -313,7 +321,7 @@ class Step3View(BaseStepView):
         self.session_right_stim_freq_edit.setMaximumWidth(80)
         self.session_right_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
         self.session_right_stim_freq_edit.setValidator(
-            QIntValidator(freq_limits["min"], freq_limits["max"])
+            QIntValidator(int(freq_limits["min"]), int(freq_limits["max"]))
         )
         right_freq_widget = IncrementWidget(
             self.session_right_stim_freq_edit,
@@ -333,7 +341,9 @@ class Step3View(BaseStepView):
         self.session_right_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
         self.session_right_amp_edit.setValidator(
             QDoubleValidator(
-                amp_limits["min"], amp_limits["max"], amp_limits["decimals"]
+                float(amp_limits["min"]),
+                float(amp_limits["max"]),
+                int(amp_limits["decimals"]),
             )
         )
         right_amp_widget = IncrementWidget(
@@ -353,7 +363,7 @@ class Step3View(BaseStepView):
         self.session_right_pw_edit.setMaximumWidth(80)
         self.session_right_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
         self.session_right_pw_edit.setValidator(
-            QIntValidator(pw_limits["min"], pw_limits["max"])
+            QIntValidator(int(pw_limits["min"]), int(pw_limits["max"]))
         )
         right_pw_widget = IncrementWidget(
             self.session_right_pw_edit,
@@ -696,7 +706,7 @@ class Step3View(BaseStepView):
                     effect.setOpacity(0.3)
                     widget.setGraphicsEffect(effect)
                 else:
-                    widget.setGraphicsEffect(None)
+                    widget.setGraphicsEffect(cast("QGraphicsEffect", None))
         elif side == "right":
             self.right_electrode_enabled = checked
             self.right_group.setEnabled(checked)
@@ -707,7 +717,7 @@ class Step3View(BaseStepView):
                     effect.setOpacity(0.3)
                     widget.setGraphicsEffect(effect)
                 else:
-                    widget.setGraphicsEffect(None)
+                    widget.setGraphicsEffect(cast("QGraphicsEffect", None))
 
     def _create_session_notes_group(self) -> QGroupBox:
         gb_notes = QGroupBox("Session notes")
@@ -838,7 +848,11 @@ class Step3View(BaseStepView):
             try:
                 self.group_combo.setCurrentText(str(program))
             except Exception:
-                pass
+                logger.warning(
+                    "Failed to restore Step 3 program selection: %s",
+                    program,
+                    exc_info=True,
+                )
 
         if self.left_canvas.model:
             self._apply_contact_text_to_canvas(
@@ -879,8 +893,10 @@ class Step3View(BaseStepView):
 
         canvas.contact_states.clear()
         canvas.case_state = ContactState.OFF
+        parse_errors = 0
 
         def apply_tokens(text: str, state: int) -> None:
+            nonlocal parse_errors
             if not text:
                 return
             for token in text.split("_"):
@@ -908,6 +924,7 @@ class Step3View(BaseStepView):
                             else:
                                 canvas.contact_states[(idx, 0)] = state
                     except Exception:
+                        parse_errors += 1
                         continue
                     continue
 
@@ -916,6 +933,7 @@ class Step3View(BaseStepView):
                     try:
                         idx = int(idx_str)
                     except Exception:
+                        parse_errors += 1
                         continue
 
                     if model.is_directional:
@@ -929,6 +947,7 @@ class Step3View(BaseStepView):
                     try:
                         idx = int(token[:-1])
                     except Exception:
+                        parse_errors += 1
                         continue
                     seg_char = token[-1].lower()
                     seg_map = {"a": 0, "b": 1, "c": 2}
@@ -937,6 +956,11 @@ class Step3View(BaseStepView):
 
         apply_tokens(anode_text, ContactState.ANODIC)
         apply_tokens(cathode_text, ContactState.CATHODIC)
+        if parse_errors:
+            logger.warning(
+                "Skipped %d invalid contact tokens while restoring stimulation configuration",
+                parse_errors,
+            )
 
         is_valid, _ = StimulationRule.validate_configuration(
             canvas.contact_states, canvas.case_state

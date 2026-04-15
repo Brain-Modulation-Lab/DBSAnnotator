@@ -13,6 +13,7 @@ from datetime import datetime
 
 import pandas as pd
 from docx import Document
+from docx.document import Document as DocumentType
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -310,7 +311,7 @@ class LongitudinalExporter:
     # ------------------------------------------------------------------
 
     def _add_sessions_overview(
-        self, doc: Document, df: pd.DataFrame, file_paths: list[str]
+        self, doc: DocumentType, df: pd.DataFrame, file_paths: list[str]
     ) -> None:
         """Add a summary table listing each session file with date and entry count."""
         doc.add_heading("Sessions Overview", level=1)
@@ -324,7 +325,9 @@ class LongitudinalExporter:
         # Column widths - use full page width
         section = doc.sections[0]
         page_w = (
-            section.page_width - section.left_margin - section.right_margin
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
         ) / 914400
         base_w = {
             "#": 0.25,
@@ -439,7 +442,7 @@ class LongitudinalExporter:
             )
 
     def _add_electrode_config_section(
-        self, doc: Document, df_all: pd.DataFrame, file_paths: list[str]
+        self, doc: DocumentType, df_all: pd.DataFrame, file_paths: list[str]
     ) -> None:
         """Add per-file electrode configuration (Initial / Final, Left / Right).
 
@@ -568,7 +571,9 @@ class LongitudinalExporter:
             # Set column widths to use full page width
             section = doc.sections[0]
             page_w = (
-                section.page_width - section.left_margin - section.right_margin
+                int(section.page_width or 0)
+                - int(section.left_margin or 0)
+                - int(section.right_margin or 0)
             ) / 914400
             col_w = page_w / 4
             w_twips = Inches(col_w)
@@ -643,7 +648,7 @@ class LongitudinalExporter:
             doc.add_paragraph("")
 
     def _add_programming_summary(
-        self, doc: Document, df_all: pd.DataFrame, file_paths: list[str]
+        self, doc: DocumentType, df_all: pd.DataFrame, file_paths: list[str]
     ) -> None:
         """Add a per-session programming summary table."""
         if df_all is None or df_all.empty:
@@ -718,7 +723,9 @@ class LongitudinalExporter:
         # Column widths - use full page width
         section = doc.sections[0]
         page_w = (
-            section.page_width - section.left_margin - section.right_margin
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
         ) / 914400
         base_w = {
             "Session": 2.0,
@@ -756,7 +763,7 @@ class LongitudinalExporter:
 
     def _add_longitudinal_data_table(
         self,
-        doc: Document,
+        doc: DocumentType,
         df_session: pd.DataFrame,
         file_paths: list[str] | None = None,
         include_chart: bool = True,
@@ -828,7 +835,9 @@ class LongitudinalExporter:
         # Column widths
         section = doc.sections[0]
         page_w = (
-            section.page_width - section.left_margin - section.right_margin
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
         ) / 914400
         base_w = {
             "date": 0.65,
@@ -921,7 +930,7 @@ class LongitudinalExporter:
 
     def _add_scales_timeline_chart(
         self,
-        doc: Document,
+        doc: DocumentType,
         df_session: pd.DataFrame,
         file_paths: list[str],
     ) -> None:
@@ -956,7 +965,7 @@ class LongitudinalExporter:
 
     def _add_clinical_scales_timeline_chart(
         self,
-        doc: Document,
+        doc: DocumentType,
         df_all: pd.DataFrame,
         file_paths: list[str],
     ) -> None:
@@ -1390,7 +1399,7 @@ class LongitudinalExporter:
             canvas.contact_states.clear()
             canvas.case_state = ContactState.OFF
 
-            def apply_tokens(text: str, state: ContactState) -> None:
+            def apply_tokens(text: str, state: int) -> None:
                 if not text:
                     return
                 for token in str(text).split("_"):
@@ -1432,7 +1441,7 @@ class LongitudinalExporter:
                 painter.fillRect(canvas.rect(), Qt.white)
                 original_paint(event)
 
-            canvas.paintEvent = white_bg_paint
+            canvas.paintEvent = white_bg_paint  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
 
             pixmap = QPixmap(canvas.size())
             pixmap.fill(Qt.white)
@@ -1550,7 +1559,7 @@ class LongitudinalExporter:
             pass
 
     def _add_table_legend(
-        self, doc: Document, best_ids: list, second_ids: list
+        self, doc: DocumentType, best_ids: list, second_ids: list
     ) -> None:
         if not best_ids and not second_ids:
             return

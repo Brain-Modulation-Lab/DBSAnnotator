@@ -5,8 +5,10 @@ This module contains the main window that manages the wizard flow,
 navigation, and coordinates views with the controller.
 """
 
+import logging
 import os
 import typing
+from typing import Protocol
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
@@ -49,6 +51,16 @@ from .step0_view import Step0View
 from .step1_view import Step1View
 from .step2_view import Step2View
 from .step3_view import Step3View
+
+logger = logging.getLogger(__name__)
+
+
+class _HeaderTitleProvider(Protocol):
+    def get_header_title(self) -> str: ...
+
+
+class _HeaderSubtitleProvider(Protocol):
+    def get_header_subtitle(self) -> str: ...
 
 
 class WizardWindow(QWidget):
@@ -262,7 +274,8 @@ class WizardWindow(QWidget):
 
         if hasattr(current, "get_header_title"):
             try:
-                return str(current.get_header_title() or "")
+                provider = typing.cast(_HeaderTitleProvider, current)
+                return str(provider.get_header_title() or "")
             except Exception:
                 return ""
 
@@ -285,7 +298,8 @@ class WizardWindow(QWidget):
 
         if hasattr(current, "get_header_subtitle"):
             try:
-                return str(current.get_header_subtitle() or "")
+                provider = typing.cast(_HeaderSubtitleProvider, current)
+                return str(provider.get_header_subtitle() or "")
             except Exception:
                 return ""
 
@@ -409,7 +423,8 @@ class WizardWindow(QWidget):
         self.workflow_mode = "full"
         self.current_step = 1
         self._load_full_workflow_views()
-        self.stack.setCurrentWidget(self.step1_view)
+        if self.step1_view is not None:
+            self.stack.setCurrentWidget(self.step1_view)
         self._update_window_size_for_main_workflow()  # Resize to normal size
         self._update_ui_state()
 
@@ -418,7 +433,8 @@ class WizardWindow(QWidget):
         self.workflow_mode = "annotations_only"
         self.current_step = 1
         self._load_annotations_only_views()
-        self.stack.setCurrentWidget(self.annotations_file_view)
+        if self.annotations_file_view is not None:
+            self.stack.setCurrentWidget(self.annotations_file_view)
         self._update_window_size_for_main_workflow()  # Resize to normal size
         self._update_ui_state()
 
@@ -427,7 +443,8 @@ class WizardWindow(QWidget):
         self.workflow_mode = "longitudinal"
         self.current_step = 1
         self._load_longitudinal_views()
-        self.stack.setCurrentWidget(self.longitudinal_file_view)
+        if self.longitudinal_file_view is not None:
+            self.stack.setCurrentWidget(self.longitudinal_file_view)
         self._update_window_size_for_main_workflow()
         self._update_ui_state()
 
@@ -957,11 +974,8 @@ class WizardWindow(QWidget):
             try:
                 self.controller.prepare_step3(self.step3_view)
                 self._step3_prepared = True
-            except Exception as e:
-                print(f"[ERROR] prepare_step3 retry failed: {e}")
-                import traceback
-
-                traceback.print_exc()
+            except Exception:
+                logger.exception("Step 3 preparation retry failed")
         else:
             # Only refresh scales if definitions changed; keep everything else as-is
             self.controller.refresh_step3_scales(self.step3_view)

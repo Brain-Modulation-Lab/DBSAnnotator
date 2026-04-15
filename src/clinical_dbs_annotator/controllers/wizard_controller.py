@@ -476,12 +476,17 @@ class WizardController:
 
         # Read the TSV file and filter out rows with the last block_id
         file_path = self.session_data.file_path
+        if file_path is None:
+            QMessageBox.warning(
+                view, "Error", "No file path is associated with this session."
+            )
+            return
         rows_to_keep = []
         rows_to_delete = []
 
         with open(file_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t")
-            fieldnames = reader.fieldnames
+            fieldnames = list(reader.fieldnames or [])
 
             for row in reader:
                 block_id = row.get("block_id", "")
@@ -528,11 +533,11 @@ class WizardController:
             parent,
             "Confirm Close Session",
             "Are you sure you want to close the current session? The session will be saved before closing.",
-            QMessageBox.Ok | QMessageBox.Cancel,
-            QMessageBox.Cancel,
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
         )
 
-        if reply == QMessageBox.Ok:
+        if reply == QMessageBox.StandardButton.Ok:
             self.session_data.close_file()
             parent.close()
 

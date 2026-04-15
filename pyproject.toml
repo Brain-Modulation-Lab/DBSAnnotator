@@ -37,6 +37,8 @@ dev = [
     "ruff>=0.1.0",
     # "mypy>=1.8.0",
     "pre-commit>=3.6",
+    "ty>=0.0.30",
+    "pandas-stubs>=3.0.0.260204",
 ]
 build = [
     "pyinstaller>=6.15.0",
@@ -121,3 +123,6 @@ strict_optional = true
 [[tool.mypy.overrides]]
 module = "PySide6.*"
 ignore_missing_imports = true
+
+[tool.ty.rules]
+unresolved-attribute = "ignore"

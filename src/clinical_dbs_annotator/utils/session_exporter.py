@@ -13,6 +13,7 @@ from datetime import datetime
 
 import pandas as pd
 from docx import Document
+from docx.document import Document as DocumentType
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -290,7 +291,7 @@ class SessionExporter:
 
     def _add_summary_section(
         self,
-        doc: Document,
+        doc: DocumentType,
         df: pd.DataFrame,
         df_initial: pd.DataFrame,
         df_final: pd.DataFrame,
@@ -331,7 +332,7 @@ class SessionExporter:
 
     def _add_programming_summary(
         self,
-        doc: Document,
+        doc: DocumentType,
         df: pd.DataFrame,
         df_initial: pd.DataFrame,
         df_final: pd.DataFrame,
@@ -350,7 +351,7 @@ class SessionExporter:
         try:
             if "time" in df.columns and "date" in df.columns:
                 timestamps = pd.to_datetime(
-                    df["date"].astype(str) + " " + df["time"].astype(str),
+                    df["date"].astype(str).str.cat(df["time"].astype(str), sep=" "),
                     errors="coerce",
                 ).dropna()
             elif "time" in df.columns:
@@ -550,7 +551,7 @@ class SessionExporter:
 
     def _add_session_data_table(
         self,
-        doc: Document,
+        doc: DocumentType,
         df_table: pd.DataFrame,
         with_chart: bool = True,
         with_table: bool = True,
@@ -605,7 +606,9 @@ class SessionExporter:
         # Define column widths in inches
         section = doc.sections[0]
         page_width_inches = (
-            section.page_width - section.left_margin - section.right_margin
+            int(section.page_width or 0)
+            - int(section.left_margin or 0)
+            - int(section.right_margin or 0)
         ) / 914400
 
         base_in = {
@@ -773,7 +776,7 @@ class SessionExporter:
         self._add_table_legend(doc, best_block_ids, second_best_ids)
 
     def _add_table_legend(
-        self, doc: Document, best_ids: list, second_ids: list
+        self, doc: DocumentType, best_ids: list, second_ids: list
     ) -> None:
         """Add color legend and clinical disclaimer below the session data table."""
         from docx.shared import Pt, RGBColor
@@ -831,7 +834,7 @@ class SessionExporter:
         disclaimer_run.font.italic = True
 
     def _add_scales_timeline_chart(
-        self, doc: Document, lateral_df: pd.DataFrame
+        self, doc: DocumentType, lateral_df: pd.DataFrame
     ) -> None:
         """Add a rainbow-colored timeline chart of session scales with a general index line."""
         import math as _math
@@ -915,7 +918,10 @@ class SessionExporter:
         if "block_id" in df.columns:
             try:
                 bid = pd.to_numeric(df["block_id"], errors="coerce")
-                return df.loc[bid.idxmax()]
+                result = df.loc[bid.idxmax()]
+                if isinstance(result, pd.DataFrame):
+                    return result.iloc[-1]
+                return result
             except Exception:
                 return df.iloc[-1]
         return df.iloc[-1]
@@ -1122,7 +1128,7 @@ class SessionExporter:
         canvas.contact_states.clear()
         canvas.case_state = ContactState.OFF
 
-        def apply_tokens(text: str, state: ContactState) -> None:
+        def apply_tokens(text: str, state: int) -> None:
             if not text:
                 return
             for token in str(text).split("_"):
@@ -1155,6 +1161,16 @@ class SessionExporter:
         apply_tokens(cathode_text, ContactState.CATHODIC)
         canvas.update()
 
+        # Force white background by temporarily overriding paintEvent
+        original_paint = canvas.paintEvent
+
+        def white_bg_paint(event):
+            painter = QPainter(canvas)
+            painter.fillRect(canvas.rect(), Qt.white)
+            original_paint(event)
+
+        canvas.paintEvent = white_bg_paint  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+
     def _render_electrode_png(
         self,
         model_name: str,
@@ -1183,7 +1199,7 @@ class SessionExporter:
             painter.fillRect(canvas.rect(), Qt.white)
             original_paint(event)
 
-        canvas.paintEvent = white_bg_paint
+        canvas.paintEvent = white_bg_paint  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
 
         pixmap = QPixmap(canvas.size())
         pixmap.fill(Qt.white)
@@ -1219,7 +1235,7 @@ class SessionExporter:
         return tmp.name
 
     def _add_electrode_config_section(
-        self, doc: Document, df: pd.DataFrame, df_initial: pd.DataFrame
+        self, doc: DocumentType, df: pd.DataFrame, df_initial: pd.DataFrame
     ) -> None:
         """Add the initial vs final electrode configuration images to the document."""
         if df is None or df.empty:
@@ -1380,10 +1396,11 @@ class SessionExporter:
             run.add_picture(img_path, width=Inches(1.15))
 
         for pth in paths.values():
-            try:
-                os.unlink(pth)
-            except Exception:
-                pass
+            if pth is not None:
+                try:
+                    os.unlink(pth)
+                except Exception:
+                    pass
 
     def export_to_pdf(self, parent: QWidget | None = None, sections=None) -> bool:
         """Export session data to PDF by generating a Word report and converting it."""
@@ -1557,13 +1574,11 @@ class SessionExporter:
                 pd.to_numeric(df["is_initial"], errors="coerce").fillna(0).astype(int)
             )
 
-        df_initial = (
-            df[df.get("is_initial", 0) == 1]
-            if "is_initial" in df.columns
-            else df.iloc[0:0]
+        df_initial: pd.DataFrame = (
+            df[df["is_initial"] == 1] if "is_initial" in df.columns else df.iloc[0:0]
         )
-        df_table = (
-            df[df.get("is_initial", 0) != 1] if "is_initial" in df.columns else df
+        df_table: pd.DataFrame = (
+            df[df["is_initial"] != 1] if "is_initial" in df.columns else df
         )
 
         doc = Document()
@@ -1640,7 +1655,7 @@ class SessionExporter:
         doc.save(file_path)
         return True
 
-    def _add_report_footer(self, doc: Document) -> None:
+    def _add_report_footer(self, doc: DocumentType) -> None:
         """Add footer with patient ID and session number."""
         from docx.shared import Pt
 

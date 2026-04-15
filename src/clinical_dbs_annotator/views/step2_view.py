@@ -5,6 +5,7 @@ This module contains the view for the second step where users configure
 the session tracking scales that will be used during the programming session.
 """
 
+import logging
 from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt
@@ -26,6 +27,8 @@ from ..config import PLACEHOLDERS, PRESET_BUTTONS
 from ..ui.session_scales_settings_dialog import SessionScalesSettingsDialog
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
+
+logger = logging.getLogger(__name__)
 
 
 class Step2View(BaseStepView):
@@ -128,7 +131,7 @@ class Step2View(BaseStepView):
 
         return gb_session
 
-    def get_preset_button(self, preset_name: str) -> QPushButton:
+    def get_preset_button(self, preset_name: str) -> QPushButton | None:
         """Get a preset button by name."""
         return self.findChild(QPushButton, f"preset2_{preset_name}")
 
@@ -151,8 +154,8 @@ class Step2View(BaseStepView):
         try:
             preset_manager = get_scale_preset_manager()
             preset_manager.save_session_presets(new_presets)
-        except Exception as e:
-            print(f"Error saving session presets: {e}")
+        except Exception:
+            logger.exception("Failed to save session presets")
 
         self._refresh_preset_buttons()
 
@@ -385,8 +388,8 @@ class Step2View(BaseStepView):
         maxval: str = "",
         with_plus: bool = False,
         with_minus: bool = False,
-        on_add: Callable = None,
-        on_remove: Callable = None,
+        on_add: Callable[[], None] | None = None,
+        on_remove: Callable[[QHBoxLayout], None] | None = None,
     ) -> None:
         """Add a single session scale row (name, min, max)."""
         row = QHBoxLayout()
