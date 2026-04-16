@@ -23,7 +23,7 @@ PLATFORM = "macOS"
 
 
 def _read_version() -> str:
-    init_path = SRC_DIR / "clinical_dbs_annotator" / "__init__.py"
+    init_path = SRC_DIR / "dbs_annotator" / "__init__.py"
     text = init_path.read_text(encoding="utf-8")
     m = re.search(
         r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE
@@ -72,7 +72,7 @@ def build_macos_app(*, console: bool, onefile: bool):
     name = f"{APP_NAME}_{PLATFORM}_{VERSION.replace('.', '_')}"
     entrypoint = PROJECT_ROOT / "run.py"
     styles_dir = PROJECT_ROOT / "styles"
-    config_dir = SRC_DIR / "clinical_dbs_annotator" / "config"
+    config_dir = SRC_DIR / "dbs_annotator" / "config"
 
     icon_icns = ICONS_DIR / "logoneutral.icns"
     icon_fallback = ICONS_DIR / "logoneutral.ico"
@@ -98,11 +98,11 @@ def build_macos_app(*, console: bool, onefile: bool):
         "--hidden-import=pandas",
         "--hidden-import=openpyxl",
         "--hidden-import=xlrd",
-        "--hidden-import=PySide6.QtCore",
-        "--hidden-import=PySide6.QtGui",
-        "--hidden-import=PySide6.QtWidgets",
+        "--hidden-import=dbs_annotator",
+        "--collect-all=PySide6",
         "--exclude-module=PySide6.QtWebEngineWidgets",
         "--exclude-module=PySide6.QtWebEngineCore",
+        "--osx-bundle-identifier=com.bml.dbs-annotator",
         # Add data files (macOS uses : separator)
         f"--add-data={ICONS_DIR / 'logoneutral.ico'}:icons",
         f"--add-data={ICONS_DIR / 'logoneutral.png'}:icons",
@@ -123,6 +123,16 @@ def build_macos_app(*, console: bool, onefile: bool):
         cmd.append("--console")
     else:
         cmd.append("--windowed")
+
+    # Add package metadata for version detection (macOS venv layout)
+    venv_lib = PROJECT_ROOT / ".venv" / "lib"
+    if venv_lib.exists():
+        # macOS: .venv/lib/pythonX.Y/site-packages
+        dist_info_dirs = list(
+            venv_lib.glob("python*/site-packages/dbs_annotator*.dist-info")
+        )
+        if dist_info_dirs:
+            cmd.append(f"--add-data={dist_info_dirs[0]}:.")
 
     # Run PyInstaller
     try:
@@ -168,8 +178,8 @@ def main():
         ICONS_DIR / "logoneutral.png",
         PROJECT_ROOT / "styles" / "dark_theme.qss",
         PROJECT_ROOT / "styles" / "light_theme.qss",
-        SRC_DIR / "clinical_dbs_annotator" / "config" / "clinical_presets.json",
-        SRC_DIR / "clinical_dbs_annotator" / "config" / "session_scales_presets.json",
+        SRC_DIR / "dbs_annotator" / "config" / "clinical_presets.json",
+        SRC_DIR / "dbs_annotator" / "config" / "session_scales_presets.json",
     ]
 
     for path in required_files:

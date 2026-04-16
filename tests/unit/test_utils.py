@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from PyQt5.QtWidgets import QApplication
 
-from clinical_dbs_annotator.utils import (
+from dbs_annotator.utils import (
     animate_button,
     graphics,
     resources,
@@ -222,7 +222,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_format_clinical_scale_name(self):
         """Test clinical scale name formatting."""
-        from clinical_dbs_annotator.utils import format_clinical_scale_name
+        from dbs_annotator.utils import format_clinical_scale_name
 
         # Test normal formatting
         formatted = format_clinical_scale_name("ybocs")
@@ -234,7 +234,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_validate_amplitude_value(self):
         """Test amplitude value validation."""
-        from clinical_dbs_annotator.utils import validate_amplitude_value
+        from dbs_annotator.utils import validate_amplitude_value
 
         # Test valid values
         valid_values = ["0.5", "3.5", "10.0"]
@@ -250,7 +250,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_format_frequency_value(self):
         """Test frequency value formatting."""
-        from clinical_dbs_annotator.utils import format_frequency_value
+        from dbs_annotator.utils import format_frequency_value
 
         # Test normal formatting
         formatted = format_frequency_value("130")
@@ -262,7 +262,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_generate_session_id(self):
         """Test session ID generation."""
-        from clinical_dbs_annotator.utils import generate_session_id
+        from dbs_annotator.utils import generate_session_id
 
         session_id = generate_session_id()
         self.assertIsInstance(session_id, str)

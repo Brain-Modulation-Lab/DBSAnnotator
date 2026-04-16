@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from PyQt5.QtWidgets import QApplication, QPushButton
 
-from clinical_dbs_annotator.views import (
+from dbs_annotator.views import (
     Step0View,
     Step1View,
     Step2View,

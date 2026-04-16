@@ -25,14 +25,14 @@ DIST_DIR = PROJECT_ROOT / "dist"
 BUILD_DIR = PROJECT_ROOT / "build"
 ICONS_DIR = PROJECT_ROOT / "icons"
 STYLES_DIR = PROJECT_ROOT / "styles"
-CONFIG_DIR = SRC_DIR / "clinical_dbs_annotator" / "config"
+CONFIG_DIR = SRC_DIR / "dbs_annotator" / "config"
 
 NAME = "ClinicalDBSAnnotator"
 ENTRYPOINT = PROJECT_ROOT / "run.py"
 
 
 def _read_version() -> str:
-    init_path = SRC_DIR / "clinical_dbs_annotator" / "__init__.py"
+    init_path = SRC_DIR / "dbs_annotator" / "__init__.py"
     text = init_path.read_text(encoding="utf-8")
     m = re.search(
         r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from importlib import metadata
 
-_DIST_NAME = "clinical-dbs-annotator"
+_DIST_NAME = "dbs-annotator"
 
 project = "Clinical DBS Annotator"
 author = "Lucia Poma"

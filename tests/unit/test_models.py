@@ -7,7 +7,7 @@ Tests the clinical scales, stimulation parameters, and session data models.
 import os
 import tempfile
 
-from clinical_dbs_annotator.models import (
+from dbs_annotator.models import (
     ClinicalScale,
     SessionData,
     SessionScale,

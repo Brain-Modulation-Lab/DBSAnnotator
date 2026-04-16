@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from PyQt5.QtWidgets import QMessageBox
 
-from clinical_dbs_annotator.controllers.wizard_controller import WizardController
-from clinical_dbs_annotator.models import SessionData, StimulationParameters
+from dbs_annotator.controllers.wizard_controller import WizardController
+from dbs_annotator.models import SessionData, StimulationParameters
 
 
 class TestWizardController(unittest.TestCase):

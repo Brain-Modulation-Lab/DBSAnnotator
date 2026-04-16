@@ -9,7 +9,7 @@ pytest
 Run with coverage:
 
 ```bash
-pytest --cov=clinical_dbs_annotator --cov-report=html
+pytest --cov=dbs_annotator --cov-report=html
 ```
 
 ## Dependencies

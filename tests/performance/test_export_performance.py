@@ -17,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 import pandas as pd
 
-from clinical_dbs_annotator.models.session_data import SessionData
-from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+from dbs_annotator.models.session_data import SessionData
+from dbs_annotator.utils.session_exporter import SessionExporter
 
 
 class TestExportPerformance(unittest.TestCase):

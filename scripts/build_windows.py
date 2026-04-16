@@ -21,7 +21,7 @@ PLATFORM = "Windows"
 
 
 def _read_version() -> str:
-    init_path = SRC_DIR / "clinical_dbs_annotator" / "__init__.py"
+    init_path = SRC_DIR / "dbs_annotator" / "__init__.py"
     text = init_path.read_text(encoding="utf-8")
     m = re.search(
         r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$', text, flags=re.MULTILINE
@@ -41,7 +41,7 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
     name = f"{APP_NAME}_{PLATFORM}_{VERSION.replace('.', '_')}"
     entrypoint = PROJECT_ROOT / "run.py"
     styles_dir = PROJECT_ROOT / "styles"
-    config_dir = SRC_DIR / "clinical_dbs_annotator" / "config"
+    config_dir = SRC_DIR / "dbs_annotator" / "config"
 
     cmd = [
         sys.executable,
@@ -58,6 +58,7 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
         "--hidden-import=pandas",
         "--hidden-import=openpyxl",
         "--hidden-import=xlrd",
+        "--hidden-import=dbs_annotator",
     ]
 
     if onefile:
@@ -83,6 +84,13 @@ def build_windows_exe(*, console: bool, onefile: bool) -> bool:
             str(entrypoint),
         ]
     )
+
+    # Add package metadata for version detection
+    venv_site_packages = PROJECT_ROOT / ".venv" / "Lib" / "site-packages"
+    dist_info_dirs = list(venv_site_packages.glob("dbs_annotator*.dist-info"))
+    if dist_info_dirs:
+        dist_info = dist_info_dirs[0]
+        cmd.append(f"--add-data={dist_info};.")
 
     try:
         subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)

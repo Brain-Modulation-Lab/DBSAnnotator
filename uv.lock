@@ -116,70 +116,6 @@ wheels = [
 ]
 
 [[package]]
-name = "clinical-dbs-annotator"
-source = { editable = "." }
-dependencies = [
-    { name = "docx2pdf" },
-    { name = "matplotlib" },
-    { name = "pandas" },
-    { name = "pydantic" },
-    { name = "pyside6" },
-    { name = "python-docx" },
-    { name = "tzdata" },
-]
-
-[package.dev-dependencies]
-build = [
-    { name = "nuitka" },
-    { name = "opencv-python-headless" },
-    { name = "pyinstaller" },
-]
-dev = [
-    { name = "pandas-stubs" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-qt" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-docs = [
-    { name = "sphinx" },
-    { name = "sphinx-rtd-theme" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "docx2pdf", specifier = ">=0.1.8" },
-    { name = "matplotlib", specifier = ">=3.5" },
-    { name = "pandas", specifier = ">=2.1" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pyside6", specifier = ">=6.11.0" },
-    { name = "python-docx", specifier = ">=1.1" },
-    { name = "tzdata", specifier = ">=2025.3" },
-]
-
-[package.metadata.requires-dev]
-build = [
-    { name = "nuitka", specifier = ">=4.0.7" },
-    { name = "opencv-python-headless", specifier = ">=4.12.0.88" },
-    { name = "pyinstaller", specifier = ">=6.15.0" },
-]
-dev = [
-    { name = "pandas-stubs", specifier = ">=3.0.0.260204" },
-    { name = "pre-commit", specifier = ">=3.6" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "pytest-cov", specifier = ">=4.1.0" },
-    { name = "pytest-qt", specifier = ">=4.4.0" },
-    { name = "ruff", specifier = ">=0.1.0" },
-    { name = "ty", specifier = ">=0.0.30" },
-]
-docs = [
-    { name = "sphinx", specifier = ">=9.0.4" },
-    { name = "sphinx-rtd-theme", specifier = ">=3.1.0" },
-]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -267,6 +203,70 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a9/95/a3dbbb5028f35eafb79008e7522a75244477d2838f38cbb722248dabc2a8/cycler-0.12.1.tar.gz", hash = "sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c", size = 7615, upload-time = "2023-10-07T05:32:18.335Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl", hash = "sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30", size = 8321, upload-time = "2023-10-07T05:32:16.783Z" },
+]
+
+[[package]]
+name = "dbs-annotator"
+source = { editable = "." }
+dependencies = [
+    { name = "docx2pdf" },
+    { name = "matplotlib" },
+    { name = "pandas" },
+    { name = "pydantic" },
+    { name = "pyside6" },
+    { name = "python-docx" },
+    { name = "tzdata" },
+]
+
+[package.dev-dependencies]
+build = [
+    { name = "nuitka" },
+    { name = "opencv-python-headless" },
+    { name = "pyinstaller" },
+]
+dev = [
+    { name = "pandas-stubs" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-qt" },
+    { name = "ruff" },
+    { name = "ty" },
+]
+docs = [
+    { name = "sphinx" },
+    { name = "sphinx-rtd-theme" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "docx2pdf", specifier = ">=0.1.8" },
+    { name = "matplotlib", specifier = ">=3.5" },
+    { name = "pandas", specifier = ">=2.1" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pyside6", specifier = ">=6.11.0" },
+    { name = "python-docx", specifier = ">=1.1" },
+    { name = "tzdata", specifier = ">=2025.3" },
+]
+
+[package.metadata.requires-dev]
+build = [
+    { name = "nuitka", specifier = ">=4.0.7" },
+    { name = "opencv-python-headless", specifier = ">=4.12.0.88" },
+    { name = "pyinstaller", specifier = ">=6.15.0" },
+]
+dev = [
+    { name = "pandas-stubs", specifier = ">=3.0.0.260204" },
+    { name = "pre-commit", specifier = ">=3.6" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
+    { name = "pytest-qt", specifier = ">=4.4.0" },
+    { name = "ruff", specifier = ">=0.1.0" },
+    { name = "ty", specifier = ">=0.0.30" },
+]
+docs = [
+    { name = "sphinx", specifier = ">=9.0.4" },
+    { name = "sphinx-rtd-theme", specifier = ">=3.1.0" },
 ]
 
 [[package]]

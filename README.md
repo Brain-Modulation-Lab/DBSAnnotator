@@ -2,7 +2,7 @@
 
 A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built for clinicians and researchers working with DBS systems (Medtronic Percept and others).
 
-**Version:** derived from `clinical_dbs_annotator.__version__`
+**Version:** derived from `dbs_annotator.__version__`
 **Author:** Lucia Poma (lucia.poma@wysscenter.ch)
 
 ## For End Users
@@ -79,14 +79,14 @@ pip install -e .
 ```bash
 python run.py
 # or
-python -m clinical_dbs_annotator
+python -m dbs_annotator
 ```
 
 ### Project Structure
 
 ```
 App_ClinicalDBSAnnot/
-├── src/clinical_dbs_annotator/   # Application source code
+├── src/dbs_annotator/   # Application source code
 │   ├── models/                   #   Data models (session, scales, stimulation, electrode)
 │   ├── views/                    #   Qt views (step0-3, annotations, wizard window)
 │   ├── controllers/              #   Business logic (wizard controller)

@@ -1,5 +1,5 @@
 [project]
-name = "clinical-dbs-annotator"
+name = "dbs-annotator"
 description = "A graphical user interface for annotating DBS clinical programming sessions"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -51,22 +51,22 @@ docs = [
 ]
 
 [project.scripts]
-clinical-dbs-annotator = "clinical_dbs_annotator.__main__:main"
+dbs-annotator = "dbs_annotator.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/bml/clinical-dbs-annotator"
-Repository = "https://github.com/bml/clinical-dbs-annotator"
-Documentation = "https://github.com/bml/clinical-dbs-annotator/blob/main/README.md"
+Homepage = "https://github.com/bml/dbs-annotator"
+Repository = "https://github.com/bml/dbs-annotator"
+Documentation = "https://github.com/bml/dbs-annotator/blob/main/README.md"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/clinical_dbs_annotator/__init__.py"
+path = "src/dbs_annotator/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/clinical_dbs_annotator"]
+packages = ["src/dbs_annotator"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -75,7 +75,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "--verbose",
-    "--cov=clinical_dbs_annotator",
+    "--cov=dbs_annotator",
     "--cov-report=html",
     "--cov-report=term-missing",
 ]

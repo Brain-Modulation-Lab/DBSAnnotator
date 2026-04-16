@@ -20,7 +20,7 @@ class TestBIDSNaming:
             def is_file_open(self):
                 return True
 
-        from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+        from dbs_annotator.utils.session_exporter import SessionExporter
 
         exporter = SessionExporter(MockSessionData())
 
@@ -36,7 +36,7 @@ class TestBIDSNaming:
             def is_file_open(self):
                 return True
 
-        from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+        from dbs_annotator.utils.session_exporter import SessionExporter
 
         exporter = SessionExporter(MockSessionData())
 
@@ -52,7 +52,7 @@ class TestBIDSNaming:
             def is_file_open(self):
                 return True
 
-        from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+        from dbs_annotator.utils.session_exporter import SessionExporter
 
         exporter = SessionExporter(MockSessionData())
 
@@ -69,7 +69,7 @@ class TestBIDSNaming:
             def is_file_open(self):
                 return True
 
-        from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+        from dbs_annotator.utils.session_exporter import SessionExporter
 
         exporter = SessionExporter(MockSessionData())
 
@@ -86,7 +86,7 @@ class TestBIDSNaming:
             def is_file_open(self):
                 return True
 
-        from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+        from dbs_annotator.utils.session_exporter import SessionExporter
 
         exporter = SessionExporter(MockSessionData())
 

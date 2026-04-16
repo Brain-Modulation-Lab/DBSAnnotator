@@ -4,8 +4,8 @@ Tests for the session exporter module.
 
 from unittest.mock import Mock, patch
 
-from clinical_dbs_annotator.models.session_data import SessionData
-from clinical_dbs_annotator.utils.session_exporter import SessionExporter
+from dbs_annotator.models.session_data import SessionData
+from dbs_annotator.utils.session_exporter import SessionExporter
 
 
 class TestSessionExporter:
@@ -26,7 +26,7 @@ class TestSessionExporter:
         exporter = SessionExporter(mock_session_data)
 
         with patch(
-            "clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning"
+            "dbs_annotator.utils.session_exporter.QMessageBox.warning"
         ) as mock_warning:
             result = exporter.export_to_excel()
 
@@ -44,7 +44,7 @@ class TestSessionExporter:
         with (
             patch.object(exporter, "_read_session_data", return_value=None),
             patch(
-                "clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning"
+                "dbs_annotator.utils.session_exporter.QMessageBox.warning"
             ) as mock_warning,
         ):
             result = exporter.export_to_excel()
@@ -67,11 +67,11 @@ class TestSessionExporter:
         with (
             patch.object(exporter, "_read_session_data", return_value=mock_df),
             patch(
-                "clinical_dbs_annotator.utils.session_exporter.QFileDialog.getSaveFileName",
+                "dbs_annotator.utils.session_exporter.QFileDialog.getSaveFileName",
                 return_value=("", ""),
             ),
             patch(
-                "clinical_dbs_annotator.utils.session_exporter.QMessageBox.warning"
+                "dbs_annotator.utils.session_exporter.QMessageBox.warning"
             ) as mock_warning,
         ):
             result = exporter.export_to_excel()
@@ -140,7 +140,7 @@ class TestSessionExporter:
         exporter = SessionExporter(mock_session_data)
 
         with patch(
-            "clinical_dbs_annotator.utils.session_exporter.QMessageBox.information"
+            "dbs_annotator.utils.session_exporter.QMessageBox.information"
         ) as mock_info:
             result = exporter.export_to_pdf()
 
@@ -155,7 +155,7 @@ class TestSessionExporter:
         exporter = SessionExporter(mock_session_data)
 
         with patch(
-            "clinical_dbs_annotator.utils.session_exporter.QMessageBox.information"
+            "dbs_annotator.utils.session_exporter.QMessageBox.information"
         ) as mock_info:
             result = exporter.export_to_word()
 

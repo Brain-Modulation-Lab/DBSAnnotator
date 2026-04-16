@@ -1,0 +1,34 @@
+{
+  "OCD": [
+    "Y-BOCS",
+    "Y-BOCS-o",
+    "Y-BOCS-c",
+    "MADRS",
+    "OCI-R"
+  ],
+  "MDD": [
+    "MADRS",
+    "HAM-D",
+    "BDI-II"
+  ],
+  "PD": [
+    "MDS-UPDRS",
+    "UPDRS-III",
+    "PDQ-39",
+    "UDysRS"
+  ],
+  "ET": [
+    "FTM-TRS",
+    "TETRAS"
+  ],
+  "Dystonia": [
+    "BFMDRS",
+    "TWSTRS"
+  ],
+  "TS": [
+    "YGTSS",
+    "PUTS",
+    "TS-CGI",
+    "Y-BOCS"
+  ]
+}

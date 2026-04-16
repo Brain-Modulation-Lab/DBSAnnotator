@@ -20,7 +20,7 @@ class TestSessionData:
     @pytest.fixture
     def session_data(self):
         """Create a fresh SessionData instance."""
-        from clinical_dbs_annotator.models import SessionData
+        from dbs_annotator.models import SessionData
 
         return SessionData()
 
@@ -63,7 +63,7 @@ class TestSessionDataWriting:
     @pytest.fixture
     def session_data_with_file(self):
         """Create SessionData with an open temp file."""
-        from clinical_dbs_annotator.models import SessionData
+        from dbs_annotator.models import SessionData
 
         sd = SessionData()
         with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:

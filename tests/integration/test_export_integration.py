@@ -18,10 +18,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from PyQt5.QtWidgets import QApplication
 
-from clinical_dbs_annotator.controllers.wizard_controller import WizardController
-from clinical_dbs_annotator.models.session_data import SessionData
-from clinical_dbs_annotator.utils.session_exporter import SessionExporter
-from clinical_dbs_annotator.views.step3_view import Step3View
+from dbs_annotator.controllers.wizard_controller import WizardController
+from dbs_annotator.models.session_data import SessionData
+from dbs_annotator.utils.session_exporter import SessionExporter
+from dbs_annotator.views.step3_view import Step3View
 
 
 class TestExportIntegration(unittest.TestCase):
