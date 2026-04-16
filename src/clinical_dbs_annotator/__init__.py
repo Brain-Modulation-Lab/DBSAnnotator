@@ -5,7 +5,7 @@ This package provides a GUI for recording and managing
 clinical data during Deep Brain Stimulation programming sessions.
 """
 
-__version__ = "0.3.0-beta"
+__version__ = "0.3.0"
 __app_name__ = "Clinical DBS Annotator"
 __author__ = "BML"
 
