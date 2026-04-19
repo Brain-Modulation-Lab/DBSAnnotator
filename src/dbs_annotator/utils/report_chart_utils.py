@@ -54,9 +54,10 @@ def parse_scale_targets(
             targets[name] = {"type": "max", "value": float(smax) if smax else 0.0}
         elif mode == "custom":
             try:
-                targets[name] = {"type": "custom", "value": float(custom_val)}
+                custom_num = float(custom_val)
             except ValueError, TypeError:
-                targets[name] = {"type": "custom", "value": 0.0}
+                custom_num = 0.0
+            targets[name] = {"type": "custom", "value": custom_num}
     return targets
 
 
