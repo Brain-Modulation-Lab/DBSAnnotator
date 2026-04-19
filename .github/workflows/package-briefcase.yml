@@ -1,0 +1,66 @@
+name: Package (Briefcase)
+
+# Builds native Briefcase artifacts on Windows and Apple Silicon macOS.
+# Uses ZIP on Windows to avoid requiring WiX on the runner (MSI is supported locally with WiX).
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "src/**"
+      - "styles/**"
+      - "icons/**"
+      - ".github/workflows/package-briefcase.yml"
+
+concurrency:
+  group: package-briefcase-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  briefcase:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            create_cmd: briefcase create windows app
+            build_cmd: briefcase build windows app
+            package_cmd: briefcase package windows -p zip
+          - name: macOS (arm64)
+            os: macos-14
+            create_cmd: briefcase create macOS app
+            build_cmd: briefcase build macOS app
+            package_cmd: briefcase package macOS -p dmg
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Sync dependencies (incl. build / Briefcase)
+        run: uv sync --locked --dev --group build
+
+      - name: Briefcase create / build / package
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          uv run ${{ matrix.create_cmd }}
+          uv run ${{ matrix.build_cmd }}
+          uv run ${{ matrix.package_cmd }}
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefcase-${{ matrix.name }}-${{ github.sha }}
+          path: |
+            dist/
+          if-no-files-found: warn
