@@ -60,7 +60,7 @@ jobs:
               - 'CONTRIBUTING.md'
 
       - name: Enforce docs update for code changes
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           CODE_CHANGED: ${{ steps.changes.outputs.code }}
           DOCS_CHANGED: ${{ steps.changes.outputs.docs }}
@@ -132,7 +132,7 @@ jobs:
               - 'CHANGELOG.md'
 
       - name: Enforce changelog fragment for code changes
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           CODE_CHANGED: ${{ steps.changes.outputs.code }}
           FRAGMENT_CHANGED: ${{ steps.changes.outputs.fragment }}
