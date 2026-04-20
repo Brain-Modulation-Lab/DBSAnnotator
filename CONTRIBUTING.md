@@ -19,7 +19,7 @@ For detailed guidelines, please see the [Contributing Guide](docs/contributing.r
 - Include tests for new features
 - Update documentation when needed
 - Ensure all tests pass before submitting
-- If you change build-time dependencies in `pyproject.toml` (including the **`build`** group used by Briefcase / PyInstaller), run **`uv lock`** and commit the updated **`uv.lock`**
+- If you change build-time dependencies in `pyproject.toml` (including the **`build`** group used by Briefcase), run **`uv lock`** and commit the updated **`uv.lock`**
 
 ## Getting Help
 

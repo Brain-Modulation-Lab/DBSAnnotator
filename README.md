@@ -7,15 +7,7 @@ A desktop application for annotating Deep Brain Stimulation (DBS) clinical progr
 
 ## For End Users
 
-Releases may ship as a **standalone executable** (PyInstaller/Nuitka in `dist/`), a **Briefcase** bundle (ZIP on Windows, DMG or `.app` on macOS), or an **MSI** installer when built with WiX. Follow the instructions for the artifact you downloaded.
-
-**Typical portable build (PyInstaller):**
-
-1. Go to the `dist/` folder
-2. Run the `ClinicalDBSAnnotator_*.exe` artifact for your platform/version (Windows) or open the `.app` (macOS)
-3. The application is self-contained and includes dependencies
-
-**Briefcase installers** register like a normal desktop app where the chosen format supports it (for example MSI).
+Releases ship as **Briefcase-generated** artifacts (for example ZIP/MSI on Windows and DMG on macOS). Follow the instructions for the artifact you downloaded.
 
 ## What It Does
 
@@ -101,27 +93,12 @@ App_ClinicalDBSAnnot/
 │   └── config_electrode_models.py #  Electrode model definitions
 ├── styles/                       # QSS theme files (Briefcase + dev; see resource_path)
 ├── icons/                        # Application icons
-├── scripts/                      # Build scripts (Windows, macOS)
+├── scripts/                      # Utility scripts
 ├── run.py                        # Development entry point
 └── pyproject.toml                # Project configuration and dependencies
 ```
 
 Architecture follows the **Model-View-Controller (MVC)** pattern.
-
-### Building the Executable
-
-```bash
-# Windows
-python scripts/build_windows.py
-
-# Windows with console (for debugging)
-python scripts/build_windows.py --console
-
-# macOS
-python scripts/build_macos.py
-```
-
-The executable is created in the `dist/` folder. Distribute this file — no Python installation needed on the target machine.
 
 ### Native installers (BeeWare Briefcase)
 

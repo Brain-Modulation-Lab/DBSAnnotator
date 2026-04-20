@@ -43,9 +43,6 @@ dev = [
     "pyside6-stubs>=6.7.3.0",
 ]
 build = [
-    "pyinstaller>=6.15.0",
-    "opencv-python-headless>=4.12.0.88",
-    "nuitka>=4.0.7",
     "briefcase>=0.3.26",
 ]
 docs = [

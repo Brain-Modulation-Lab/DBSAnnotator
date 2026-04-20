@@ -21,7 +21,7 @@ def get_version() -> str:
 
     Prefers installed distribution metadata (works in packaged apps),
     falling back to parsing `__init__.py` when running from a source checkout.
-    In a PyInstaller frozen bundle, source files are not available on disk,
+    In a frozen bundle, source files may not be available on disk,
     so we fall back to the already-loaded ``__version__`` attribute.
     """
     # 1. Try installed metadata (normal pip/uv install)
@@ -45,7 +45,7 @@ def get_version() -> str:
         except Exception:
             pass
 
-    # 3. PyInstaller frozen: __init__.py is compiled, not on disk.
+    # 3. Frozen bundle: __init__.py may be compiled or unavailable on disk.
     #    Check if the package module is already loaded.
     pkg = sys.modules.get("dbs_annotator")
     if pkg is not None:

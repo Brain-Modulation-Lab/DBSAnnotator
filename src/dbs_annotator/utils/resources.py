@@ -2,7 +2,7 @@
 Resource path management utilities.
 
 This module provides functions for locating resources (icons, styles, etc.)
-whether running from source, a PyInstaller bundle (`_MEIPASS`), or a BeeWare Briefcase layout.
+whether running from source or from a frozen/bundled application layout.
 """
 
 import os
@@ -17,8 +17,7 @@ def resource_path(relative_path: str) -> str:
     Get the absolute path to a resource file.
 
     This function works both when running from source and when running
-    as a PyInstaller bundle. PyInstaller creates a temp folder and stores
-    path in _MEIPASS.
+    from a frozen bundle that exposes resources via ``sys._MEIPASS``.
 
     Args:
         relative_path: Relative path to the resource file
@@ -27,7 +26,7 @@ def resource_path(relative_path: str) -> str:
         Absolute path to the resource file
     """
     if hasattr(sys, "_MEIPASS"):
-        # Running as PyInstaller bundle
+        # Running as a frozen bundle exposing an extraction directory
         return os.path.join(sys._MEIPASS, relative_path)
 
     # First try package-relative path (for config, styles, and vendored icons under
