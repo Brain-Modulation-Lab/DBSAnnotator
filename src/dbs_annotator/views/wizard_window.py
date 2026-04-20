@@ -1,5 +1,5 @@
 """
-Main wizard window for the Clinical DBS Annotator application.
+Main wizard window for the DBS Annotator application.
 
 This module contains the main window that manages the wizard flow,
 navigation, and coordinates views with the controller.
@@ -10,8 +10,8 @@ import os
 import typing
 from typing import Protocol
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import QSize, Qt, QTimer, QUrl
+from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractButton,
     QDialog,
@@ -46,6 +46,7 @@ from ..config import (
 from ..controllers import WizardController
 from ..utils import get_theme_manager, resource_path, rounded_pixmap
 from ..utils.scale_preset_manager import get_scale_preset_manager
+from ..utils.updater import ReleaseInfo, UpdateChecker
 from .annotation_only_view import AnnotationsFileView, AnnotationsSessionView
 from .longitudinal_report_view import LongitudinalReportView as LongitudinalFileView
 from .step0_view import Step0View
@@ -95,6 +96,13 @@ class WizardWindow(QWidget):
         self._setup_window()
         self._setup_ui()
         self._update_ui_state()
+
+        # Background update check. Runs once per cooldown window (24h by
+        # default); offline / rate-limited failures are logged silently.
+        self._update_checker = UpdateChecker(parent=self)
+        self._update_checker.update_available.connect(self._on_update_available)
+        # Defer slightly so the window is painted before any dialog appears.
+        QTimer.singleShot(1500, lambda: self._update_checker.check_async())
 
     def _setup_window(self) -> None:
         """Configure the main window properties with responsive sizing."""
@@ -349,7 +357,7 @@ class WizardWindow(QWidget):
     def _show_info_dialog(self) -> None:
         """Show application info dialog with help and contact information."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("About Clinical DBS Annotator")
+        dialog.setWindowTitle(f"About {APP_NAME}")
         dialog.setMinimumSize(600, 500)
         dialog.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -365,7 +373,7 @@ class WizardWindow(QWidget):
         desc_text.setReadOnly(True)
         desc_text.setHtml("""
         <h3>About this application</h3>
-        <p>Clinical DBS Annotator is a specialized tool for clinicians and researchers
+        <p>DBS Annotator is a specialized tool for clinicians and researchers
         working with Deep Brain Stimulation (DBS) systems. This application provides:</p>
         <ul>
             <li>Interactive electrode visualization and configuration</li>
@@ -403,9 +411,18 @@ class WizardWindow(QWidget):
 
         layout.addWidget(desc_text)
 
-        # Close button
+        # Footer buttons
         button_layout = QHBoxLayout()
+
+        check_updates_btn = QPushButton("Check for updates")
+        check_updates_btn.setMinimumWidth(160)
+        check_updates_btn.clicked.connect(
+            lambda: self._manual_update_check(check_updates_btn)
+        )
+        button_layout.addWidget(check_updates_btn)
+
         button_layout.addStretch()
+
         close_btn = QPushButton("Close")
         close_btn.setMinimumWidth(100)
         close_btn.clicked.connect(dialog.accept)
@@ -413,6 +430,74 @@ class WizardWindow(QWidget):
         layout.addLayout(button_layout)
 
         dialog.exec()
+
+    def _manual_update_check(self, button: QPushButton) -> None:
+        """Force an update check and show the result, used by the Help dialog."""
+        button.setEnabled(False)
+        original_text = button.text()
+        button.setText("Checking…")
+
+        connections: list = []
+
+        def cleanup() -> None:
+            button.setEnabled(True)
+            button.setText(original_text)
+            for signal, slot in connections:
+                try:
+                    signal.disconnect(slot)
+                except (RuntimeError, TypeError):
+                    pass
+            connections.clear()
+
+        def on_available(release: ReleaseInfo) -> None:
+            cleanup()
+            self._on_update_available(release)
+
+        def on_up_to_date() -> None:
+            cleanup()
+            QMessageBox.information(
+                self,
+                "No updates",
+                f"You're running the latest version ({APP_VERSION}).",
+            )
+
+        def on_failed(error: str) -> None:
+            cleanup()
+            QMessageBox.warning(
+                self,
+                "Update check failed",
+                f"Could not reach the update server:\n\n{error}",
+            )
+
+        connections.append((self._update_checker.update_available, on_available))
+        connections.append((self._update_checker.up_to_date, on_up_to_date))
+        connections.append((self._update_checker.failed, on_failed))
+        for signal, slot in connections:
+            signal.connect(slot)
+
+        self._update_checker.check_async(force=True)
+
+    def _on_update_available(self, release: ReleaseInfo) -> None:
+        """Show a non-blocking dialog when a newer release is published."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setWindowTitle("Update available")
+        box.setText(
+            f"A new version of {APP_NAME} is available: "
+            f"<b>{release.version}</b> (you have {APP_VERSION})."
+        )
+        notes = release.body.strip() if release.body else ""
+        if notes:
+            excerpt = notes if len(notes) <= 600 else notes[:600] + "…"
+            box.setInformativeText("Release notes:\n\n" + excerpt)
+        download_btn = box.addButton(
+            "Open download page", QMessageBox.ButtonRole.AcceptRole
+        )
+        box.addButton("Remind me later", QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+
+        if box.clickedButton() is download_btn and release.html_url:
+            QDesktopServices.openUrl(QUrl(release.html_url))
 
     def _toggle_theme(self) -> None:
         """Toggle between dark and light themes."""

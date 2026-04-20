@@ -1,5 +1,5 @@
 """
-Longitudinal report exporter for Clinical DBS Annotator.
+Longitudinal report exporter for DBS Annotator.
 
 Combines data from multiple annotation TSV files and generates a unified
 longitudinal report in Word or PDF format, with best-entry highlighting

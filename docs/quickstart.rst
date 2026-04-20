@@ -9,7 +9,7 @@ choosing the right workflow for your needs.
 Launching the Application
 --------------------------
 
-Double-click **ClinicalDBSAnnot.exe** (or the Desktop shortcut).  The main
+Double-click **DBSAnnotator.exe** (or the Desktop shortcut).  The main
 window opens, showing the **Home screen**.
 
 .. image:: _static/home_screen.png

@@ -1,1 +1,1 @@
-"""UI tests for Clinical DBS Annotator."""
+"""UI tests for DBS Annotator."""

@@ -1,5 +1,5 @@
 """
-Session data exporter for Clinical DBS Annotator.
+Session data exporter for DBS Annotator.
 
 This module provides functionality to export session data to Word and PDF.
 """

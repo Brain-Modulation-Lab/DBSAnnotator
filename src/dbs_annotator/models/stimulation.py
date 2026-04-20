@@ -8,6 +8,7 @@ including frequency, contacts, amplitudes, and pulse widths.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Self
 
 
 @dataclass
@@ -55,7 +56,7 @@ class StimulationParameters:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> StimulationParameters:
+    def from_dict(cls, data: dict) -> Self:
         """Create StimulationParameters from a dictionary."""
         return cls(
             left_frequency=data.get("left_stim_freq"),
@@ -70,9 +71,9 @@ class StimulationParameters:
             right_pulse_width=data.get("right_pulse_width"),
         )
 
-    def copy(self) -> StimulationParameters:
+    def copy(self) -> Self:
         """Create a copy of the stimulation parameters."""
-        return StimulationParameters(
+        return type(self)(
             left_frequency=self.left_frequency,
             left_cathode=self.left_cathode,
             left_anode=self.left_anode,

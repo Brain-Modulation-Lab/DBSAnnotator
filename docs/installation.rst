@@ -1,7 +1,7 @@
 Installation
 ============
 
-Clinical DBS Annotator ships as a **single self-contained executable** — no
+DBS Annotator ships as a **single self-contained executable** — no
 Python, no libraries, no system configuration required.
 
 ----
@@ -26,7 +26,7 @@ Steps
    b. Follow the on-screen prompts (Next → Next → Finish).
    c. A shortcut appears on your Desktop and in the Start Menu.
 
-3. **If you received a standalone** ``ClinicalDBSAnnot.exe`` **file:**
+3. **If you received a standalone** ``DBSAnnotator.exe`` **file:**
 
    a. Copy the file to any folder you prefer (e.g. ``C:\Users\YourName\DBS_Tool\``).
    b. Double-click to launch — no further steps needed.
@@ -62,7 +62,7 @@ macOS
    below assume a ``.dmg`` disk image has been provided.
 
 1. Open the ``.dmg`` file.
-2. Drag **ClinicalDBSAnnot** to your *Applications* folder.
+2. Drag **DBSAnnotator** to your *Applications* folder.
 3. On first launch, right-click the app icon → **Open** → **Open** again in the
    dialog.  This is required once because the app is not notarised.
 

@@ -11,7 +11,6 @@ authors = [
 keywords = ["dbs", "annotation", "neuroscience", "deep-brain-stimulation"]
 dynamic = ["version"]
 classifiers = [
-    "Development Status :: 4 - Beta",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
@@ -29,14 +28,15 @@ dependencies = [
     "pydantic>=2.0",
     "pyside6>=6.11.0",
     "matplotlib>=3.5",
+    "packaging>=23.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.3",
-    "pytest-qt>=4.5.0",
-    "pytest-timeout>=2.4.0",
-    "pytest-cov>=7.1.0",
+    "pytest>=8.0.0",
+    "pytest-qt>=4.4.0",
+    "pytest-timeout>=2.3.0",
+    "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "pre-commit>=3.6",
     "pre-commit-uv>=4.2.1",
@@ -119,11 +119,7 @@ select = [
 "src/dbs_annotator/views/wizard_window.py" = ["E501"]
 
 [tool.codespell]
-# `vas` is the clinical abbreviation for "Visual Analog Scale"; without this
-# it is reported as a misspelling of "was". Add further domain terms as they
-# come up.
 ignore-words-list = "vas"
-# Skip binary assets, generated build output, lockfiles, and logs.
 skip = "uv.lock,.venv,build,dist,htmlcov,docs/_build,*.svg,*.ico,*.png,*.pdf,*.log,*.min.js"
 
 [tool.doc8]
@@ -132,7 +128,6 @@ ignore = ["D004"]
 ignore-path = ["docs/_build", "docs/_templates"]
 
 [tool.interrogate]
-# Starting floor; raise as coverage improves.
 fail-under = 85
 ignore-init-module = true
 ignore-magic = true
@@ -177,19 +172,19 @@ directory = "docs"
 name = "Documentation"
 showcontent = true
 
-# BeeWare Briefcase: native installers (Windows MSI / macOS .app + DMG).
-# App entrypoint: `python -m dbs_annotator` (see src/dbs_annotator/__main__.py).
-# Project [project] metadata (version via Hatch, dependencies) is merged by Briefcase.
 [tool.briefcase]
-project_name = "DBS Annotator"
+project_name = "DBSAnnotator"
 bundle = "ch.wysscenter.dbsannotator"
-# Briefcase requires a static version here even when [project] uses dynamic version from Hatch.
-version = "0.3.0"
+# Briefcase requires a static version here even when [project] uses dynamic version
+version = "0.4.0a1"
 license = { file = "LICENSE" }
+author = "WyssCenter"
+author_email = "lucia.poma@wysscenter.ch"
+url = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
 
 [tool.briefcase.app.dbs_annotator]
 formal_name = "DBSAnnotator"
-description = "An application for annotating clinical programming sessions."
+description = "A graphical user interface for annotating DBS clinical programming sessions"
 long_description = """
 DBS Annotator is a desktop application used to structure and review
 deep-brain stimulation programming sessions in a reproducible workflow.

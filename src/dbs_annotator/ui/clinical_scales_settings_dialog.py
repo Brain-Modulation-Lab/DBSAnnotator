@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..utils.resources import resource_path
+from ..utils.user_data import user_config_file
 
 
 class ClinicalScalesSettingsDialog(QDialog):
@@ -43,7 +44,10 @@ class ClinicalScalesSettingsDialog(QDialog):
         super().__init__(parent)
         self.current_presets = current_presets.copy()
         self.original_presets = original_presets or []
-        self.presets_file = resource_path("config/clinical_presets.json")
+        # User-writable location (upgrade-safe). Bundled defaults, if any, are
+        # seeded via `_load_presets` below.
+        self.presets_file = str(user_config_file("clinical_presets.json"))
+        self._bundled_presets_file = resource_path("config/clinical_presets.json")
 
         self.setWindowTitle("Clinical Scales Settings")
         self.setModal(True)
@@ -152,14 +156,20 @@ class ClinicalScalesSettingsDialog(QDialog):
         self.scales_edit.clear()
 
     def _load_presets(self):
-        """Load presets from file."""
-        file_presets = {}
-        if os.path.exists(self.presets_file):
-            try:
-                with open(self.presets_file, encoding="utf-8") as f:
-                    file_presets = json.load(f)
-            except Exception as e:
-                print(f"Error loading presets from file: {e}")
+        """Load presets from file.
+
+        Prefers the user-writable location; falls back to the bundled defaults
+        shipped with the app for fresh installs that have never been edited.
+        """
+        file_presets: dict[str, list[str]] = {}
+        for path in (self.presets_file, self._bundled_presets_file):
+            if path and os.path.exists(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        file_presets = json.load(f)
+                    break
+                except Exception as e:
+                    print(f"Error loading presets from {path}: {e}")
 
         # Merge with current presets (current presets take precedence)
         for name, scales in file_presets.items():

@@ -1,5 +1,5 @@
 """
-Utility functions for Clinical DBS Annotator.
+Utility functions for DBS Annotator.
 
 This package contains helper functions for UI components, graphics,
 resource management, responsive design, and theme management.

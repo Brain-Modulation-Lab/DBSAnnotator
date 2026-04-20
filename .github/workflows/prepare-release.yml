@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version (X.Y.Z, no v prefix)"
+        description: "PEP 440 version (e.g. 0.4.0 or 0.4.0a1), no v prefix"
         required: true
         type: string
       release_date:

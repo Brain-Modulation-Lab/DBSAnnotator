@@ -1,4 +1,4 @@
-# Clinical DBS Annotator
+# DBS Annotator
 
 [![CI](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/ci.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/ci.yml)
 [![Docs Health](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/docs-health.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/docs-health.yml)
@@ -7,7 +7,7 @@
 A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built for clinicians and researchers working with DBS systems (Medtronic Percept and others).
 
 **Version:** derived from `dbs_annotator.__version__`
-**Author:** Lucia Poma (lucia.poma@wysscenter.ch)
+**Publisher:** Wyss Center (contact: lucia.poma@wysscenter.ch)
 
 ## For End Users
 
@@ -209,4 +209,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Contact
 
-Lucia Poma — lucia.poma@wysscenter.ch
+Wyss Center — lucia.poma@wysscenter.ch

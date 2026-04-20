@@ -1,5 +1,5 @@
 """
-Main entry point for Clinical DBS Annotator application.
+Main entry point for DBS Annotator application.
 
 This module handles application initialization, theme loading,
 and main window creation.
@@ -13,7 +13,7 @@ import PySide6.QtSvg  # noqa: F401 - required to enable SVG rendering in QSS
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from .config import ICO_FILENAME, ICON_FILENAME, ICONS_DIR
+from .config import FS_APP_NAME, FS_ORG_NAME, ICO_FILENAME, ICON_FILENAME, ICONS_DIR
 from .logging_config import setup_bootstrap_logging, setup_logging
 from .utils import get_theme_manager
 from .utils.resources import resource_path
@@ -33,8 +33,8 @@ def main() -> int:
     try:
         app = QApplication(sys.argv)
 
-        app.setApplicationName("Clinical DBS Annotator")
-        app.setOrganizationName("BML")
+        app.setApplicationName(FS_APP_NAME)
+        app.setOrganizationName(FS_ORG_NAME)
 
         # Windows taskbar / Alt+Tab: prefer .ico, then PNG (see icons/ at repo root).
         for name in (ICO_FILENAME, ICON_FILENAME):

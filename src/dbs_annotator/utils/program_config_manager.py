@@ -1,12 +1,17 @@
 """Program configuration manager for custom program names.
 
 This module handles loading, saving, and managing custom program names
-used in the DBS clinical programming interface.
+used in the DBS clinical programming interface. Config is persisted under
+the platform's per-user application data directory so it survives app
+reinstalls and upgrades.
 """
 
+from __future__ import annotations
+
 import json
-import sys
 from pathlib import Path
+
+from .user_data import migrate_legacy_file, user_data_dir
 
 
 class ProgramConfigManager:
@@ -20,29 +25,18 @@ class ProgramConfigManager:
 
         Args:
             config_dir: Directory for config files. If None, uses the
-                ``logs`` folder in the app installation directory.
+                platform-appropriate per-user data directory (upgrade-safe).
+                Explicit paths are primarily for tests.
         """
         if config_dir is None:
-            # Default to logs folder in the application installation directory
-            # For deployed app: C:\Program Files\BML\Clinical DBS Annotator\logs
-            # For development: uses the source directory
-            if getattr(sys, "frozen", False):
-                # Running as a deployed executable bundle
-                app_root = Path(sys.executable).parent
-            else:
-                # Running in development mode
-                app_root = Path(__file__).parent.parent.parent
-            self.config_dir = app_root / "logs"
+            self.config_dir = user_data_dir()
+            self.config_file = migrate_legacy_file(self.CONFIG_FILENAME)
         else:
             self.config_dir = Path(config_dir)
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+            self.config_file = self.config_dir / self.CONFIG_FILENAME
 
-        self.config_file = self.config_dir / self.CONFIG_FILENAME
         self._custom_programs: list[str] = []
-
-        # Ensure config directory exists
-        self.config_dir.mkdir(parents=True, exist_ok=True)
-
-        # Load existing custom programs
         self._load_custom_programs()
 
     def _load_custom_programs(self) -> None:

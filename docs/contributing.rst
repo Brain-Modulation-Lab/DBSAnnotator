@@ -1,9 +1,9 @@
-Contributing to Clinical DBS Annotator
+Contributing to DBS Annotator
 ======================================
 
-We welcome contributions to the Clinical DBS Annotator! This page is the
-authoritative contributor guide for the repository. The short
-``CONTRIBUTING.md`` at the repository root is a pointer into this page.
+We welcome contributions to DBS Annotator! This page is the authoritative
+contributor guide for the repository. The short ``CONTRIBUTING.md`` at the
+repository root is a pointer into this page.
 
 .. contents::
    :local:
@@ -489,9 +489,8 @@ For data-science contributions:
 Thank You
 ---------
 
-Thank you for considering contributing to the Clinical DBS Annotator! Your
-contributions help make deep brain stimulation research more accessible and
-reproducible.
+Thank you for considering contributing to DBS Annotator! Your contributions
+help make deep brain stimulation research more accessible and reproducible.
 
 For questions about contributing, please open an issue or start a discussion
 on GitHub.

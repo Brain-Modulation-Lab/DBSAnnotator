@@ -1,5 +1,5 @@
 """
-UI components for Clinical DBS Annotator.
+UI components for DBS Annotator.
 
 This package contains reusable UI components and widgets used throughout
 the application.

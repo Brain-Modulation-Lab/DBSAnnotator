@@ -1,5 +1,5 @@
 """
-Configuration module for Clinical DBS Annotator.
+Configuration module for DBS Annotator.
 
 This module contains all constants, presets, and configuration values used
 throughout the application.
@@ -9,9 +9,18 @@ from __future__ import annotations
 
 from .version import get_version
 
-APP_NAME = "Clinical DBS Annotator"
+# Human-facing product name (window titles, dialogs, documentation).
+APP_NAME = "DBS Annotator"
 APP_VERSION = get_version()
-ORGANIZATION_NAME = "BML"
+
+# Legal / marketing organization label (not used for on-disk paths).
+ORGANIZATION_NAME = "Wyss Center"
+
+# Qt application identity for :func:`QStandardPaths` and :class:`QSettings`.
+# Use ASCII without spaces so per-user directories never contain spaces
+# (``%LOCALAPPDATA%\\<org>\\<app>\\``, Application Support on macOS, etc.).
+FS_ORG_NAME = "WyssCenter"
+FS_APP_NAME = "DBSAnnotator"
 
 # File paths (relative to executable)
 ICON_FILENAME = "logoneutral.png"

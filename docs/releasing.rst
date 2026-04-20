@@ -11,7 +11,8 @@ Version sources
 Keep these in sync whenever you cut a release:
 
 - ``__version__`` in ``src/dbs_annotator/__init__.py`` — Hatch reads this as the
-  ``dbs-annotator`` distribution version.
+  ``dbs-annotator`` distribution version (PEP 440: stable ``X.Y.Z`` or prereleases
+  such as ``X.Y.Za1``, ``X.Y.Zb2``, ``X.Y.Zrc1``).
 - ``version`` under ``[tool.briefcase]`` in ``pyproject.toml`` (Briefcase requires a static string)
 
 The automation below updates both, then runs `Towncrier`_ to fold Markdown fragments
@@ -55,8 +56,23 @@ Option A — Prepare the release PR locally
    .. code-block:: bash
 
       uv sync --dev
-      uv run python scripts/release_prepare.py X.Y.Z --dry-run
-      uv run python scripts/release_prepare.py X.Y.Z --commit
+      uv run python scripts/release_prepare.py 0.4.0 --dry-run
+      uv run python scripts/release_prepare.py 0.4.0rc1 --commit
+
+   Instead of typing the next version explicitly, derive it from the current
+   ``__version__`` with ``--bump``:
+
+   .. code-block:: bash
+
+      uv run python scripts/release_prepare.py --bump alpha --dry-run
+      uv run python scripts/release_prepare.py --bump beta --dry-run
+      uv run python scripts/release_prepare.py --bump rc --dry-run
+      uv run python scripts/release_prepare.py --bump stable --dry-run
+      uv run python scripts/release_prepare.py --bump patch --dry-run
+
+   ``alpha`` / ``beta`` / ``rc`` advance the prerelease train; ``stable`` drops
+   prerelease labels (``0.4.0rc2`` → ``0.4.0``). ``patch`` / ``minor`` / ``major``
+   apply only when there is **no** prerelease segment (run ``--bump stable`` first).
 
    Use ``--date YYYY-MM-DD`` if the Towncrier release date should not be “today”.
    Use ``--skip-towncrier`` only in exceptional cases (changelog skipped).
@@ -69,8 +85,9 @@ Option B — Prepare the release PR from GitHub Actions
 
 1. In GitHub: **Actions** → **CD - Prepare release PR** → **Run workflow**.
 
-2. Enter **Version** (``X.Y.Z`` without a ``v`` prefix). Optionally set **Release date**
-   (``YYYY-MM-DD``); otherwise UTC “today” is used.
+2. Enter **Version** (PEP 440 string without a ``v`` prefix, e.g. ``0.4.0`` or
+   ``0.4.0a1``). Optionally set **Release date** (``YYYY-MM-DD``); otherwise UTC
+   “today” is used.
 
 3. The workflow creates branch ``chore/release-prep-X.Y.Z``, runs the same steps as
    ``scripts/release_prepare.py``, pushes it, and opens a pull request.

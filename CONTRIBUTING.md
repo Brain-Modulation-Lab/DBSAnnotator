@@ -1,6 +1,6 @@
-# Contributing to Clinical DBS Annotator
+# Contributing to DBS Annotator
 
-We welcome contributions to the Clinical DBS Annotator! This document provides guidelines for contributors who want to help improve this open-source software for deep brain stimulation research.
+We welcome contributions to DBS Annotator! This document provides guidelines for contributors who want to help improve this open-source software for deep brain stimulation research.
 
 For detailed guidelines, please see the [Contributing Guide](docs/contributing.rst).
 

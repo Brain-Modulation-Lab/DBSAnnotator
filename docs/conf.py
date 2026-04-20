@@ -15,8 +15,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 _DIST_NAME = "dbs-annotator"
 
-project = "Clinical DBS Annotator"
-author = "Lucia Poma"
+project = "DBS Annotator"
+author = "Wyss Center"
 release = metadata.version(_DIST_NAME)
 version = ".".join(release.split(".")[:2])
 copyright = f"2025-{datetime.now().year}, {author}"

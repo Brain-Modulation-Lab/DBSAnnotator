@@ -91,7 +91,7 @@ class Step0View(QWidget):
 
     def get_header_title(self) -> str:
         """Return the wizard header title for Step 0."""
-        return "Clinical DBS Annotator"
+        return "DBS Annotator"
 
     def get_header_subtitle(self) -> str:
         """Return the wizard header subtitle for Step 0."""

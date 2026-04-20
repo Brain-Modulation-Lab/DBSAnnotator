@@ -1,1 +1,1 @@
-"""Test suite for Clinical DBS Annotator."""
+"""Test suite for DBS Annotator."""

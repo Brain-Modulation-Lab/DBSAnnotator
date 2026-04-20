@@ -1,43 +1,40 @@
 """
 Scale preset manager for loading and saving user-modified scale presets.
 
-This module handles loading and saving clinical and session scale presets
-to a user config file in the application log directory.
+This module persists clinical and session scale presets under the platform's
+per-user application data directory so the file survives reinstalls and
+upgrades.
 """
 
+from __future__ import annotations
+
 import json
-import sys
 from pathlib import Path
 
 from ..config import CLINICAL_SCALES_PRESETS, SESSION_SCALES_PRESETS
+from .user_data import migrate_legacy_file, user_data_dir
 
 
 class ScalePresetManager:
     """Manager for scale presets with user customization support."""
+
+    CONFIG_FILENAME = "scale_presets.json"
 
     def __init__(self, config_dir: str | None = None):
         """Initialize the scale preset manager.
 
         Args:
             config_dir: Directory for config files. If None, uses the
-                ``logs`` folder in the app installation directory.
+                platform-appropriate per-user data directory (upgrade-safe).
+                Explicit paths are primarily for tests.
         """
         if config_dir is None:
-            # Default to logs folder in the application installation directory
-            # For deployed app: C:\Program Files\BML\Clinical DBS Annotator\logs
-            # For development: uses the source directory
-            if getattr(sys, "frozen", False):
-                # Running as a deployed executable bundle
-                app_root = Path(sys.executable).parent
-            else:
-                # Running in development mode
-                app_root = Path(__file__).parent.parent.parent
-            self.config_dir = app_root / "logs"
+            self.config_dir = user_data_dir()
+            self.config_file = migrate_legacy_file(self.CONFIG_FILENAME)
         else:
             self.config_dir = Path(config_dir)
-
-        self.config_dir.mkdir(parents=True, exist_ok=True)
-        self.config_file = self.config_dir / "scale_presets.json"
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+            self.config_file = self.config_dir / self.CONFIG_FILENAME
 
     def get_clinical_presets(self) -> dict[str, list[str]]:
         """Get clinical scale presets, loading user modifications if available.

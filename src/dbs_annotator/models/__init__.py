@@ -1,5 +1,5 @@
 """
-Data models for Clinical DBS Annotator.
+Data models for DBS Annotator.
 
 This package contains all data model classes used for managing clinical data,
 stimulation parameters, and session information.

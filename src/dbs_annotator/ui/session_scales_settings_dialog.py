@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..utils.resources import resource_path
+from ..utils.user_data import user_config_file
 
 
 class SessionScalesSettingsDialog(QDialog):
@@ -51,7 +52,10 @@ class SessionScalesSettingsDialog(QDialog):
             k: [tuple(x) for x in v] for k, v in (current_presets or {}).items()
         }
         self.original_presets = original_presets or []
-        self.presets_file = resource_path("config/session_scales_presets.json")
+        # User-writable location (upgrade-safe). Bundled defaults, if any, are
+        # seeded via `_load_presets` below.
+        self.presets_file = str(user_config_file("session_scales_presets.json"))
+        self._bundled_presets_file = resource_path("config/session_scales_presets.json")
 
         self.setWindowTitle("Session Scales Settings")
         self.setModal(True)
@@ -147,14 +151,20 @@ class SessionScalesSettingsDialog(QDialog):
         self.scales_edit.clear()
 
     def _load_presets(self):
-        """Load presets from the JSON config file and merge with current."""
-        file_presets = {}
-        if os.path.exists(self.presets_file):
-            try:
-                with open(self.presets_file, encoding="utf-8") as f:
-                    file_presets = json.load(f)
-            except Exception:
-                file_presets = {}
+        """Load presets from the JSON config file and merge with current.
+
+        Prefers the user-writable location; falls back to bundled defaults for
+        fresh installs that have never been edited.
+        """
+        file_presets: dict[str, list] = {}
+        for path in (self.presets_file, self._bundled_presets_file):
+            if path and os.path.exists(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        file_presets = json.load(f)
+                    break
+                except Exception:
+                    file_presets = {}
 
         for name, scales in file_presets.items():
             if name not in self.current_presets:

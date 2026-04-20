@@ -2,13 +2,16 @@
 """Bump versions, run Towncrier, and optionally commit (no tag / no push).
 
 Designed for PR-based releases: open a PR with the produced commit, merge, then
-tag ``vX.Y.Z`` on the merge commit and push the tag as the final deliberate step.
+tag ``v<version>`` on the merge commit and push the tag as the final deliberate
+step. *version* may be any supported PEP 440 string (stable ``X.Y.Z`` or
+prereleases such as ``X.Y.Za1``, ``X.Y.Zb2``, ``X.Y.Zrc1``).
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import importlib.util
 import re
 import subprocess
 import sys
@@ -17,6 +20,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INIT_PATH = REPO_ROOT / "src" / "dbs_annotator" / "__init__.py"
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
+
+
+def _load_release_versioning():
+    path = Path(__file__).resolve().parent / "release_versioning.py"
+    spec = importlib.util.spec_from_file_location("_release_versioning", path)
+    if spec is None or spec.loader is None:
+        sys.exit(f"Could not load sibling module: {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_RV = _load_release_versioning()
 
 
 def _run(cmd: list[str], *, cwd: Path | None = None) -> None:
@@ -46,14 +62,25 @@ def _current_branch() -> str:
     return r.stdout.strip()
 
 
+def _read_init_version() -> str:
+    text = INIT_PATH.read_text(encoding="utf-8")
+    m = re.search(
+        r'^__version__\s*=\s*["\']([^"\']+)["\']',
+        text,
+        flags=re.MULTILINE,
+    )
+    if not m:
+        sys.exit(f"Could not read __version__ from {INIT_PATH}")
+    return m.group(1)
+
+
 def _validate_version(v: str) -> None:
     if v.startswith("v"):
         sys.exit("Version must not include a 'v' prefix (use 1.2.3, not v1.2.3).")
-    if not re.fullmatch(r"\d+\.\d+\.\d+([a-zA-Z0-9._-]+)?", v):
-        sys.exit(
-            "Version must be PEP 440-ish (e.g. 1.2.3 or 1.2.3rc1). "
-            "Patch releases use three numeric segments."
-        )
+    try:
+        _RV.parse_release_version(v)
+    except ValueError as exc:
+        sys.exit(str(exc))
 
 
 def _bump_init(version: str) -> None:
@@ -120,12 +147,36 @@ def _towncrier_build(version: str, release_date: str) -> None:
 
 
 def main() -> None:
+    bump_choices = sorted(_RV.supported_bump_kinds())
     parser = argparse.ArgumentParser(
-        description="Prepare a release: bump versions, run Towncrier, optional commit."
+        description="Prepare a release: bump versions, run Towncrier, optional commit.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  uv run python scripts/release_prepare.py 0.4.0 --dry-run\n"
+            "  uv run python scripts/release_prepare.py 0.4.0b2 --commit\n"
+            "  uv run python scripts/release_prepare.py --bump alpha --dry-run\n"
+            "  uv run python scripts/release_prepare.py --bump stable --commit\n"
+            f"  --bump choices: {', '.join(bump_choices)}\n"
+        ),
     )
     parser.add_argument(
         "version",
-        help='Release version, e.g. "0.4.0" (no leading v).',
+        nargs="?",
+        default=None,
+        help='Explicit PEP 440 version (e.g. "0.4.0", "0.4.0a1", "0.4.0rc2"). '
+        "No leading v. Omit when using --bump.",
+    )
+    parser.add_argument(
+        "--bump",
+        choices=bump_choices,
+        metavar="KIND",
+        help=(
+            "Compute the next version from the current __version__ in __init__.py. "
+            "Examples: alpha 0.4.0 -> 0.4.0a1, 0.4.0a1 -> 0.4.0a2; beta 0.4.0a2 -> "
+            "0.4.0b1; stable 0.4.0rc1 -> 0.4.0. patch/minor/major require a stable "
+            "release (no prerelease segment)."
+        ),
     )
     parser.add_argument(
         "--date",
@@ -160,8 +211,25 @@ def main() -> None:
         help="Only bump versions (emergency use; skips changelog assembly).",
     )
     args = parser.parse_args()
-    version = args.version.strip()
-    _validate_version(version)
+
+    if args.bump is not None and args.version is not None:
+        sys.exit("Pass either a positional version or --bump, not both.")
+    if args.bump is None and args.version is None:
+        sys.exit(
+            "Pass a PEP 440 version (e.g. 0.4.0 or 0.4.0a1) or use --bump "
+            f"({'|'.join(bump_choices)})."
+        )
+
+    if args.bump is not None:
+        current = _read_init_version()
+        try:
+            version = _RV.bump_version(current, args.bump)
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(f"--bump {args.bump}: {current!r} -> {version!r}", flush=True)
+    else:
+        version = args.version.strip()
+        _validate_version(version)
 
     release_date = args.release_date or dt.date.today().isoformat()
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", release_date):
@@ -185,7 +253,8 @@ def main() -> None:
 
     if args.dry_run:
         print(
-            "Dry run: would bump __version__ and [tool.briefcase].version to", version
+            "Dry run: would bump __version__ and [tool.briefcase].version to",
+            repr(version),
         )
         if not args.skip_towncrier:
             print("Dry run: would run towncrier build", version, release_date)

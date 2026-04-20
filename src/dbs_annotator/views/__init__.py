@@ -1,5 +1,5 @@
 """
-View components for Clinical DBS Annotator.
+View components for DBS Annotator.
 
 This package contains all view classes that manage the UI presentation
 for different steps of the annotation wizard.

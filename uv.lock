@@ -50,7 +50,7 @@ name = "appscript"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "lxml", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "lxml" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ca/52/2fa70edfd98f0058219ecc2e365a3ba7aabd42db14ff9d7f44bbdcc5400d/appscript-1.4.0.tar.gz", hash = "sha256:b2c6fc770bf822ea45529c7084bc0ee340e67ab260016b01d28e0449ec8723be", size = 295279, upload-time = "2025-10-08T07:56:39.126Z" }
 wheels = [
@@ -443,6 +443,7 @@ source = { editable = "." }
 dependencies = [
     { name = "docx2pdf" },
     { name = "matplotlib" },
+    { name = "packaging" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "pyside6" },
@@ -478,6 +479,7 @@ docs = [
 requires-dist = [
     { name = "docx2pdf", specifier = ">=0.1.8" },
     { name = "matplotlib", specifier = ">=3.5" },
+    { name = "packaging", specifier = ">=23.0" },
     { name = "pandas", specifier = ">=2.1" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pyside6", specifier = ">=6.11.0" },
@@ -492,10 +494,10 @@ dev = [
     { name = "pre-commit", specifier = ">=3.6" },
     { name = "pre-commit-uv", specifier = ">=4.2.1" },
     { name = "pyside6-stubs", specifier = ">=6.7.3.0" },
-    { name = "pytest", specifier = ">=9.0.3" },
-    { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "pytest-qt", specifier = ">=4.5.0" },
-    { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
+    { name = "pytest-qt", specifier = ">=4.4.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
     { name = "ruff", specifier = ">=0.1.0" },
     { name = "towncrier", specifier = ">=24.8.0" },
     { name = "ty", specifier = ">=0.0.29" },

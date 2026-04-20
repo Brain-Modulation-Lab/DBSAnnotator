@@ -1,1 +1,1 @@
-"""Unit tests for Clinical DBS Annotator."""
+"""Unit tests for DBS Annotator."""

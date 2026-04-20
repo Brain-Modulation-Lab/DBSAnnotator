@@ -1,16 +1,16 @@
-.. Clinical DBS Annotator documentation master file
+.. DBS Annotator documentation master file
 
-Clinical DBS Annotator
-======================
+DBS Annotator
+=============
 
 .. image:: _static/logo.png
-   :alt: Clinical DBS Annotator
+   :alt: DBS Annotator
    :align: center
    :width: 180px
 
 |
 
-**Clinical DBS Annotator** is a desktop application for recording and analysing
+**DBS Annotator** is a desktop application for recording and analysing
 Deep Brain Stimulation (DBS) clinical programming sessions.  It guides the
 clinician or researcher through the full session workflow — from initial
 electrode configuration and baseline scales, through real-time stimulation

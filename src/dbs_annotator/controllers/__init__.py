@@ -1,5 +1,5 @@
 """
-Controllers for Clinical DBS Annotator.
+Controllers for DBS Annotator.
 
 This package contains controller classes that manage the business logic
 and coordinate between models and views.
