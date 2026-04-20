@@ -66,7 +66,8 @@ def test_open_file_platform_branches(platform, monkeypatch, tmp_path):
     p.write_text("hi", encoding="utf-8")
     monkeypatch.setattr(sys, "platform", platform)
     if platform == "win32":
-        # os.startfile exists only on Windows; create=True allows patching on macOS/Linux CI.
+        # os.startfile exists only on Windows; create=True allows patching
+        # on macOS/Linux CI.
         with patch.object(session_exporter_mod.os, "startfile", create=True) as op:
             SessionExporter._open_file(str(p))
             op.assert_called_once_with(str(p))

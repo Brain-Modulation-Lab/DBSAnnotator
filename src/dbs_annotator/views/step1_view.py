@@ -82,7 +82,8 @@ class Step1View(BaseStepView):
         Initialize Step 1 view.
 
         Args:
-            parent_style: Parent widget style for icon access (deprecated, kept for compatibility)
+            parent_style: Parent widget style for icon access (deprecated,
+                kept for compatibility).
         """
         super().__init__()
         # parent_style is now set in BaseStepView.__init__
@@ -115,7 +116,8 @@ class Step1View(BaseStepView):
             return False
 
         lbl = cathode_labels[0]
-        # Check if this is a grouped contact (no segment suffix) that could be directional
+        # Check if this is a grouped contact (no segment suffix) that could
+        # be directional.
         if len(lbl) >= 2 and lbl[0] == "E" and lbl[1:].isdigit():
             try:
                 contact_idx = int(lbl[1:])
@@ -123,7 +125,7 @@ class Step1View(BaseStepView):
                     canvas.model.is_directional
                     and canvas.model.is_level_directional(contact_idx)
                 )
-            except ValueError, IndexError:
+            except (ValueError, IndexError):
                 pass
         return False
 
@@ -829,7 +831,9 @@ class Step1View(BaseStepView):
             return
 
         logger.info(
-            "DBS stimulation configuration | model=%s | timestamp=%s | left_anode=%s | left_cathode=%s | right_anode=%s | right_cathode=%s",
+            "DBS stimulation configuration | model=%s | timestamp=%s "
+            "| left_anode=%s | left_cathode=%s "
+            "| right_anode=%s | right_cathode=%s",
             left_model.name,
             datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S"),
             self.get_left_anode_text(),
@@ -1232,7 +1236,8 @@ class Step1View(BaseStepView):
                     except Exception:
                         pass
 
-                # Load program (backward compatibility: use group_ID if program_ID not present)
+                # Load program (backward compatibility: use group_ID when
+                # program_ID is not present).
                 program_val = latest_initial.get("program_ID") or latest_initial.get(
                     "group_ID"
                 )
@@ -1252,7 +1257,7 @@ class Step1View(BaseStepView):
                         try:
                             bid = int(float(row.get("block_id", "")))
                             sid = int(float(row.get("session_ID", "")))
-                        except ValueError, TypeError:
+                        except (ValueError, TypeError):
                             continue
                         if (
                             sid == max_session_id
@@ -1363,7 +1368,7 @@ class Step1View(BaseStepView):
                     if "." in f"{total:.1f}"
                     else str(int(total))
                 )
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 # If parsing fails, return original
                 return amplitude_str
 
@@ -1560,7 +1565,8 @@ class Step1View(BaseStepView):
         # Add stretch at the bottom to push content up
         self.clinical_scales_container.addStretch()
 
-        # Connect preset buttons to their respective scales (only now that callbacks are available)
+        # Connect preset buttons to their respective scales (only now that
+        # callbacks are available).
         self._connect_preset_buttons()
 
     def _connect_preset_buttons(self):
@@ -1658,11 +1664,13 @@ class Step1View(BaseStepView):
                 self.clinical_scales_container.removeItem(row_layout)
                 self.clinical_scales_rows.pop(add_button_row_index)
 
-            # Check if this is the same preset as before (by checking if all existing scales with values are in the new preset)
+            # Check if this is the same preset as before (i.e. every
+            # existing scale that has a value is in the new preset).
             is_same_preset = all(name in scales for name in existing_scales_with_values)
 
             if is_same_preset and existing_scales_with_values:
-                # Same preset: keep existing scales, add only truly missing scales (not present at all)
+                # Same preset: keep existing scales, add only truly missing
+                # scales (those not present at all).
                 for scale_name in scales:
                     if scale_name not in all_existing_scale_names:
                         self._add_clinical_scale_row(
@@ -1671,7 +1679,8 @@ class Step1View(BaseStepView):
                             on_remove=self.on_remove_callback,
                         )
             else:
-                # Different preset or no existing scales: clear all and add preset scales
+                # Different preset or no existing scales: clear all and
+                # add the preset scales.
                 for _, _, row_layout in self.clinical_scales_rows:
                     while row_layout.count():
                         item = row_layout.takeAt(0)
@@ -1827,7 +1836,8 @@ class Step1View(BaseStepView):
         preset_row = self.preset_row_layout
 
         if preset_row:
-            # Remove all existing widgets from preset row (except stretch and settings button)
+            # Remove all existing widgets from the preset row (except the
+            # stretch and the settings button).
             widgets_to_remove = []
             for i in range(preset_row.count()):
                 item = preset_row.itemAt(i)
@@ -1866,7 +1876,8 @@ class Step1View(BaseStepView):
                 settings_index += 1
                 stretch_index = settings_index - 1
 
-            # # Remove any other stretches before the settings button (keep only the one right before it)
+            # # Remove any other stretches before the settings button
+            # # (keep only the one right before it).
             # for i in range(stretch_index):
             #     item = preset_row.itemAt(i)
             #     if item and item.spacerItem():

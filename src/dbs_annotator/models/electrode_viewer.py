@@ -76,7 +76,8 @@ class ElectrodeCanvas(QWidget):
         self.update()
 
     def _is_contact_directional(self, contact_idx: int) -> bool:
-        """Return True if the given contact index is a segmented (directional) contact."""
+        """Return True if the given contact index is a segmented
+        (directional) contact."""
         if not self.model:
             return False
         return self.model.is_level_directional(contact_idx)
@@ -351,7 +352,8 @@ class ElectrodeCanvas(QWidget):
 
         # Calculate where E0 (bottom contact) will be positioned
         contact_height_px = self.model.contact_height * scale
-        # E0 is the last contact (index 0), positioned after all other contacts and their spacing
+        # E0 is the last contact (index 0), positioned after all other
+        # contacts and their spacing.
         e0_y_position = start_y + 2 * scale  # Initial offset
         for _ in range(self.model.num_contacts - 1):  # All contacts except E0
             e0_y_position += (
@@ -615,7 +617,8 @@ class ElectrodeCanvas(QWidget):
                 )
 
             else:
-                # Standard electrode without segments (also used for first/last contacts in directional leads)
+                # Standard electrode without segments (also used for the
+                # first and last contacts in directional leads).
                 contact_id = (contact_idx, 0)
                 contact_state = self.contact_states.get(contact_id, ContactState.OFF)
                 is_hovered = contact_id == self.hovered_contact
@@ -648,7 +651,8 @@ class ElectrodeCanvas(QWidget):
                 contact_gradient.setColorAt(1, color.darker(130))
 
                 if is_tip:
-                    # Boston Scientific tip contact: flush with lead body + hemisphere bottom
+                    # Boston Scientific tip contact: flush with lead body,
+                    # hemispherical bottom.
                     tip_left = center_x - lead_width / 2
                     tip_right = center_x + lead_width / 2
                     tip_width = tip_right - tip_left

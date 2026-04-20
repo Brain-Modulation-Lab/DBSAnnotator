@@ -75,10 +75,14 @@ class SessionExporter:
             run_num = run_match.group(1) if run_match else "01"
             task = task_match.group(1) if task_match else "programming"
 
-            return f"sub-{patient_id}_ses-{today_str}_task-{task}_run-{run_num}_report{extension}"
+            return (
+                f"sub-{patient_id}_ses-{today_str}_task-{task}"
+                f"_run-{run_num}_report{extension}"
+            )
 
         # Fallback
-        return f"dbs_session_report_{today_str}_{datetime.now().astimezone().strftime('%H%M%S')}{extension}"
+        fallback_time = datetime.now().astimezone().strftime("%H%M%S")
+        return f"dbs_session_report_{today_str}_{fallback_time}{extension}"
 
     def _extract_bids_info_from_path(self) -> tuple:
         """Extract patient ID and session number from BIDS filename."""
@@ -505,7 +509,8 @@ class SessionExporter:
             left_row = {}
             right_row = {}
 
-            # Keep block_id in the output for styling logic (excluded from display columns later)
+            # Keep block_id in the output for styling logic (excluded from
+            # display columns later).
             left_row["block_id"] = block_id
             right_row["block_id"] = block_id
 
@@ -723,14 +728,15 @@ class SessionExporter:
                 if col not in row:
                     continue
 
-                # Format numeric values: use int for frequency/pulse_width when no decimals
+                # Format numeric values: use int for frequency/pulse_width
+                # when they have no decimals.
                 cell_value = str(row[col]) if pd.notna(row[col]) else ""
                 if col in ["frequency", "pulse_width"]:
                     try:
                         val = float(row[col])
                         if val.is_integer():
                             cell_value = str(int(val))
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         pass
 
                 if col in common_cols:
@@ -775,7 +781,7 @@ class SessionExporter:
                         total = sum(values)
                         total_str = f"{total:.2f}".rstrip("0").rstrip(".")
                         row_cells[j].text = "\n".join(parts) + f"\n{total_str}"
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         row_cells[j].text = cell_value
                 else:
                     row_cells[j].text = cell_value
@@ -844,7 +850,8 @@ class SessionExporter:
     def _add_scales_timeline_chart(
         self, doc: DocumentType, lateral_df: pd.DataFrame
     ) -> None:
-        """Add a rainbow-colored timeline chart of session scales with a general index line."""
+        """Add a rainbow-colored timeline chart of session scales with a
+        general index line."""
         import math as _math
 
         from .report_chart_utils import add_chart_to_doc, build_scales_chart
@@ -873,7 +880,7 @@ class SessionExporter:
         for _, row in df_l.iterrows():
             try:
                 block_id = int(row.get("block_id", 0))
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 continue
             names = str(row.get("scale_name", "") or "").split("\n")
             values = str(row.get("scale_value", "") or "").split("\n")
@@ -936,7 +943,8 @@ class SessionExporter:
 
     def _find_best_and_second_best_blocks(self, lateral_df: pd.DataFrame) -> tuple:
         """
-        Find block_ids with the best and second-best scores based on optimization preferences.
+        Find block_ids with the best and second-best scores based on the
+        current optimization preferences.
 
         Returns a tuple: (best_block_ids, second_best_block_ids)
         Each is a list (may have multiple if tied).
@@ -1100,7 +1108,8 @@ class SessionExporter:
     def _write_multiline_cell_with_dividers(
         self, cell, lines: list, divider_sz: int = 12, divider_color: str = "000000"
     ) -> None:
-        """Write each line as its own paragraph and draw a full-width divider under each line except the last."""
+        """Write each line as its own paragraph and draw a full-width
+        divider under each line except the last."""
         try:
             cell.text = ""
             if not lines:
@@ -1320,7 +1329,8 @@ class SessionExporter:
                 doc.add_paragraph(f"Electrode model: {model}")
 
         # 4 columns x 4 rows table, no borders
-        # Row 0: "Initial Settings" (merged cols 0-1), "Final Settings" (merged cols 2-3)
+        # Row 0: "Initial Settings" (merged cols 0-1),
+        #        "Final Settings" (merged cols 2-3)
         # Row 1: Left, Right, Left, Right
         # Row 2: Anode/Cathode config text
         # Row 3: PNG images
@@ -1602,9 +1612,8 @@ class SessionExporter:
         title = doc.add_heading("Clinical DBS Session Report", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        doc.add_paragraph(
-            f"Generated on: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')} by {__app_name__} v{__version__}"
-        )
+        timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        doc.add_paragraph(f"Generated on: {timestamp} by {__app_name__} v{__version__}")
 
         patient_id, session_num = self._extract_bids_info_from_path()
         if patient_id or session_num:
@@ -1615,7 +1624,8 @@ class SessionExporter:
                 info_parts.append(f"Session: {session_num}")
             doc.add_paragraph("    ".join(info_parts))
 
-        # Determine which sections to include (default: all except parent when children exist)
+        # Determine which sections to include (default: all except the
+        # parent section when children exist).
         all_keys = [
             "initial_notes",
             "session_data",
@@ -1718,7 +1728,8 @@ class SessionExporter:
                     date_str = norm.get("date", "")
                     time_str = norm.get("time", "")
 
-                    # Build timestamp: if both exist, combine; otherwise fallback to time/timestamp/date
+                    # Build timestamp: if both exist, combine; otherwise
+                    # fall back to time / timestamp / date.
                     if date_str and time_str:
                         t = f"{date_str} {time_str}"
                     else:
@@ -1737,7 +1748,8 @@ class SessionExporter:
                         or ""
                     )
 
-                    # Fallback: if headers are unexpected, use the first/second column values
+                    # Fallback: if headers are unexpected, use the
+                    # first/second column values.
                     if not (t.strip() or a.strip()):
                         try:
                             vals = list(norm.values())
@@ -1762,9 +1774,8 @@ class SessionExporter:
 
         title = doc.add_heading("Annotations Report", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        doc.add_paragraph(
-            f"Generated on: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')} by {__app_name__} v{__version__}"
-        )
+        timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        doc.add_paragraph(f"Generated on: {timestamp} by {__app_name__} v{__version__}")
         doc.add_paragraph("")
 
         for t, a in annotations:
@@ -1781,7 +1792,8 @@ class SessionExporter:
                 QMessageBox.warning(
                     parent,
                     "No Session Data",
-                    "No annotation file is currently open. Please open or create one first.",
+                    "No annotation file is currently open. "
+                    "Please open or create one first.",
                 )
                 return False
 
@@ -1844,7 +1856,8 @@ class SessionExporter:
                 QMessageBox.warning(
                     parent,
                     "No Session Data",
-                    "No annotation file is currently open. Please open or create one first.",
+                    "No annotation file is currently open. "
+                    "Please open or create one first.",
                 )
                 return False
 

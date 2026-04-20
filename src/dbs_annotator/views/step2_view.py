@@ -46,7 +46,8 @@ class Step2View(BaseStepView):
         Initialize Step 2 view.
 
         Args:
-            parent_style: Parent widget style for icon access (deprecated, kept for compatibility)
+            parent_style: Parent widget style for icon access (deprecated,
+                kept for compatibility).
         """
         super().__init__()
         # parent_style is now set in BaseStepView.__init__

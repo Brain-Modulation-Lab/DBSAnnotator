@@ -19,7 +19,8 @@ class ProgramConfigManager:
         """Initialize the program config manager.
 
         Args:
-            config_dir: Directory for config files. If None, uses logs in app installation directory.
+            config_dir: Directory for config files. If None, uses the
+                ``logs`` folder in the app installation directory.
         """
         if config_dir is None:
             # Default to logs folder in the application installation directory
@@ -51,7 +52,7 @@ class ProgramConfigManager:
                 with open(self.config_file, encoding="utf-8") as f:
                     data = json.load(f)
                     self._custom_programs = data.get("custom_programs", [])
-            except OSError, json.JSONDecodeError:
+            except (OSError, json.JSONDecodeError):
                 self._custom_programs = []
         else:
             self._custom_programs = []

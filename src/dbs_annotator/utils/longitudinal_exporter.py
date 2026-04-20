@@ -245,7 +245,8 @@ class LongitudinalExporter:
 
         doc.add_paragraph("")
 
-        # Determine which sections to include (default: sessions_overview + session_data children)
+        # Determine which sections to include (default: sessions_overview
+        # plus session_data children).
         all_keys = [
             "sessions_overview",
             "session_data",
@@ -404,7 +405,8 @@ class LongitudinalExporter:
                         )
                         max_block = baseline_df["block_id_num"].max()
 
-                        # Get ALL rows with the highest block_id (there could be multiple)
+                        # Get ALL rows with the highest block_id (there
+                        # could be multiple).
                         max_block_rows = baseline_df[
                             baseline_df["block_id_num"] == max_block
                         ]
@@ -423,7 +425,8 @@ class LongitudinalExporter:
                                     s.strip() for s in sv.split("\n") if s.strip()
                                 ]
 
-                                # Store scales, keeping first non-NaN value per scale name
+                                # Store scales, keeping the first non-NaN
+                                # value per scale name.
                                 for name, val in zip(sn_lines, sv_lines, strict=False):
                                     if val != "NaN" and val.strip() != "NaN":
                                         if name not in all_scales:
@@ -900,7 +903,7 @@ class LongitudinalExporter:
                     try:
                         v = float(val)
                         cell_text = str(int(v)) if v == int(v) else str(v)
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         pass
 
                 if col in common_cols and row.get("laterality") == "R" and i > 0:
@@ -920,7 +923,7 @@ class LongitudinalExporter:
                         total = sum(values)
                         total_str = f"{total:.2f}".rstrip("0").rstrip(".")
                         row_cells[j].text = "\n".join(parts) + f"\n{total_str}"
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         row_cells[j].text = cell_text
                 else:
                     row_cells[j].text = cell_text
@@ -1004,7 +1007,8 @@ class LongitudinalExporter:
         df_all: pd.DataFrame,
         file_paths: list[str],
     ) -> tuple[dict[str, dict[int, float]], list[tuple[int, str]]]:
-        """Collect clinical scale values using latest block_ID with is_initial=1 per file.
+        """Collect clinical scale values using the latest block_ID with
+        ``is_initial=1`` per file.
 
         X-tick labels: ``{date}_{run_ID}``
 

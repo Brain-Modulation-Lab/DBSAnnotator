@@ -35,7 +35,8 @@ def resource_path(relative_path: str) -> str:
     if os.path.exists(pkg_path):
         return pkg_path
 
-    # BeeWare Briefcase Windows layout: sibling `icons/` next to the package under `src/`.
+    # BeeWare Briefcase Windows layout: sibling `icons/` next to the
+    # package under `src/`.
     src_dir = os.path.dirname(_PACKAGE_DIR)
     sibling_path = os.path.join(src_dir, relative_path)
     if os.path.exists(sibling_path):

@@ -196,7 +196,7 @@ class IncrementWidget(QWidget):
         """
         try:
             value = float(self.line_edit.text())
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             value = 0.0
 
         value += delta
@@ -359,12 +359,14 @@ class ScaleProgressWidget(QWidget):
     def _create_x_icon(self) -> QIcon:
         """Generate an SVG 'x' (reset) icon."""
         color = "#cccccc"
-        svg = f"""
-        <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line x1="5" y1="5" x2="13" y2="13" stroke="{color}" stroke-width="2" stroke-linecap="round"/>
-            <line x1="13" y1="5" x2="5" y2="13" stroke="{color}" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        """
+        line_attrs = f'stroke="{color}" stroke-width="2" stroke-linecap="round"'
+        svg = (
+            '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"'
+            ' xmlns="http://www.w3.org/2000/svg">'
+            f'<line x1="5" y1="5" x2="13" y2="13" {line_attrs}/>'
+            f'<line x1="13" y1="5" x2="5" y2="13" {line_attrs}/>'
+            "</svg>"
+        )
         pixmap = QPixmap()
         pixmap.loadFromData(QByteArray(svg.encode("utf-8")))
         return QIcon(pixmap)

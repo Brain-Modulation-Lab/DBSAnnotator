@@ -1,5 +1,9 @@
 # Clinical DBS Annotator
 
+[![CI](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/ci.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/ci.yml)
+[![Docs Health](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/docs-health.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/docs-health.yml)
+[![Release Drafter](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/release-drafter.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/release-drafter.yml)
+
 A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built for clinicians and researchers working with DBS systems (Medtronic Percept and others).
 
 **Version:** derived from `dbs_annotator.__version__`
@@ -30,7 +34,9 @@ There is also a **Free Annotations** mode for quick timestamped text annotations
 
 ### Output Format
 
-Data is saved as TSV with columns: `date`, `time`, `block_id`, `is_initial`, `session_ID`, `electrode_model`, `scale_name`, `scale_value`, stimulation parameters (frequency, contacts, amplitude, pulse width per side), `group`, and `notes`.
+Data is saved as TSV. The canonical schema is documented in
+[`docs/output_format.rst`](docs/output_format.rst) and auto-generated from the
+code-level constants in `dbs_annotator.config` to prevent drift.
 
 ## Contributing
 
@@ -53,7 +59,7 @@ We welcome contributions! Please see the [Contributing Guide](CONTRIBUTING.md) f
 
 ### Prerequisites
 
-- Python 3.14+ (see `requires-python` in `pyproject.toml`)
+- Python 3.12+ (see `requires-python` in `pyproject.toml`)
 - [uv](https://github.com/astral-sh/uv) (recommended) or pip
 
 ### Setup
@@ -74,9 +80,9 @@ pip install -e .
 ### Running from Source
 
 ```bash
-python run.py
-# or
 python -m dbs_annotator
+# or, once the project is installed, the console script
+dbs-annotator
 ```
 
 ### Project Structure
@@ -94,7 +100,6 @@ App_ClinicalDBSAnnot/
 ├── styles/                       # QSS theme files (Briefcase + dev; see resource_path)
 ├── icons/                        # Application icons
 ├── scripts/                      # Utility scripts
-├── run.py                        # Development entry point
 └── pyproject.toml                # Project configuration and dependencies
 ```
 
@@ -113,6 +118,7 @@ Briefcase turns this repo into **platform-native** bundles and installers. The G
 
 ```bash
 uv sync --locked --dev --group build
+uv export --locked --format requirements.txt --no-dev --no-hashes --no-emit-project --no-emit-workspace --output-file constraints-briefcase.txt
 
 # First-time / after config changes — pick platform + format (examples):
 uv run briefcase create macOS app

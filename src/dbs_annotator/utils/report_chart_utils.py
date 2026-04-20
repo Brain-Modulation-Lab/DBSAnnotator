@@ -55,7 +55,7 @@ def parse_scale_targets(
         elif mode == "custom":
             try:
                 custom_num = float(custom_val)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 custom_num = 0.0
             targets[name] = {"type": "custom", "value": custom_num}
     return targets

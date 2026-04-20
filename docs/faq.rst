@@ -15,8 +15,10 @@ No.  All data stays on your local machine.  No telemetry, no cloud sync.
 **Which DBS systems are supported?**
 
 The application is system-agnostic for data recording.  Electrode visualisation
-supports leads from Medtronic (including Percept PC / RC), Abbott (Infinity), Boston Scientific (Vercise) and PINS families.  
-If your lead is not listed, use the closest equivalent or contact the development team to request it be added.
+supports leads from Medtronic (including Percept PC / RC), Abbott (Infinity),
+Boston Scientific (Vercise) and PINS families.
+If your lead is not listed, use the closest equivalent or contact the
+development team to request it be added.
 
 **Can I use the application on a shared clinical workstation?**
 

@@ -1,0 +1,62 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+version-template: "$MAJOR.$MINOR.$PATCH"
+change-template: "- $TITLE ([#$NUMBER]($URL)) by @$AUTHOR"
+
+template: |
+  ## What's changed
+
+  $CHANGES
+
+  ## Contributors
+
+  $CONTRIBUTORS
+
+categories:
+  - title: "Breaking changes"
+    labels:
+      - "breaking"
+  - title: "Features"
+    labels:
+      - "feature"
+      - "enhancement"
+      - "feat"
+  - title: "Bug fixes"
+    labels:
+      - "bug"
+      - "bugfix"
+      - "fix"
+  - title: "Documentation"
+    labels:
+      - "documentation"
+      - "docs"
+  - title: "CI / Build"
+    labels:
+      - "ci"
+      - "build"
+      - "infra"
+  - title: "Maintenance"
+    labels:
+      - "chore"
+      - "dependencies"
+
+exclude-labels:
+  - "skip-changelog"
+  - "internal-only"
+
+autolabeler:
+  - label: "docs"
+    files:
+      - "docs/**"
+      - "README.md"
+      - "CONTRIBUTING.md"
+  - label: "ci"
+    files:
+      - ".github/workflows/**"
+  - label: "build"
+    files:
+      - "pyproject.toml"
+      - "uv.lock"
+  - label: "tests"
+    files:
+      - "tests/**"

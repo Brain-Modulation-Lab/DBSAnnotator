@@ -1,12 +1,14 @@
 [project]
 name = "dbs-annotator"
-description = "A graphical user interface for annotating DBS clinical programming sessions"
+description = "An application for annotating clinical programming sessions."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 authors = [
-    { name = "Lucia Poma", email = "lucia.poma@wysscenter.ch" }
+    { name = "Lucia Poma", email = "lucia.poma@wysscenter.ch" },
+    { name = "Matteo Vissani" },
+    { name = "Richard Köhler", email = "richard.koehler@wysscenter.ch" },
 ]
-keywords = ["dbs", "clinical", "annotation", "neuroscience", "deep-brain-stimulation"]
+keywords = ["dbs", "annotation", "neuroscience", "deep-brain-stimulation"]
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -14,7 +16,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: MIT License",
     "Environment :: X11 Applications :: Qt",
     "Operating System :: OS Independent",
@@ -38,26 +40,26 @@ dev = [
     "ruff>=0.1.0",
     "pre-commit>=3.6",
     "pre-commit-uv>=4.2.1",
-    "towncrier>=24.0",
     "ty>=0.0.29",
     "pandas-stubs>=3.0.0.260204",
     "pyside6-stubs>=6.7.3.0",
+    "towncrier>=24.8.0",
 ]
-build = [
-    "briefcase>=0.3.26",
-]
+build = ["briefcase>=0.3.26"]
 docs = [
     "sphinx>=9.0.4",
     "sphinx-rtd-theme>=3.1.0",
+    "sphinx-copybutton>=0.5.2",
+    "myst-parser>=4.0.0",
 ]
 
 [project.scripts]
 dbs-annotator = "dbs_annotator.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/bml/dbs-annotator"
-Repository = "https://github.com/bml/dbs-annotator"
-Documentation = "https://github.com/bml/dbs-annotator/blob/main/README.md"
+Homepage = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+Repository = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+Documentation = "https://app-clinicaldbsannot.readthedocs.io/en/latest/"
 
 [build-system]
 requires = ["hatchling"]
@@ -81,13 +83,12 @@ addopts = [
     "--cov-report=html",
     "--cov-report=term-missing",
 ]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-]
+filterwarnings = ["ignore::DeprecationWarning"]
 markers = [
     "gui: Qt GUI / widget tests",
     "integration: cross-module behavior",
     "slow: longer GUI or lazy-loaded wizard flows; skip locally with pytest -m \"not slow\"",
+    "docs_screenshot: optional screenshot generation for docs artifacts",
 ]
 
 [tool.coverage.run]
@@ -99,33 +100,82 @@ omit = ["*/tests/*"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py314"
-extend-exclude = [
-    ".eggs",
-    ".git",
-    ".hatch",
-    ".venv",
-    "build",
-    "dist",
-]
+target-version = "py312"
+extend-exclude = [".eggs", ".git", ".hatch", ".venv", "build", "dist"]
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "N",   # pep8-naming
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "N",  # pep8-naming
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
 ]
-ignore = [
-    "E501",  # line too long (handled by formatter/line-length)
-]
+
+[tool.ruff.lint.per-file-ignores]
+"src/dbs_annotator/views/wizard_window.py" = ["E501"]
+
+[tool.codespell]
+# `vas` is the clinical abbreviation for "Visual Analog Scale"; without this
+# it is reported as a misspelling of "was". Add further domain terms as they
+# come up.
+ignore-words-list = "vas"
+# Skip binary assets, generated build output, lockfiles, and logs.
+skip = "uv.lock,.venv,build,dist,htmlcov,docs/_build,*.svg,*.ico,*.png,*.pdf,*.log,*.min.js"
+
+[tool.doc8]
+max-line-length = 100
+ignore = ["D004"]
+ignore-path = ["docs/_build", "docs/_templates"]
+
+[tool.interrogate]
+# Starting floor; raise as coverage improves.
+fail-under = 85
+ignore-init-module = true
+ignore-magic = true
+ignore-private = true
+ignore-semiprivate = true
+ignore-nested-functions = true
+exclude = ["tests", "build", "dist", ".venv", "docs/_build"]
+verbose = 0
+quiet = false
 
 [tool.uv]
 exclude-newer = "1 week"
+
+[tool.towncrier]
+package = "dbs_annotator"
+package_dir = "src"
+directory = "newsfragments"
+filename = "CHANGELOG.md"
+template = "newsfragments/template.md.jinja"
+start_string = "## [Unreleased]"
+title_format = "## [{version}] - {project_date}"
+issue_format = "#{issue}"
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Documentation"
+showcontent = true
 
 # BeeWare Briefcase: native installers (Windows MSI / macOS .app + DMG).
 # App entrypoint: `python -m dbs_annotator` (see src/dbs_annotator/__main__.py).
@@ -139,37 +189,36 @@ license = { file = "LICENSE" }
 
 [tool.briefcase.app.dbs_annotator]
 formal_name = "DBSAnnotator"
-description = "A graphical user interface for annotating DBS clinical programming sessions"
+description = "An application for annotating clinical programming sessions."
+long_description = """
+DBS Annotator is a desktop application used to structure and review
+deep-brain stimulation programming sessions in a reproducible workflow.
+
+It supports clinicians and researchers by organizing session information,
+tracking stimulation settings, and generating standardized exports and reports.
+"""
 sources = ["src/dbs_annotator", "icons", "styles"]
 icon = "icons/logoneutral"
 installer_icon = "icons/logoneutral"
+requirement_installer_args = [
+    "--index-url",
+    "https://pypi.org/simple",
+    "--constraint",
+    "constraints-briefcase.txt",
+    "--retries",
+    "5",
+    "--timeout",
+    "60",
+    "--no-cache-dir",
+]
 
 [tool.briefcase.app.dbs_annotator.macOS]
 universal_build = false
-
-# Changelog fragments: add ``newsfragments/<issue>.<type>.rst`` (or ``+.<type>.rst``).
-# Assemble with ``uv run towncrier build --yes --version X.Y.Z --date YYYY-MM-DD``
-# or use ``scripts/release_prepare.py`` / the "Prepare release PR" workflow.
-[tool.towncrier]
-directory = "newsfragments"
-filename = "CHANGELOG.rst"
-package = "dbs_annotator"
-package_dir = "src"
-title_format = "{version} ({project_date})"
-underlines = ["-", ""]
-issue_format = "`#{issue} <https://github.com/bml/dbs-annotator/pull/{issue}>`__"
-
-[tool.towncrier.fragment.feature]
-name = "Features"
-
-[tool.towncrier.fragment.bugfix]
-name = "Bug fixes"
-
-[tool.towncrier.fragment.doc]
-name = "Documentation"
-
-[tool.towncrier.fragment.removal]
-name = "Removals and deprecations"
-
-[tool.towncrier.fragment.misc]
-name = "Miscellaneous"
+# PySide6 6.8+ publishes macOS wheels tagged `macosx_13_0_universal2`. The Briefcase
+# support-package Python on macOS advertises a lower platform tag by default, so its
+# embedded pip refuses all PySide6 versions newer than 6.7.3 with a misleading
+# "No matching distribution" error. Setting `min_os_version = "13.0"` tells Briefcase
+# (and the bundled interpreter/installer) to target macOS 13+, aligning platform tags
+# with the published wheels. If a compatible support package is not available, Briefcase
+# will select the closest one and raise the deployment target accordingly.
+min_os_version = "13.0"

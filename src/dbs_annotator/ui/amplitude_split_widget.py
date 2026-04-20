@@ -69,7 +69,8 @@ class AmplitudeSplitWidget(QWidget):
         # Filter out "case" — CASE as cathode does not get a percentage row
         cathode_labels = [lbl for lbl in cathode_labels if lbl.lower() != "case"]
 
-        # Use the passed parameter to determine if this is a single grouped directional contact
+        # Use the passed parameter to determine if this is a single grouped
+        # directional contact.
 
         # Hide widget if no cathodes, or single non-grouped cathode
         if len(cathode_labels) == 0 or (
@@ -92,7 +93,8 @@ class AmplitudeSplitWidget(QWidget):
         # Compute new default percentages
         self._cathode_labels = list(cathode_labels)
         if len(cathode_labels) == 1 and is_single_grouped_directional:
-            # For single grouped directional contact, set 100% to enable segment splitting
+            # For single grouped directional contact, set 100% to enable
+            # segment splitting.
             self._percentages[cathode_labels[0]] = 100.0
         else:
             self._redistribute_percentages()
@@ -121,7 +123,7 @@ class AmplitudeSplitWidget(QWidget):
         # Multiple cathodes - use regular logic
         try:
             total_amp = float(total_text)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             return total_text
 
         parts = []
@@ -356,7 +358,7 @@ class AmplitudeSplitWidget(QWidget):
         """Recompute the mA labels from the total amplitude and percentages."""
         try:
             total_amp = float(self._amp_edit.text())
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             total_amp = 0.0
 
         # Update all rows (both main contacts and segments)
@@ -386,7 +388,7 @@ class AmplitudeSplitWidget(QWidget):
                 self._amp_edit.setText(str(int(total)))
             else:
                 self._amp_edit.setText(f"{total:.1f}".rstrip("0").rstrip("."))
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             pass
 
     def set_amplitude_from_split(self, split_text: str) -> None:
@@ -423,7 +425,7 @@ class AmplitudeSplitWidget(QWidget):
             # Update the UI rows
             self._rebuild_rows()
 
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             # If parsing fails, use equal split
             self._redistribute_percentages()
 
@@ -455,7 +457,8 @@ def get_cathode_labels(canvas) -> list[str]:
                     for seg in range(3)
                 ]
                 if all(s == ContactState.CATHODIC for s in seg_states):
-                    # All segments are cathodic - show as ring contact (no segment suffix)
+                    # All segments are cathodic - show as ring contact (no
+                    # segment suffix).
                     labels.append(f"E{contact_idx}")
                     continue
                 seg_labels = ["a", "b", "c"]

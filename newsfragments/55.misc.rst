@@ -1,1 +1,0 @@
-Document PR-based releases (``scripts/release_prepare.py`` and the **CD - Prepare release PR** workflow), Towncrier + ``CHANGELOG.rst``, and ignore Sphinx-generated ``docs/_autosummary/`` instead of committing it.

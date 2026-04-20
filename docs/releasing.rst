@@ -10,27 +10,31 @@ Version sources
 
 Keep these in sync whenever you cut a release:
 
-- ``__version__`` in ``src/dbs_annotator/__init__.py`` (also used by Hatch / ``dbs-annotator`` metadata)
+- ``__version__`` in ``src/dbs_annotator/__init__.py`` — Hatch reads this as the
+  ``dbs-annotator`` distribution version.
 - ``version`` under ``[tool.briefcase]`` in ``pyproject.toml`` (Briefcase requires a static string)
 
-The automation below updates both, then runs `Towncrier`_ to fold ``newsfragments/``
-into ``CHANGELOG.rst``.
+The automation below updates both, then runs `Towncrier`_ to fold Markdown fragments
+under ``newsfragments/`` into ``CHANGELOG.md`` (see ``[tool.towncrier]`` in
+``pyproject.toml``).
 
 .. _Towncrier: https://towncrier.readthedocs.io/
 
 Day-to-day: changelog fragments
 -------------------------------
 
-For each user-visible change, add a fragment under ``newsfragments/`` (usually in the
-same PR as the change):
+For each PR that should appear in the release notes, add a fragment in ``newsfragments/``
+(usually in the same PR as the change). Types are ``added``, ``changed``, ``fixed``, and
+``docs`` — for example ``123.added.md`` or ``123.docs.md`` for PR number 123.
+
+Create a stub interactively:
 
 .. code-block:: bash
 
-   uv run towncrier create 123.feature.rst
+   uv run towncrier create 123.added.md
 
-Use a real issue number instead of ``123`` when applicable, or a ``+`` prefix for
-small internal-only notes (see Towncrier’s naming rules). Common types include
-``feature``, ``bugfix``, ``doc``, ``misc``, and ``removal``.
+CI may require a fragment when certain paths change unless the PR is labeled
+``skip-changelog`` or ``internal-only`` (see ``CONTRIBUTING.md``).
 
 Option A — Prepare the release PR locally
 -----------------------------------------
@@ -96,7 +100,7 @@ After the release-prep PR is **merged** into ``main``:
    GitHub Release.
 
 Do **not** push a ``v*`` tag until the release-prep PR is merged and you are satisfied
-with ``CHANGELOG.rst`` and the version numbers on ``main``.
+with ``CHANGELOG.md`` and the version numbers on ``main``.
 
 Manual workflow dispatch on ``release.yml`` can still build artifacts without a new
 tag; see that workflow’s inputs if you need a one-off build.
@@ -106,7 +110,7 @@ Troubleshooting
 
 - **“Working tree is not clean”** — stash or commit unrelated work, or use a fresh clone.
 - **Towncrier fails** — ensure there is at least one valid fragment for the release, or
-  confirm ``CHANGELOG.rst`` still contains the line
-  ``.. towncrier release notes start`` above which Towncrier inserts new entries.
+  confirm ``CHANGELOG.md`` still contains the ``## [Unreleased]`` heading Towncrier
+  uses as ``start_string`` in ``pyproject.toml``.
 - **Branch already exists** — delete the remote branch ``chore/release-prep-X.Y.Z`` or
   pick a new branch name before re-running the workflow.

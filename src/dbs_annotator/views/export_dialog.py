@@ -1,10 +1,10 @@
-"""
-Export dialogs for report generation.
+"""Export dialogs for report generation.
 
 Provides:
-- ScaleTargetValuesDialog: lets the user set target values (min/max/custom)
-  for each session scale, used before exporting any report.
-- ReportSectionsDialog: lets the user choose which sections to include.
+
+- ``ScaleTargetValuesDialog``: lets the user set target values
+  (min/max/custom) for each session scale, used before exporting any report.
+- ``ReportSectionsDialog``: lets the user choose which sections to include.
 
 These dialogs are shared by both the longitudinal workflow and the Step-3
 single-session export.
@@ -303,7 +303,8 @@ class ReportSectionsDialog(QDialog):
     Dialog that lets the user choose which sections to include in the report.
 
     Initialise with a list of (key, label, default_checked, children) tuples.
-    children is an optional list of (key, label, default_checked) tuples for nested checkboxes.
+    children is an optional list of (key, label, default_checked) tuples for nested
+    checkboxes.
     Call ``get_selected_sections()`` to retrieve the list of selected keys in
     the original order.
     """
@@ -403,7 +404,7 @@ class ReportSectionsDialog(QDialog):
                     break
 
     def _on_child_toggled(self, parent_cb: QCheckBox, checked: bool) -> None:
-        """Handle child checkbox toggled - update parent if all children have same state."""
+        """Handle child checkbox toggled: update parent if all children share state."""
         # Find parent key from parent checkbox
         parent_key = None
         for key, cb in self._checkboxes:

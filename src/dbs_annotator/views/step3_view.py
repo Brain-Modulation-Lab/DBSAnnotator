@@ -74,7 +74,8 @@ class Step3View(BaseStepView):
         Initialize Step 3 view.
 
         Args:
-            parent_style: Parent widget style for icon access (deprecated, kept for compatibility)
+            parent_style: Parent widget style for icon access (deprecated,
+                kept for compatibility).
         """
         super().__init__()
         # parent_style is now set in BaseStepView.__init__
@@ -663,7 +664,8 @@ class Step3View(BaseStepView):
         return "_".join(anode_items), "_".join(cathode_items)
 
     def _is_single_grouped_directional(self, cathode_labels: list[str], canvas) -> bool:
-        """Check if we have a single grouped directional contact (all 3 segments selected)."""
+        """Check if we have a single grouped directional contact (all 3
+        segments selected)."""
         if len(cathode_labels) != 1:
             return False
 
@@ -691,7 +693,7 @@ class Step3View(BaseStepView):
                 for seg in range(3)
             ]
             return all(state == ContactState.CATHODIC for state in seg_states)
-        except ValueError, IndexError:
+        except (ValueError, IndexError):
             return False
 
     def _create_session_scales_group(self) -> QGroupBox:
@@ -787,8 +789,9 @@ class Step3View(BaseStepView):
 
         self.session_scale_value_edits = []
 
-        # Add scale inputs
-        # Step2 provides tuples: (name, min, max). We also support a plain list of names.
+        # Add scale inputs.
+        # Step 2 provides tuples ``(name, min, max)``. A plain list of names
+        # is also accepted.
         for item in scale_names or []:
             if isinstance(item, (tuple, list)) and len(item) >= 1:
                 name = item[0]
@@ -806,7 +809,8 @@ class Step3View(BaseStepView):
             if not name.strip():
                 continue
 
-            # Use progress bar style (0.25 steps). Convert min/max to internal int units.
+            # Use progress bar style (0.25 steps). Convert min/max to
+            # internal int units.
             try:
                 min_f = float(min_val)
             except Exception:
@@ -862,8 +866,9 @@ class Step3View(BaseStepView):
         self.session_right_stim_freq_edit.setText(right_frequency)
         self.session_right_pw_edit.setText(right_pw)
 
-        # Handle amplitude: if split (contains _), calculate total and set total in field
-        # The AmplitudeSplitWidget will handle distribution based on cathode contacts
+        # Handle amplitude: if split (contains ``_``) calculate the total
+        # and set the total in the field. The AmplitudeSplitWidget handles
+        # distribution based on the cathode contacts.
         left_total_amp = self._parse_amplitude_total(left_amp)
         right_total_amp = self._parse_amplitude_total(right_amp)
         self.session_left_amp_edit.setText(left_total_amp)
@@ -908,7 +913,7 @@ class Step3View(BaseStepView):
             total = sum(float(p) for p in parts)
             # Format to 2 decimal places, removing trailing zeros
             return f"{total:.2f}".rstrip("0").rstrip(".")
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             return amp_str
 
     def _apply_contact_text_to_canvas(
@@ -986,7 +991,8 @@ class Step3View(BaseStepView):
         apply_tokens(cathode_text, ContactState.CATHODIC)
         if parse_errors:
             logger.warning(
-                "Skipped %d invalid contact tokens while restoring stimulation configuration",
+                "Skipped %d invalid contact tokens while restoring "
+                "stimulation configuration",
                 parse_errors,
             )
 

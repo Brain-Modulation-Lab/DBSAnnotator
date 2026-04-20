@@ -19,8 +19,7 @@ adjustments, to the automatic generation of structured Word and PDF reports.
 Developed at the **Brain Modulation Lab, Massachusetts General Hospital**.
 
 .. note::
-   Version **0.3 (testing)** — Windows installer available.
-   Contact: lucia.poma@wysscenter.ch
+   Version |release|. Contact: lucia.poma@wysscenter.ch
 
 ----
 
@@ -45,6 +44,7 @@ Developed at the **Brain Modulation Lab, Massachusetts General Hospital**.
    :caption: Reference
 
    faq
+   changelog
 
 .. toctree::
    :maxdepth: 1
@@ -52,6 +52,7 @@ Developed at the **Brain Modulation Lab, Massachusetts General Hospital**.
 
    contributing
    releasing
+   api
 
 ----
 

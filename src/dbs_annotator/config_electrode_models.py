@@ -20,7 +20,11 @@ class StimulationRule:
 
     @staticmethod
     def add_validator(validator_fn):
-        """Register a custom validator: fn(contact_states, case_state) -> (is_valid, error_message) or None."""
+        """Register a custom validator.
+
+        The callable must accept ``(contact_states, case_state)`` and return
+        either ``(is_valid, error_message)`` or ``None``.
+        """
         if validator_fn not in StimulationRule._custom_validators:
             StimulationRule._custom_validators.append(validator_fn)
 
@@ -30,7 +34,8 @@ class StimulationRule:
         Validate stimulation configuration according to clinical rules
 
         Args:
-            contact_states (dict): Dictionary of {(contact_idx, segment_idx): ContactState}
+            contact_states (dict): Dictionary mapping
+                ``(contact_idx, segment_idx)`` to ``ContactState``.
             case_state (ContactState): State of the case
 
         Returns:
@@ -67,7 +72,8 @@ class StimulationRule:
         if has_cathodic and not has_anodic:
             return (
                 False,
-                "At least one anodic contact (or CASE) required when using cathodic contacts",
+                "At least one anodic contact (or CASE) required when using "
+                "cathodic contacts",
             )
 
         for validator_fn in list(StimulationRule._custom_validators):
@@ -101,7 +107,10 @@ class StimulationRule:
                 if state == ContactState.CATHODIC
             ]
             if cathodic_contacts:
-                return "Suggestion: Turn off cathodic contacts or switch CASE to anodic/off"
+                return (
+                    "Suggestion: Turn off cathodic contacts or switch CASE "
+                    "to anodic/off"
+                )
 
         has_cathodic = any(
             state == ContactState.CATHODIC for state in contact_states.values()
@@ -136,7 +145,8 @@ class ElectrodeModel:
         self.contact_spacing = contact_spacing  # mm
         self.lead_diameter = lead_diameter  # mm
         self.is_directional = is_directional
-        self.tip_contact = tip_contact  # True if the distal contact IS the tip (e.g. Boston Scientific)
+        # True if the distal contact IS the tip (e.g. Boston Scientific).
+        self.tip_contact = tip_contact
         self.segments_per_level = 3 if is_directional else 1
         self._directional_levels = (
             directional_levels  # Optional: 0-indexed list of levels that are segmented

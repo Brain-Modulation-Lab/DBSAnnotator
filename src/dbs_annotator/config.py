@@ -79,6 +79,14 @@ TSV_COLUMNS = [
     "notes",
 ]
 
+# Annotations-only TSV file configuration.
+ANNOTATION_TSV_COLUMNS = [
+    "date",
+    "time",
+    "timezone",
+    "annotation",
+]
+
 # Timezone configuration
 TIMEZONE = "local"
 
@@ -111,7 +119,8 @@ CLINICAL_SCALES_PRESETS: dict[str, list[str]] = {
         "BDI-II",  # Beck Depression Inventory – Second Edition
     ],
     "PD": [
-        "MDS-UPDRS",  # Movement Disorder Society – Unified Parkinson’s Disease Rating Scale
+        # Movement Disorder Society – Unified Parkinson’s Disease Rating Scale
+        "MDS-UPDRS",
         "UPDRS-III",  # Unified Parkinson’s Disease Rating Scale part III
         "PDQ-39",  # Parkinson’s Disease Questionnaire (39-item)
         "UDysRS",  # Unified Dyskinesia Rating Scale

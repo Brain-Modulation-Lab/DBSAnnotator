@@ -5,6 +5,8 @@ This module provides a centralized theme management system that allows
 switching between dark and light themes at runtime.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from enum import Enum

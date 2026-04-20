@@ -43,13 +43,13 @@ def create_arrow_icon(direction: str = "up", double: bool = False) -> QIcon:
         if direction == "up":
             svg = f"""
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                <polygon points="4,12 9,7 14,12" fill="{arrow_color}"/>
+                <polygon points="4,16 9,11 14,16" fill="{arrow_color}"/>
             </svg>
             """
         else:  # down
             svg = f"""
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                <polygon points="4,6 9,11 14,6" fill="{arrow_color}"/>
+                <polygon points="4,2 9,7 14,2" fill="{arrow_color}"/>
             </svg>
             """
 

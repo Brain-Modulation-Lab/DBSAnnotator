@@ -85,7 +85,8 @@ class FileDropZone(QWidget):
 
 
 class FileDropContainer(QWidget):
-    """A container widget that accepts drops over the entire area including file list."""
+    """A container widget that accepts drops over the entire area including
+    the file list."""
 
     def __init__(self, on_files_dropped, parent=None):
         super().__init__(parent)
@@ -332,8 +333,10 @@ class LongitudinalReportView(QWidget):
                 ids.add(pid)
 
         if len(ids) > 1:
+            patient_list = ", ".join(sorted(ids))
             self.warning_label.setText(
-                f"⚠ Warning: Files belong to different patients ({', '.join(sorted(ids))}). "
+                f"⚠ Warning: Files belong to different patients "
+                f"({patient_list}). "
                 "Please ensure all files are from the same patient."
             )
             self.warning_label.setVisible(True)

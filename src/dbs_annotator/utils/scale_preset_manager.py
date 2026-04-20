@@ -19,7 +19,8 @@ class ScalePresetManager:
         """Initialize the scale preset manager.
 
         Args:
-            config_dir: Directory for config files. If None, uses logs in app installation directory.
+            config_dir: Directory for config files. If None, uses the
+                ``logs`` folder in the app installation directory.
         """
         if config_dir is None:
             # Default to logs folder in the application installation directory
@@ -53,7 +54,8 @@ class ScalePresetManager:
         """Get session scale presets, loading user modifications if available.
 
         Returns:
-            Dictionary of session scale presets (preset name -> list of (name, min, max) tuples)
+            Dictionary of session scale presets (preset name -> list of
+            ``(name, min, max)`` tuples).
         """
         user_presets = self._load_user_presets()
         if user_presets and "session" in user_presets:
@@ -64,7 +66,8 @@ class ScalePresetManager:
         """Save clinical scale presets to user config file.
 
         Args:
-            presets: Dictionary of clinical scale presets (preset name -> list of scale names)
+            presets: Dictionary of clinical scale presets (preset name ->
+                list of scale names).
         """
         user_presets = self._load_user_presets() or {}
         user_presets["clinical"] = presets
@@ -76,7 +79,8 @@ class ScalePresetManager:
         """Save session scale presets to user config file.
 
         Args:
-            presets: Dictionary of session scale presets (preset name -> list of (name, min, max) tuples)
+            presets: Dictionary of session scale presets (preset name ->
+                list of ``(name, min, max)`` tuples).
         """
         user_presets = self._load_user_presets() or {}
         user_presets["session"] = presets
@@ -86,7 +90,8 @@ class ScalePresetManager:
         """Load user presets from config file.
 
         Returns:
-            Dictionary with 'clinical' and 'session' keys, or None if file doesn't exist.
+            Dictionary with 'clinical' and 'session' keys, or None if the
+            file does not exist.
         """
         if not self.config_file.exists():
             return None
@@ -94,7 +99,7 @@ class ScalePresetManager:
         try:
             with open(self.config_file, encoding="utf-8") as f:
                 return json.load(f)
-        except OSError, json.JSONDecodeError:
+        except (OSError, json.JSONDecodeError):
             return None
 
     def _save_user_presets(self, presets: dict) -> None:

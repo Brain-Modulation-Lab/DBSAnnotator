@@ -1,7 +1,7 @@
 name: CD - Prepare release PR
 
 # Runs the same logic as ``scripts/release_prepare.py`` locally: bump versions,
-# assemble ``CHANGELOG.rst`` with Towncrier, commit, push a branch, open a PR.
+# assemble ``CHANGELOG.md`` with Towncrier, commit, push a branch, open a PR.
 # Tagging ``v*`` remains a deliberate maintainer step after merge (see docs/releasing.rst).
 
 on:
@@ -31,9 +31,9 @@ jobs:
           fetch-depth: 0
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dev dependencies
@@ -81,7 +81,7 @@ jobs:
 
           **Review**
           - \`src/dbs_annotator/__init__.py\` and \`[tool.briefcase].version\` in \`pyproject.toml\` match **${VERSION}**.
-          - \`CHANGELOG.rst\` for this version; removed \`newsfragments/*.rst\` files were consumed by Towncrier.
+          - \`CHANGELOG.md\` for this version; removed \`newsfragments/*.md\` files were consumed by Towncrier.
 
           **After merge** tag the merge commit and push \`v${VERSION}\`; see \`docs/releasing.rst\`. Pushing \`v*\` triggers \`release.yml\`.
           EOF

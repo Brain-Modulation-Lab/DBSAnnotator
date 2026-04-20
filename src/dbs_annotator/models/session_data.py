@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TextIO
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from ..config import TIMEZONE, TSV_COLUMNS
+from ..config import ANNOTATION_TSV_COLUMNS, TIMEZONE, TSV_COLUMNS
 from .clinical_scale import ClinicalScale, SessionScale
 from .stimulation import StimulationParameters
 
@@ -113,7 +113,8 @@ class SessionData:
             max_session = 0
         if parse_errors:
             logger.warning(
-                "Skipped %d malformed rows while opening session file in append mode: %s",
+                "Skipped %d malformed rows while opening session file in "
+                "append mode: %s",
                 parse_errors,
                 file_path,
             )
@@ -240,7 +241,8 @@ class SessionData:
                     "block_id": self.block_id,
                     "program_ID": group,
                     "session_ID": self.session_id,
-                    "is_initial": 1,  # Clinical scales are from view1, so is_initial = 1
+                    # Clinical scales are from view1, so is_initial = 1.
+                    "is_initial": 1,
                     "scale_name": scale.name,
                     "scale_value": scale.value,
                     "electrode_model": electrode_model,
@@ -363,8 +365,8 @@ class SessionData:
         # Create the file with headers
         self.tsv_file = open(filepath, "w", newline="", encoding="utf-8")
 
-        # Simple header: date, time, and annotation
-        fieldnames = ["date", "time", "timezone", "annotation"]
+        # Simple header: date, time, timezone, and annotation.
+        fieldnames = list(ANNOTATION_TSV_COLUMNS)
 
         self.tsv_writer = csv.DictWriter(
             self.tsv_file,
@@ -376,7 +378,8 @@ class SessionData:
         self.tsv_file.flush()
 
     def open_simple_file_append(self, filepath: str) -> None:
-        """Open an existing annotations-only TSV file in append mode (or create if missing)."""
+        """Open an existing annotations-only TSV file in append mode
+        (or create it if missing)."""
         if self.is_file_open():
             raise ValueError(
                 "A file is already open. Close it before opening another file."
@@ -401,7 +404,7 @@ class SessionData:
                 )
                 fieldnames = None
 
-        fieldnames = fieldnames or ["date", "time", "timezone", "annotation"]
+        fieldnames = fieldnames or list(ANNOTATION_TSV_COLUMNS)
 
         self.tsv_writer = csv.DictWriter(
             self.tsv_file,

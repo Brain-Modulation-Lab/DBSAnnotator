@@ -495,7 +495,7 @@ class WizardController:
                         rows_to_keep.append(row)
                     else:
                         rows_to_delete.append(row)
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     # If block_id is not a number, keep the row
                     rows_to_keep.append(row)
 
@@ -532,7 +532,8 @@ class WizardController:
         reply = QMessageBox.question(
             parent,
             "Confirm Close Session",
-            "Are you sure you want to close the current session? The session will be saved before closing.",
+            "Are you sure you want to close the current session? "
+            "The session will be saved before closing.",
             QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -691,7 +692,8 @@ class WizardController:
 
         Args:
             file_paths: List of TSV file paths to combine
-            scale_prefs: Scale optimization prefs [(name, min, max, mode, custom_value), ...]
+            scale_prefs: Scale optimization prefs as a list of
+                ``(name, min, max, mode, custom_value)`` tuples.
             fmt: "word" or "pdf"
             parent_widget: Parent widget for dialogs
             sections: List of section keys to include

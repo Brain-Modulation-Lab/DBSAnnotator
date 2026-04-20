@@ -1,4 +1,4 @@
-name: CI - Lint and Type Check
+name: CI
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Lint GitHub workflow files
-        uses: rhysd/actionlint@v1.7.8
+        uses: rhysd/actionlint@v1.7.12
 
   dependency-audit:
     name: Dependency audit (uv audit)
@@ -29,14 +29,152 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Audit dependencies for vulnerabilities
         run: |
           uv audit
+
+  docs-touch-gate:
+    name: Docs touch gate
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      pull-requests: read
+
+    steps:
+      - name: Detect code/docs file changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            code:
+              - 'src/**'
+            docs:
+              - 'docs/**'
+              - 'README.md'
+              - 'CHANGELOG.md'
+              - 'CONTRIBUTING.md'
+
+      - name: Enforce docs update for code changes
+        uses: actions/github-script@v7
+        env:
+          CODE_CHANGED: ${{ steps.changes.outputs.code }}
+          DOCS_CHANGED: ${{ steps.changes.outputs.docs }}
+        with:
+          script: |
+            // Labels must be fetched via the REST API. Re-runs and the event
+            // payload still reflect labels as-of the original `pull_request`
+            // event, so `no-docs` added after the first run would otherwise
+            // never be seen.
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("Expected pull_request payload.");
+              return;
+            }
+            const { data } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const labels = (data.labels ?? []).map((l) => l.name);
+            const hasSkipLabel = labels.includes("no-docs") || labels.includes("internal-only");
+            const codeChanged = process.env.CODE_CHANGED === "true";
+            const docsChanged = process.env.DOCS_CHANGED === "true";
+
+            if (!codeChanged) {
+              core.info("No src/ changes detected; docs-touch gate passes.");
+              return;
+            }
+            if (docsChanged) {
+              core.info("Code and docs changed together; docs-touch gate passes.");
+              return;
+            }
+            if (hasSkipLabel) {
+              core.info(
+                "No docs changes, but PR has no-docs/internal-only label; docs-touch gate passes."
+              );
+              return;
+            }
+
+            core.setFailed(
+              "This PR changes src/ without docs updates. " +
+              "Update docs/README/CHANGELOG/CONTRIBUTING, or apply the " +
+              "`no-docs`/`internal-only` label with reviewer approval."
+            );
+
+  towncrier-fragment-gate:
+    name: Changelog fragment gate (Towncrier)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      pull-requests: read
+
+    steps:
+      - name: Detect source and fragment changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - '.github/workflows/**'
+              - 'pyproject.toml'
+            fragment:
+              - 'newsfragments/*.added.md'
+              - 'newsfragments/*.changed.md'
+              - 'newsfragments/*.fixed.md'
+              - 'newsfragments/*.docs.md'
+            changelog:
+              - 'CHANGELOG.md'
+
+      - name: Enforce changelog fragment for code changes
+        uses: actions/github-script@v7
+        env:
+          CODE_CHANGED: ${{ steps.changes.outputs.code }}
+          FRAGMENT_CHANGED: ${{ steps.changes.outputs.fragment }}
+          CHANGELOG_CHANGED: ${{ steps.changes.outputs.changelog }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("Expected pull_request payload.");
+              return;
+            }
+            const { data } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const labels = (data.labels ?? []).map((l) => l.name);
+            const hasSkipLabel = labels.includes("skip-changelog") || labels.includes("internal-only");
+            const codeChanged = process.env.CODE_CHANGED === "true";
+            const fragmentChanged = process.env.FRAGMENT_CHANGED === "true";
+            const changelogChanged = process.env.CHANGELOG_CHANGED === "true";
+
+            if (!codeChanged) {
+              core.info("No relevant code/workflow changes; fragment gate passes.");
+              return;
+            }
+            if (fragmentChanged || changelogChanged) {
+              core.info("Fragment/changelog update detected; fragment gate passes.");
+              return;
+            }
+            if (hasSkipLabel) {
+              core.info(
+                "No changelog fragment, but PR has skip-changelog/internal-only label; gate passes."
+              );
+              return;
+            }
+
+            core.setFailed(
+              "This PR changes code/workflows without a changelog fragment. " +
+              "Add newsfragments/<PR>.(added|changed|fixed|docs).md, update CHANGELOG.md, " +
+              "or apply `skip-changelog`/`internal-only` with reviewer approval."
+            );
 
   lint:
     name: Lint
@@ -47,9 +185,9 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies
@@ -73,9 +211,9 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies
@@ -102,9 +240,9 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies
@@ -128,35 +266,142 @@ jobs:
         run: |
           uv run pytest --cov-fail-under=48
 
-  package-briefcase-zip:
-    name: Package Briefcase ZIP (Windows)
-    runs-on: windows-latest
+  prose-lint:
+    name: Prose lint (codespell + doc8 + interrogate)
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
+
+      - name: Run pre-commit (prose hooks)
+        run: |
+          uv run pre-commit run --all-files codespell
+          uv run pre-commit run --all-files doc8
+          uv run pre-commit run --all-files interrogate
+
+  docs:
+    name: Docs (build + linkcheck)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      # autosummary imports dbs_annotator modules that transitively touch
+      # PySide6; ubuntu-latest images omit the EGL/XCB libs that PySide6 needs
+      # even under QT_QPA_PLATFORM=offscreen.
+      - name: Install Qt EGL/XCB dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libxkbcommon0 \
+            libdbus-1-3
+
+      - name: Sync docs dependency group
+        run: |
+          uv sync --locked --group docs --no-dev
+
+      - name: Verify generated TSV schema docs are up to date
+        run: |
+          uv run python scripts/generate_tsv_schema_docs.py --check
+
+      - name: Build HTML docs (warnings are errors)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          MPLBACKEND: Agg
+        run: |
+          uv run sphinx-build -b html -W --keep-going docs docs/_build/html
+
+      - name: Link check (non-blocking)
+        continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: offscreen
+          MPLBACKEND: Agg
+        run: |
+          uv run sphinx-build -b linkcheck docs docs/_build/linkcheck
+
+      - name: Upload rendered HTML artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-html-${{ github.sha }}
+          path: docs/_build/html
+          if-no-files-found: error
+
+      - name: Upload linkcheck report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-linkcheck-${{ github.sha }}
+          path: docs/_build/linkcheck
+          if-no-files-found: warn
+
+  # Briefcase smoke test. Intentionally runs on Ubuntu (not Windows) and
+  # skips `briefcase package`, because:
+  #   - ~80% of Briefcase regressions (bad [tool.briefcase] config, missing
+  #     runtime deps, stale icon/stub paths, undeclared resources) are
+  #     platform-agnostic and caught by `create` + `build`.
+  #   - Packaging is the slowest step and rarely fails when build succeeds.
+  #   - The tagged-release workflow (release.yml) fully exercises
+  #     `create + build + package` for Windows MSI, macOS DMG, and Linux
+  #     system packages, so platform-specific packaging regressions cannot
+  #     reach a release without being caught there.
+  # The result is a PR-gated smoke test that runs in ~1-2 min instead of
+  # ~3-4 min on a Windows runner.
+  briefcase-smoke:
+    name: Briefcase smoke test (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      # PySide6 links libEGL even for offscreen; ubuntu-latest images omit it by default.
+      - name: Install Qt EGL/XCB dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libxkbcommon0 \
+            libdbus-1-3
 
       - name: Sync dependencies (incl. build / Briefcase)
         run: |
           uv sync --locked --dev --group build
 
-      - name: Briefcase create / build / package (zip)
+      # Mirror release.yml so Briefcase installs from the same lock-derived
+      # constraints the real release build uses.
+      - name: Export lock-derived constraints for Briefcase
+        run: |
+          uv export --locked --format requirements.txt --no-dev --no-hashes --no-emit-project --no-emit-workspace --output-file constraints-briefcase.txt
+
+      - name: Briefcase create + build (linux system)
         env:
           QT_QPA_PLATFORM: offscreen
+          PIP_INDEX_URL: https://pypi.org/simple
+          PIP_EXTRA_INDEX_URL: ""
+          PIP_NO_CACHE_DIR: "1"
         run: |
-          uv run briefcase create windows app
-          uv run briefcase build windows app
-          uv run briefcase package windows -p zip
-
-      - name: Upload Briefcase ZIP artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: briefcase-windows-zip-${{ github.sha }}
-          path: dist/
-          if-no-files-found: warn
+          uv run briefcase create linux system --no-input
+          uv run briefcase build  linux system --no-input

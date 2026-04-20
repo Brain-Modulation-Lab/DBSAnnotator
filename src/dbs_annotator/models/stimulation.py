@@ -5,6 +5,8 @@ This module contains the class for managing Deep Brain Stimulation parameters
 including frequency, contacts, amplitudes, and pulse widths.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -85,7 +87,11 @@ class StimulationParameters:
 
     def __repr__(self) -> str:
         return (
-            f"StimulationParameters("
-            f"L:{self.left_frequency}Hz,C{self.left_cathode}/A{self.left_anode}@{self.left_amplitude}mA/{self.left_pulse_width}µs, "
-            f"R:{self.right_frequency}Hz,C{self.right_cathode}/A{self.right_anode}@{self.right_amplitude}mA/{self.right_pulse_width}µs)"
+            "StimulationParameters("
+            f"L:{self.left_frequency}Hz,"
+            f"C{self.left_cathode}/A{self.left_anode}"
+            f"@{self.left_amplitude}mA/{self.left_pulse_width}µs, "
+            f"R:{self.right_frequency}Hz,"
+            f"C{self.right_cathode}/A{self.right_anode}"
+            f"@{self.right_amplitude}mA/{self.right_pulse_width}µs)"
         )

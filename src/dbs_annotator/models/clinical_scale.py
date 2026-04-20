@@ -57,4 +57,8 @@ class SessionScale:
         return bool(self.current_value and self.current_value.strip())
 
     def __repr__(self) -> str:
-        return f"SessionScale(name='{self.name}', range=[{self.min_value}, {self.max_value}], value='{self.current_value}')"
+        return (
+            f"SessionScale(name='{self.name}', "
+            f"range=[{self.min_value}, {self.max_value}], "
+            f"value='{self.current_value}')"
+        )

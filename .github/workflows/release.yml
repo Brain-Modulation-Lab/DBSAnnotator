@@ -1,4 +1,4 @@
-name: CD - Create GitHub Release
+name: CD
 
 on:
   push:
@@ -21,18 +21,105 @@ permissions:
   contents: write
 
 jobs:
-  build-python-dist:
-    name: Build Python distribution
+  # ---------------------------------------------------------------------------
+  # Pre-flight gates. These run on every invocation and block all build jobs
+  # from starting if the release artifact would be inconsistent with the
+  # sources. Both gates are skipped for `workflow_dispatch` runs where
+  # `publish_release=false`, so maintainers can still dry-run the build matrix
+  # without a tag.
+  # ---------------------------------------------------------------------------
+  changelog-gate:
+    name: CHANGELOG.md has section for tag
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Verify CHANGELOG.md contains the tagged version
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME}"
+          # Strip leading `v` (tags are `vX.Y.Z`; CHANGELOG uses `[X.Y.Z]`).
+          version="${ref#v}"
+          if ! grep -qE "^## \[${version}\]( - [0-9]{4}-[0-9]{2}-[0-9]{2})?$" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::Missing '## [${version}]' section in CHANGELOG.md" >&2
+            echo "Expected a heading like '## [${version}] - YYYY-MM-DD' (Keep a Changelog)." >&2
+            exit 1
+          fi
+          echo "CHANGELOG.md contains a section for ${version}."
+
+      - name: Ensure no unreleased Towncrier fragments remain
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          fragments=(newsfragments/*.added.md newsfragments/*.changed.md newsfragments/*.fixed.md newsfragments/*.docs.md)
+          if [ "${#fragments[@]}" -gt 0 ]; then
+            echo "::error::Unreleased Towncrier fragments remain. Build CHANGELOG.md before tagging:" >&2
+            printf ' - %s\n' "${fragments[@]}" >&2
+            exit 1
+          fi
+
+  version-consistency:
+    name: Version is consistent across sources
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release) }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Set up uv with Python
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Verify __version__, [tool.briefcase].version, and git tag agree
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME}"
+          tag_version="${ref#v}"
+          pkg_version=$(uv run --no-sync --no-project python -c "import re, pathlib; \
+            src = pathlib.Path('src/dbs_annotator/__init__.py').read_text(); \
+            m = re.search(r'^__version__\\s*=\\s*[\"\\'](?P<v>[^\"\\']+)[\"\\']', src, re.MULTILINE); \
+            print(m.group('v') if m else '')")
+          briefcase_version=$(uv run --no-sync --no-project python -c "import tomllib, pathlib; \
+            data = tomllib.loads(pathlib.Path('pyproject.toml').read_text()); \
+            print(data['tool']['briefcase'].get('version', ''))")
+          echo "git tag              : ${tag_version}"
+          echo "__version__          : ${pkg_version}"
+          echo "[tool.briefcase].ver : ${briefcase_version}"
+          fail=0
+          if [ "${pkg_version}" != "${tag_version}" ]; then
+            echo "::error file=src/dbs_annotator/__init__.py::__version__ (${pkg_version}) != tag (${tag_version})" >&2
+            fail=1
+          fi
+          if [ "${briefcase_version}" != "${tag_version}" ]; then
+            echo "::error file=pyproject.toml::[tool.briefcase].version (${briefcase_version}) != tag (${tag_version})" >&2
+            fail=1
+          fi
+          exit "${fail}"
+
+  build-python-dist:
+    name: Build Python distribution
+    runs-on: ubuntu-latest
+    needs:
+      - changelog-gate
+      - version-consistency
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv with Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          python-version: "3.12"
           enable-cache: true
 
       - name: Build distribution
@@ -40,28 +127,58 @@ jobs:
           uv build
 
       - name: Upload Python dist artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-dist
           path: dist/*
           if-no-files-found: error
 
+  publish-docs:
+    name: Trigger Read the Docs tag build
+    runs-on: ubuntu-latest
+    needs:
+      - changelog-gate
+      - version-consistency
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+
+    steps:
+      - name: Trigger RTD build for this tag version
+        shell: bash
+        env:
+          READTHEDOCS_TOKEN: ${{ secrets.READTHEDOCS_TOKEN }}
+          # Update if your RTD slug differs.
+          READTHEDOCS_PROJECT_SLUG: app-clinicaldbsannot
+        run: |
+          set -euo pipefail
+          if [ -z "${READTHEDOCS_TOKEN:-}" ]; then
+            echo "READTHEDOCS_TOKEN is not configured; skipping RTD trigger."
+            exit 0
+          fi
+          version="${GITHUB_REF_NAME}"
+          echo "Triggering RTD build for project=${READTHEDOCS_PROJECT_SLUG}, version=${version}"
+          curl -fsS -X POST \
+            -H "Authorization: Token ${READTHEDOCS_TOKEN}" \
+            "https://readthedocs.org/api/v3/projects/${READTHEDOCS_PROJECT_SLUG}/versions/${version}/builds/"
+
   build-briefcase-msi:
     name: Build Briefcase MSI (Windows)
     runs-on: windows-latest
+    needs:
+      - changelog-gate
+      - version-consistency
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Set up .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -82,13 +199,20 @@ jobs:
         run: |
           uv sync --locked --dev --group build
 
+      - name: Export lock-derived constraints for Briefcase (Windows)
+        run: |
+          uv export --locked --format requirements.txt --no-dev --no-hashes --no-emit-project --no-emit-workspace --output-file constraints-briefcase.txt
+
       - name: Briefcase create / build / package (msi)
         env:
           QT_QPA_PLATFORM: offscreen
+          PIP_INDEX_URL: https://pypi.org/simple
+          PIP_EXTRA_INDEX_URL: ""
+          PIP_NO_CACHE_DIR: "1"
         run: |
-          uv run briefcase create windows app
-          uv run briefcase build windows app
-          uv run briefcase package windows -p msi
+          uv run briefcase create --no-input
+          uv run briefcase build --no-input
+          uv run briefcase package --no-input -p msi
 
       - name: Validate Windows signing secrets (optional gate)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.sign_artifacts }}
@@ -132,28 +256,42 @@ jobs:
   build-briefcase-macos-arm:
     name: Build Briefcase macOS DMG (arm64)
     runs-on: macos-14
+    needs:
+      - changelog-gate
+      - version-consistency
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       - name: Sync dependencies (incl. build / Briefcase)
         run: |
           uv sync --locked --dev --group build
 
+      - name: Export lock-derived constraints for Briefcase (macOS)
+        run: |
+          uv export --locked --format requirements.txt --no-dev --no-hashes --no-emit-project --no-emit-workspace --output-file constraints-briefcase.txt
+
       - name: Briefcase create / build / package (dmg)
         env:
           QT_QPA_PLATFORM: offscreen
+          PIP_INDEX_URL: https://pypi.org/simple
+          PIP_EXTRA_INDEX_URL: ""
+          PIP_NO_CACHE_DIR: "1"
         run: |
-          uv run briefcase create macOS app
-          uv run briefcase build macOS app
-          uv run briefcase package macOS -p dmg
+          set -euo pipefail
+          uv run briefcase create --no-input
+          uv run briefcase build --no-input
+          # --adhoc-sign keeps `briefcase package` non-interactive when no Apple Developer
+          # ID is configured. When signing secrets ARE provided, the dedicated
+          # "Sign and notarize DMG" step below re-signs and notarizes the artifact.
+          uv run briefcase package --no-input --adhoc-sign -p dmg
 
       - name: Validate macOS signing secrets (optional gate)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.sign_artifacts }}
@@ -200,7 +338,7 @@ jobs:
           done
 
       - name: Upload Briefcase macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: briefcase-macos-arm64
           path: dist/*
@@ -209,15 +347,18 @@ jobs:
   build-briefcase-linux-x86:
     name: Build Briefcase Linux package (x86_64)
     runs-on: ubuntu-latest
+    needs:
+      - changelog-gate
+      - version-consistency
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           enable-cache: true
 
       # PySide6 links libEGL even for offscreen; ubuntu-latest images omit it by default.
@@ -234,16 +375,23 @@ jobs:
         run: |
           uv sync --locked --dev --group build
 
+      - name: Export lock-derived constraints for Briefcase (Linux)
+        run: |
+          uv export --locked --format requirements.txt --no-dev --no-hashes --no-emit-project --no-emit-workspace --output-file constraints-briefcase.txt
+
       - name: Briefcase create / build / package (linux system)
         env:
           QT_QPA_PLATFORM: offscreen
+          PIP_INDEX_URL: https://pypi.org/simple
+          PIP_EXTRA_INDEX_URL: ""
+          PIP_NO_CACHE_DIR: "1"
         run: |
-          uv run briefcase create linux system
-          uv run briefcase build linux system
-          uv run briefcase package linux system
+          uv run briefcase create linux system --no-input
+          uv run briefcase build linux system --no-input
+          uv run briefcase package linux system --no-input
 
       - name: Upload Briefcase Linux artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: briefcase-linux-x86_64
           path: dist/*
@@ -261,12 +409,12 @@ jobs:
 
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-assets
 
       - name: Create GitHub Release and upload artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release-assets/**/*
         env:

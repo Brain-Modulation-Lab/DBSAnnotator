@@ -202,7 +202,7 @@ def main() -> None:
         stage = [
             "src/dbs_annotator/__init__.py",
             "pyproject.toml",
-            "CHANGELOG.rst",
+            "CHANGELOG.md",
             "newsfragments",
         ]
         _run(["git", "add", *stage])

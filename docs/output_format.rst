@@ -28,79 +28,10 @@ Examples::
 Columns
 ^^^^^^^
 
-.. list-table::
-   :widths: 25 15 60
-   :header-rows: 1
+The schema tables below are generated from the code-level constants in
+``dbs_annotator.config``. This keeps the docs and writer implementation in sync.
 
-   * - Column
-     - Type
-     - Description
-   * - ``date``
-     - string
-     - Date of the entry (``YYYY-MM-DD``).
-   * - ``time``
-     - string
-     - Time of the entry (``HH:MM:SS``, Eastern Time).
-   * - ``onset``
-     - float
-     - Time in seconds since session start (BIDS onset field).
-   * - ``block_id``
-     - integer
-     - Index of the stimulation configuration block within the session.
-   * - ``is_initial``
-     - integer
-     - ``1`` for baseline / initial entries recorded in Step 1;
-       ``0`` for session entries recorded in Step 3.
-   * - ``session_ID``
-     - integer
-     - Internal session counter.
-   * - ``electrode_model``
-     - string
-     - Name of the electrode model selected (e.g. ``SenSight B33015``).
-   * - ``program_ID``
-     - string
-     - Stimulation program label (e.g. ``A``, ``B``, ``None``).
-   * - ``scale_name``
-     - string
-     - Name of the clinical scale recorded in this row (may be empty if
-       multiple scales are stored as newline-separated values).
-   * - ``scale_value``
-     - string / float
-     - Numeric value of the clinical scale.  ``NaN`` if the scale was
-       marked as "not assessed".
-   * - ``left_anode``
-     - string
-     - Left hemisphere anode contact(s), comma-separated.
-   * - ``left_cathode``
-     - string
-     - Left hemisphere cathode contact(s), comma-separated.
-   * - ``left_amplitude``
-     - float
-     - Left hemisphere stimulation amplitude (mA).
-   * - ``left_stim_freq``
-     - float
-     - Left hemisphere stimulation frequency (Hz).
-   * - ``left_pulse_width``
-     - float
-     - Left hemisphere pulse width (µs).
-   * - ``right_anode``
-     - string
-     - Right hemisphere anode contact(s).
-   * - ``right_cathode``
-     - string
-     - Right hemisphere cathode contact(s).
-   * - ``right_amplitude``
-     - float
-     - Right hemisphere stimulation amplitude (mA).
-   * - ``right_stim_freq``
-     - float
-     - Right hemisphere stimulation frequency (Hz).
-   * - ``right_pulse_width``
-     - float
-     - Right hemisphere pulse width (µs).
-   * - ``notes``
-     - string
-     - Free-text note associated with this entry.
+.. include:: _generated/tsv_schema.inc.rst
 
 .. note::
    When multiple cathode contacts are active, the ``left_cathode`` /
@@ -113,10 +44,10 @@ Example rows
 
 .. code-block:: text
 
-   date	time	block_id	is_initial	electrode_model	scale_name	scale_value	left_cathode	left_anode	left_amplitude	left_stim_freq	left_pulse_width	notes
-   2025-03-15	10:02:31	0	1	SenSight B33015	UPDRS-III	42	1C	Case	0.0	130	60	Baseline pre-stim
-   2025-03-15	10:15:44	1	0	SenSight B33015	UPDRS-III	38	1C	Case	2.5	130	60	Config 1
-   2025-03-15	10:28:12	2	0	SenSight B33015	UPDRS-III	34	2A,2B	Case	3.0	130	90	Config 2 – wider contacts
+   date	time	timezone	block_id	session_ID	is_initial	scale_name	scale_value	electrode_model	program_ID	left_stim_freq	left_anode	left_cathode	left_amplitude	left_pulse_width	right_stim_freq	right_anode	right_cathode	right_amplitude	right_pulse_width	notes
+   2025-03-15	10:02:31	UTC-04:00	0	0	1	UPDRS-III	42	SenSight B33015	A	130	Case	1C	0.0	60	130	Case	9C	0.0	60	Baseline pre-stim
+   2025-03-15	10:15:44	UTC-04:00	1	1	0	UPDRS-III	38	SenSight B33015	A	130	Case	1C	2.5	60	130	Case	9C	2.0	60	Config 1
+   2025-03-15	10:28:12	UTC-04:00	2	2	0	UPDRS-III	34	SenSight B33015	B	130	Case	2A,2B	3.0	90	130	Case	10A,10B	2.5	90	Config 2 - wider contacts
 
 ----
 

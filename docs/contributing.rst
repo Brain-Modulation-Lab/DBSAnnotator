@@ -1,7 +1,9 @@
 Contributing to Clinical DBS Annotator
 ======================================
 
-We welcome contributions to the Clinical DBS Annotator! This document provides guidelines for contributors who want to help improve this open-source software for deep brain stimulation research.
+We welcome contributions to the Clinical DBS Annotator! This page is the
+authoritative contributor guide for the repository. The short
+``CONTRIBUTING.md`` at the repository root is a pointer into this page.
 
 .. contents::
    :local:
@@ -15,10 +17,15 @@ Prerequisites
 
 To contribute to this project, you should have:
 
-- Python 3.11 or higher
-- Git installed and configured
-- Basic knowledge of PyQt5/PyQt6 (helpful but not required)
-- Understanding of deep brain stimulation concepts (helpful but not required)
+- **Python 3.12 or newer** (matches ``requires-python`` in ``pyproject.toml``;
+  CI uses 3.12 on Ubuntu, Windows, and macOS).
+- **uv** (https://github.com/astral-sh/uv) for dependency management and
+  running tools.
+- **Git** installed and configured.
+- Familiarity with **PySide6 / Qt** is helpful but not required. The codebase
+  follows a Model-View-Controller (MVC) structure under ``src/dbs_annotator/``.
+- Understanding of deep brain stimulation concepts is helpful for clinical
+  contributions but not required for code or documentation work.
 
 Development Setup
 ~~~~~~~~~~~~~~~~~
@@ -27,19 +34,44 @@ Development Setup
 
    .. code-block:: bash
 
-      git clone https://github.com/yourusername/App_ClinicalDBSAnnot.git
+      git clone https://github.com/<your-username>/App_ClinicalDBSAnnot.git
       cd App_ClinicalDBSAnnot
 
-2. **Make sure uv is installed. Then, create a virtual environment and install dependencies**:
-   .. code-block:: bash
-      
-      uv sync
-
-3. **Run the application** to verify installation:
+2. **Create the virtual environment and install all dev dependencies**
+   (``uv`` reads ``pyproject.toml`` and ``uv.lock``; no manual ``venv``
+   activation is needed):
 
    .. code-block:: bash
 
-      uv run python -m clinical_dbs_annotator
+      uv sync --locked --dev
+
+   To additionally install the Briefcase packaging tools, use the ``build``
+   group:
+
+   .. code-block:: bash
+
+      uv sync --locked --dev --group build
+
+   To build the documentation locally, use the ``docs`` group:
+
+   .. code-block:: bash
+
+      uv sync --locked --group docs --no-dev
+
+3. **Install the git pre-commit hooks** (ruff, ty, actionlint, ``uv lock``
+   check):
+
+   .. code-block:: bash
+
+      uv run pre-commit install
+
+4. **Run the application** to verify the installation:
+
+   .. code-block:: bash
+
+      uv run python -m dbs_annotator
+      # or, once installed, the console script declared in pyproject.toml
+      uv run dbs-annotator
 
 Types of Contributions
 ----------------------
@@ -51,59 +83,89 @@ Bug Reports
 
 If you find a bug, please:
 
-1. **Check existing issues** to see if it's already reported
+1. **Check existing issues** to see if it's already reported.
 2. **Create a new issue** with:
-   - Clear title describing the bug
-   - Steps to reproduce the issue
-   - Expected vs actual behavior
-   - System information (OS, Python version, etc.)
-   - Screenshots if applicable
+
+   - Clear title describing the bug.
+   - Steps to reproduce the issue.
+   - Expected vs actual behaviour.
+   - System information (OS, Python version, application version from
+     ``dbs_annotator.__version__``).
+   - Screenshots or a short screen recording if the issue is in the GUI.
 
 Feature Requests
 ~~~~~~~~~~~~~~~~
 
 For new features:
 
-1. **Check existing issues** for similar requests
-2. **Create an issue** describing:
-   - The feature you'd like to see
-   - Why it would be useful
-   - How you envision it working
-   - Any implementation ideas you have
+1. **Check existing issues** for similar requests.
+2. **Open an issue** describing:
+
+   - The feature you'd like to see.
+   - Why it would be useful (clinical motivation, research workflow, etc.).
+   - How you envision it working.
+   - Any implementation ideas you have.
 
 Code Contributions
 ~~~~~~~~~~~~~~~~~~
 
-We accept code contributions through pull requests. Please follow these guidelines:
+We accept code contributions through pull requests. Please follow these
+guidelines:
 
-1. **Fork and create a branch**:
+1. **Create a feature branch** off ``main`` (or the currently active
+   integration branch):
 
    .. code-block:: bash
 
       git checkout -b feature/your-feature-name
 
-2. **Make your changes** following our coding standards (see below)
+2. **Make your changes** following the coding standards below.
 
-3. **Test your changes** thoroughly
-
-4. **Commit your changes**:
+3. **Run the local quality gate** before pushing:
 
    .. code-block:: bash
 
-      git commit -m "feat: add new feature description"
+      uv run ruff format .
+      uv run ruff check .
+      uv run ty check .
+      uv run pytest
 
-5. **Push to your fork** and create a pull request
+4. **Commit your changes** using a short, descriptive message (Conventional
+   Commits are encouraged but not required):
+
+   .. code-block:: bash
+
+      git commit -m "feat: add directional-lead contact picker"
+
+5. **Push to your fork** and open a pull request against the upstream
+   repository.
 
 Documentation Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Documentation is crucial for research software. We welcome:
+Documentation lives in this ``docs/`` tree (Sphinx + reStructuredText) plus
+``README.md`` and ``CHANGELOG.md`` at the repository root. We welcome:
 
-- Improved README sections
-- Better API documentation
-- Additional examples and tutorials
-- Translation to other languages
-- Fixing typos and grammatical errors
+- New or revised user-workflow pages.
+- API docstring improvements (Google or NumPy style; rendered by
+  ``sphinx.ext.napoleon``).
+- Additional examples, screenshots, or short screencasts.
+- Fixing typos and grammatical errors.
+
+Build the docs locally before submitting:
+
+.. code-block:: bash
+
+   uv sync --locked --group docs --no-dev
+   uv run sphinx-build -b html -W --keep-going docs docs/_build/html
+   uv run sphinx-build -b linkcheck docs docs/_build/linkcheck
+
+Optional: regenerate UI screenshot artifacts for docs (uploaded as CI artifact):
+
+.. code-block:: bash
+
+   QT_QPA_PLATFORM=offscreen DOCS_SCREENSHOT_DIR=docs/_build/screenshots \
+     uv run pytest tests/docs/test_docs_screenshots.py -m docs_screenshot
 
 Sphinx-related paths under ``docs/``:
 
@@ -138,89 +200,96 @@ Code Standards
 Style Guidelines
 ~~~~~~~~~~~~~~~~
 
-We follow these coding standards:
+Formatting and linting are enforced by **ruff** (see ``[tool.ruff]`` in
+``pyproject.toml``) and static typing is checked by **ty**. Both run in CI and
+as pre-commit hooks, so local runs should stay green.
 
-- **Python**: PEP 8 style guide
-- **Docstrings**: Google style or NumPy style
-- **Comments**: Clear, concise comments explaining complex logic
-- **Variable names**: Descriptive names in snake_case
-- **Class names**: PascalCase
+- **Formatter**: ``ruff format`` (line length 88).
+- **Linter**: ``ruff check`` with rules ``E, W, F, I, N, UP, B, C4``.
+- **Type checker**: ``ty check .``.
+- **Docstrings**: Google or NumPy style (Napoleon is enabled).
+- **Naming**: ``snake_case`` for functions and variables; ``PascalCase`` for
+  classes; module-private names prefixed with a single underscore.
 
 Example:
 
 .. code-block:: python
 
-   def calculate_stimulation_amplitude(self, contact_states: Dict) -> float:
-       """Calculate the total stimulation amplitude for given contact states.
-       
+   def calculate_total_amplitude(
+       contact_states: dict[int, ContactState],
+       contact_amplitudes: dict[int, float],
+   ) -> float:
+       """Sum the cathodic amplitude contributed by each active contact.
+
        Args:
-           contact_states: Dictionary mapping contact indices to their states
-           
+           contact_states: Mapping from contact index to its active state.
+           contact_amplitudes: Mapping from contact index to amplitude in mA.
+
        Returns:
-           Total stimulation amplitude in milliamps
-           
+           Total delivered cathodic amplitude in milliamps.
+
        Raises:
-           ValueError: If contact states are invalid
+           ValueError: If ``contact_states`` is empty.
        """
        if not contact_states:
            raise ValueError("Contact states cannot be empty")
-       
-       total_amplitude = 0.0
+
+       total = 0.0
        for contact_idx, state in contact_states.items():
-           if state == ContactState.CATHODIC:
-               total_amplitude += self.contact_amplitudes.get(contact_idx, 0.0)
-       
-       return total_amplitude
+           if state is ContactState.CATHODIC:
+               total += contact_amplitudes.get(contact_idx, 0.0)
+       return total
 
 Testing
 ~~~~~~~
 
-All new features should include tests:
+All new features should include tests. The project uses **pytest** with
+``pytest-qt`` for GUI interaction tests.
 
-1. **Unit tests** for individual functions/classes
-2. **Integration tests** for GUI interactions
-3. **Manual testing** for user workflows
+- **Unit tests** for models, utilities, and pure-logic controllers.
+- **GUI tests** using ``pytest-qt`` (``qtbot`` fixture) for widget behaviour.
+- **Integration tests** marked with ``@pytest.mark.integration`` for
+  cross-module behaviour.
+- Slow flows may be marked ``@pytest.mark.slow`` and skipped locally with
+  ``pytest -m "not slow"``.
 
-Test structure:
+Example:
 
 .. code-block:: python
 
-   import unittest
-   from clinical_dbs_annotator.models.electrode_viewer import ElectrodeCanvas
+   import pytest
+   from dbs_annotator.models.electrode_viewer import ElectrodeCanvas
 
-   class TestElectrodeCanvas(unittest.TestCase):
-       def setUp(self):
-           self.canvas = ElectrodeCanvas()
-       
-       def test_scale_calculation(self):
-           """Test that scale calculation works correctly."""
-           # Mock electrode model
-           mock_model = Mock()
-           mock_model.num_contacts = 8
-           mock_model.contact_height = 1.5
-           mock_model.contact_spacing = 0.5
-           
-           self.canvas.model = mock_model
-           scale = self.canvas.calculate_scale()
-           
-           self.assertIsInstance(scale, float)
-           self.assertGreater(scale, 0)
+
+   @pytest.mark.gui
+   def test_electrode_canvas_scales_to_widget(qtbot):
+       canvas = ElectrodeCanvas()
+       qtbot.addWidget(canvas)
+       canvas.resize(400, 600)
+       assert canvas.calculate_scale() > 0
 
 Run tests with:
 
 .. code-block:: bash
 
-   python -m pytest tests/
+   uv run pytest
+
+On headless Linux (including CI) set ``QT_QPA_PLATFORM=offscreen`` so Qt does
+not require a display server:
+
+.. code-block:: bash
+
+   QT_QPA_PLATFORM=offscreen uv run pytest
 
 GUI Testing
 ~~~~~~~~~~~
 
-For GUI components:
+For Qt components:
 
-1. **Test widget creation** doesn't crash
-2. **Test user interactions** (clicks, inputs)
-3. **Test data flow** between components
-4. **Test error handling** in user interactions
+1. **Test widget construction** using the ``qtbot`` fixture.
+2. **Test user interactions** (clicks, key presses, text input).
+3. **Test data flow** between views, controllers, and models.
+4. **Test error handling** paths surfaced through the UI.
 
 Pull Request Process
 --------------------
@@ -228,11 +297,20 @@ Pull Request Process
 Before Submitting
 ~~~~~~~~~~~~~~~~~
 
-1. **Update documentation** if needed
-2. **Add tests** for new functionality
-3. **Run all tests** and ensure they pass
-4. **Check code style** with tools like flake8 or black
-5. **Test the application** manually
+1. **Update documentation** in ``docs/`` when user-visible behaviour changes.
+2. **Add a Towncrier fragment** under ``newsfragments/`` (for example
+   ``newsfragments/<PR>.added.md`` or ``newsfragments/<PR>.fixed.md``).
+   ``CHANGELOG.md`` is assembled from fragments at release time.
+3. **Add or update tests** for new functionality.
+4. **Run the local quality gate**: ``ruff format``, ``ruff check``,
+   ``ty check``, ``pytest``.
+5. **Regenerate the lockfile** if you changed dependencies in
+   ``pyproject.toml`` (including the ``build`` group used by Briefcase) and
+   commit the updated ``uv.lock``:
+
+   .. code-block:: bash
+
+      uv lock
 
 Pull Request Template
 ~~~~~~~~~~~~~~~~~~~~~
@@ -240,37 +318,46 @@ Pull Request Template
 When creating a pull request, please include:
 
 **Description**
-- Brief description of changes
-- Why these changes are needed
-- How you tested the changes
+
+- Brief description of the change.
+- Motivation (clinical workflow, bug, refactor, documentation, etc.).
+- Notes on how you tested the change.
 
 **Type of Change**
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
 
-**Testing**
-- [ ] Unit tests pass
-- [ ] Manual testing completed
-- [ ] GUI testing completed
+- Bug fix
+- New feature
+- Breaking change
+- Documentation update
+- Build / CI / packaging change
 
 **Checklist**
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Documentation updated
-- [ ] Tests added/updated
+
+- Code follows the project style (ruff, ty clean).
+- Tests added or updated and passing locally.
+- Documentation updated (``docs/`` and/or ``README.md``).
+- A ``newsfragments/<PR>.(added|changed|fixed|docs).md`` entry was added,
+  or the PR is explicitly labeled ``skip-changelog`` / ``internal-only``.
+- ``uv.lock`` regenerated if dependencies changed.
 
 Review Process
 ~~~~~~~~~~~~~~
 
 Our review process:
 
-1. **Automated checks** (tests, code style)
-2. **Peer review** by maintainers
-3. **Discussion** of any required changes
-4. **Testing** by reviewer
-5. **Approval** and merge
+1. **Automated checks** via GitHub Actions:
+
+   - ``actionlint`` on workflow files.
+   - ``uv audit`` for dependency vulnerabilities.
+   - ``ruff`` (lint + format) and ``ty`` (type check).
+   - ``pytest`` on Ubuntu, Windows, and macOS with a coverage floor.
+   - Prose checks (codespell, doc8, interrogate) via pre-commit.
+   - Briefcase smoke test on Linux (``create`` + ``build`` without packaging).
+   - Documentation build (Sphinx ``-W``), TSV schema doc drift check, and link check.
+
+2. **Peer review** by maintainers.
+3. **Discussion** of any required changes.
+4. **Approval** and merge.
 
 Community Guidelines
 --------------------
@@ -280,48 +367,36 @@ Code of Conduct
 
 We are committed to providing a welcoming and inclusive environment. Please:
 
-- Be respectful and professional
-- Welcome newcomers and help them learn
-- Focus on constructive feedback
-- Assume good intentions
-- Be patient with different perspectives
+- Be respectful and professional.
+- Welcome newcomers and help them learn.
+- Focus on constructive feedback.
+- Assume good intentions.
+- Be patient with different perspectives.
 
 Communication Channels
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- **GitHub Issues**: For bug reports and feature requests
-- **GitHub Discussions**: For general questions and ideas
-- **Pull Requests**: For code contributions
-
-Getting Help
-~~~~~~~~~~~~
-
-If you need help contributing:
-
-1. **Check existing issues** and discussions
-2. **Read the documentation** thoroughly
-3. **Ask questions** in GitHub Discussions
-4. **Contact maintainers** if needed
+- **GitHub Issues** — for bug reports and feature requests.
+- **GitHub Discussions** — for general questions and ideas.
+- **Pull Requests** — for code, documentation, and CI contributions.
 
 Recognition
-~~~~~~~~~~~~
+~~~~~~~~~~~
 
-Contributors are recognized through:
+Contributors are recognised through:
 
-- **Author credits** in commit history
-- **Contributors section** in README
-- **Co-authorship** opportunities for significant contributions
-- **Acknowledgments** in publications
+- Author credits in the commit history.
+- Acknowledgements in release notes and, where appropriate, in publications.
 
 Research Impact
 ~~~~~~~~~~~~~~~
 
-This software is designed for research use. If you use or extend this software in your research:
+This software is designed for clinical research use. If you use or extend it
+in your research:
 
-- **Cite the software** in your publications
-- **Let us know** about your use cases
-- **Share feedback** to help improve the software
-- **Consider contributing** improvements back
+- **Cite the software** in your publications.
+- **Share feedback** so we can improve future versions.
+- **Consider contributing** improvements back to the upstream repository.
 
 Development Workflow
 ---------------------
@@ -329,13 +404,13 @@ Development Workflow
 Branch Strategy
 ~~~~~~~~~~~~~~~
 
-We use a simple branching strategy:
+We use a simple trunk-based strategy:
 
-- ``main``: Stable production code
-- ``develop``: Integration branch for features
-- ``feature/*``: Feature development branches
-- ``bugfix/*``: Bug fix branches
-- ``hotfix/*``: Critical fixes for production
+- ``main`` — integration branch; always releasable.
+- ``feature/*`` — feature development branches.
+- ``fix/*`` — bug-fix branches.
+- ``docs/*`` — documentation-only branches.
+- ``enh/*`` — larger enhancement / refactor branches.
 
 Release Process
 ~~~~~~~~~~~~~~~
@@ -343,55 +418,80 @@ Release Process
 Maintainers follow a **PR-based** flow: bump versions and assemble the changelog on a
 branch, merge to ``main``, then **tag** ``vX.Y.Z`` and push the tag to publish builds.
 
-See :doc:`releasing` for step-by-step instructions (local script, optional GitHub
-workflow, Towncrier fragments, and tagging).
+Concrete steps:
+
+1. Update ``dbs_annotator.__version__`` in ``src/dbs_annotator/__init__.py`` (Hatch
+   reads this as the distribution version) and ``[tool.briefcase].version`` in
+   ``pyproject.toml``. These two values must match.
+2. Build ``CHANGELOG.md`` from Towncrier fragments (or use ``scripts/release_prepare.py`` /
+   the **CD - Prepare release PR** workflow), for example:
+
+   .. code-block:: bash
+
+      uv run towncrier build --yes --version X.Y.Z --date YYYY-MM-DD
+
+3. Open a release PR, land it on ``main``, then push the matching ``vX.Y.Z`` tag.
+4. The **CD - Create GitHub Release** workflow builds Python wheels/sdist and Briefcase
+   installers (Windows MSI, macOS DMG, Linux system package), then creates the GitHub
+   Release with artifacts attached.
+5. Read the Docs publishes the matching versioned documentation from the tag.
+
+See :doc:`releasing` for more detail (local script, workflow inputs, and tagging).
 
 Continuous Integration
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
-We use GitHub Actions for:
+GitHub Actions handles:
 
-- **Automated testing** on multiple Python versions
-- **Code style checks**
-- **Documentation building**
-- **Package building**
+- Workflow linting (``actionlint``).
+- Dependency auditing (``uv audit``).
+- Lint, format, and type checking (ruff, ty).
+- Cross-platform tests (Ubuntu, Windows, macOS) with coverage.
+- Briefcase ZIP packaging smoke test on Windows.
+- Documentation build and link check.
+- Release builds for Python wheels/sdist and Briefcase installers.
+- Weekly/manual docs health report artifacts (warnings and linkcheck summary).
+- Manual docs screenshot artifact generation from Qt views.
 
-Specialized Contributions
+Specialised Contributions
 --------------------------
 
 Clinical Domain Experts
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-If you're a clinical researcher or DBS specialist:
+If you are a clinician or DBS specialist:
 
-- **Share use cases** and workflows
-- **Suggest improvements** based on clinical needs
-- **Provide feedback** on electrode models and stimulation patterns
-- **Help validate** clinical accuracy
+- Share real-world session workflows and edge cases.
+- Review and suggest improvements to clinical scale presets.
+- Provide feedback on electrode model definitions and contact diagrams.
+- Help validate clinical accuracy of exported reports.
 
-GUI/UX Experts
-~~~~~~~~~~~~~~
+GUI / UX Contributors
+~~~~~~~~~~~~~~~~~~~~~
 
-For contributors with GUI expertise:
+For contributors with design expertise:
 
-- **Improve user interface** design
-- **Enhance user experience** workflows
-- **Test accessibility** features
-- **Suggest visual improvements**
+- Improve the interaction design of the wizard steps.
+- Enhance the responsive behaviour on smaller displays.
+- Test accessibility (keyboard navigation, screen readers, contrast).
+- Propose visual refinements to the light and dark themes.
 
 Data Scientists
 ~~~~~~~~~~~~~~~
 
-For data science contributions:
+For data-science contributions:
 
-- **Improve data analysis** features
-- **Add statistical tools** for outcome analysis
-- **Enhance longitudinal reporting**
-- **Integrate with external tools**
+- Improve analysis features in the longitudinal report.
+- Add statistical tooling for outcome analysis.
+- Enhance the BIDS-compliant TSV schema and export.
+- Integrate with external analysis pipelines.
 
 Thank You
-----------
+---------
 
-Thank you for considering contributing to the Clinical DBS Annotator! Your contributions help make deep brain stimulation research more accessible and effective for the research community.
+Thank you for considering contributing to the Clinical DBS Annotator! Your
+contributions help make deep brain stimulation research more accessible and
+reproducible.
 
-For questions about contributing, please open an issue or start a discussion on GitHub.
+For questions about contributing, please open an issue or start a discussion
+on GitHub.

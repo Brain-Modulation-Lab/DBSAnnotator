@@ -23,6 +23,18 @@ For detailed guidelines, please see the [Contributing Guide](docs/contributing.r
 - Ensure all tests pass before submitting
 - If you change build-time dependencies in `pyproject.toml` (including the **`build`** group used by Briefcase), run **`uv lock`** and commit the updated **`uv.lock`**
 
+## Changelog Fragments (Towncrier)
+
+We use Towncrier for changelog automation.
+
+- Add one fragment per PR in `newsfragments/`:
+  - `newsfragments/<PR>.added.md`
+  - `newsfragments/<PR>.changed.md`
+  - `newsfragments/<PR>.fixed.md`
+  - `newsfragments/<PR>.docs.md`
+- Use one short sentence suitable for changelog bullet points.
+- PRs without a fragment may fail CI unless explicitly labeled `skip-changelog` or `internal-only`.
+
 ## Getting Help
 
 - Check existing issues and discussions
