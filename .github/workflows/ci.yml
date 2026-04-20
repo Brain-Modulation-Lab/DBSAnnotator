@@ -66,7 +66,21 @@ jobs:
           DOCS_CHANGED: ${{ steps.changes.outputs.docs }}
         with:
           script: |
-            const labels = (context.payload.pull_request?.labels ?? []).map((l) => l.name);
+            // Labels must be fetched via the REST API. Re-runs and the event
+            // payload still reflect labels as-of the original `pull_request`
+            // event, so `no-docs` added after the first run would otherwise
+            // never be seen.
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("Expected pull_request payload.");
+              return;
+            }
+            const { data } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const labels = (data.labels ?? []).map((l) => l.name);
             const hasSkipLabel = labels.includes("no-docs") || labels.includes("internal-only");
             const codeChanged = process.env.CODE_CHANGED === "true";
             const docsChanged = process.env.DOCS_CHANGED === "true";
@@ -125,7 +139,17 @@ jobs:
           CHANGELOG_CHANGED: ${{ steps.changes.outputs.changelog }}
         with:
           script: |
-            const labels = (context.payload.pull_request?.labels ?? []).map((l) => l.name);
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("Expected pull_request payload.");
+              return;
+            }
+            const { data } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const labels = (data.labels ?? []).map((l) => l.name);
             const hasSkipLabel = labels.includes("skip-changelog") || labels.includes("internal-only");
             const codeChanged = process.env.CODE_CHANGED === "true";
             const fragmentChanged = process.env.FRAGMENT_CHANGED === "true";
