@@ -128,6 +128,48 @@ jobs:
         run: |
           uv run pytest --cov-fail-under=48
 
+  docs:
+    name: Docs (build + linkcheck)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync docs dependency group
+        run: |
+          uv sync --locked --group docs --no-dev
+
+      - name: Build HTML docs (warnings are errors)
+        run: |
+          uv run sphinx-build -b html -W --keep-going docs docs/_build/html
+
+      - name: Link check (non-blocking)
+        continue-on-error: true
+        run: |
+          uv run sphinx-build -b linkcheck docs docs/_build/linkcheck
+
+      - name: Upload rendered HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-html-${{ github.sha }}
+          path: docs/_build/html
+          if-no-files-found: error
+
+      - name: Upload linkcheck report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-linkcheck-${{ github.sha }}
+          path: docs/_build/linkcheck
+          if-no-files-found: warn
+
   package-briefcase-zip:
     name: Package Briefcase ZIP (Windows)
     runs-on: windows-latest

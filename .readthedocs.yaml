@@ -3,15 +3,19 @@ version: 2
 build:
   os: ubuntu-22.04
   tools:
-    python: "3.11"
+    python: "3.12"
   jobs:
     pre_install:
       - python -m pip install --upgrade pip
       - python -m pip install uv
     install:
-      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv pip install -r docs/requirements.txt
-      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv pip install .
+      # Install the project plus the "docs" dependency group (pyproject.toml
+      # -> [dependency-groups].docs) into the RTD-managed virtualenv, honoring
+      # uv.lock for reproducibility. No dev/build groups are needed to render docs.
+      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --locked --group docs --no-dev
 
 sphinx:
   configuration: docs/conf.py
-  fail_on_warning: false
+  # Treat Sphinx warnings as errors. Known harmless warnings are suppressed
+  # via `suppress_warnings` in docs/conf.py rather than relaxed here.
+  fail_on_warning: true

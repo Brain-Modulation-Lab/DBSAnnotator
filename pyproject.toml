@@ -1,12 +1,20 @@
 [project]
 name = "dbs-annotator"
-description = "A graphical user interface for annotating DBS clinical programming sessions"
+description = "An application for annotating clinical programming sessions."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    { name = "Lucia Poma", email = "lucia.poma@wysscenter.ch" }
+    { name = "Lucia Poma", email = "lucia.poma@wysscenter.ch" },
+    { name = "Matteo Vissani" },
+    { name = "Richard Köhler", email = "richard.koehler@wysscenter.ch" },
 ]
-keywords = ["dbs", "clinical", "annotation", "neuroscience", "deep-brain-stimulation"]
+keywords = [
+    "dbs",
+    "clinical",
+    "annotation",
+    "neuroscience",
+    "deep-brain-stimulation",
+]
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -42,21 +50,16 @@ dev = [
     "pandas-stubs>=3.0.0.260204",
     "pyside6-stubs>=6.7.3.0",
 ]
-build = [
-    "briefcase>=0.3.26",
-]
-docs = [
-    "sphinx>=9.0.4",
-    "sphinx-rtd-theme>=3.1.0",
-]
+build = ["briefcase>=0.3.26"]
+docs = ["sphinx>=9.0.4", "sphinx-rtd-theme>=3.1.0", "sphinx-copybutton>=0.5.2"]
 
 [project.scripts]
 dbs-annotator = "dbs_annotator.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/bml/dbs-annotator"
-Repository = "https://github.com/bml/dbs-annotator"
-Documentation = "https://github.com/bml/dbs-annotator/blob/main/README.md"
+Homepage = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+Repository = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+Documentation = "https://app-clinicaldbsannot.readthedocs.io/en/latest/"
 
 [build-system]
 requires = ["hatchling"]
@@ -80,9 +83,7 @@ addopts = [
     "--cov-report=html",
     "--cov-report=term-missing",
 ]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-]
+filterwarnings = ["ignore::DeprecationWarning"]
 markers = [
     "gui: Qt GUI / widget tests",
     "integration: cross-module behavior",
@@ -99,50 +100,38 @@ omit = ["*/tests/*"]
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-extend-exclude = [
-    ".eggs",
-    ".git",
-    ".hatch",
-    ".venv",
-    "build",
-    "dist",
-]
+extend-exclude = [".eggs", ".git", ".hatch", ".venv", "build", "dist"]
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "N",   # pep8-naming
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-]
-ignore = [
-    "E501",  # line too long (handled by formatter/line-length)
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "N",  # pep8-naming
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
 ]
 
 [tool.uv]
-# Only resolve/package versions that are at least 1 week old.
 exclude-newer = "1 week"
 
 # BeeWare Briefcase: native installers (Windows MSI / macOS .app + DMG).
 # App entrypoint: `python -m dbs_annotator` (see src/dbs_annotator/__main__.py).
 # Project [project] metadata (version via Hatch, dependencies) is merged by Briefcase.
 [tool.briefcase]
-project_name = "Clinical DBS Annotator"
+project_name = "DBS Annotator"
 bundle = "ch.wysscenter.dbsannotator"
 # Briefcase requires a static version here even when [project] uses dynamic version from Hatch.
 version = "0.3.0"
 license = { file = "LICENSE" }
 
 [tool.briefcase.app.dbs_annotator]
-# Windows stub executable name is "{formal_name}.exe" (see BeeWare windows app template).
 formal_name = "DBSAnnotator"
-description = "A graphical user interface for annotating DBS clinical programming sessions"
+description = "An application for annotating clinical programming sessions."
 long_description = """
-Clinical DBS Annotator is a desktop application used to structure and review
+DBS Annotator is a desktop application used to structure and review
 deep-brain stimulation programming sessions in a reproducible workflow.
 
 It supports clinicians and researchers by organizing session information,
@@ -151,7 +140,6 @@ tracking stimulation settings, and generating standardized exports and reports.
 sources = ["src/dbs_annotator", "icons", "styles"]
 icon = "icons/logoneutral"
 installer_icon = "icons/logoneutral"
-# Force Briefcase's internal pip installer to resolve against live PyPI.
 requirement_installer_args = [
     "--index-url",
     "https://pypi.org/simple",
@@ -163,7 +151,6 @@ requirement_installer_args = [
     "60",
     "--no-cache-dir",
 ]
-# PySide6/Qt GUI (not Toga). Packaging uses the same dependency set as [project].
 
 [tool.briefcase.app.dbs_annotator.macOS]
 universal_build = false
