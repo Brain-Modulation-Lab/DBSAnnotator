@@ -160,6 +160,13 @@ Build the docs locally before submitting:
    uv run sphinx-build -b html -W --keep-going docs docs/_build/html
    uv run sphinx-build -b linkcheck docs docs/_build/linkcheck
 
+Optional: regenerate UI screenshot artifacts for docs (uploaded as CI artifact):
+
+.. code-block:: bash
+
+   QT_QPA_PLATFORM=offscreen DOCS_SCREENSHOT_DIR=docs/_build/screenshots \
+     uv run pytest tests/docs/test_docs_screenshots.py -m docs_screenshot
+
 Code Standards
 ---------------
 
@@ -408,6 +415,8 @@ GitHub Actions handles:
 - Briefcase ZIP packaging smoke test on Windows.
 - Documentation build and link check.
 - Release builds for Python wheels/sdist and Briefcase installers.
+- Weekly/manual docs health report artifacts (warnings and linkcheck summary).
+- Manual docs screenshot artifact generation from Qt views.
 
 Specialised Contributions
 --------------------------

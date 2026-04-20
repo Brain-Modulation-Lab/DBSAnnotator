@@ -88,6 +88,7 @@ markers = [
     "gui: Qt GUI / widget tests",
     "integration: cross-module behavior",
     "slow: longer GUI or lazy-loaded wizard flows; skip locally with pytest -m \"not slow\"",
+    "docs_screenshot: optional screenshot generation for docs artifacts",
 ]
 
 [tool.coverage.run]

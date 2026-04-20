@@ -1,5 +1,9 @@
 # Clinical DBS Annotator
 
+[![CI](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/ci.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/ci.yml)
+[![Docs Health](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/docs-health.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/docs-health.yml)
+[![Release Drafter](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/release-drafter.yml/badge.svg)](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/actions/workflows/release-drafter.yml)
+
 A desktop application for annotating Deep Brain Stimulation (DBS) clinical programming sessions. Built for clinicians and researchers working with DBS systems (Medtronic Percept and others).
 
 **Version:** derived from `dbs_annotator.__version__`
