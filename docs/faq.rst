@@ -6,11 +6,28 @@ General
 
 **Does the application require an internet connection?**
 
-No.  The application is fully offline.  It only reads and writes local files.
+No for normal clinical use: session recording, editing, and export work fully
+offline and only read and write local files.  Optionally, the application can
+contact the public GitHub *releases* API (about once per day when enabled) to
+see whether a newer build is published; that request does not include patient
+or session content.  If the network is unavailable or the check fails, the app
+continues without blocking.  You can turn off automatic update checks from
+**Help** (or from the opt-out on an update notification).
 
 **Is my patient data sent anywhere?**
 
 No.  All data stays on your local machine.  No telemetry, no cloud sync.
+
+**How does the automatic update checker work?**
+
+When automatic checks are enabled, the app compares your installed version with
+published releases on the upstream GitHub repository (including pre-releases
+when they are the newest applicable tag), and notifies you if a strictly newer
+semver is available.  Only one candidate release is considered—the highest
+version above yours.  Update checks run in the background, do not block startup,
+and are skipped silently on errors.  Use **Help** to toggle “Automatically check
+for updates”, or disable them from the checkbox on the update dialog if you do
+not want further automatic notifications.
 
 **Which DBS systems are supported?**
 

@@ -22,6 +22,11 @@ ORGANIZATION_NAME = "Wyss Center"
 FS_ORG_NAME = "WyssCenter"
 FS_APP_NAME = "DBSAnnotator"
 
+# Canonical upstream (releases + issue tracker; keep aligned with updater repo slug).
+APP_REPOSITORY_URL = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+APP_ISSUES_URL = f"{APP_REPOSITORY_URL}/issues"
+UPDATE_FEEDBACK_EMAIL = "lucia.poma@wysscenter.ch"
+
 # File paths (relative to executable)
 ICON_FILENAME = "logoneutral.png"
 ICO_FILENAME = "logoneutral.ico"

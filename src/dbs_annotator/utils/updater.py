@@ -10,7 +10,11 @@ Design goals:
 * The HTTP fetch runs on a worker thread via :class:`QThreadPool`; the
   main-thread slot is only invoked if a strictly-newer version is found.
 * The user can always trigger a check from a menu / button with
-  ``force=True``.
+  ``force=True`` (even when automatic checks are disabled in preferences).
+* Among all published (non-draft) releases, only the **highest** version
+  greater than the running build is considered (PEP 440 ordering, including
+  alpha / beta / rc). GitHub's ``/releases/latest`` endpoint is not used
+  because it omits pre-releases.
 
 The release repository is hardcoded to the canonical upstream; change
 :data:`DEFAULT_RELEASES_REPO` if the project moves.
@@ -25,6 +29,7 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from packaging.version import InvalidVersion, Version
 from PySide6.QtCore import QObject, QRunnable, QSettings, QThreadPool, Signal
@@ -39,6 +44,9 @@ DEFAULT_RELEASES_REPO = "Brain-Modulation-Lab/App_ClinicalDBSAnnot"
 DEFAULT_COOLDOWN = timedelta(hours=24)
 DEFAULT_TIMEOUT_SECONDS = 10
 _LAST_CHECK_KEY = "updater/last_check_iso"
+_AUTO_CHECK_KEY = "updater/auto_check_enabled"
+_RELEASES_PAGE_SIZE = 100
+_MAX_RELEASE_PAGES = 5
 
 
 @dataclass(frozen=True)
@@ -50,6 +58,9 @@ class ReleaseInfo:
     html_url: str
     published_at: str
     body: str
+    #: ``True`` if GitHub marked the release as pre-release or the tag parses
+    #: as a PEP 440 pre-release (alpha / beta / rc).
+    is_prerelease: bool
 
 
 def _parse_version(tag: str) -> Version | None:
@@ -64,6 +75,21 @@ def _parse_version(tag: str) -> Version | None:
         return Version(candidate)
     except InvalidVersion:
         return None
+
+
+def _coerce_bool(value: object, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        s = value.lower().strip()
+        if s in ("false", "0", "no", ""):
+            return False
+        if s in ("true", "1", "yes"):
+            return True
+        return default
+    if value is None:
+        return default
+    return bool(value)
 
 
 class _CheckSignals(QObject):
@@ -96,7 +122,7 @@ class _CheckWorker(QRunnable):
 
     def run(self) -> None:
         try:
-            latest = self._fetch_latest_release()
+            latest = self._fetch_newest_applicable_release()
         except Exception as exc:
             logger.info("Update check failed: %s", exc)
             self._signals.failed.emit(str(exc))
@@ -108,42 +134,94 @@ class _CheckWorker(QRunnable):
 
         self._signals.update_available.emit(latest)
 
-    def _fetch_latest_release(self) -> ReleaseInfo | None:
-        url = f"https://api.github.com/repos/{self._repo}/releases/latest"
-        request = urllib.request.Request(
+    def _request(self, url: str) -> urllib.request.Request:
+        return urllib.request.Request(
             url,
             headers={
                 "Accept": "application/vnd.github+json",
                 "User-Agent": f"DBSAnnotator/{self._current_version}",
             },
         )
-        with urllib.request.urlopen(request, timeout=self._timeout) as response:
-            payload = json.loads(response.read().decode("utf-8"))
 
-        tag = str(payload.get("tag_name", ""))
-        if not tag:
+    def _urlopen_json(self, url: str) -> object:
+        request = self._request(url)
+        with urllib.request.urlopen(request, timeout=self._timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    def _fetch_releases_page(self, page: int) -> list[dict] | None:
+        url = (
+            f"https://api.github.com/repos/{self._repo}/releases"
+            f"?per_page={_RELEASES_PAGE_SIZE}&page={page}"
+        )
+        try:
+            payload = self._urlopen_json(url)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                logger.debug(
+                    "No GitHub releases list for %s (HTTP %s); treat as no update",
+                    self._repo,
+                    exc.code,
+                )
+                return None
+            raise
+        if not isinstance(payload, list):
+            return []
+        return cast(list[dict[str, Any]], payload)
+
+    def _fetch_all_releases(self) -> list[dict]:
+        merged: list[dict] = []
+        for page in range(1, _MAX_RELEASE_PAGES + 1):
+            batch = self._fetch_releases_page(page)
+            if batch is None:
+                return []
+            merged.extend(batch)
+            if len(batch) < _RELEASES_PAGE_SIZE:
+                break
+        return merged
+
+    def _fetch_newest_applicable_release(self) -> ReleaseInfo | None:
+        """Return single newest published release with version *>* local."""
+        payloads = self._fetch_all_releases()
+        if not payloads:
             return None
 
-        remote = _parse_version(tag)
         local = _parse_version(self._current_version)
-        if remote is None or local is None:
+        if local is None:
             logger.debug(
-                "Skipping update comparison for tag=%r current=%r",
-                tag,
+                "Skipping update comparison; local version not PEP 440: %r",
                 self._current_version,
             )
             return None
-        if payload.get("prerelease"):
-            return None
-        if remote <= local:
+
+        best_remote: Version | None = None
+        best_payload: dict | None = None
+
+        for payload in payloads:
+            if payload.get("draft"):
+                continue
+            tag = str(payload.get("tag_name", ""))
+            if not tag:
+                continue
+            remote = _parse_version(tag)
+            if remote is None or remote <= local:
+                continue
+            if best_remote is None or remote > best_remote:
+                best_remote = remote
+                best_payload = payload
+
+        if best_remote is None or best_payload is None:
             return None
 
+        gh_prerelease = bool(best_payload.get("prerelease"))
+        is_prerelease = gh_prerelease or best_remote.is_prerelease
+
         return ReleaseInfo(
-            version=str(remote),
-            tag_name=tag,
-            html_url=str(payload.get("html_url", "")),
-            published_at=str(payload.get("published_at", "")),
-            body=str(payload.get("body", "")),
+            version=str(best_remote),
+            tag_name=str(best_payload.get("tag_name", "")),
+            html_url=str(best_payload.get("html_url", "")),
+            published_at=str(best_payload.get("published_at", "")),
+            body=str(best_payload.get("body", "")),
+            is_prerelease=is_prerelease,
         )
 
 
@@ -153,6 +231,8 @@ class UpdateChecker(QObject):
     Create one of these on the main thread (typically owned by the main
     window) and call :meth:`check_async`. A ``check_async(force=True)`` call
     bypasses the cooldown -- wire it to a "Check for updates" menu action.
+    Automatic checks respect :meth:`auto_update_checks_enabled` (stored in
+    ``QSettings`` under :data:`_AUTO_CHECK_KEY`).
     """
 
     update_available = Signal(object)
@@ -178,6 +258,16 @@ class UpdateChecker(QObject):
         self._signals.up_to_date.connect(self._on_up_to_date)
         self._signals.failed.connect(self._on_failed)
 
+    def auto_update_checks_enabled(self) -> bool:
+        """Whether startup / periodic background checks are allowed."""
+        raw = self._settings.value(_AUTO_CHECK_KEY, True)
+        return _coerce_bool(raw, True)
+
+    def set_auto_update_checks_enabled(self, enabled: bool) -> None:
+        """Persist preference for automatic update checks."""
+        self._settings.setValue(_AUTO_CHECK_KEY, enabled)
+        self._settings.sync()
+
     def _on_update_available(self, release: ReleaseInfo) -> None:
         self._record_check_time()
         self.update_available.emit(release)
@@ -200,13 +290,16 @@ class UpdateChecker(QObject):
         """Schedule a background check.
 
         Args:
-            force: If True, bypass the cooldown.
+            force: If True, bypass the cooldown and automatic-check opt-out.
             now: Injectable clock, only for tests.
 
         Returns:
             True if a check was scheduled; False if the cooldown suppressed
-            it.
+            it, automatic checks are disabled, or (when not forced) opt-out
+            applies.
         """
+        if not force and not self.auto_update_checks_enabled():
+            return False
         if not force and not self._cooldown_elapsed(now()):
             return False
 

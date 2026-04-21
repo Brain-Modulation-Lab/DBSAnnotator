@@ -5,6 +5,7 @@ This module contains the main window that manages the wizard flow,
 navigation, and coordinates views with the controller.
 """
 
+import html
 import logging
 import os
 import typing
@@ -14,6 +15,7 @@ from PySide6.QtCore import QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractButton,
+    QCheckBox,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -31,7 +33,9 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import (
+    APP_ISSUES_URL,
     APP_NAME,
+    APP_REPOSITORY_URL,
     APP_VERSION,
     BASE_DPI,
     FONT_SCALE_ENABLED,
@@ -39,6 +43,7 @@ from ..config import (
     ICONS_DIR,
     RESPONSIVE_WINDOW_RATIOS,
     SCREEN_SIZE_THRESHOLDS,
+    UPDATE_FEEDBACK_EMAIL,
     WINDOW_MAX_SIZE_RATIO,
     WINDOW_MIN_SIZE,
     WINDOW_SIZE_RATIO,
@@ -102,7 +107,11 @@ class WizardWindow(QWidget):
         self._update_checker = UpdateChecker(parent=self)
         self._update_checker.update_available.connect(self._on_update_available)
         # Defer slightly so the window is painted before any dialog appears.
-        QTimer.singleShot(1500, lambda: self._update_checker.check_async())
+        QTimer.singleShot(1500, self._run_deferred_update_check)
+
+    def _run_deferred_update_check(self) -> None:
+        """Background update check; skipped if user disabled automatic checks."""
+        self._update_checker.check_async()
 
     def _setup_window(self) -> None:
         """Configure the main window properties with responsive sizing."""
@@ -371,7 +380,8 @@ class WizardWindow(QWidget):
         # Description
         desc_text = QTextEdit()
         desc_text.setReadOnly(True)
-        desc_text.setHtml("""
+        desc_text.setHtml(
+            f"""
         <h3>About this application</h3>
         <p>DBS Annotator is a specialized tool for clinicians and researchers
         working with Deep Brain Stimulation (DBS) systems. This application provides:</p>
@@ -400,16 +410,27 @@ class WizardWindow(QWidget):
         </ol>
 
         <h3>Support & Contact</h3>
-        <p><b>GitHub Repository:</b> <a href='https://github.com/your-username/dbs-annotator'>https://github.com/your-username/dbs-annotator</a></p>
-        <p>For bug reports, feature requests, or general support, please visit our GitHub repository
-        or contact Lucia Poma directly at</b> <a href='mailto:lucia.poma@wysscenter.ch'>lucia.poma@wysscenter.ch</a></p>.
+        <p><b>Repository:</b> <a href="{APP_REPOSITORY_URL}">{APP_REPOSITORY_URL}</a></p>
+        <p>For bug reports and feature requests, use the
+        <a href="{APP_ISSUES_URL}">issue tracker</a> or email
+        <a href="mailto:{UPDATE_FEEDBACK_EMAIL}">{UPDATE_FEEDBACK_EMAIL}</a>.</p>
 
         <h3>License</h3>
         <p>This software is released under an open-source license. Please see the GitHub repository
         for detailed licensing information.</p>
-        """)
+        """
+        )
 
         layout.addWidget(desc_text)
+
+        auto_check_cb = QCheckBox(
+            "Automatically check for updates (about once per day)"
+        )
+        auto_check_cb.setChecked(self._update_checker.auto_update_checks_enabled())
+        auto_check_cb.toggled.connect(
+            self._update_checker.set_auto_update_checks_enabled
+        )
+        layout.addWidget(auto_check_cb)
 
         # Footer buttons
         button_layout = QHBoxLayout()
@@ -480,21 +501,47 @@ class WizardWindow(QWidget):
     def _on_update_available(self, release: ReleaseInfo) -> None:
         """Show a non-blocking dialog when a newer release is published."""
         box = QMessageBox(self)
+        box.setTextFormat(Qt.TextFormat.RichText)
         box.setIcon(QMessageBox.Icon.Information)
-        box.setWindowTitle("Update available")
+        box.setWindowTitle(
+            "Pre-release available" if release.is_prerelease else "Update available"
+        )
         box.setText(
             f"A new version of {APP_NAME} is available: "
-            f"<b>{release.version}</b> (you have {APP_VERSION})."
+            f"<b>{html.escape(release.version)}</b> "
+            f"(you have {html.escape(APP_VERSION)})."
         )
+        info_parts: list[str] = []
+        if release.is_prerelease:
+            mail_href = html.escape(f"mailto:{UPDATE_FEEDBACK_EMAIL}", quote=True)
+            issues_href = html.escape(APP_ISSUES_URL, quote=True)
+            email_lbl = html.escape(UPDATE_FEEDBACK_EMAIL)
+            info_parts.append(
+                "<p><b>Note:</b> This is <u>not</u> a stable release; bugs may occur. "
+                "If you try this version, please report issues to "
+                f'<a href="{mail_href}">{email_lbl}</a> or on '
+                f'<a href="{issues_href}">GitHub</a>.</p>'
+            )
         notes = release.body.strip() if release.body else ""
         if notes:
             excerpt = notes if len(notes) <= 600 else notes[:600] + "…"
-            box.setInformativeText("Release notes:\n\n" + excerpt)
+            excerpt_html = html.escape(excerpt).replace("\n", "<br>")
+            info_parts.append(f"<p>Release notes:</p><p>{excerpt_html}</p>")
+        if info_parts:
+            box.setInformativeText("".join(info_parts))
+
+        opt_out_cb = QCheckBox("Don't notify me automatically about new updates")
+        opt_out_cb.setChecked(False)
+        box.setCheckBox(opt_out_cb)
+
         download_btn = box.addButton(
             "Open download page", QMessageBox.ButtonRole.AcceptRole
         )
         box.addButton("Remind me later", QMessageBox.ButtonRole.RejectRole)
         box.exec()
+
+        if opt_out_cb.isChecked():
+            self._update_checker.set_auto_update_checks_enabled(False)
 
         if box.clickedButton() is download_btn and release.html_url:
             QDesktopServices.openUrl(QUrl(release.html_url))

@@ -5,12 +5,13 @@ repos:
       - id: actionlint
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.7
+    rev: 0.11.6
     hooks:
       - id: uv-lock
       
+  # ruff-pre-commit rev pins `ruff==<same semver>`; keep in sync with PyPI and uv.lock.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.11
+    rev: v0.15.10
     hooks:
       - id: ruff-format
       - id: ruff-check
