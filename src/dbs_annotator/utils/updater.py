@@ -39,7 +39,7 @@ from .. import __version__
 logger = logging.getLogger(__name__)
 
 #: Owner/repo pair on GitHub whose releases advertise new builds.
-DEFAULT_RELEASES_REPO = "Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+DEFAULT_RELEASES_REPO = "Brain-Modulation-Lab/DBSAnnotator"
 
 DEFAULT_COOLDOWN = timedelta(hours=24)
 DEFAULT_TIMEOUT_SECONDS = 10

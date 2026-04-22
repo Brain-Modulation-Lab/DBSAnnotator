@@ -10,7 +10,7 @@
         %LOCALAPPDATA%\\WyssGeneva\\DBSAnnotator\\app
     and creates a Start Menu shortcut. Use -AddDesktopShortcut for a desktop link.
 
-    Default GitHub repository: Brain-Modulation-Lab/App_ClinicalDBSAnnot. Override with
+    Default GitHub repository: Brain-Modulation-Lab/DBSAnnotator. Override with
     -GitHubRepository or environment variable DBS_ANNOTATOR_INSTALL_REPO (format: "Owner/Name").
 
     Your release must include the portable .zip. If only an MSI exists, tag again after CI uploads the .zip.
@@ -18,7 +18,7 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
 param(
     [string] $GitHubRepository = $(
-        if ($env:DBS_ANNOTATOR_INSTALL_REPO) { $env:DBS_ANNOTATOR_INSTALL_REPO } else { "Brain-Modulation-Lab/App_ClinicalDBSAnnot" }
+        if ($env:DBS_ANNOTATOR_INSTALL_REPO) { $env:DBS_ANNOTATOR_INSTALL_REPO } else { "Brain-Modulation-Lab/DBSAnnotator" }
     ),
     [string] $VersionTag = "",
     [string] $InstallRoot = "",

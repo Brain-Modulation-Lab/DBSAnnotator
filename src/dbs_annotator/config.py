@@ -26,7 +26,7 @@ FS_ORG_NAME = "WyssGeneva"
 FS_APP_NAME = "DBSAnnotator"
 
 # Canonical upstream (releases + issue tracker; keep aligned with updater repo slug).
-APP_REPOSITORY_URL = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+APP_REPOSITORY_URL = "https://github.com/Brain-Modulation-Lab/DBSAnnotator"
 APP_ISSUES_URL = f"{APP_REPOSITORY_URL}/issues"
 # Primary contact for feedback (same person as APP_LEAD_AUTHOR).
 UPDATE_FEEDBACK_EMAIL = "lucia.poma@wysscenter.ch"

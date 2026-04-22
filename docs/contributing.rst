@@ -34,8 +34,8 @@ Development Setup
 
    .. code-block:: bash
 
-      git clone https://github.com/<your-username>/App_ClinicalDBSAnnot.git
-      cd App_ClinicalDBSAnnot
+      git clone https://github.com/<your-username>/DBSAnnotator.git
+      cd DBSAnnotator
 
 2. **Create the virtual environment and install all dev dependencies**
    (``uv`` reads ``pyproject.toml`` and ``uv.lock``; no manual ``venv``

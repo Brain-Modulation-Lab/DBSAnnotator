@@ -57,8 +57,8 @@ docs = [
 dbs-annotator = "dbs_annotator.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
-Repository = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+Homepage = "https://github.com/Brain-Modulation-Lab/DBSAnnotator"
+Repository = "https://github.com/Brain-Modulation-Lab/DBSAnnotator"
 Documentation = "https://dbs-annotator.readthedocs.io/en/latest/"
 
 [build-system]
@@ -152,7 +152,7 @@ template = "newsfragments/template.md.jinja"
 start_string = "## [Unreleased]"
 title_format = "## [{version}] - {project_date}"
 # Render each fragment's PR/issue as a Markdown link in CHANGELOG (GitHub + MyST)
-issue_format = "[#{issue}](https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/pull/{issue})"
+issue_format = "[#{issue}](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/{issue})"
 underlines = ["", "", ""]
 
 # Order matches https://keepachangelog.com/en/1.1.0/ (Types of changes)
@@ -192,9 +192,11 @@ bundle = "ch.wysscenter.dbsannotator"
 # Briefcase requires a static version here even when [project] uses dynamic version
 version = "0.4.0a1"
 license = { file = "LICENSE" }
-author = "Lucia Poma"
+# Windows per-user install dir is %LOCALAPPDATA%\<author>\<formal_name>; must match
+# FS_ORG_NAME in dbs_annotator.config (Qt user data / lab convention).
+author = "WyssGeneva"
 author_email = "lucia.poma@wysscenter.ch"
-url = "https://github.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot"
+url = "https://github.com/Brain-Modulation-Lab/DBSAnnotator"
 
 [tool.briefcase.app.dbs_annotator]
 formal_name = "DBSAnnotator"

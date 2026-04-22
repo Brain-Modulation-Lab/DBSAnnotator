@@ -18,7 +18,7 @@ Releases ship as **Briefcase-generated** artifacts (for example ZIP/MSI on Windo
 Unsigned **MSI** can trigger **SmartScreen**; the release **portable `.zip`** (same app as the MSI) avoids the MSI path. When that `.zip` is attached to a release, you can install per-user under `%LOCALAPPDATA%\WyssGeneva\DBSAnnotator\app` and get Start Menu shortcut with one line (from PowerShell, after `main` has `scripts/Install-DBSAnnotator.ps1` — see the script if you are testing a feature branch, use that branch in the URL instead of `main`):
 
 ```powershell
-iex (iwr -UseBasicParsing -UserAgent "DBSAnnotator-Install/1" -Uri "https://raw.githubusercontent.com/Brain-Modulation-Lab/App_ClinicalDBSAnnot/main/scripts/Install-DBSAnnotator.ps1").Content
+iex (iwr -UseBasicParsing -UserAgent "DBSAnnotator-Install/1" -Uri "https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/Install-DBSAnnotator.ps1").Content
 ```
 
 Optional: add a desktop shortcut with `-AddDesktopShortcut`. The script picks the **newest** release that includes a `DBSAnnotator-*.zip` file (prereleases included). If your release has no `.zip` yet, tag again after [CD](.github/workflows/release.yml) has uploaded it, or run the same script with `-VersionTag vX.Y.Z` once that asset exists.
