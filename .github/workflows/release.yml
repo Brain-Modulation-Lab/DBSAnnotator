@@ -214,6 +214,20 @@ jobs:
           uv run briefcase build --no-input
           uv run briefcase package --no-input -p msi
 
+      # step.if cannot use secrets.* (actionlint / GHA); probe via env then gate signing.
+      - name: Detect Windows signing secrets
+        id: win_signing
+        shell: bash
+        env:
+          WINDOWS_SIGN_PFX_BASE64: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
+          WINDOWS_SIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGN_PFX_PASSWORD }}
+        run: |
+          if [ -n "${WINDOWS_SIGN_PFX_BASE64}" ] && [ -n "${WINDOWS_SIGN_PFX_PASSWORD}" ]; then
+            echo "ready=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "ready=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Validate Windows signing secrets (optional gate)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.sign_artifacts }}
         shell: pwsh
@@ -226,16 +240,16 @@ jobs:
           }
 
       - name: Sign MSI (optional)
-        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.sign_artifacts) }}
+        if: >-
+          ${{
+            (github.event_name == 'workflow_dispatch' && inputs.sign_artifacts) ||
+            (github.event_name == 'push' && steps.win_signing.outputs.ready == 'true')
+          }}
         shell: pwsh
         env:
           WINDOWS_SIGN_PFX_BASE64: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
           WINDOWS_SIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGN_PFX_PASSWORD }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_SIGN_PFX_BASE64) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_SIGN_PFX_PASSWORD)) {
-            Write-Host "Windows signing secrets not configured; skipping MSI signing."
-            exit 0
-          }
           $pfxPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
           [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_SIGN_PFX_BASE64))
           $secure = ConvertTo-SecureString $env:WINDOWS_SIGN_PFX_PASSWORD -AsPlainText -Force
@@ -293,6 +307,22 @@ jobs:
           # "Sign and notarize DMG" step below re-signs and notarizes the artifact.
           uv run briefcase package --no-input --adhoc-sign -p dmg
 
+      - name: Detect macOS signing secrets
+        id: mac_signing
+        shell: bash
+        env:
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+        run: |
+          if [ -n "${APPLE_IDENTITY}" ] && [ -n "${APPLE_API_ISSUER}" ] && \
+             [ -n "${APPLE_API_KEY_ID}" ] && [ -n "${APPLE_API_KEY}" ]; then
+            echo "ready=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "ready=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Validate macOS signing secrets (optional gate)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.sign_artifacts }}
         shell: bash
@@ -310,7 +340,11 @@ jobs:
           done
 
       - name: Sign and notarize DMG (optional)
-        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.sign_artifacts) }}
+        if: >-
+          ${{
+            (github.event_name == 'workflow_dispatch' && inputs.sign_artifacts) ||
+            (github.event_name == 'push' && steps.mac_signing.outputs.ready == 'true')
+          }}
         shell: bash
         env:
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
@@ -318,12 +352,6 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
-          for var in APPLE_IDENTITY APPLE_API_ISSUER APPLE_API_KEY_ID APPLE_API_KEY; do
-            if [ -z "${!var}" ]; then
-              echo "macOS signing secrets not configured; skipping notarization/signing."
-              exit 0
-            fi
-          done
           KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
           printf '%s' "$APPLE_API_KEY" > "$KEY_PATH"
           mapfile -t DMGS < <(find dist -name '*.dmg' -type f)
