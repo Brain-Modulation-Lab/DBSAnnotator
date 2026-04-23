@@ -1,7 +1,0 @@
-{
-  "editor.inlineSuggest.enabled": true,
-  "editor.acceptSuggestionOnEnter": "off",
-  "editor.suggest.preview": true,
-  "editor.suggestOnTriggerCharacters": true,
-  "editor.overtype": false
-}
