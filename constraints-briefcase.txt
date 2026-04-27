@@ -35,7 +35,7 @@ pillow==12.2.0
     # via matplotlib
 pydantic==2.13.0
     # via dbs-annotator
-pydantic-core==2.46.0
+pydantic-core==2.46.3
     # via pydantic
 pyparsing==3.3.2
     # via matplotlib
