@@ -27,7 +27,7 @@ numpy==2.4.4
     #   contourpy
     #   matplotlib
     #   pandas
-packaging==26.0
+packaging==26.2
     # via matplotlib
 pandas==3.0.2
     # via dbs-annotator
