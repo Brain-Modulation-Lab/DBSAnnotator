@@ -27,7 +27,7 @@ dependencies = [
     "docx2pdf>=0.1.8",
     "pydantic>=2.13.0",
     "pyside6>=6.11.0",
-    "matplotlib>=3.5",
+    "matplotlib>=3.10.9",
     "packaging>=23.0",
 ]
 

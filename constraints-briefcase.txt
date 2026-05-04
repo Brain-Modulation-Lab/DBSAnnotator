@@ -20,7 +20,7 @@ lxml==6.0.4
     # via
     #   appscript
     #   python-docx
-matplotlib==3.10.8
+matplotlib==3.10.9
     # via dbs-annotator
 numpy==2.4.4
     # via
