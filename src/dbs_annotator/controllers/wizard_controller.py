@@ -10,7 +10,13 @@ import csv
 from PySide6.QtWidgets import QMessageBox
 
 from ..config_electrode_models import ELECTRODE_MODELS
-from ..models import ClinicalScale, SessionData, SessionScale, StimulationParameters
+from ..models import (
+    SESSION_SCALE_OMITTED_TSV,
+    ClinicalScale,
+    SessionData,
+    SessionScale,
+    StimulationParameters,
+)
 from ..utils import animate_button
 from ..utils.scale_preset_manager import get_scale_preset_manager
 
@@ -398,15 +404,19 @@ class WizardController:
         session_scales = []
         for name, value_widget in view.session_scale_value_edits:
             scale_value = ""
+            disabled_fn = getattr(value_widget, "isDisabled", None)
+            is_deactivated = bool(callable(disabled_fn) and disabled_fn())
 
-            # Check if widget is disabled (X button clicked)
-            if hasattr(value_widget, "isDisabled") and value_widget.isDisabled():
-                scale_value = "NaN"
-            elif hasattr(value_widget, "value") and callable(value_widget.value):
-                try:
-                    scale_value = f"{float(value_widget.value()) / 4.0:.2f}"
-                except Exception:
-                    scale_value = ""
+            # Deactivated session scale (X in Step 3): persist explicit NaN token
+            if is_deactivated:
+                scale_value = SESSION_SCALE_OMITTED_TSV
+            else:
+                val_fn = getattr(value_widget, "value", None)
+                if callable(val_fn):
+                    try:
+                        scale_value = f"{float(val_fn()) / 4.0:.2f}"
+                    except Exception:
+                        scale_value = ""
 
             if name and scale_value != "":
                 scale = SessionScale(name=name, current_value=str(scale_value))
