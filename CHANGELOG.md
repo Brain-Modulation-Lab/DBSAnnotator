@@ -13,10 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Linux release raw-archive packaging in CI for Briefcase ``linux system`` builds by
   detecting package roots via ``usr/bin`` + ``usr/lib/dbs_annotator/app`` and archiving
   the ``usr/`` tree, ensuring the launcher is included in the uploaded raw tarball. ([#97](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/97))
-## [0.4.0b0] - 2026-05-08
-
-### Changed
-
 - Windows install script is only `scripts/install.ps1`; removed `Install-DBSAnnotator.ps1` and updated references. ([#76](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/76))
 - Persist deactivated Step 3 session scales as ``NaN`` in the session TSV and omit them from Word and PDF reports. ([#94](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/94))
 - Refreshed ``uv.lock`` with upgraded dependencies (including security-related updates for
