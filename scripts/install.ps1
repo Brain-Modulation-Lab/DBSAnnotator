@@ -92,9 +92,12 @@ set -VersionTag to a tag that has the .zip, or add the .zip to the release manua
         return
     }
 
+    # Use .NET temp path (full path, no trailing separator quirks). Avoids Remove-Item -Recurse
+    # mis-resolving 8.3 short paths under usernames with dots (e.g. lucia.poma → LUCIA~1.POM errors).
+    $tempRoot = [System.IO.Path]::GetTempPath().TrimEnd([char[]]@('\', '/'))
     $work = $null
     try {
-        $work = Join-Path $env:TEMP "dbs-annotator-install\$([guid]::NewGuid().ToString('n'))"
+        $work = Join-Path $tempRoot "dbs-annotator-install\$([guid]::NewGuid().ToString('n'))"
         $zipFile = Join-Path $work "download.zip"
         $expand = Join-Path $work "e"
         New-Item -ItemType Directory -Path $work -Force -ErrorAction Stop | Out-Null
@@ -134,7 +137,20 @@ set -VersionTag to a tag that has the .zip, or add the .zip to the release manua
         }
         Write-Host "Done. Run:  $($exe.FullName)"
     } finally {
-        if ($work -and (Test-Path $work)) { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
+        if ($work -and (Test-Path -LiteralPath $work)) {
+            try {
+                [System.IO.Directory]::Delete($work, $true)
+            } catch {
+                try {
+                    Get-ChildItem -LiteralPath $work -Force -Recurse -ErrorAction SilentlyContinue |
+                        Sort-Object { $_.FullName.Length } -Descending |
+                        Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+                    Remove-Item -LiteralPath $work -Force -Recurse -ErrorAction SilentlyContinue
+                } catch {
+                    # Best-effort: install succeeded; stale temp folder is harmless
+                }
+            }
+        }
     }
 }
 
