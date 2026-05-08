@@ -451,32 +451,45 @@ jobs:
           set -euo pipefail
           v="${GITHUB_REF_NAME#v}"
           # Briefcase linux system: build/<app>/<vendor>/<codename>/... (not .../linux/...).
-          # App key dbs_annotator; .deb may use dbs-annotator. No bare "find -name app".
+          # Raw tar must include usr/bin launcher + usr/lib payload.
           root="build/dbs_annotator"
           if [ ! -d "${root}" ]; then
             echo "::error::Missing Briefcase build tree at ${root}" >&2
             find build -maxdepth 3 -type d 2>/dev/null | head -40 >&2 || true
             exit 1
           fi
-          # There may be multiple */app trees (e.g. shallow copy vs full system package with bin/).
-          # Pick the *largest* by disk — sources-only is tiny; real Briefcase tree includes bin/, lib/, support.
-          app_dir=""
-          if largest=$(find "${root}" -type d -name app 2>/dev/null | while read -r d; do du -sk "$d" 2>/dev/null; done | sort -n | tail -1); then
-            app_dir=${largest#*[[:space:]]}
+          # Find candidate package roots that contain usr/bin (launcher) and usr/lib/*/app.
+          pkg_root=""
+          if largest=$(find "${root}" -type d -name usr 2>/dev/null | while read -r d; do
+            p="$(dirname "$d")"
+            [ -d "${p}/usr/bin" ] || continue
+            [ -n "$(find "${p}/usr/bin" -mindepth 1 -maxdepth 1 -type f 2>/dev/null | head -n 1)" ] || continue
+            [ -d "${p}/usr/lib/dbs_annotator/app" ] || continue
+            du -sk "$p" 2>/dev/null
+          done | sort -n | tail -1); then
+            pkg_root=${largest#*[[:space:]]}
           fi
-          if [ -z "${app_dir}" ] || [ ! -d "${app_dir}/bin" ] || [ -z "$(find "${app_dir}/bin" -mindepth 1 -maxdepth 1 2>/dev/null | head -n 1)" ]; then
-            echo "::error::No Briefcase Linux app/ with a non-empty bin/ under ${root} (raw tar would lack the launcher). Listing app candidates:" >&2
-            find "${root}" -type d -name app 2>/dev/null | while read -r d; do
-              echo "--- $d" >&2
-              du -sh "$d" 2>/dev/null || true
-              find "${d}/bin" -mindepth 1 -maxdepth 1 2>/dev/null | head -20 >&2 || true
+          if [ -z "${pkg_root}" ]; then
+            echo "::error::No Briefcase Linux package root with non-empty usr/bin under ${root}. Listing usr candidates:" >&2
+            find "${root}" -type d -name usr 2>/dev/null | while read -r d; do
+              p="$(dirname "$d")"
+              echo "--- $p" >&2
+              du -sh "$p" 2>/dev/null || true
+              find "${p}/usr/bin" -mindepth 1 -maxdepth 1 2>/dev/null | head -20 >&2 || true
+              find "${p}/usr/lib/dbs_annotator/app" -mindepth 1 -maxdepth 1 2>/dev/null | head -5 >&2 || true
             done
             exit 1
           fi
-          parent=$(dirname "${app_dir}")
+          # Also verify app payload exists so raw tar isn't launcher-only.
+          if [ ! -d "${pkg_root}/usr/lib/dbs_annotator/app" ] || [ -z "$(find "${pkg_root}/usr/lib/dbs_annotator/app" -mindepth 1 -maxdepth 1 2>/dev/null | head -n 1)" ]; then
+            echo "::error::Selected package root lacks non-empty usr/lib/dbs_annotator/app payload: ${pkg_root}" >&2
+            exit 1
+          fi
           out="${GITHUB_WORKSPACE}/dist/dbs-annotator_${v}_linux_x86_64-raw.tar.gz"
-          (cd "${parent}" && tar -czf "${out}" "$(basename "${app_dir}")")
+          (cd "${pkg_root}" && tar -czf "${out}" usr)
           echo "Linux raw: dist/dbs-annotator_${v}_linux_x86_64-raw.tar.gz"
+          echo "Included launcher files:"
+          find "${pkg_root}/usr/bin" -mindepth 1 -maxdepth 1 -type f 2>/dev/null | sed "s#^${pkg_root}/##" | head -20
 
       - name: Upload Briefcase Linux artifacts
         uses: actions/upload-artifact@v7
