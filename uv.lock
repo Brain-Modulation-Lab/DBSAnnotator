@@ -485,7 +485,7 @@ docs = [
 requires-dist = [
     { name = "docx2pdf", specifier = ">=0.1.8" },
     { name = "matplotlib", specifier = ">=3.5" },
-    { name = "packaging", specifier = ">=23.0" },
+    { name = "packaging", specifier = ">=26.2" },
     { name = "pandas", specifier = ">=2.1" },
     { name = "pydantic", specifier = ">=2.13.0" },
     { name = "pyside6", specifier = ">=6.11.0" },
