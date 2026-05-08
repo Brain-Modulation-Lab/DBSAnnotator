@@ -16,7 +16,7 @@ fonttools==4.62.1
     # via matplotlib
 kiwisolver==1.5.0
     # via matplotlib
-lxml==6.0.4
+lxml==6.1.0
     # via
     #   appscript
     #   python-docx
