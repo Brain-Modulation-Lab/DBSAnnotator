@@ -111,6 +111,28 @@ def test_add_programming_summary_empty_df(exporter):
     assert any("No session" in p.text for p in doc.paragraphs)
 
 
+def test_add_programming_summary_parses_split_amplitude_and_numeric_text(exporter):
+    ex, _ = exporter
+    doc = Document()
+    df = pd.DataFrame(
+        {
+            "block_id": [1, 2],
+            "left_amplitude": ["2.5_1.5", "3.0_2.0"],
+            "right_amplitude": ["1.0_1.0", "1.5_1.5"],
+            "left_stim_freq": ["130", "140 Hz"],
+            "right_stim_freq": ["130", "150"],
+            "left_pulse_width": ["60 µs", "70"],
+            "right_pulse_width": ["80", "90 µs"],
+        }
+    )
+
+    ex._add_programming_summary(doc, df, pd.DataFrame(), pd.DataFrame())
+    summary_text = "\n".join(p.text for p in doc.paragraphs)
+    assert "Amplitude Range:  L: 4.0 - 5.0 mA  |  R: 2.0 - 3.0 mA" in summary_text
+    assert "Frequency Range:  L: 130 - 140 Hz  |  R: 130 - 150 Hz" in summary_text
+    assert "Pulse Width Range:  L: 60 - 70 µs  |  R: 80 - 90 µs" in summary_text
+
+
 def test_find_best_and_second_best_blocks_empty(exporter):
     ex, _ = exporter
     assert ex._find_best_and_second_best_blocks(pd.DataFrame()) == ([], [])

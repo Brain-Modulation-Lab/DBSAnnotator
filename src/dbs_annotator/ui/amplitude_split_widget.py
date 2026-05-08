@@ -115,9 +115,10 @@ class AmplitudeSplitWidget(QWidget):
           e.g. ``"1.5_1.0"``.
         """
         total_text = self._amp_edit.text().strip()
+        labels = self._distribution_labels()
 
         # For single or no cathode, return total amplitude
-        if len(self._cathode_labels) <= 1:
+        if len(labels) <= 1:
             return total_text
 
         # Multiple cathodes - use regular logic
@@ -127,7 +128,7 @@ class AmplitudeSplitWidget(QWidget):
             return total_text
 
         parts = []
-        for lbl in self._cathode_labels:
+        for lbl in labels:
             pct = self._percentages.get(lbl, 0.0)
             ma = total_amp * pct / 100.0
             # Format: remove trailing zeros but keep at least one decimal
@@ -236,7 +237,7 @@ class AmplitudeSplitWidget(QWidget):
         """Create only segment rows for a grouped directional contact (no main row)."""
         seg_labels = ["a", "b", "c"]
         parent_percentage = self._percentages.get(parent_lbl, 0.0)
-        segment_percentage = round(
+        default_segment_percentage = round(
             parent_percentage / 3.0, 1
         )  # Equal split by default, rounded to 1 decimal
 
@@ -260,6 +261,9 @@ class AmplitudeSplitWidget(QWidget):
             pct_edit.setMaximumWidth(55)
             pct_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             pct_edit.setValidator(QDoubleValidator(0.0, 100.0, 1))
+            segment_percentage = self._percentages.get(
+                seg_lbl, default_segment_percentage
+            )
             pct_edit.setText(f"{segment_percentage:g}")
             row_layout.addWidget(pct_edit)
 
@@ -308,13 +312,14 @@ class AmplitudeSplitWidget(QWidget):
 
     def _read_and_rebalance(self, edited_label: str) -> None:
         """Read edited values, auto-complete the last cathode, refresh mA."""
-        n = len(self._cathode_labels)
+        labels = self._distribution_labels()
+        n = len(labels)
         if n < 2:
             return
 
         # Read all non-last values
         total_others = 0.0
-        for lbl in self._cathode_labels[:-1]:
+        for lbl in labels[:-1]:
             row_data = self._rows.get(lbl)
             if not row_data:
                 continue
@@ -331,7 +336,7 @@ class AmplitudeSplitWidget(QWidget):
         if total_others > 100.0 and total_others > 0:
             scale = 100.0 / total_others
             total_others = 0.0
-            for lbl in self._cathode_labels[:-1]:
+            for lbl in labels[:-1]:
                 self._percentages[lbl] = round(self._percentages[lbl] * scale, 1)
                 total_others += self._percentages[lbl]
                 row_data = self._rows.get(lbl)
@@ -342,7 +347,7 @@ class AmplitudeSplitWidget(QWidget):
                     pct_edit.blockSignals(False)
 
         # Last cathode gets the remainder
-        last_lbl = self._cathode_labels[-1]
+        last_lbl = labels[-1]
         remainder = round(max(0.0, 100.0 - total_others), 1)
         self._percentages[last_lbl] = remainder
         last_row = self._rows.get(last_lbl)
@@ -410,14 +415,15 @@ class AmplitudeSplitWidget(QWidget):
             parts = split_text.split("_")
             values = [float(p) for p in parts if p.strip()]
             total = sum(values)
+            labels = self._distribution_labels()
 
-            if len(values) != len(self._cathode_labels):
+            if len(values) != len(labels):
                 # Mismatch between number of values and cathodes - use equal split
                 self._redistribute_percentages()
                 return
 
             # Calculate percentages based on split values
-            for i, lbl in enumerate(self._cathode_labels):
+            for i, lbl in enumerate(labels):
                 if i < len(values):
                     pct = (values[i] / total * 100.0) if total > 0 else 0.0
                     self._percentages[lbl] = round(pct, 1)
@@ -428,6 +434,14 @@ class AmplitudeSplitWidget(QWidget):
         except (ValueError, TypeError):
             # If parsing fails, use equal split
             self._redistribute_percentages()
+
+    def _distribution_labels(self) -> list[str]:
+        """Return ordered labels used for split serialization/restoration."""
+        # When rows exist (e.g. grouped directional segments), their order is
+        # the true serialization order.
+        if self._rows:
+            return list(self._rows.keys())
+        return list(self._cathode_labels)
 
 
 def get_cathode_labels(canvas) -> list[str]:

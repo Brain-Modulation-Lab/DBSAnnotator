@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 import tempfile
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -54,8 +56,6 @@ class TestWizardController:
 
 class TestWizardControllerInsertRow:
     def test_insert_session_row(self, tmp_path, monkeypatch):
-        from types import SimpleNamespace
-
         controller = WizardController()
         tsv = tmp_path / "session.tsv"
         controller.session_data.open_file(str(tsv))
@@ -87,6 +87,47 @@ class TestWizardControllerInsertRow:
         before = controller.session_data.block_id
         controller.insert_session_row(view)
         assert controller.session_data.block_id == before + 1
+
+    def test_insert_session_row_deactivated_scale_writes_nan_token(
+        self, tmp_path, monkeypatch
+    ):
+        from dbs_annotator.models.clinical_scale import SESSION_SCALE_OMITTED_TSV
+
+        controller = WizardController()
+        tsv = tmp_path / "session.tsv"
+        controller.session_data.open_file(str(tsv))
+
+        value_w = SimpleNamespace()
+        value_w.isDisabled = lambda: True
+        value_w.value = lambda: 0
+
+        view = MagicMock()
+        view.session_scale_value_edits = [("Mood", value_w)]
+        view.session_left_stim_freq_edit.text.return_value = "130"
+        view.session_right_stim_freq_edit.text.return_value = "130"
+        view.session_left_amp_edit = MagicMock()
+        view.session_right_amp_edit = MagicMock()
+        view.session_left_amp_edit.text.return_value = "3.0"
+        view.session_right_amp_edit.text.return_value = "3.0"
+        view.get_left_cathode_text.return_value = "e1"
+        view.get_left_anode_text.return_value = "e3"
+        view.get_right_cathode_text.return_value = "e2"
+        view.get_right_anode_text.return_value = "e4"
+        view.session_left_pw_edit.text.return_value = "60"
+        view.session_right_pw_edit.text.return_value = "60"
+        view.session_notes_edit.toPlainText.return_value = ""
+        monkeypatch.setattr(
+            "dbs_annotator.controllers.wizard_controller.animate_button",
+            lambda *a, **k: None,
+        )
+
+        controller.insert_session_row(view)
+
+        with open(tsv, newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f, delimiter="\t"))
+        assert len(rows) == 1
+        assert rows[0]["scale_name"] == "Mood"
+        assert rows[0]["scale_value"] == SESSION_SCALE_OMITTED_TSV
 
 
 class TestValidateStep2Filtering:

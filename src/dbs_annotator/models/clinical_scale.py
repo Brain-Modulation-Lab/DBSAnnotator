@@ -5,7 +5,30 @@ This module contains classes for managing clinical assessment scales
 used in DBS programming sessions.
 """
 
+import math
 from dataclasses import dataclass
+
+# Written to TSV when a Step 3 session scale is deactivated (X); must stay
+# a literal string on round-trip (see pandas read_csv na_filter=False).
+SESSION_SCALE_OMITTED_TSV = "NaN"
+
+
+def is_session_scale_value_omitted(value: object) -> bool:
+    """True if *value* means the scale was not scored (omit from reports)."""
+    if value is None:
+        return True
+    try:
+        if isinstance(value, (int, float, str, bytes, bytearray)):
+            fv = float(value)
+            if math.isnan(fv):
+                return True
+    except (TypeError, ValueError, OverflowError):
+        pass
+    s = str(value).strip()
+    if not s:
+        return True
+    lowered = s.lower()
+    return lowered == "nan" or lowered == "<na>"
 
 
 @dataclass

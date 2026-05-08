@@ -6,6 +6,7 @@ This module provides functionality to export session data to Word and PDF.
 
 import csv
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -26,7 +27,7 @@ from PySide6.QtWidgets import QMessageBox, QWidget
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
-from ..models import ElectrodeCanvas
+from ..models import ElectrodeCanvas, is_session_scale_value_omitted
 
 
 class _ExportTransientParent(Protocol):
@@ -252,7 +253,9 @@ class SessionExporter:
         """
         try:
             if hasattr(self.session_data, "file_path") and self.session_data.file_path:
-                return pd.read_csv(self.session_data.file_path, sep="\t")
+                return pd.read_csv(
+                    self.session_data.file_path, sep="\t", na_filter=False
+                )
             return None
         except Exception:
             return None
@@ -329,6 +332,8 @@ class SessionExporter:
                 if pd.notna(sname) and str(sname).strip():
                     name_str = str(sname).strip()
                     val_str = str(sval) if pd.notna(sval) else ""
+                    if is_session_scale_value_omitted(val_str):
+                        continue
                     key = (name_str, val_str)
                     if key not in seen:
                         seen.add(key)
@@ -389,8 +394,30 @@ class SessionExporter:
             num_configs = df_normalized["block_id"].nunique()
 
         # Parameter ranges per side (Left / Right)
-        def _param_range(series):
-            vals = pd.to_numeric(series, errors="coerce").dropna()
+        def _param_range(series, *, split_sum: bool = False):
+            parsed_vals: list[float] = []
+            for raw in series:
+                if pd.isna(raw):
+                    continue
+                text = str(raw).strip()
+                if not text:
+                    continue
+                if split_sum and "_" in text:
+                    try:
+                        parts = [float(p.strip()) for p in text.split("_") if p.strip()]
+                        if parts:
+                            parsed_vals.append(sum(parts))
+                            continue
+                    except ValueError:
+                        pass
+                # Extract first numeric token (tolerates units like "60 µs")
+                m = re.search(r"[-+]?\d*\.?\d+", text)
+                if m:
+                    try:
+                        parsed_vals.append(float(m.group(0)))
+                    except ValueError:
+                        pass
+            vals = pd.Series(parsed_vals, dtype=float).dropna()
             if len(vals) == 0:
                 return "N/A"
             if vals.min() == vals.max():
@@ -404,7 +431,7 @@ class SessionExporter:
                 freq_col = f"{prefix}stim_freq"
                 pw_col = f"{prefix}pulse_width"
                 if amp_col in df.columns:
-                    r = _param_range(df[amp_col])
+                    r = _param_range(df[amp_col], split_sum=True)
                     val = (
                         f"{r[0]:.1f} - {r[1]:.1f} mA"
                         if isinstance(r, tuple)
@@ -493,6 +520,8 @@ class SessionExporter:
                 if pd.notna(sname) and str(sname).strip():
                     name_str = str(sname).strip()
                     val_str = str(sval) if pd.notna(sval) else ""
+                    if is_session_scale_value_omitted(val_str):
+                        continue
                     key = (name_str, val_str)
                     if key not in seen_pairs:
                         seen_pairs.add(key)
@@ -701,19 +730,19 @@ class SessionExporter:
                     sn_text = str(raw_sn) if pd.notna(raw_sn) else ""
                     sv_text = str(raw_sv) if pd.notna(raw_sv) else ""
 
-                    # Filter out NaN scales from display - remove both name and value
-                    if sv_text == "NaN" or "NaN" in sv_text:
-                        sn_parts = [s for s in sn_text.split("\n") if s.strip()]
-                        sv_parts = [s for s in sv_text.split("\n") if s.strip()]
-                        # Remove corresponding name-value pairs where value is NaN
-                        filtered_names = []
-                        filtered_values = []
-                        for name, val in zip(sn_parts, sv_parts, strict=False):
-                            if val != "NaN" and val.strip() != "NaN":
-                                filtered_names.append(name)
-                                filtered_values.append(val)
-                        sn_text = "\n".join(filtered_names)
-                        sv_text = "\n".join(filtered_values)
+                    sn_parts = [s.strip() for s in sn_text.split("\n") if s.strip()]
+                    sv_parts = [s.strip() for s in sv_text.split("\n") if s.strip()]
+                    while len(sv_parts) < len(sn_parts):
+                        sv_parts.append("")
+                    filtered_names: list[str] = []
+                    filtered_values: list[str] = []
+                    for name, val in zip(sn_parts, sv_parts, strict=False):
+                        if not name or is_session_scale_value_omitted(val):
+                            continue
+                        filtered_names.append(name)
+                        filtered_values.append(val)
+                    sn_text = "\n".join(filtered_names)
+                    sv_text = "\n".join(filtered_values)
 
                     scale_name_lines = sn_text.split("\n") if sn_text else [""]
                     scale_value_lines = sv_text.split("\n") if sv_text else [""]

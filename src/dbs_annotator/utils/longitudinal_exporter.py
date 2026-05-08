@@ -24,6 +24,7 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
+from ..models import is_session_scale_value_omitted
 
 
 class LongitudinalExporter:
@@ -161,7 +162,7 @@ class LongitudinalExporter:
         # Sort files chronologically by earliest date+time in each file
         def get_file_datetime(path):
             try:
-                df = pd.read_csv(path, sep="\t")
+                df = pd.read_csv(path, sep="\t", na_filter=False)
                 if "date" in df.columns and "time" in df.columns:
                     # Combine date and time to create datetime for sorting
                     df["datetime"] = pd.to_datetime(
@@ -189,7 +190,7 @@ class LongitudinalExporter:
         frames = []
         for path in file_paths:
             try:
-                df = pd.read_csv(path, sep="\t")
+                df = pd.read_csv(path, sep="\t", na_filter=False)
                 # Tag each row with its source file for traceability
                 df["_source_file"] = os.path.basename(path)
                 frames.append(df)
@@ -417,18 +418,20 @@ class LongitudinalExporter:
                             sn = str(row.get("scale_name", "") or "").strip()
                             sv = str(row.get("scale_value", "") or "").strip()
 
-                            if sn and sv:
+                            if sn:
                                 sn_lines = [
                                     s.strip() for s in sn.split("\n") if s.strip()
                                 ]
                                 sv_lines = [
                                     s.strip() for s in sv.split("\n") if s.strip()
                                 ]
+                                while len(sv_lines) < len(sn_lines):
+                                    sv_lines.append("")
 
-                                # Store scales, keeping the first non-NaN
+                                # Store scales, keeping the first non-omitted
                                 # value per scale name.
                                 for name, val in zip(sn_lines, sv_lines, strict=False):
-                                    if val != "NaN" and val.strip() != "NaN":
+                                    if name and not is_session_scale_value_omitted(val):
                                         if name not in all_scales:
                                             all_scales[name] = val
 
@@ -696,8 +699,31 @@ class LongitudinalExporter:
                 sub_n["block_id"].nunique() if "block_id" in sub_n.columns else 0
             )
 
-            def _range_str(series, unit=""):
-                vals = pd.to_numeric(series, errors="coerce").dropna()
+            def _range_str(series, unit="", split_sum: bool = False):
+                parsed_vals: list[float] = []
+                for raw in series:
+                    if pd.isna(raw):
+                        continue
+                    text = str(raw).strip()
+                    if not text:
+                        continue
+                    if split_sum and "_" in text:
+                        try:
+                            parts = [
+                                float(p.strip()) for p in text.split("_") if p.strip()
+                            ]
+                            if parts:
+                                parsed_vals.append(sum(parts))
+                                continue
+                        except ValueError:
+                            pass
+                    m = re.search(r"[-+]?\d*\.?\d+", text)
+                    if m:
+                        try:
+                            parsed_vals.append(float(m.group(0)))
+                        except ValueError:
+                            pass
+                vals = pd.Series(parsed_vals, dtype=float).dropna()
                 if vals.empty:
                     return "N/A"
                 mn, mx = vals.min(), vals.max()
@@ -705,8 +731,12 @@ class LongitudinalExporter:
                     return f"{mn:.1f}{unit}" if unit else f"{mn:g}"
                 return f"{mn:.1f}–{mx:.1f}{unit}" if unit else f"{mn:g}–{mx:g}"
 
-            amp_l = _range_str(sub_sess.get("left_amplitude", pd.Series()), " mA")
-            amp_r = _range_str(sub_sess.get("right_amplitude", pd.Series()), " mA")
+            amp_l = _range_str(
+                sub_sess.get("left_amplitude", pd.Series()), " mA", split_sum=True
+            )
+            amp_r = _range_str(
+                sub_sess.get("right_amplitude", pd.Series()), " mA", split_sum=True
+            )
             freq_l = _range_str(sub_sess.get("left_stim_freq", pd.Series()), " Hz")
             freq_r = _range_str(sub_sess.get("right_stim_freq", pd.Series()), " Hz")
             pw_l = _range_str(sub_sess.get("left_pulse_width", pd.Series()), " µs")
@@ -1064,7 +1094,7 @@ class LongitudinalExporter:
             for _, row in df_latest.iterrows():
                 sname = str(row.get("scale_name", "") or "").strip()
                 sval = str(row.get("scale_value", "") or "").strip()
-                if not sname or not sval:
+                if not sname or is_session_scale_value_omitted(sval):
                     continue
                 try:
                     val = float(sval)
@@ -1146,7 +1176,7 @@ class LongitudinalExporter:
             for _, row in df_block.iterrows():
                 sname = str(row.get("scale_name", "") or "").strip()
                 sval = str(row.get("scale_value", "") or "").strip()
-                if not sname or not sval:
+                if not sname or is_session_scale_value_omitted(sval):
                     continue
                 try:
                     val = float(sval)
@@ -1223,11 +1253,10 @@ class LongitudinalExporter:
                 sn = str(r.get("scale_name", "") or "").strip()
                 sv = str(r.get("scale_value", "") or "").strip()
 
-                # Skip if scale value is NaN or empty
-                if not sv or sv == "NaN" or sv.strip() == "NaN":
+                if not sn or is_session_scale_value_omitted(sv):
                     continue
 
-                if sn and (sn, sv) not in seen:
+                if (sn, sv) not in seen:
                     seen.add((sn, sv))
                     scale_pairs.append((sn, sv))
 

@@ -11,6 +11,10 @@ from dbs_annotator.models import (
     SessionScale,
     StimulationParameters,
 )
+from dbs_annotator.models.clinical_scale import (
+    SESSION_SCALE_OMITTED_TSV,
+    is_session_scale_value_omitted,
+)
 
 
 def _sample_stimulation() -> StimulationParameters:
@@ -79,6 +83,23 @@ class TestSessionScale:
 
         scale_no_value = SessionScale(name="Tremor")
         assert scale_no_value.has_value() is False
+
+        scale_nan_token = SessionScale(
+            name="Mood", current_value=SESSION_SCALE_OMITTED_TSV
+        )
+        assert scale_nan_token.has_value() is True
+
+
+def test_is_session_scale_value_omitted():
+    assert is_session_scale_value_omitted(None) is True
+    assert is_session_scale_value_omitted("") is True
+    assert is_session_scale_value_omitted("  ") is True
+    assert is_session_scale_value_omitted("NaN") is True
+    assert is_session_scale_value_omitted("nan") is True
+    assert is_session_scale_value_omitted(float("nan")) is True
+    assert is_session_scale_value_omitted("0") is False
+    assert is_session_scale_value_omitted("0.00") is False
+    assert is_session_scale_value_omitted(0) is False
 
 
 class TestStimulationParameters:

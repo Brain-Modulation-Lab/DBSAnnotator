@@ -898,6 +898,13 @@ class Step3View(BaseStepView):
 
         self.update_configuration_display()
 
+        # Restore split amplitude distribution (if present) after cathodes are
+        # reconstructed so percentages are not reset to equal split.
+        if hasattr(self, "left_amp_split") and left_amp and "_" in left_amp:
+            self.left_amp_split.set_amplitude_from_split(left_amp)
+        if hasattr(self, "right_amp_split") and right_amp and "_" in right_amp:
+            self.right_amp_split.set_amplitude_from_split(right_amp)
+
     def _parse_amplitude_total(self, amp_str: str) -> str:
         """
         Parse amplitude string and return the total value.
