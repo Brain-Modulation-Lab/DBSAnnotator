@@ -190,7 +190,7 @@ showcontent = true
 project_name = "DBSAnnotator"
 bundle = "ch.wysscenter.dbsannotator"
 # Briefcase requires a static version here even when [project] uses dynamic version
-version = "0.4.0a2"
+version = "0.4.0b1"
 license = { file = "LICENSE" }
 # Windows per-user install dir is %LOCALAPPDATA%\<author>\<formal_name>; must match
 # FS_ORG_NAME in dbs_annotator.config (Qt user data / lab convention).
