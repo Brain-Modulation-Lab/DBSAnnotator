@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.0b1] - 2026-05-08
+
+### Changed
+
+- Fixed Linux release raw-archive packaging in CI for Briefcase ``linux system`` builds by
+  detecting package roots via ``usr/bin`` + ``usr/lib/dbs_annotator/app`` and archiving
+  the ``usr/`` tree, ensuring the launcher is included in the uploaded raw tarball. ([#97](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/97))
 ## [0.4.0b0] - 2026-05-08
 
 ### Changed
