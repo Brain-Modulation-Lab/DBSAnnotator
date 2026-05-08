@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Fixed Linux release raw-archive packaging in CI for Briefcase ``linux system`` builds by
+  detecting package roots via ``usr/bin`` + ``usr/lib/dbs_annotator/app`` and archiving
+  the ``usr/`` tree, ensuring the launcher is included in the uploaded raw tarball. ([#97](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/97))
 - Windows install script is only `scripts/install.ps1`; removed `Install-DBSAnnotator.ps1` and updated references. ([#76](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/76))
 - Persist deactivated Step 3 session scales as ``NaN`` in the session TSV and omit them from Word and PDF reports. ([#94](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/94))
 - Refreshed ``uv.lock`` with upgraded dependencies (including security-related updates for
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify `install.ps1` and update README. ([#78](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/78))
 - Fix `scripts/install.sh` for POSIX `sh` and Linux launcher paths (`bin/`, `dbs_annotator`). ([#79](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/79))
 - Fix `scripts/install.sh` for POSIX `sh`, LF line endings, Linux launcher discovery (`bin/`, `dbs_annotator`), and clearer errors when a release raw `.tar.gz` lacks the Briefcase stub. Linux release workflow now selects the full `app/` tree (largest tree with `bin/`) for the raw archive. ([#80](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/80))
+
 ## [0.4.0a2] - 2026-04-22
 
 ### Added
