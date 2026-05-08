@@ -6,6 +6,7 @@ This module provides functionality to export session data to Word and PDF.
 
 import csv
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -393,8 +394,30 @@ class SessionExporter:
             num_configs = df_normalized["block_id"].nunique()
 
         # Parameter ranges per side (Left / Right)
-        def _param_range(series):
-            vals = pd.to_numeric(series, errors="coerce").dropna()
+        def _param_range(series, *, split_sum: bool = False):
+            parsed_vals: list[float] = []
+            for raw in series:
+                if pd.isna(raw):
+                    continue
+                text = str(raw).strip()
+                if not text:
+                    continue
+                if split_sum and "_" in text:
+                    try:
+                        parts = [float(p.strip()) for p in text.split("_") if p.strip()]
+                        if parts:
+                            parsed_vals.append(sum(parts))
+                            continue
+                    except ValueError:
+                        pass
+                # Extract first numeric token (tolerates units like "60 µs")
+                m = re.search(r"[-+]?\d*\.?\d+", text)
+                if m:
+                    try:
+                        parsed_vals.append(float(m.group(0)))
+                    except ValueError:
+                        pass
+            vals = pd.Series(parsed_vals, dtype=float).dropna()
             if len(vals) == 0:
                 return "N/A"
             if vals.min() == vals.max():
@@ -408,7 +431,7 @@ class SessionExporter:
                 freq_col = f"{prefix}stim_freq"
                 pw_col = f"{prefix}pulse_width"
                 if amp_col in df.columns:
-                    r = _param_range(df[amp_col])
+                    r = _param_range(df[amp_col], split_sum=True)
                     val = (
                         f"{r[0]:.1f} - {r[1]:.1f} mA"
                         if isinstance(r, tuple)

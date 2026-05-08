@@ -19,6 +19,7 @@ import numpy as np
 from docx.document import Document as DocumentType
 from docx.shared import Inches
 from matplotlib import cm
+from matplotlib.ticker import MaxNLocator
 
 matplotlib.use("Agg")
 
@@ -48,16 +49,43 @@ def parse_scale_targets(
         if len(pref) < 5:
             continue
         name, smin, smax, mode, custom_val = pref
-        if mode == "min":
-            targets[name] = {"type": "min", "value": float(smin) if smin else 0.0}
-        elif mode == "max":
-            targets[name] = {"type": "max", "value": float(smax) if smax else 0.0}
-        elif mode == "custom":
+        try:
+            lower = float(smin)
+        except (TypeError, ValueError):
+            lower = 0.0
+        try:
+            upper = float(smax)
+        except (TypeError, ValueError):
+            upper = 0.0
+        if lower > upper:
+            lower, upper = upper, lower
+
+        mode_norm = str(mode).strip().lower()
+        if mode_norm in ("low", "min"):
+            targets[name] = {
+                "type": "min",
+                "value": lower,
+                "lower": lower,
+                "upper": upper,
+            }
+        elif mode_norm in ("high", "max"):
+            targets[name] = {
+                "type": "max",
+                "value": upper,
+                "lower": lower,
+                "upper": upper,
+            }
+        elif mode_norm == "custom":
             try:
                 custom_num = float(custom_val)
             except (ValueError, TypeError):
                 custom_num = 0.0
-            targets[name] = {"type": "custom", "value": custom_num}
+            targets[name] = {
+                "type": "custom",
+                "value": custom_num,
+                "lower": lower,
+                "upper": upper,
+            }
     return targets
 
 
@@ -79,6 +107,10 @@ def compute_aggregate_index(
     Returns:
         {x_point: index_value}
     """
+
+    def _clip01(value: float) -> float:
+        return max(0.0, min(1.0, value))
+
     index_vals: dict[int, float] = {}
     for pt in all_points:
         weighted_scores: list[float] = []
@@ -93,23 +125,30 @@ def compute_aggregate_index(
                 info = scale_targets[scale_name]
                 ttype = info["type"]
                 tvalue = info["value"]
+                lower = float(info.get("lower", 0.0))
+                upper = float(info.get("upper", 0.0))
+                denom = upper - lower
 
-                if ttype == "min":
-                    distance = original_value
-                    max_possible = max(pts.values())
-                    normalized = distance / max_possible if max_possible > 0 else 0
-                elif ttype == "max":
-                    distance = max(pts.values()) - original_value
-                    max_possible = max(pts.values()) - min(pts.values())
-                    normalized = distance / max_possible if max_possible > 0 else 0
-                elif ttype == "custom":
-                    distance = abs(original_value - tvalue)
-                    max_distance = max(abs(v - tvalue) for v in pts.values())
-                    normalized = distance / max_distance if max_distance > 0 else 0
+                if denom <= 0:
+                    score = 0.5
                 else:
-                    normalized = 0.5
+                    z = _clip01((original_value - lower) / denom)
+                    if ttype == "min":
+                        score = 1.0 - z
+                    elif ttype == "max":
+                        score = z
+                    elif ttype == "custom":
+                        max_distance = max(abs(tvalue - lower), abs(upper - tvalue))
+                        if max_distance > 0:
+                            score = 1.0 - _clip01(
+                                abs(original_value - tvalue) / max_distance
+                            )
+                        else:
+                            score = 0.5
+                    else:
+                        score = 0.5
 
-                weighted_scores.append(1.0 - normalized)
+                weighted_scores.append(score)
                 weights.append(1.0)
             else:
                 weighted_scores.append(0.5)
@@ -126,6 +165,31 @@ def compute_aggregate_index(
                 index_vals[pt] = 0.5
 
     return index_vals
+
+
+def get_declared_scale_range(
+    scale_targets: dict[str, dict[str, Any]],
+) -> tuple[float, float] | None:
+    """Return overall (min, max) from declared per-scale ranges."""
+    lowers: list[float] = []
+    uppers: list[float] = []
+    for info in scale_targets.values():
+        try:
+            lower = float(info.get("lower", 0.0))
+            upper = float(info.get("upper", 0.0))
+        except (TypeError, ValueError):
+            continue
+        if upper < lower:
+            lower, upper = upper, lower
+        lowers.append(lower)
+        uppers.append(upper)
+    if not lowers or not uppers:
+        return None
+    overall_min = min(lowers)
+    overall_max = max(uppers)
+    if overall_max <= overall_min:
+        return None
+    return overall_min, overall_max
 
 
 def find_best_and_second(
@@ -208,6 +272,7 @@ def build_scales_chart(
 
         # ── Collect all x-points for NaN gap handling ─────────────
         all_x = sorted({x for pts in scale_data.values() for x in pts})
+        scale_targets = parse_scale_targets(scale_prefs)
 
         # ── Plot individual scales ──────────────────────────────────
         for idx, (sname, pts) in enumerate(scale_data.items()):
@@ -237,7 +302,6 @@ def build_scales_chart(
         ax2 = None
         if has_index:
             all_points = sorted({x for pts in scale_data.values() for x in pts})
-            scale_targets = parse_scale_targets(scale_prefs)
             index_vals = compute_aggregate_index(scale_data, all_points, scale_targets)
 
             if index_vals:
@@ -257,13 +321,21 @@ def build_scales_chart(
                     zorder=5,
                 )
                 ax2.set_ylim(0, 1)
+                ax2.yaxis.set_label_position("right")
+                ax2.yaxis.tick_right()
                 ax2.set_ylabel(
-                    "Aggregate Index Score",
+                    "Aggregate Index Score (best = 1.0)",
                     fontsize=12,
                     fontfamily="Arial",
                     color="black",
+                    fontweight="bold",
                 )
                 ax2.tick_params(axis="y", labelsize=10)
+                for tick_label in ax2.get_yticklabels():
+                    tick_label.set_fontweight("bold")
+                    tick_label.set_color("black")
+                ax2.spines["right"].set_linewidth(2.0)
+                ax2.spines["right"].set_color("black")
                 best_x, second_x = find_best_and_second(index_vals)
 
         # ── Best / second-best green vertical bands ─────────────────
@@ -277,6 +349,9 @@ def build_scales_chart(
             ax1.set_title(title, fontsize=16, fontfamily="Arial", color="black")
         ax1.set_ylabel(y_label, fontsize=12, fontfamily="Arial", color="black")
         ax1.set_xlabel(x_label, fontsize=12, fontfamily="Arial", color="black")
+        declared_range = get_declared_scale_range(scale_targets)
+        if declared_range is not None:
+            ax1.set_ylim(*declared_range)
         ax1.tick_params(axis="both", labelsize=10)
         ax1.grid(True, alpha=0.3)
 
@@ -300,6 +375,9 @@ def build_scales_chart(
             x_min = min(t[0] for t in x_ticks) - 0.5
             x_max = max(t[0] for t in x_ticks) + 0.5
             ax1.set_xlim(x_min, x_max)
+        else:
+            # Block IDs are discrete integers; avoid fractional tick labels.
+            ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
         # ── Legend ──────────────────────────────────────────────────
         handles1, labels1 = ax1.get_legend_handles_labels()

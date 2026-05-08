@@ -699,8 +699,31 @@ class LongitudinalExporter:
                 sub_n["block_id"].nunique() if "block_id" in sub_n.columns else 0
             )
 
-            def _range_str(series, unit=""):
-                vals = pd.to_numeric(series, errors="coerce").dropna()
+            def _range_str(series, unit="", split_sum: bool = False):
+                parsed_vals: list[float] = []
+                for raw in series:
+                    if pd.isna(raw):
+                        continue
+                    text = str(raw).strip()
+                    if not text:
+                        continue
+                    if split_sum and "_" in text:
+                        try:
+                            parts = [
+                                float(p.strip()) for p in text.split("_") if p.strip()
+                            ]
+                            if parts:
+                                parsed_vals.append(sum(parts))
+                                continue
+                        except ValueError:
+                            pass
+                    m = re.search(r"[-+]?\d*\.?\d+", text)
+                    if m:
+                        try:
+                            parsed_vals.append(float(m.group(0)))
+                        except ValueError:
+                            pass
+                vals = pd.Series(parsed_vals, dtype=float).dropna()
                 if vals.empty:
                     return "N/A"
                 mn, mx = vals.min(), vals.max()
@@ -708,8 +731,12 @@ class LongitudinalExporter:
                     return f"{mn:.1f}{unit}" if unit else f"{mn:g}"
                 return f"{mn:.1f}–{mx:.1f}{unit}" if unit else f"{mn:g}–{mx:g}"
 
-            amp_l = _range_str(sub_sess.get("left_amplitude", pd.Series()), " mA")
-            amp_r = _range_str(sub_sess.get("right_amplitude", pd.Series()), " mA")
+            amp_l = _range_str(
+                sub_sess.get("left_amplitude", pd.Series()), " mA", split_sum=True
+            )
+            amp_r = _range_str(
+                sub_sess.get("right_amplitude", pd.Series()), " mA", split_sum=True
+            )
             freq_l = _range_str(sub_sess.get("left_stim_freq", pd.Series()), " Hz")
             freq_r = _range_str(sub_sess.get("right_stim_freq", pd.Series()), " Hz")
             pw_l = _range_str(sub_sess.get("left_pulse_width", pd.Series()), " µs")
