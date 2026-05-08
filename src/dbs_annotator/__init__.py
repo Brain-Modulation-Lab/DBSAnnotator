@@ -5,7 +5,7 @@ This package provides a GUI for recording and managing
 clinical data during Deep Brain Stimulation programming sessions.
 """
 
-__version__ = "0.4.0a2"
+__version__ = "0.4.0b1"
 __app_name__ = "DBS Annotator"
 
 from .config import APP_LEAD_AUTHOR
