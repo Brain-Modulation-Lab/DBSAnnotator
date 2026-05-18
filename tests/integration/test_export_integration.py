@@ -17,7 +17,7 @@ def sample_tsv(tmp_path):
         {
             "date": "2024-01-15",
             "time": "09:30:00",
-            "block_id": "1",
+            "block_ID": "1",
             "is_initial": "1",
             "scale_name": "YBOCS",
             "scale_value": "20",
@@ -26,7 +26,7 @@ def sample_tsv(tmp_path):
         {
             "date": "2024-01-15",
             "time": "10:30:00",
-            "block_id": "2",
+            "block_ID": "2",
             "is_initial": "0",
             "scale_name": "YBOCS",
             "scale_value": "18",

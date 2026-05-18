@@ -21,7 +21,7 @@ Programming session TSV columns
    * - ``timezone``
      - string
      - Timezone abbreviation/offset at capture time.
-   * - ``block_id``
+   * - ``block_ID``
      - integer
      - Index of the stimulation block within a session.
    * - ``session_ID``

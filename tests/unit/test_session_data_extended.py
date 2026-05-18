@@ -8,6 +8,7 @@ import pytest
 
 from dbs_annotator.config import TSV_COLUMNS
 from dbs_annotator.models import SessionData, StimulationParameters
+from dbs_annotator.utils.tsv_columns import BLOCK_ID_COLUMN
 
 
 def _stim() -> StimulationParameters:
@@ -39,7 +40,7 @@ def test_open_file_append_creates_when_missing(tmp_path):
 def test_open_file_append_reads_max_block_and_session(tmp_path):
     p = tmp_path / "sess.tsv"
     data = dict.fromkeys(TSV_COLUMNS, "")
-    data["block_id"] = "5"
+    data[BLOCK_ID_COLUMN] = "5"
     data["session_ID"] = "2"
     data["date"] = "2024-01-01"
     data["time"] = "12:00:00"
@@ -59,10 +60,35 @@ def test_open_file_append_reads_max_block_and_session(tmp_path):
         sd.close_file()
 
 
+def test_open_file_append_legacy_block_id_header(tmp_path):
+    p = tmp_path / "legacy.tsv"
+    fieldnames = [c if c != "block_ID" else "block_id" for c in TSV_COLUMNS]
+    data = dict.fromkeys(fieldnames, "")
+    data["block_id"] = "3"
+    data["session_ID"] = "1"
+    data["date"] = "2024-01-01"
+    data["time"] = "12:00:00"
+    data["timezone"] = "UTC +0000"
+    data["is_initial"] = "0"
+    with open(p, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+        w.writeheader()
+        w.writerow(data)
+
+    sd = SessionData()
+    sd.open_file_append(str(p))
+    try:
+        assert sd.block_id == 4
+        assert sd.tsv_fieldnames is not None
+        assert BLOCK_ID_COLUMN in sd.tsv_fieldnames
+    finally:
+        sd.close_file()
+
+
 def test_open_file_append_malformed_rows_skipped(tmp_path, caplog):
     p = tmp_path / "bad.tsv"
     with open(p, "w", newline="", encoding="utf-8") as f:
-        f.write("block_id\tsession_ID\nnotnum\tx\n")
+        f.write("block_ID\tsession_ID\nnotnum\tx\n")
     sd = SessionData()
     sd.open_file_append(str(p))
     try:

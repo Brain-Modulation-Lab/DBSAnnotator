@@ -270,7 +270,7 @@ The generated report includes (depending on the selected sections):
 * **Initial Clinical Notes** — baseline clinical scale scores and initial
   notes from Step 1.
 * **Session Data** — optional **timeline chart** (one line per session scale,
-  x-axis = configuration block) and/or **data table** of all recorded entries
+  x-axis = ``block_ID``) and/or **data table** of all recorded entries
   with stimulation parameters, scale values, and notes.  The best entry per
   scale is highlighted in green according to your optimisation choices.
 * **Electrode Configurations** — visual diagrams showing the initial and

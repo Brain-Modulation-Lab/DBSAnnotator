@@ -61,6 +61,7 @@ from ..utils.program_config_manager import (
     get_program_config_manager,
 )
 from ..utils.scale_preset_manager import get_scale_preset_manager
+from ..utils.tsv_columns import block_id_from_row
 from .base_view import BaseStepView
 
 logger = logging.getLogger(__name__)
@@ -1192,8 +1193,8 @@ class Step1View(BaseStepView):
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     try:
-                        bid_raw = row.get("block_id", "")
-                        if bid_raw is None or bid_raw == "":
+                        bid_raw = block_id_from_row(row)
+                        if bid_raw is None:
                             continue
                         bid = int(float(bid_raw))
                     except Exception:
@@ -1255,7 +1256,10 @@ class Step1View(BaseStepView):
                     reader = csv.DictReader(f, delimiter="\t")
                     for row in reader:
                         try:
-                            bid = int(float(row.get("block_id", "")))
+                            bid_raw = block_id_from_row(row)
+                            if bid_raw is None:
+                                continue
+                            bid = int(float(bid_raw))
                             sid = int(float(row.get("session_ID", "")))
                         except (ValueError, TypeError):
                             continue

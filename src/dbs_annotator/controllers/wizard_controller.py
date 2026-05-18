@@ -19,6 +19,11 @@ from ..models import (
 )
 from ..utils import animate_button
 from ..utils.scale_preset_manager import get_scale_preset_manager
+from ..utils.tsv_columns import (
+    block_id_from_row,
+    canonicalize_row_block_id,
+    normalize_tsv_fieldnames,
+)
 
 
 class WizardController:
@@ -477,14 +482,14 @@ class WizardController:
             QMessageBox.warning(view, "Error", "No file is currently open.")
             return
 
-        # Get the last written block_id (current block_id is the next one to write)
+        # Get the last written block_ID (current block_ID is the next one to write)
         last_written_block_id = self.session_data.block_id - 1
 
         if last_written_block_id < 0:
             QMessageBox.warning(view, "Error", "No entries to undo.")
             return
 
-        # Read the TSV file and filter out rows with the last block_id
+        # Read the TSV file and filter out rows with the last block_ID
         file_path = self.session_data.file_path
         if file_path is None:
             QMessageBox.warning(
@@ -496,28 +501,27 @@ class WizardController:
 
         with open(file_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t")
-            fieldnames = list(reader.fieldnames or [])
+            fieldnames = normalize_tsv_fieldnames(list(reader.fieldnames or []))
 
             for row in reader:
-                block_id = row.get("block_id", "")
+                bid_raw = block_id_from_row(row)
                 try:
-                    if int(block_id) != last_written_block_id:
-                        rows_to_keep.append(row)
+                    if bid_raw is None or int(float(bid_raw)) != last_written_block_id:
+                        rows_to_keep.append(canonicalize_row_block_id(row))
                     else:
                         rows_to_delete.append(row)
                 except (ValueError, TypeError):
-                    # If block_id is not a number, keep the row
-                    rows_to_keep.append(row)
+                    rows_to_keep.append(canonicalize_row_block_id(row))
 
         if not rows_to_delete:
             QMessageBox.warning(
                 view,
                 "Error",
-                f"No entries found with block_id {last_written_block_id}.",
+                f"No entries found with block_ID {last_written_block_id}.",
             )
             return
 
-        # Decrement block_id to point to the previous entry
+        # Decrement block_ID to point to the previous entry
         self.session_data.block_id = last_written_block_id
 
         # Rewrite the TSV file with the filtered rows

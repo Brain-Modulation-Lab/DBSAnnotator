@@ -257,7 +257,7 @@ def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
         {
             "date": "2025-01-10",
             "time": "09:00:00",
-            "block_id": "1",
+            "block_ID": "1",
             "is_initial": "1",
             "scale_name": name,
             "scale_value": str(val),
@@ -268,7 +268,7 @@ def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
     session_row = {
         "date": "2025-01-10",
         "time": "10:00:00",
-        "block_id": "2",
+        "block_ID": "2",
         "is_initial": "0",
         "scale_name": "Tremor",
         "scale_value": "15",
@@ -279,7 +279,7 @@ def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
     }
     paths: list[Path] = []
     for run in ("01", "02"):
-        rows = [*rows_template, {**session_row, "block_id": "2"}]
+        rows = [*rows_template, {**session_row, "block_ID": "2"}]
         p = (
             tmp_path
             / f"sub-{PATIENT_ID}_ses-202501{run}_task-programming_run-{run}_events.tsv"

@@ -13,6 +13,11 @@ from typing import TextIO
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ..config import ANNOTATION_TSV_COLUMNS, TIMEZONE, TSV_COLUMNS
+from ..utils.tsv_columns import (
+    BLOCK_ID_COLUMN,
+    block_id_from_row,
+    normalize_tsv_fieldnames,
+)
 from .clinical_scale import ClinicalScale, SessionScale
 from .stimulation import StimulationParameters
 
@@ -82,7 +87,7 @@ class SessionData:
             self.open_file(file_path)
             return
 
-        # Calculate next session_id and block_id
+        # Calculate next session_id and block_ID
         max_block = -1
         max_session = 0
         parse_errors = 0
@@ -91,9 +96,8 @@ class SessionData:
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     try:
-                        # Get max block_id
-                        val = row.get("block_id", None)
-                        if val is not None and val != "":
+                        val = block_id_from_row(row)
+                        if val is not None:
                             max_block = max(max_block, int(float(val)))
 
                         # Get max session_ID
@@ -138,7 +142,9 @@ class SessionData:
             )
             existing_fieldnames = None
 
-        self.tsv_fieldnames = existing_fieldnames or list(TSV_COLUMNS)
+        self.tsv_fieldnames = normalize_tsv_fieldnames(existing_fieldnames) or list(
+            TSV_COLUMNS
+        )
 
         self.tsv_writer = csv.DictWriter(
             self.tsv_file,
@@ -220,7 +226,7 @@ class SessionData:
                 "date": today,
                 "time": time_str,
                 "timezone": tz_str,
-                "block_id": self.block_id,
+                BLOCK_ID_COLUMN: self.block_id,
                 "program_ID": group,
                 "session_ID": self.session_id,
                 "is_initial": 1,  # Clinical scales are from view1, so is_initial = 1
@@ -238,7 +244,7 @@ class SessionData:
                     "date": today,
                     "time": time_str,
                     "timezone": tz_str,
-                    "block_id": self.block_id,
+                    BLOCK_ID_COLUMN: self.block_id,
                     "program_ID": group,
                     "session_ID": self.session_id,
                     # Clinical scales are from view1, so is_initial = 1.
@@ -291,7 +297,7 @@ class SessionData:
                 "date": today,
                 "time": time_str,
                 "timezone": tz_str,
-                "block_id": self.block_id,
+                BLOCK_ID_COLUMN: self.block_id,
                 "program_ID": group,
                 "session_ID": self.session_id,
                 "is_initial": 0,  # Session scales are from view3, so is_initial = 0
@@ -309,7 +315,7 @@ class SessionData:
                     "date": today,
                     "time": time_str,
                     "timezone": tz_str,
-                    "block_id": self.block_id,
+                    BLOCK_ID_COLUMN: self.block_id,
                     "program_ID": group,
                     "session_ID": self.session_id,
                     "is_initial": 0,  # Session scales are from view3, so is_initial = 0

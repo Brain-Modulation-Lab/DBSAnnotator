@@ -64,7 +64,7 @@ def test_export_to_word_success(monkeypatch, tmp_path):
 def test_export_to_pdf_success(monkeypatch, tmp_path):
     tsv = tmp_path / "sub-01_task-prog_events.tsv"
     tsv.write_text(
-        "date\tblock_id\tis_initial\tscale_name\tscale_value\n"
+        "date\tblock_ID\tis_initial\tscale_name\tscale_value\n"
         "2024-01-15\t0\t1\tYBOCS\t20\n",
         encoding="utf-8",
     )
@@ -92,7 +92,7 @@ def test_export_to_pdf_success(monkeypatch, tmp_path):
 def test_export_to_pdf_conversion_error_shows_critical(monkeypatch, tmp_path):
     tsv = tmp_path / "sub-01_task-prog_events.tsv"
     tsv.write_text(
-        "date\tblock_id\tis_initial\tscale_name\tscale_value\n"
+        "date\tblock_ID\tis_initial\tscale_name\tscale_value\n"
         "2024-01-15\t0\t1\tYBOCS\t20\n",
         encoding="utf-8",
     )
