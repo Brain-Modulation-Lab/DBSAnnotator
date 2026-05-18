@@ -45,9 +45,9 @@ Example rows
 .. code-block:: text
 
    date	time	timezone	block_id	session_ID	is_initial	scale_name	scale_value	electrode_model	program_ID	left_stim_freq	left_anode	left_cathode	left_amplitude	left_pulse_width	right_stim_freq	right_anode	right_cathode	right_amplitude	right_pulse_width	notes
-   2025-03-15	10:02:31	UTC-04:00	0	0	1	UPDRS-III	42	SenSight B33015	A	130	Case	1C	0.0	60	130	Case	9C	0.0	60	Baseline pre-stim
-   2025-03-15	10:15:44	UTC-04:00	1	1	0	UPDRS-III	38	SenSight B33015	A	130	Case	1C	2.5	60	130	Case	9C	2.0	60	Config 1
-   2025-03-15	10:28:12	UTC-04:00	2	2	0	UPDRS-III	34	SenSight B33015	B	130	Case	2A,2B	3.0	90	130	Case	10A,10B	2.5	90	Config 2 - wider contacts
+   2025-03-15	10:02:31	UTC-04:00	0	0	1	MDS-UPDRS\nUPDRS-III	28\n32	SenSight B33005	A	130	Case	E1a	0.0	90	130	Case	E2	0.0	90	Baseline pre-stim
+   2025-03-15	10:15:44	UTC-04:00	1	1	0	Tremor\nRigidity\nBradykinesia	6.0\n5.0\n4.0	SenSight B33005	A	130	Case	E1a,E1b	2.0	90	130	Case	E2	2.0	90	Config 1
+   2025-03-15	10:28:12	UTC-04:00	2	2	0	Tremor\nRigidity\nBradykinesia	4.0\n3.0\n3.0	SenSight B33005	B	130	Case	E2A,E2B	2.5	90	130	Case	E3	2.5	90	Config 2
 
 ----
 
@@ -65,11 +65,15 @@ Sections (in order):
 
 1. **Title** — "Clinical DBS Session Report", generated date, patient ID,
    session number.
-2. **Initial Clinical Notes** *(optional)* — baseline scale scores and any
-   initial notes recorded in Step 1.
-3. **Session Data** *(optional)* — lateral table (L/R rows per configuration)
-   with all recorded stimulation parameters, scale values, and notes.  The
-   best entry is highlighted in green.
+2. **Initial Clinical Notes** *(optional)* — baseline clinical scale scores
+   and any initial notes recorded in Step 1.
+3. **Session Data** *(optional)* — one or both of:
+
+   * **Session Data Graph** — matplotlib timeline chart of session-scale
+     values vs configuration block (best entry per scale highlighted).
+   * **Session Data Table** — lateral table (L/R rows per configuration) with
+     stimulation parameters, scale values, and notes.
+
 4. **Electrode Configurations** *(optional)* — a borderless 4-column table:
 
    +-------------------+-------------------+-------------------+-------------------+
@@ -88,11 +92,12 @@ Sections (in order, selected at export time):
 
 1. **Title** — "Longitudinal DBS Report", generated date, patient ID,
    list of included files.
-2. **Sessions Overview** *(optional)* — one-row-per-session summary table
-   with date, number of entries, and final scale values.
-3. **Session Data** *(optional)* — combined table across all sessions.
-   First column is the entry **date**; the best entry per session is
-   highlighted.
+2. **Sessions Overview** *(optional)* — clinical-scales timeline chart across
+   sessions plus a one-row-per-session summary table (date, entry count,
+   baseline scale names and values).
+3. **Session Data** *(optional)* — session-scale timeline chart and/or
+   combined table across all sessions.  The table's first column is the entry
+   **date**; the best entry per session is highlighted.
 4. **Electrode Configuration** *(optional)* — per-file Initial/Final diagrams
    separated by page breaks.
 5. **Programming Summary** *(optional)* — per-session parameter ranges.

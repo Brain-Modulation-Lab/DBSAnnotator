@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
+
+- Read the Docs user guide aligned with current clinical and session scale presets
+  (OCD, MDD, PD, ET, Dystonia, TS), 0–10 session scales, and report export options
+  (Session Data graph and table, longitudinal clinical/session timeline charts).
+- Documentation copyright updated for Massachusetts General Hospital, Wyss Center
+  for Bio and Neuroengineering, and Charité Universitätsmedizin Berlin; contact
+  remains lucia.poma@wysscenter.ch.
+
 ## [0.4.0b1] - 2026-05-08
 
 ### Changed

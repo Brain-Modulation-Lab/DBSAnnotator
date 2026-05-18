@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import os
+import sys
 
-# Headless-friendly Qt before any QWidget is constructed (pytest loads conftest early).
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# Docs screenshots need real fonts and native styling. When DOCS_SCREENSHOT_DIR is
+# set, prefer the platform GUI plugin on desktop OSes; unit tests stay offscreen.
+if os.environ.get("DOCS_SCREENSHOT_DIR"):
+    if sys.platform == "win32":
+        os.environ["QT_QPA_PLATFORM"] = "windows"
+    elif sys.platform == "darwin":
+        os.environ["QT_QPA_PLATFORM"] = "cocoa"
+    elif not os.environ.get("QT_QPA_PLATFORM"):
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+else:
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 

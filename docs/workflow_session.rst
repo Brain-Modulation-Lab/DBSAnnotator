@@ -121,9 +121,20 @@ Both the **Left** and **Right** hemispheres have independent parameter panels.
 Baseline Clinical Scales
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Below the stimulation parameters you will find a panel for baseline clinical
-scale scores (e.g. UPDRS, MADRS, Y-BOCS).  These are populated from the
-scale preset you selected in the previous step.
+Below the stimulation parameters you will find a panel for **baseline clinical
+scales** (validated rating instruments recorded once at the start of the
+session).  Click a **preset button** (OCD, MDD, PD, ET, Dystonia, TS) to load
+the standard scale set for that indication, or use the settings control to
+customise presets.
+
+Built-in clinical presets (Step 1):
+
+* **OCD** — Y-BOCS, Y-BOCS-o, Y-BOCS-c, MADRS, OCI-R
+* **MDD** — MADRS, HAM-D, BDI-II
+* **PD** — MDS-UPDRS, UPDRS-III, PDQ-39, UDysRS
+* **ET** — FTM-TRS, TETRAS
+* **Dystonia** — BFMDRS, TWSTRS
+* **TS** — YGTSS, PUTS, TS-CGI, Y-BOCS
 
 Each scale has a **slider** with arrow buttons and a numeric display.  Press
 the **✕** button on a slider to mark that scale as "not assessed" (stored as
@@ -148,19 +159,25 @@ stimulation configuration tested).
 Built-in presets
 ^^^^^^^^^^^^^^^^
 
-Use the preset buttons to load a standard scale set for your clinical
-indication:
+Use the preset buttons to load a standard **session scale** set (rated at each
+stimulation configuration during programming).  All built-in session scales use
+a **0–10** numeric range with slider controls.
 
-* **OCD** — Y-BOCS, Anxiety VAS, Mood VAS
-* **MDD** — MADRS, Anxiety VAS, Mood VAS, Energy VAS
-* **PD** — UPDRS-III, Dyskinesia VAS, Mood VAS
-* **ET** — Tremor VAS, Mood VAS
+* **OCD** — Obsessions, Compulsions, Anxiety, Mood, Energy
+* **MDD** — Rumination, Anxiety, Mood, Energy
+* **PD** — Tremor, Rigidity, Bradykinesia, Dyskinesia, Gait / balance,
+  Paresthesia, Speech difficulty
+* **ET** — Action tremor, Resting tremor, Paresthesia, Speech difficulty
+* **Dystonia** — Muscle contractions, Abnormal posture, Pain
+* **TS** — Tic severity, Premonitory urge, Control over tics, Anxiety,
+  Impulsivity
 
 Custom scales
 ^^^^^^^^^^^^^
 
 Click **+ Add scale** to define a custom scale with a name and a numeric
-range.  Custom scales are saved for the current session.
+range (min / max).  Custom scales are saved for the current session via the
+session-scales settings dialog.
 
 ----
 
@@ -225,12 +242,19 @@ Before the file-save dialog appears, two dialogs will be shown:
       :width: 500px
 
 2. **Report Sections** — choose which sections to include in the report.
-   All four sections are checked by default:
+   By default all main sections are checked.  Under **Session Data** you can
+   include the timeline chart, the lateral data table, or both:
 
-   * Initial Clinical Notes
-   * Session Data
-   * Electrode Configurations
-   * Programming Summary
+   * **Initial Clinical Notes** — baseline scores and Step 1 notes
+   * **Session Data** — parent section; expand to choose:
+
+     * **Session Data Graph** — timeline chart of session-scale values across
+       recorded configurations (best entry highlighted per scale)
+     * **Session Data Table** — lateral table (L/R rows) with stimulation
+       parameters, scale values, and notes
+
+   * **Electrode Configurations** — initial vs final contact diagrams
+   * **Programming Summary** — session duration and parameter ranges
 
    .. image:: _static/report_sections_dialog.png
       :alt: Report sections dialog
@@ -243,9 +267,12 @@ Report Contents
 
 The generated report includes (depending on the selected sections):
 
-* **Initial Clinical Notes** — baseline scale scores and initial notes.
-* **Session Data** — table of all recorded entries with stimulation
-  parameters, scale values, and notes.  The best entry is highlighted.
+* **Initial Clinical Notes** — baseline clinical scale scores and initial
+  notes from Step 1.
+* **Session Data** — optional **timeline chart** (one line per session scale,
+  x-axis = configuration block) and/or **data table** of all recorded entries
+  with stimulation parameters, scale values, and notes.  The best entry per
+  scale is highlighted in green according to your optimisation choices.
 * **Electrode Configurations** — visual diagrams showing the initial and
   final electrode contact selection (Left and Right hemispheres).
 * **Programming Summary** — session duration, number of configurations

@@ -164,8 +164,11 @@ Optional: regenerate UI screenshot artifacts for docs (uploaded as CI artifact):
 
 .. code-block:: bash
 
-   QT_QPA_PLATFORM=offscreen DOCS_SCREENSHOT_DIR=docs/_build/screenshots \
-     uv run pytest tests/docs/test_docs_screenshots.py -m docs_screenshot
+   DOCS_SCREENSHOT_DIR=docs/_static \
+     uv run pytest tests/docs/test_docs_screenshots.py -m docs_screenshot -q
+
+   On Windows, do **not** set ``QT_QPA_PLATFORM=offscreen`` (text renders as
+   empty boxes). The test harness selects the native platform automatically.
 
 Sphinx-related paths under ``docs/``:
 
@@ -464,7 +467,8 @@ Clinical Domain Experts
 If you are a clinician or DBS specialist:
 
 - Share real-world session workflows and edge cases.
-- Review and suggest improvements to clinical scale presets.
+- Review and suggest improvements to clinical and session scale presets
+  (``CLINICAL_SCALES_PRESETS`` / ``SESSION_SCALES_PRESETS`` in ``config.py``).
 - Provide feedback on electrode model definitions and contact diagrams.
 - Help validate clinical accuracy of exported reports.
 

@@ -78,8 +78,8 @@ Three dialogs appear before the file-save dialog:
 Step 1 — Scale Optimisation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Choose the optimisation target for each clinical scale found across all loaded
-files.
+Choose the optimisation target for each **session scale** and, when present,
+each **clinical (baseline) scale** found across all loaded files.
 
 .. image:: _static/scale_optimization_dialog.png
    :alt: Scale optimisation dialog
@@ -87,8 +87,8 @@ files.
 
 For each scale, select:
 
-* **Min** — lower values are better (e.g. UPDRS, Y-BOCS).
-* **Max** — higher values are better (e.g. Mood VAS).
+* **Min** — lower values are better (e.g. UPDRS-III, Tremor, Y-BOCS).
+* **Max** — higher values are better (e.g. Mood, Energy).
 * **Custom** — enter a specific target value; the entry closest to that value
   is highlighted.
 
@@ -97,7 +97,8 @@ Uncheck a scale to exclude it entirely from best-entry highlighting.
 Step 2 — Report Sections
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Choose which sections to include.  By default only the first two are checked:
+Choose which sections to include.  By default **Sessions Overview** and
+**Session Data Graph** are checked:
 
 .. list-table::
    :widths: 35 15 50
@@ -108,13 +109,18 @@ Choose which sections to include.  By default only the first two are checked:
      - Description
    * - Sessions Overview
      - ✓
-     - Summary table listing all loaded sessions with date, number of entries,
-       and final scale values.
-   * - Session Data
+     - Summary table of all loaded sessions (date, entry count, baseline
+       clinical scales) plus a **clinical scales timeline chart** across
+       sessions.
+   * - Session Data → Graph
      - ✓
-     - Detailed table of all recorded entries across all sessions, with
-       stimulation parameters, scale values, and notes.  The best entry per
-       session is highlighted.
+     - **Session-scale timeline chart** across all configurations in all files
+       (one subplot per scale; best entries highlighted).
+   * - Session Data → Table
+     - ☐
+     - Combined table of all recorded entries across sessions (date column,
+       stimulation parameters, scale values, notes).  Best entry per session
+       highlighted.
    * - Electrode Configuration
      - ☐
      - Per-file Initial / Final electrode diagrams (Left and Right hemispheres).
@@ -140,7 +146,8 @@ Report Contents
 Sessions Overview
 ^^^^^^^^^^^^^^^^^^
 
-A table with one row per loaded file:
+A **clinical scales timeline chart** (baseline ``is_initial = 1`` values per
+session file) followed by a summary table with one row per loaded file:
 
 .. list-table::
    :widths: 30 70
@@ -155,17 +162,21 @@ A table with one row per loaded file:
    * - Entries
      - Number of stimulation configurations recorded
    * - Clinical scales
-     - Final scale values from the last recorded entry
+     - Names of baseline clinical scales recorded in Step 1
+   * - Values
+     - Corresponding baseline scores
 
 Session Data
 ^^^^^^^^^^^^^
 
-A combined table of all session entries across all files.  The first column
-shows the **date** of each entry (from the ``date`` field in the TSV).
-Columns include laterality (L/R), stimulation frequency, contacts (+/−),
-amplitude, pulse width, scale values, and notes.
+Depending on your section selection, the report includes a **session-scale
+timeline chart** (values across programming blocks in all files), a **combined
+data table**, or both.
 
-The best entry per session is highlighted in **green**.
+The table's first column shows the **date** of each entry (from the ``date``
+field in the TSV).  Other columns include laterality (L/R), stimulation
+frequency, contacts (+/−), amplitude, pulse width, session scale values, and
+notes.  The best entry per session is highlighted in **green**.
 
 .. image:: _static/longitudinal_session_data.png
    :alt: Session data table in longitudinal report
