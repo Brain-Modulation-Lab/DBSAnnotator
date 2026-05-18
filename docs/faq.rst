@@ -92,10 +92,8 @@ The application highlights the "best" stimulation configuration in green in the
 Session Data table.  The scale optimisation dialog lets you define what "best"
 means for each scale:
 
-* **Min** — the entry with the lowest value is best (e.g. UPDRS — lower motor
-  score = better).
-* **Max** — the entry with the highest value is best (e.g. Mood VAS — higher
-  mood = better).
+* **Min** — the entry with the lowest value is best (e.g. UPDRS-III, Tremor).
+* **Max** — the entry with the highest value is best (e.g. Mood, Energy).
 * **Custom** — the entry closest to a target value you specify.
 
 Uncheck a scale to exclude it from the calculation.
@@ -103,8 +101,17 @@ Uncheck a scale to exclude it from the calculation.
 **The report sections dialog appeared but I only want a summary table.
 Which sections should I check?**
 
-Check only **Sessions Overview** (for a quick one-table overview) or
-**Programming Summary** (for parameter ranges).  Uncheck the others.
+Check only **Sessions Overview** (summary table plus clinical-scales chart) or
+**Programming Summary** (parameter ranges).  Uncheck the others.  For a chart
+without the full entry table, select **Session Data Graph** only.
+
+**Where do the timeline charts in reports come from?**
+
+Session and longitudinal exporters build PNG charts with matplotlib
+(``report_chart_utils``).  **Session Data Graph** plots session-scale values
+(0–10) against configuration block index.  **Sessions Overview** in the
+longitudinal report adds a separate chart of baseline clinical scales across
+loaded session files.
 
 **Word export works but PDF export fails.**
 
@@ -159,5 +166,7 @@ Contact & Support
 
 For bug reports, feature requests, or questions:
 
+| **Massachusetts General Hospital** (Brain Modulation Lab)
 | **Wyss Center for Bio and Neuroengineering**
+| **Charité Universitätsmedizin Berlin**
 | **Lucia Poma** — lucia.poma@wysscenter.ch

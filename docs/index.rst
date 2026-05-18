@@ -16,12 +16,13 @@ clinician or researcher through the full session workflow — from initial
 electrode configuration and baseline scales, through real-time stimulation
 adjustments, to the automatic generation of structured Word and PDF reports.
 
-Developed at the **Brain Modulation Lab, Massachusetts General Hospital** in Boston, USA
-and at the **Wyss Center for Bio and Neuroengineering** in Geneva, Switzerland.
+Developed at the **Brain Modulation Lab, Massachusetts General Hospital** (Boston, USA),
+the **Wyss Center for Bio and Neuroengineering** (Geneva, Switzerland), and
+**Charité Universitätsmedizin Berlin** (Germany).
 
 .. note::
    | Version |release|.
-   | Publisher: Wyss Center for Bio and Neuroengineering.
+   | Copyright © Massachusetts General Hospital, Wyss Center for Bio and Neuroengineering, and Charité Universitätsmedizin Berlin.
    | Contact: lucia.poma@wysscenter.ch
 
 ----
@@ -68,10 +69,12 @@ Quick Overview
 
    * - **Single-session workflow**
      - Record stimulation parameters, clinical scales, and notes step-by-step.
-       Export a structured report (Word / PDF) at the end.
+       Export a structured report (Word / PDF) with tables, electrode diagrams,
+       and session-scale timeline charts.
    * - **Longitudinal report**
      - Combine multiple session files into a single comparative document with
-       overview tables, electrode configuration diagrams, and timeline charts.
+       overview tables, clinical and session-scale charts, electrode diagrams,
+       and programming summaries.
    * - **Free annotations**
      - Quick timestamped text notes without the full stimulation workflow.
    * - **BIDS-compliant output**

@@ -15,13 +15,22 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 _DIST_NAME = "dbs-annotator"
 
-from dbs_annotator.config import APP_LEAD_AUTHOR, ORGANIZATION_PUBLISHER
+from dbs_annotator.config import APP_LEAD_AUTHOR, UPDATE_FEEDBACK_EMAIL
 
 project = "DBS Annotator"
 author = APP_LEAD_AUTHOR
 release = metadata.version(_DIST_NAME)
 version = ".".join(release.split(".")[:2])
-copyright = f"2025-{datetime.now().year}, {ORGANIZATION_PUBLISHER}"
+_DOCS_COPYRIGHT_HOLDERS = (
+    "Massachusetts General Hospital, "
+    "Wyss Center for Bio and Neuroengineering, "
+    "and Charité Universitätsmedizin Berlin"
+)
+copyright = f"2025-{datetime.now().year}, {_DOCS_COPYRIGHT_HOLDERS}"
+
+html_context = {
+    "contact_email": UPDATE_FEEDBACK_EMAIL,
+}
 
 extensions = [
     "sphinx.ext.autodoc",

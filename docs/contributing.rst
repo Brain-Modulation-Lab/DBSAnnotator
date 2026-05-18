@@ -467,7 +467,8 @@ Clinical Domain Experts
 If you are a clinician or DBS specialist:
 
 - Share real-world session workflows and edge cases.
-- Review and suggest improvements to clinical scale presets.
+- Review and suggest improvements to clinical and session scale presets
+  (``CLINICAL_SCALES_PRESETS`` / ``SESSION_SCALES_PRESETS`` in ``config.py``).
 - Provide feedback on electrode model definitions and contact diagrams.
 - Help validate clinical accuracy of exported reports.
 
