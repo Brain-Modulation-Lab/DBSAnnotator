@@ -164,8 +164,11 @@ Optional: regenerate UI screenshot artifacts for docs (uploaded as CI artifact):
 
 .. code-block:: bash
 
-   QT_QPA_PLATFORM=offscreen DOCS_SCREENSHOT_DIR=docs/_build/screenshots \
-     uv run pytest tests/docs/test_docs_screenshots.py -m docs_screenshot
+   DOCS_SCREENSHOT_DIR=docs/_static \
+     uv run pytest tests/docs/test_docs_screenshots.py -m docs_screenshot -q
+
+   On Windows, do **not** set ``QT_QPA_PLATFORM=offscreen`` (text renders as
+   empty boxes). The test harness selects the native platform automatically.
 
 Sphinx-related paths under ``docs/``:
 
