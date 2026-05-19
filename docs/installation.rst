@@ -24,6 +24,26 @@ your operating system.
 
 ----
 
+.. _windows-smartscreen:
+
+Windows — SmartScreen warnings
+------------------------------
+
+Release builds are not code-signed.  **Windows Defender SmartScreen** may
+block the installer (``.msi``) or the application on first launch.
+
+If you see **"Windows protected your PC"** or **"Microsoft Defender SmartScreen
+prevented an unrecognized app from starting"**:
+
+1. Click **More info** (or **Show more** on newer Windows builds).
+2. Click **Run anyway** (installer) or **Run** (application).
+
+If your organization blocks unsigned software entirely, use the PowerShell
+install command below (portable build under your user profile), or ask IT for
+an exception.
+
+----
+
 Windows — install via PowerShell
 --------------------------------
 
