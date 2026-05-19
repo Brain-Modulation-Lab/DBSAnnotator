@@ -79,7 +79,7 @@ An interactive diagram of the selected electrode is displayed immediately.
 
 .. image:: _static/electrode_diagram.png
    :alt: Interactive electrode contact diagram
-   :class: screenshot-medium
+   :class: screenshot-native
 
 Contact Selection
 ^^^^^^^^^^^^^^^^^
@@ -162,7 +162,7 @@ To change the built-in preset buttons for all future sessions, click the
 
 .. image:: _static/clinical_scales_settings_dialog.png
    :alt: Clinical Scales Settings dialog
-   :class: screenshot-medium
+   :class: screenshot-native
 
 .. raw:: html
 
@@ -224,7 +224,7 @@ not saved until you confirm.)
 
 .. image:: _static/session_scales_settings_dialog.png
    :alt: Session Scales Settings dialog
-   :class: screenshot-medium
+   :class: screenshot-native
 
 In Step 3, each session scale is rated with a **slider** (0–10 for built-in
 presets).  Press **✕** on a slider to mark that scale as not assessed (stored
@@ -290,7 +290,7 @@ Before the file-save dialog appears, two dialogs will be shown:
 
    .. image:: _static/scale_optimization_dialog.png
       :alt: Scale optimisation dialog
-      :class: screenshot-medium
+      :class: screenshot-native
 
 2. **Report Sections** — choose which sections to include in the report.
    By default all main sections are checked.  Under **Session Data** you can
@@ -309,7 +309,7 @@ Before the file-save dialog appears, two dialogs will be shown:
 
    .. image:: _static/report_sections_dialog.png
       :alt: Report sections dialog
-      :class: screenshot-medium
+      :class: screenshot-native
 
 3. Choose the **save location** for the report file.
 

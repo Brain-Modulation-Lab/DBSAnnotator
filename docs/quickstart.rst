@@ -14,7 +14,7 @@ window opens, showing the **Home screen**.
 
 .. image:: _static/home_screen.png
    :alt: Application home screen
-   :class: screenshot-medium
+   :class: screenshot-native
 
 ----
 
@@ -59,7 +59,7 @@ immediately and maintained between pages.
 
 .. image:: _static/home_screen_dark.png
    :alt: Application home screen (dark theme)
-   :class: screenshot-medium
+   :class: screenshot-native
 
 ----
 
