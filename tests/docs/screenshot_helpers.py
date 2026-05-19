@@ -5,6 +5,10 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dbs_annotator.views.wizard_window import WizardWindow
 
 import pandas as pd
 from PySide6.QtCore import Qt
@@ -37,8 +41,6 @@ DOCS_STATIC_DIR = Path("docs/_static")
 LOGO_SOURCE = Path("icons/logosimple/logosimple-256.png")
 # Qt PNG quality: compression 0 (largest) .. 9 (smallest); 2 = high fidelity.
 PNG_SAVE_COMPRESSION = 2
-WIZARD_SCREENSHOT_WIDTH = 1600
-WIZARD_SCREENSHOT_HEIGHT = 1000
 ELECTRODE_SCREENSHOT_SCALE = 2
 
 PATIENT_ID = "01"
@@ -114,9 +116,21 @@ def wait_for_render(ms: int = 400) -> None:
 
 def save_pixmap(pixmap: QPixmap, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    image = pixmap.toImage()
-    ok = image.save(str(path), b"PNG", PNG_SAVE_COMPRESSION)
+    # Runtime PySide6 on Windows accepts str format + positional quality; bytes fail.
+    ok = pixmap.save(str(path), "PNG", PNG_SAVE_COMPRESSION)
     assert ok, f"Failed to save screenshot: {path}"
+
+
+def _crop_grab_to_widget(widget: QWidget, pixmap: QPixmap) -> QPixmap:
+    """Trim ``grabWindow`` over-capture (frame/shadow) to the widget client area."""
+    dpr = widget.devicePixelRatioF()
+    target_w = max(1, int(widget.width() * dpr))
+    target_h = max(1, int(widget.height() * dpr))
+    if pixmap.width() <= target_w and pixmap.height() <= target_h:
+        return pixmap
+    w = min(pixmap.width(), target_w)
+    h = min(pixmap.height(), target_h)
+    return pixmap.copy(0, 0, w, h)
 
 
 def grab_window_pixmap(widget: QWidget) -> QPixmap:
@@ -133,7 +147,7 @@ def grab_window_pixmap(widget: QWidget) -> QPixmap:
             try:
                 grabbed = screen.grabWindow(int(win_id))
                 if not grabbed.isNull():
-                    return grabbed
+                    return _crop_grab_to_widget(widget, grabbed)
             except (TypeError, ValueError):
                 pass
 
@@ -145,12 +159,40 @@ def grab_widget_pixmap(widget: QWidget) -> QPixmap:
     return grab_window_pixmap(widget)
 
 
+def _crop_pixmap_to_content(
+    pixmap: QPixmap,
+    background: QColor,
+    *,
+    margin: int = 20,
+    margin_left: int | None = None,
+) -> QPixmap:
+    """Trim uniform background borders (same idea as session export)."""
+    image = pixmap.toImage()
+    bg_rgb = background.rgb()
+    left, top, right, bottom = image.width(), image.height(), 0, 0
+    for y in range(image.height()):
+        for x in range(image.width()):
+            if image.pixel(x, y) != bg_rgb:
+                left = min(left, x)
+                top = min(top, y)
+                right = max(right, x)
+                bottom = max(bottom, y)
+    if right <= left or bottom <= top:
+        return pixmap
+    ml = margin if margin_left is None else margin_left
+    left = max(0, left - ml)
+    top = max(0, top - margin)
+    right = min(image.width() - 1, right + margin)
+    bottom = min(image.height() - 1, bottom + margin)
+    return pixmap.copy(left, top, right - left + 1, bottom - top + 1)
+
+
 def save_electrode_canvas(
     canvas,
     path: Path,
     *,
-    width: int = 420 * ELECTRODE_SCREENSHOT_SCALE,
-    height: int = 760 * ELECTRODE_SCREENSHOT_SCALE,
+    width: int = 440 * ELECTRODE_SCREENSHOT_SCALE,
+    height: int = 900 * ELECTRODE_SCREENSHOT_SCALE,
     background: str = "#f8fafc",
 ) -> None:
     """Render electrode state to PNG (same offscreen path as session export).
@@ -183,6 +225,7 @@ def save_electrode_canvas(
     pixmap = QPixmap(offscreen.size())
     pixmap.fill(bg)
     offscreen.render(pixmap)
+    pixmap = _crop_pixmap_to_content(pixmap, bg, margin=20, margin_left=16)
     save_pixmap(pixmap, path)
 
 
@@ -289,15 +332,18 @@ def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
-def save_wizard(
-    wizard: QWidget,
-    path: Path,
-    width: int = WIZARD_SCREENSHOT_WIDTH,
-    height: int = WIZARD_SCREENSHOT_HEIGHT,
-) -> None:
-    """Capture the wizard window at native resolution (screen grab, HiDPI)."""
-    wizard.setMinimumSize(width, height)
-    wizard.resize(width, height)
+def _apply_wizard_screenshot_geometry(wizard: WizardWindow) -> None:
+    """Resize wizard to the same geometry the app uses for the current step."""
+    if wizard.current_step == 0:
+        wizard._update_window_size_for_step0()
+    else:
+        wizard._update_window_size_for_main_workflow()
+    wait_for_render(200)
+
+
+def save_wizard(wizard: WizardWindow, path: Path) -> None:
+    """Capture the wizard at app-native size (step 0 compact, steps 1+ responsive)."""
+    _apply_wizard_screenshot_geometry(wizard)
     save_pixmap(grab_window_pixmap(wizard), path)
 
 

@@ -115,7 +115,7 @@ Example export
 
 .. image:: _static/session_report_example.png
    :alt: Example single-session Word report (graph, table, electrode diagrams)
-   :class: screenshot-medium
+   :class: screenshot-native
 
 .. tip::
    Add a representative screenshot as ``docs/_static/session_report_example.png``
@@ -143,7 +143,7 @@ Example export
 
 .. image:: _static/longitudinal_report_example.png
    :alt: Example longitudinal Word report (overview chart and session data)
-   :class: screenshot-medium
+   :class: screenshot-native
 
 .. tip::
    Add a representative screenshot as

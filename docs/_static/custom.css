@@ -18,10 +18,21 @@
   height: auto;
 }
 
-/* Home screen, settings dialogs, and other modal / partial captures. */
+/*
+ * Dialogs, home screen, electrode diagram, etc.
+ * Never upscale beyond the PNG's intrinsic width; shrink only on narrow viewports.
+ */
+.rst-content img.screenshot-native,
+.wy-nav-content img.screenshot-native {
+  width: auto !important;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Back-compat alias (older docs / branches). */
 .rst-content img.screenshot-medium,
 .wy-nav-content img.screenshot-medium {
-  width: 60% !important;
-  max-width: 720px;
+  width: auto !important;
+  max-width: 100%;
   height: auto;
 }

@@ -288,8 +288,9 @@ class ElectrodeCanvas(QWidget):
         # Calculate optimal scale
         scale = self.calculate_scale()
 
-        # Canvas center
-        center_x = self.width() / 2 - 4
+        # Export: extra left room for E0–En labels beside directional segments.
+        export_pad_left = max(56, int(scale * 0.75)) if self.export_mode else 0
+        center_x = export_pad_left + (self.width() - export_pad_left) / 2 - 4
         top_padding = 2 if self.export_mode else 7
 
         # Clear position dictionaries
@@ -768,10 +769,20 @@ class ElectrodeCanvas(QWidget):
             # Label format
             contact_label = f"E{contact_idx}"
 
+            # Export mode uses a larger font; keep the label box wide enough that
+            # "E1", "E2", … are not clipped on the left (fixed 35px was too narrow).
+            label_width = max(35, elabel_size * 2 + 6)
+            if is_directional_contact:
+                label_right = label_x + 35
+                label_x = label_right - label_width
+            else:
+                label_right = label_x + 35
+                label_x = label_right - label_width
+
             painter.drawText(
                 int(label_x),
                 int(current_y),
-                35,
+                label_width,
                 int(contact_height_px),
                 Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
                 contact_label,

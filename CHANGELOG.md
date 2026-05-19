@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and session scales settings dialogs, and regenerated workflow captures at
   native resolution (HiDPI-aware screen grab, improved PNG settings).
 - ``docs/_static/custom.css``: full-width RTD content; ``screenshot-full`` (wizard
-  steps) and ``screenshot-medium`` (home, dialogs) with ``max-width: 720px`` to
-  avoid upscaled blurry dialog images.
+  steps) and ``screenshot-native`` (home, dialogs, electrode diagram) capped at
+  each PNG's intrinsic width so dialogs are not upscaled on wide screens.
 - ``COPYRIGHT_HOLDERS`` and ``APP_LICENSE_NAME`` in ``config.py`` (shared with
   documentation).
 
@@ -33,6 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   BIDS files for longitudinal reports.
 - Documentation copyright: Massachusetts General Hospital, Wyss Center for Bio
   and Neuroengineering, and Charité Universitätsmedizin Berlin.
+- Screenshot capture uses the app's responsive window geometry (step 0 compact,
+  steps 1+ full workflow) instead of a fixed 1600×1000 frame.
+
+### Fixed
+
+- Electrode diagram export: E0–En labels no longer clipped on the left in PNG
+  output (wider label box and export left padding in ``ElectrodeCanvas``).
+- Docs screenshot pipeline: Windows ``QPixmap.save``/PNG compression; trim
+  ``grabWindow`` shadow bar on wizard captures; remove duplicate
+  ``electrode-canvas.png`` artifact.
+- Read the Docs build: ``installation.rst`` SmartScreen cross-reference and
+  label placement for Sphinx ``-W`` builds.
 
 ## [0.4.0b1] - 2026-05-08
 

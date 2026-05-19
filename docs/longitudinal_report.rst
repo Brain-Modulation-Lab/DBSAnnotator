@@ -89,7 +89,7 @@ each **clinical (baseline) scale** found across all loaded files.
 
 .. image:: _static/scale_optimization_dialog.png
    :alt: Scale optimisation dialog
-   :class: screenshot-medium
+   :class: screenshot-native
 
 For each scale, select:
 
@@ -137,7 +137,7 @@ Choose which sections to include.  By default **Sessions Overview** and
 
 .. image:: _static/report_sections_dialog_longitudinal.png
    :alt: Report sections dialog – longitudinal
-   :class: screenshot-medium
+   :class: screenshot-native
 
 Step 3 — Save Location
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -186,7 +186,7 @@ notes.  The best entry per session is highlighted in **green**.
 
 .. image:: _static/longitudinal_session_data.png
    :alt: Session data table in longitudinal report
-   :class: screenshot-medium
+   :class: screenshot-native
 
 Electrode Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -207,7 +207,7 @@ A page break separates each file's configuration page.
 
 .. image:: _static/electrode_config_longitudinal.png
    :alt: Electrode configuration in longitudinal report
-   :class: screenshot-medium
+   :class: screenshot-native
 
 Programming Summary
 ^^^^^^^^^^^^^^^^^^^^
