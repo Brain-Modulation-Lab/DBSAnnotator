@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and session scales settings dialogs, and regenerated workflow captures at
   native resolution (HiDPI-aware screen grab, improved PNG settings).
 - ``docs/_static/custom.css``: full-width RTD content; ``screenshot-full`` (wizard
-  steps) and ``screenshot-native`` (home, dialogs, electrode diagram) capped at
-  each PNG's intrinsic width so dialogs are not upscaled on wide screens.
+  steps) and ``screenshot-native`` (home, dialogs) capped at each PNG's intrinsic
+  width so dialogs are not upscaled on wide screens.
 - ``COPYRIGHT_HOLDERS`` and ``APP_LICENSE_NAME`` in ``config.py`` (shared with
   documentation).
 
@@ -35,9 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and Neuroengineering, and Charité Universitätsmedizin Berlin.
 - Screenshot capture uses the app's responsive window geometry (step 0 compact,
   steps 1+ full workflow) instead of a fixed 1600×1000 frame.
+- ``workflow_session.rst``: drop standalone ``electrode_diagram.png`` (electrode
+  UI is already visible in the Step 1 screenshot).
 
 ### Fixed
 
+- Update checker: HTTPS uses the ``certifi`` CA bundle (fixes failed or empty
+  GitHub API responses in Briefcase MSI/ZIP on Windows); compares against
+  ``APP_VERSION``; empty or invalid release data surfaces as errors instead of
+  a misleading “no updates” dialog.
 - Electrode diagram export: E0–En labels no longer clipped on the left in PNG
   output (wider label box and export left padding in ``ElectrodeCanvas``).
 - Docs screenshot pipeline: Windows ``QPixmap.save``/PNG compression; trim

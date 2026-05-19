@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import ssl
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -31,10 +32,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
+import certifi
 from packaging.version import InvalidVersion, Version
 from PySide6.QtCore import QObject, QRunnable, QSettings, QThreadPool, Signal
 
-from .. import __version__
+from ..version import get_version
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,11 @@ _LAST_CHECK_KEY = "updater/last_check_iso"
 _AUTO_CHECK_KEY = "updater/auto_check_enabled"
 _RELEASES_PAGE_SIZE = 100
 _MAX_RELEASE_PAGES = 5
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """CA bundle for HTTPS in packaged apps (Briefcase MSI/ZIP on Windows)."""
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 @dataclass(frozen=True)
@@ -145,10 +152,12 @@ class _CheckWorker(QRunnable):
 
     def _urlopen_json(self, url: str) -> object:
         request = self._request(url)
-        with urllib.request.urlopen(request, timeout=self._timeout) as response:
+        with urllib.request.urlopen(
+            request, timeout=self._timeout, context=_ssl_context()
+        ) as response:
             return json.loads(response.read().decode("utf-8"))
 
-    def _fetch_releases_page(self, page: int) -> list[dict] | None:
+    def _fetch_releases_page(self, page: int) -> list[dict]:
         url = (
             f"https://api.github.com/repos/{self._repo}/releases"
             f"?per_page={_RELEASES_PAGE_SIZE}&page={page}"
@@ -157,12 +166,9 @@ class _CheckWorker(QRunnable):
             payload = self._urlopen_json(url)
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
-                logger.debug(
-                    "No GitHub releases list for %s (HTTP %s); treat as no update",
-                    self._repo,
-                    exc.code,
-                )
-                return None
+                raise RuntimeError(
+                    f"GitHub releases API returned 404 for {self._repo}."
+                ) from exc
             raise
         if not isinstance(payload, list):
             return []
@@ -172,8 +178,6 @@ class _CheckWorker(QRunnable):
         merged: list[dict] = []
         for page in range(1, _MAX_RELEASE_PAGES + 1):
             batch = self._fetch_releases_page(page)
-            if batch is None:
-                return []
             merged.extend(batch)
             if len(batch) < _RELEASES_PAGE_SIZE:
                 break
@@ -181,17 +185,19 @@ class _CheckWorker(QRunnable):
 
     def _fetch_newest_applicable_release(self) -> ReleaseInfo | None:
         """Return single newest published release with version *>* local."""
-        payloads = self._fetch_all_releases()
-        if not payloads:
-            return None
-
         local = _parse_version(self._current_version)
         if local is None:
-            logger.debug(
-                "Skipping update comparison; local version not PEP 440: %r",
-                self._current_version,
+            raise ValueError(
+                f"Installed version {self._current_version!r} is not a valid "
+                "PEP 440 version."
             )
-            return None
+
+        payloads = self._fetch_all_releases()
+        if not payloads:
+            raise RuntimeError(
+                f"No published releases returned for {self._repo} "
+                "(empty list or network issue)."
+            )
 
         best_remote: Version | None = None
         best_payload: dict | None = None
@@ -249,7 +255,7 @@ class UpdateChecker(QObject):
     ) -> None:
         super().__init__(parent)
         self._repo = repo
-        self._current_version = current_version or __version__
+        self._current_version = current_version or get_version()
         self._cooldown = cooldown
         self._timeout = timeout
         self._settings = QSettings()

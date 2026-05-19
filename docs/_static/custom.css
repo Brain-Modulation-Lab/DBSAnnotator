@@ -19,7 +19,7 @@
 }
 
 /*
- * Dialogs, home screen, electrode diagram, etc.
+ * Dialogs, home screen, and other partial captures.
  * Never upscale beyond the PNG's intrinsic width; shrink only on narrow viewports.
  */
 .rst-content img.screenshot-native,

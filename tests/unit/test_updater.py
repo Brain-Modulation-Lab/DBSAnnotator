@@ -32,19 +32,41 @@ def _mock_urlopen(data: object) -> _FakeResp:
     return _FakeResp(json.dumps(data).encode("utf-8"))
 
 
-def test_fetch_empty_releases_returns_none() -> None:
+def test_fetch_empty_releases_raises() -> None:
     signals = _CheckSignals()
     worker = _CheckWorker("o/r", "1.0.0", 10.0, signals)
-    with patch("urllib.request.urlopen", return_value=_mock_urlopen([])):
-        assert worker._fetch_newest_applicable_release() is None
+    with (
+        patch("urllib.request.urlopen", return_value=_mock_urlopen([])),
+        pytest.raises(RuntimeError, match="No published releases"),
+    ):
+        worker._fetch_newest_applicable_release()
 
 
-def test_fetch_releases_404_returns_none() -> None:
+def test_fetch_releases_404_raises() -> None:
     signals = _CheckSignals()
     worker = _CheckWorker("o/r", "1.0.0", 10.0, signals)
     err = urllib.error.HTTPError("url", 404, "nf", Message(), io.BytesIO(b""))
-    with patch("urllib.request.urlopen", side_effect=err):
-        assert worker._fetch_newest_applicable_release() is None
+    with (
+        patch("urllib.request.urlopen", side_effect=err),
+        pytest.raises(RuntimeError, match="404"),
+    ):
+        worker._fetch_newest_applicable_release()
+
+
+def test_urlopen_uses_certifi_ssl_context() -> None:
+    signals = _CheckSignals()
+    worker = _CheckWorker("o/r", "1.0.0", 10.0, signals)
+    with (
+        patch("urllib.request.urlopen", return_value=_mock_urlopen([])) as mock_open,
+        patch(
+            "dbs_annotator.utils.updater._ssl_context",
+            return_value=object(),
+        ) as mock_ctx,
+    ):
+        with pytest.raises(RuntimeError):
+            worker._fetch_newest_applicable_release()
+    mock_ctx.assert_called()
+    assert mock_open.call_args.kwargs.get("context") is mock_ctx.return_value
 
 
 @pytest.mark.parametrize("code", [403, 500, 502])

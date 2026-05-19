@@ -6,47 +6,49 @@ General
 
 **Does the application require an internet connection?**
 
-No : session recording, editing, and export work fully
-offline and only read and write local files.  Optionally, the application can
-contact the public GitHub *releases* API (about once per day when enabled) to
-see whether a newer build is published; that request does not include patient
-or session content.  If the network is unavailable or the check fails, the app
-continues without blocking.  You can turn off automatic update checks from
-**Help** (or from the opt-out on an update notification).
+No: session recording, editing, and export work fully offline and only read and
+write local files.  Optionally, the application can contact the public GitHub
+*releases* API (about once per day when enabled) to see whether a newer build
+is published; that request does not include patient or session content.  If the
+network is unavailable or the check fails, the app continues without blocking.
+You can turn off automatic update checks from Help (or from the opt-out on an
+update notification).
 
 **Is my patient data sent anywhere?**
 
-No.  All data stays on your local machine.  No telemetry, no cloud sync.
+No.  All data stays on your local machine or the folder you chose when starting
+a session.  No telemetry, no cloud sync.
 
 **How does the automatic update checker work?**
 
 When automatic checks are enabled, the app compares your installed version with
 published releases on the upstream GitHub repository (including pre-releases
 when they are the newest applicable tag), and notifies you if a strictly newer
-semver is available.  Only one candidate release is considered—the highest
-version above yours.  Update checks run in the background, do not block startup,
-and are skipped silently on errors.  Use **Help** to toggle “Automatically check
-for updates”, or disable them from the checkbox on the update dialog if you do
-not want further automatic notifications.
+semver is available.  Only one candidate release is considered: the highest
+version above yours.  Update checks run in the background, do not block
+startup, and are skipped silently on errors.  Use Help to toggle
+"Automatically check for updates", or disable them from the checkbox on the
+update dialog if you do not want further automatic notifications.
 
 **Which DBS systems are supported?**
 
 The application is system-agnostic for data recording.  Electrode visualisation
 supports leads from Medtronic (including Percept PC / RC), Abbott (Infinity),
-Boston Scientific (Vercise) and PINS families.
-If your lead is not listed, use the closest equivalent or contact the
-development team to request it be added.
+Boston Scientific (Vercise), and PINS families.  If your lead is not listed,
+use the closest equivalent or contact the development team to request it be
+added.
 
 **Can I use the application on a shared clinical workstation?**
 
-Yes.  The application is easily installable and does not require installation or registry entries.
+Yes.  The application installs per user without requiring administrator rights
+for day-to-day use.  Session files are plain TSV files in folders you choose.
 
 ----
 
 Files & Data
 ------------
 
-**Where are my data files saved?**
+**Where are TSV files saved?**
 
 In the folder you selected in Step 0 of the Complete Workflow.  The application
 never writes files outside that folder.
@@ -56,8 +58,8 @@ never writes files outside that folder.
 Yes.  In Excel: *File → Open*, select the ``.tsv`` file, and in the Text Import
 Wizard choose **Tab** as the delimiter.
 
-Alternatively, double-click the file — Windows may open it in Excel
-automatically if Excel is installed.
+Alternatively, double-click the file; Windows may open it in Excel automatically
+if Excel is installed.
 
 **Can I edit the TSV file manually?**
 
@@ -66,20 +68,14 @@ You can, but be careful:
 * Do not change column headers.
 * Do not delete or reorder rows.
 * Do not change the ``is_initial`` values.
-* Save as Tab-delimited TSV, not as ``.xlsx``.
+* Save as tab-delimited TSV, not as ``.xlsx``.
 
 **What happens if the application crashes mid-session?**
 
-All entries are written to disk immediately as they are recorded in the TSV file.  You will not
-lose any data that was successfully recorded before the crash.  Reopen the
-application, start a new session pointing to the same folder, and the existing
-file will be detected.
-
-**Can I merge two TSV files from the same session?**
-
-Manually: open both files in a text editor and copy the rows from the second
-file (excluding the header row) to the end of the first.  Make sure session IDs
-are unique after merging.
+All entries are written to disk immediately as they are recorded in the TSV
+file.  You will not lose any data that was successfully recorded before the
+crash.  Reopen the application, start a new session pointing to the same folder,
+and the existing file will be detected.
 
 ----
 
@@ -107,11 +103,10 @@ without the full entry table, select **Session Data Graph** only.
 
 **Where do the timeline charts in reports come from?**
 
-Session and longitudinal exporters build PNG charts with matplotlib
-(``report_chart_utils``).  **Session Data Graph** plots session-scale values
-(0–10) against ``block_ID`` (configuration index).  **Sessions Overview** in the
-longitudinal report adds a separate chart of baseline clinical scales across
-loaded session files.
+Session and longitudinal exporters build PNG charts with matplotlib.
+**Session Data Graph** plots session-scale values (0–10 by default) against
+``block_ID`` (configuration index).  **Sessions Overview** in the longitudinal
+report adds a separate chart of clinical scales across loaded session files.
 
 **Word export works but PDF export fails.**
 
@@ -134,8 +129,8 @@ Troubleshooting
 
 **The application does not start / shows a black window.**
 
-Try running it as administrator (right-click → *Run as administrator*).  This
-is sometimes needed on machines with strict execution policies.
+Try running it as administrator (right-click → *Run as administrator*).  This is
+sometimes needed on machines with strict execution policies.
 
 **The application is very slow on first launch.**
 
@@ -156,7 +151,7 @@ Check that:
 The longitudinal report requires at least one session file with recorded scale
 values (``scale_name`` and ``scale_value`` columns populated) in
 ``is_initial = 0`` rows.  If your files only contain initial entries, the
-dialog cannot compute best-entry highlighting — proceed by clicking OK without
+dialog cannot compute best-entry highlighting; proceed by clicking OK without
 making any selection.
 
 ----
