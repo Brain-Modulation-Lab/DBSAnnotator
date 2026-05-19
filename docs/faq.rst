@@ -50,8 +50,9 @@ Files & Data
 
 **Where are TSV files saved?**
 
-In the folder you selected in Step 0 of the Complete Workflow.  The application
-never writes files outside that folder.
+In the folder of the ``.tsv`` file you chose in **Step 0 — File setup** of the
+Complete Workflow (or in the Annotations-only Workflow).  The application never
+writes files outside that path.
 
 **Can I open the TSV files in Excel?**
 
@@ -126,11 +127,6 @@ you selected an electrode model in Step 1 before recording entries.
 
 Troubleshooting
 ---------------
-
-**The application does not start / shows a black window.**
-
-Try running it as administrator (right-click → *Run as administrator*).  This is
-sometimes needed on machines with strict execution policies.
 
 **The application is very slow on first launch.**
 

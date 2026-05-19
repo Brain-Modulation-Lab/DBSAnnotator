@@ -30,7 +30,6 @@ powershell -ExecutionPolicy Bypass -NoProfile -Command "irm https://raw.githubus
 
 ### macOS / Linux — shell install (curl / wget)
 
-
 ```sh
 curl -LsSf https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
 ```
@@ -41,28 +40,52 @@ wget -qO- https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/ma
 
 ## What It Does
 
-The application guides you through a DBS programming session in three steps:
+From the home screen you can start three workflows (full guide:
+[Read the Docs](https://brain-modulation-lab.github.io/DBSAnnotator/)):
 
-1. **Initial Setup** — Select output file, electrode model, initial stimulation parameters, and baseline clinical scales
-2. **Session Scales** — Choose which scales to track during the session (Mood, Anxiety, Energy, etc.)
-3. **Active Recording** — Adjust stimulation parameters in real-time, record scale values at each timepoint, add notes, and export a clinical report
+### Complete Workflow
 
-There is also a **Free Annotations** mode for quick timestamped text annotations without the full stimulation workflow.
+Four steps — stimulation parameters, clinical scales, session scales, and notes;
+data saved automatically after each entry:
+
+1. **Step 0 — File setup** — Open or create a programming-session TSV
+  (`sub-XX_ses-YYYYMMDD_task-programming_run-XX_events.tsv`); **New** asks for
+   Patient ID and Run ID (Session ID is today's date).
+2. **Step 1 — Initial Configuration** — Electrode model, baseline stimulation
+  parameters, and clinical scales.
+3. **Step 2 — Session Scale Selection** — Scales rated at each configuration
+  during programming (e.g. Tremor, Mood).
+4. **Step 3 — Active Recording** — Adjust parameters, rate scales, add notes;
+  click **Insert** to record an entry; export a Word/PDF report when finished.
+
+See `[docs/workflow_complete.rst](docs/workflow_complete.rst)` for the full
+step-by-step guide (screenshots, scale presets, and report sections).
+
+### Annotations-only Workflow
+
+Timestamped text notes only — no stimulation parameters or scale values.  Uses a
+dedicated TSV (`task-notes`) with columns `date`, `time`, `timezone`, and
+`notes`.  See `[docs/workflow_annotations.rst](docs/workflow_annotations.rst)`.
+
+### Create Longitudinal Report
+
+Combine multiple programming-session TSV files from the same subject into one
+comparative Word/PDF report.  See `[docs/longitudinal_report.rst](docs/longitudinal_report.rst)`.
 
 ### Key Features
 
+- **Clinical and session scale presets** for OCD, MDD, PD, ET, Dystonia, TS
+- **Timestamps aligned** notes, configuration parameters and scale scores
+- **Export to Word / PDF** with electrode diagrams, tables, and timeline charts
+- **BIDS-compliant file naming** for programming and annotations TSV files
 - **Electrode visualization** with interactive contact selection (supports directional leads)
-- **Clinical scale presets** for OCD, MDD, PD, ET
-- **BIDS-compliant file naming** (sub-XX_ses-YYYYMMDD_task-programming_run-XX_events.tsv)
-- **Export to Word** with electrode configuration images, clinical notes, and session data tables
 - **Dark/Light theme** toggle
-- **Timestamps aligned** with Medtronic Percept data (Eastern Time)
 
 ### Output Format
 
-Data is saved as TSV. The canonical schema is documented in
-`[docs/output_format.rst](docs/output_format.rst)` and auto-generated from the
-code-level constants in `dbs_annotator.config` to prevent drift.
+Programming and annotations data are saved as TSV. The canonical schema is
+documented in `[docs/output_format.rst](docs/output_format.rst)` and
+auto-generated from `dbs_annotator.config` to prevent drift.
 
 ## Contributing
 
@@ -160,9 +183,9 @@ uv run briefcase package windows -p zip    # avoids WiX; omit -p (MSI) when WiX 
 
 **Windows Briefcase quirks:** keep `[tool.briefcase].version` in sync with `dbs_annotator.__version__` (Briefcase does not use Hatch’s dynamic `[project]` version). Bump both in one step with `uv run python scripts/release_prepare.py <version>` (or `--bump …`). If `briefcase build` fails at **“Setting stub app details”** / RCEdit with **“Unable to commit changes”**, exclude the repo or `build\` from real-time antivirus scanning and retry (see [Briefcase issue #1530](https://github.com/beeware/briefcase/issues/1530)).
 
-The Windows stub binary is named `**DBSAnnotator.exe`** (from `[tool.briefcase.app.dbs_annotator].formal_name`). After changing that field, run `**briefcase create windows app**` again (or delete `build\dbs_annotator\windows`) before `**briefcase build**`.
+The Windows stub binary is named `**DBSAnnotator.exe`** (from `[tool.briefcase.app.dbs_annotator].formal_name`). After changing that field, run `**briefcase create windows app`** again (or delete `build\dbs_annotator\windows`) before `**briefcase build**`.
 
-Icons for the **stub**, **MSI/ZIP**, and **Qt** (`QApplication` / window chrome) live under `**icons/logosimple/`**: `**logosimple.ico**`, `**logosimple.png**`, plus `**logosimple-{16,32,64,128,256,512}.png**` for **Linux system** (BeeWare copies them into the Freedesktop hicolor tree; all six are listed in the upstream `briefcase-linux-system-template`). `**logosimple.icns`** is for macOS (build with `iconutil` on a Mac; see `scripts/build_app_icons.py`). Configure with `icon = "icons/logosimple/logosimple"` in `pyproject.toml`. The repo-root `**icons/**` tree is a Briefcase `**sources**` entry and is shipped next to the app package; runtime lookup uses `resource_path()` (package dir, then `src/icons`, then repo-root `icons/`).
+Icons for the **stub**, **MSI/ZIP**, and **Qt** (`QApplication` / window chrome) live under `**icons/logosimple/`**: `**logosimple.ico`**, `**logosimple.png**`, plus `**logosimple-{16,32,64,128,256,512}.png**` for Linux system (BeeWare copies them into the Freedesktop hicolor tree; all six are listed in the upstream `briefcase-linux-system-template`). `**logosimple.icns**` is for macOS (build with `iconutil` on a Mac; see `scripts/build_app_icons.py`). Configure with `icon = "icons/logosimple/logosimple"` in `pyproject.toml`. The repo-root `**icons/**` tree is a Briefcase `**sources**` entry and is shipped next to the app package; runtime lookup uses `resource_path()` (package dir, then `src/icons`, then repo-root `icons/`).
 
 **Inventory (for packaging):**
 
@@ -171,7 +194,7 @@ Icons for the **stub**, **MSI/ZIP**, and **Qt** (`QApplication` / window chrome)
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App type           | Qt **GUI** (`console_app` is false by default).                                                                                                                                             |
 | Heavy deps         | `PySide6`, `matplotlib`, `pandas`, `python-docx`, `docx2pdf` (Windows: `pywin32`; macOS: `appscript` via `docx2pdf`).                                                                       |
-| Data files         | JSON presets under `src/dbs_annotator/config/`; QSS and SVG under repo-root `**styles/`** (also a Briefcase `**sources**` entry); app icons under `**icons/logosimple/**` (Briefcase + Qt). |
+| Data files         | JSON presets under `src/dbs_annotator/config/`; QSS and SVG under repo-root `**styles/`** (also a Briefcase `**sources`** entry); app icons under `**icons/logosimple/**` (Briefcase + Qt). |
 | macOS entitlements | Add an entitlements plist only if you enable the Hardened Runtime and need extra capabilities (network is usually fine without custom entitlements).                                        |
 
 

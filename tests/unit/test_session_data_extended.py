@@ -135,7 +135,7 @@ def test_initialize_simple_file_and_write(tmp_path):
     finally:
         sd.close_file()
     text = p.read_text(encoding="utf-8")
-    assert "annotation" in text
+    assert "notes" in text
     assert "hello" in text
 
 
@@ -156,7 +156,7 @@ def test_open_simple_file_append_new_file(tmp_path):
         assert sd.is_file_open()
     finally:
         sd.close_file()
-    assert "annotation" in p.read_text(encoding="utf-8")
+    assert "notes" in p.read_text(encoding="utf-8")
 
 
 def test_write_simple_annotation_requires_open():

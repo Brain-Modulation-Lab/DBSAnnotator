@@ -28,6 +28,7 @@ APP_LICENSE_NAME = "MIT License"
 
 # Lead author (About; list same person first in package metadata).
 APP_LEAD_AUTHOR = "Lucia Poma"
+APP_MAINTAINER = "Richard Köhler"
 
 # Qt application identity for :func:`QStandardPaths` and :class:`QSettings`.
 # Use ASCII without spaces so per-user directories never contain spaces
@@ -112,7 +113,7 @@ ANNOTATION_TSV_COLUMNS = [
     "date",
     "time",
     "timezone",
-    "annotation",
+    "notes",
 ]
 
 # Timezone configuration

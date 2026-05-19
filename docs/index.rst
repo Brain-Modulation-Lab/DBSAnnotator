@@ -38,7 +38,7 @@ the **Wyss Center for Bio and Neuroengineering** (Geneva, Switzerland), and
    :maxdepth: 2
    :caption: User Guide
 
-   workflow_session
+   workflow_complete
    workflow_annotations
    longitudinal_report
    output_format
@@ -71,13 +71,14 @@ Quick Overview
      - Record stimulation parameters, clinical scales, and notes step-by-step.
        Export a structured report (Word / PDF) with tables, electrode diagrams,
        and session-scale timeline charts.
+   * - **Annotations-only Workflow**
+     - Quick timestamped text notes without the full stimulation workflow.
    * - **Longitudinal report**
      - Combine multiple session files into a single comparative document with
        overview tables, clinical and session-scale charts, electrode diagrams,
        and programming summaries.
-   * - **Annotation-only Workflow**
-     - Quick timestamped text notes without the full stimulation workflow.
    * - **BIDS-compliant output**
      - Data saved as ``sub-XX_ses-YYYYMMDD_task-programming_run-XX_events.tsv``.
-   * - **No installation required**
-     - The application ships as a single self-contained ``.exe`` (Windows).
+   * - **Self-contained desktop app**
+     - Packaged installers (``.msi``, ``.dmg``, ``.deb``); no separate Python
+       runtime required.

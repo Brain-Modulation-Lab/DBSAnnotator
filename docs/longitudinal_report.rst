@@ -224,7 +224,6 @@ A table with one row per session showing:
 Tips
 ----
 
-* Load files in **chronological order** for the most readable report.
 * The report can be re-generated at any time — the source TSV files are never
   modified.
 * For very long longitudinal histories (> 10 sessions) consider splitting the

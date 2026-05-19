@@ -16,9 +16,16 @@ are recorded.
 Filename Convention
 ^^^^^^^^^^^^^^^^^^^
 
-The filename follows the `BIDS <https://bids.neuroimaging.io/>`_ specification::
+Filenames follow the `BIDS <https://bids.neuroimaging.io/>`_ pattern::
 
-   sub-<PatientID>_ses-<YYYYMMDD>_task-programming_run-<NN>_events.tsv
+   sub-<PatientID>_ses-<YYYYMMDD>_task-<TASK>_run-<NN>_events.tsv
+
+The ``task`` segment depends on which workflow created the file:
+
+* **Complete Workflow** — ``task-programming`` (stimulation parameters, clinical
+  and session scales, notes).
+* **Annotations-only Workflow** — ``task-annotations`` (timestamped text annotations
+  only; dedicated column schema — see *Annotations-only TSV columns* below).
 
 Examples::
 
@@ -43,7 +50,7 @@ Row layout and ``block_ID``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each **scale** is stored on its own row.  Rows that belong to the same
-recording event (one Step 1 baseline or one Step 3 **Record entry**) share the
+recording event (one Step 1 baseline or one Step 3 **Insert**) share the
 same ``block_ID``; stimulation parameters, ``date``, ``time``, ``timezone``,
 ``program_ID``, ``electrode_model``, and ``notes`` are repeated on every row of
 that block.  After each write, ``block_ID`` increments by one.
@@ -117,10 +124,6 @@ Example export
    :alt: Example single-session Word report (graph, table, electrode diagrams)
    :class: screenshot-native
 
-.. tip::
-   Add a representative screenshot as ``docs/_static/session_report_example.png``
-   (e.g. session data graph + table + electrode configuration section).
-
 Longitudinal Report
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -144,11 +147,6 @@ Example export
 .. image:: _static/longitudinal_report_example.png
    :alt: Example longitudinal Word report (overview chart and session data)
    :class: screenshot-native
-
-.. tip::
-   Add a representative screenshot as
-   ``docs/_static/longitudinal_report_example.png`` (e.g. sessions overview with
-   clinical-scales chart and combined session data).
 
 ----
 

@@ -1,35 +1,42 @@
-Annotation-only Workflow
-========================
+Annotations-only Workflow
+=========================
 
-The **Annotation-only Workflow** lets you record quick timestamped text notes
-without going through the full stimulation workflow.  Use it for:
+The **Annotations-only Workflow** records timestamped text notes only — no
+stimulation parameters and no clinical or session scale values.  Each note is
+appended to its own annotations TSV file as you work; there is no merge step and
+this workflow does not combine multiple files into one.
 
-* In-clinic observations during a visit that does not involve parameter changes.
-* Supplementary notes to attach to an existing session file.
-* Any situation where you need a lightweight timestamped log.
-
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/annotations_overview.mp4">Watch: Annotation-only Workflow overview (video)</a></em></p>
+Use it for in-clinic observations, ward notes, or any visit where you need a
+lightweight timestamped log without running the full programming workflow.
 
 ----
 
-Opening the Annotation-only Workflow
-------------------------------------
+Opening the Annotations-only Workflow
+-------------------------------------
 
 From the home screen click **Annotations-only Workflow**.
 
 .. image:: _static/annotations_view.png
-   :alt: Annotation-only Workflow — file setup screen
+   :alt: Annotations-only Workflow — file setup screen
    :class: screenshot-full
+
+On **Clinical Annotations Setup**, choose or create the TSV file:
+
+* **Open** — load an existing ``*_task-notes_*_events.tsv`` file.
+* **New** — enter **Patient ID** and **Run ID** in the dialog; **Session ID**
+  is set automatically to today's date (``ses-YYYYMMDD``).  Pick the save
+  location in the file dialog.
+* Drag and drop a ``.tsv`` onto the path field.
+
+Click **Next** to open the recording screen.
 
 ----
 
 Recording an Annotation
 ------------------------
 
-1. Type your note in the **text field** at the top of the screen.
-2. Click **Add annotation** (or press ``Enter``).
+1. Type your note in the **Session Annotations** text area.
+2. Click **Insert** to record an entry.
 
 The entry is immediately appended to the list below with:
 
@@ -48,11 +55,13 @@ Entries are saved to the TSV file in real-time; no manual save is needed.
 Output File
 -----------
 
-Annotations are stored in the same BIDS-compliant TSV format as session data::
+Annotations use a **dedicated** tab-separated format — not the programming-session
+schema (no ``block_ID``, stimulation columns, or scale columns).  The BIDS-style
+filename is::
 
-   sub-<ID>_ses-<YYYYMMDD>_task-annotations_run-<NN>_events.tsv
+   sub-<ID>_ses-<YYYYMMDD>_task-notes_run-<NN>_events.tsv
 
-Each row contains:
+Each row is one annotation.  Columns (see also :doc:`output_format`):
 
 .. list-table::
    :widths: 25 75
@@ -64,8 +73,10 @@ Each row contains:
      - Date of the annotation (``YYYY-MM-DD``)
    * - ``time``
      - Time of the annotation (``HH:MM:SS``)
+   * - ``timezone``
+     - Timezone abbreviation/offset at capture time
    * - ``notes``
-     - The annotation text
+     - The note text (same column name as in the Complete Workflow TSV)
 
 ----
 
@@ -85,5 +96,5 @@ The report shows:
 Closing
 -------
 
-Click **Close** when finished.  The file is automatically saved and the
+Click **Close Session** when finished.  The file is automatically saved and the
 application returns to the home screen.

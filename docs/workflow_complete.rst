@@ -11,48 +11,31 @@ press a manual "Save" button.
 
 ----
 
-Step 0 — File & Patient Setup
-------------------------------
+Step 0 — File setup
+--------------------
 
 .. image:: _static/step0.png
    :alt: Step 0 – File setup screen
    :class: screenshot-full
 
-On this screen you configure where data will be saved and identify the patient.
+On **Clinical Programming Session Setup**, use **Upload TSV file** to choose or
+create the session file:
 
-Fields
-^^^^^^
-
-.. list-table::
-   :widths: 30 70
-   :header-rows: 1
-
-   * - Field
-     - Description
-   * - **Output folder**
-     - Browse to the directory where the ``.tsv`` file will be written.
-       Tip: use a BIDS-structured folder, e.g.
-       ``sub-01/ses-20250101/``.
-   * - **Patient ID**
-     - Free-text identifier (e.g. ``sub-01``).  Used in the BIDS filename.
-   * - **Session label**
-     - Optional label appended to the filename (e.g. ``run-01``).
-   * - **Run number**
-     - Auto-incremented integer used in the BIDS filename.
+* **Open** — load an existing programming-session ``.tsv``.
+* **New** — enter **Patient ID** and **Run ID** in the dialog; **Session ID**
+  is set automatically to today's date (``ses-YYYYMMDD``).  Pick the save
+  location in the file dialog.
+* Drag and drop a ``.tsv`` onto the path field.
 
 Output filename
 ^^^^^^^^^^^^^^^
 
-The application generates a BIDS-compliant filename automatically::
+A new file uses this BIDS-style name::
 
    sub-<ID>_ses-<YYYYMMDD>_task-programming_run-<NN>_events.tsv
 
 If a file with that name already exists, you are asked whether to append to
 it or create a new run.
-
-.. note::
-   Click **Next** once all fields are filled in.  The file is created on disk
-   at this point.
 
 ----
 
@@ -63,12 +46,6 @@ Step 1 — Initial Configuration
    :alt: Step 1 – Initial configuration screen
    :class: screenshot-full
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/step1_electrode.mp4">Watch: Electrode selection and initial parameters (video)</a></em></p>
-
-This step records the **baseline** state at the beginning of the session
-(``is_initial = 1`` rows in the TSV).
 
 Electrode Model
 ^^^^^^^^^^^^^^^
@@ -162,10 +139,6 @@ To change the built-in preset buttons for all future sessions, click the
    :alt: Clinical Scales Settings dialog
    :class: screenshot-native
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/step1_scales.mp4">Watch: Recording baseline clinical scales (video)</a></em></p>
-
 ----
 
 Step 2 — Session Scale Selection
@@ -237,10 +210,6 @@ Step 3 — Active Recording
    :alt: Step 3 – Active recording screen
    :class: screenshot-full
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/step3_recording.mp4">Watch: Real-time recording in Step 3 (video)</a></em></p>
-
 This is the main working screen during the programming session.
 
 Adjusting Stimulation Parameters
@@ -255,9 +224,9 @@ Recording an Entry
 1. Adjust the stimulation parameters to the new configuration.
 2. Fill in the clinical scale sliders.
 3. Optionally add a free-text **note** in the Notes field.
-4. Click **Record entry** (or press ``Enter``).
+4. Click **Insert** to record an entry.
 
-Each recorded entry is appended as a new row in the TSV file with the current
+Each recorded entry is appended as new rows in the TSV file with the current
 timestamp.
 
 .. image:: _static/step3_entry_recorded.png
@@ -294,7 +263,7 @@ Before the file-save dialog appears, two dialogs will be shown:
    By default all main sections are checked.  Under **Session Data** you can
    include the timeline chart, the lateral data table, or both:
 
-   * **Initial Clinical Notes** — baseline scores and Step 1 notes
+   * **Initial Clinical Notes** — clinical scale scores and initial notes
    * **Session Data** — parent section; expand to choose:
 
      * **Session Data Graph** — timeline chart of session-scale values across
@@ -326,10 +295,6 @@ The generated report includes (depending on the selected sections):
   final electrode contact selection (Left and Right hemispheres).
 * **Programming Summary** — session duration, number of configurations
   tested, and parameter ranges per hemisphere.
-
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/export_report.mp4">Watch: Exporting a session report (video)</a></em></p>
 
 ----
 

@@ -1763,9 +1763,9 @@ class SessionExporter:
                         )
 
                     a = str(
-                        norm.get("annotation", "")
+                        norm.get("notes", "")
+                        or norm.get("annotation", "")
                         or norm.get("note", "")
-                        or norm.get("notes", "")
                         or norm.get("text", "")
                         or ""
                     )
