@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QStackedWidget,
     QStyle,
-    QTextEdit,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -109,7 +109,7 @@ class WizardWindow(QWidget):
 
         # Background update check. Runs once per cooldown window (24h by
         # default); offline / rate-limited failures are logged silently.
-        self._update_checker = UpdateChecker(parent=self)
+        self._update_checker = UpdateChecker(current_version=APP_VERSION, parent=self)
         self._update_checker.update_available.connect(self._on_update_available)
         # Defer slightly so the window is painted before any dialog appears.
         QTimer.singleShot(1500, self._run_deferred_update_check)
@@ -368,19 +368,34 @@ class WizardWindow(QWidget):
         else:
             self.theme_toggle_btn.setText("🌙")  # Moon = will switch to dark
 
+    @staticmethod
+    def _help_link(href: str, label: str, *, dark: bool) -> str:
+        """Styled, readable hyperlink for the Help dialog (light vs dark theme)."""
+        color = "#93c5fd" if dark else "#b45309"
+        safe_href = html.escape(href, quote=True)
+        safe_label = html.escape(label)
+        return (
+            f'<a href="{safe_href}" style="color: {color}; '
+            f'text-decoration: underline;">{safe_label}</a>'
+        )
+
     def _help_dialog_html(self) -> str:
         """HTML body for the Help / About dialog."""
         year = datetime.now().year
-        repo = html.escape(APP_REPOSITORY_URL)
-        issues = html.escape(APP_ISSUES_URL)
-        email = html.escape(UPDATE_FEEDBACK_EMAIL)
+        dark = get_theme_manager().is_dark_mode()
+        repo_url = APP_REPOSITORY_URL
+        issues_url = APP_ISSUES_URL
+        mailto = f"mailto:{UPDATE_FEEDBACK_EMAIL}"
+        repo = self._help_link(repo_url, repo_url, dark=dark)
+        issues = self._help_link(issues_url, issues_url, dark=dark)
+        email = self._help_link(mailto, UPDATE_FEEDBACK_EMAIL, dark=dark)
         return f"""
         <h3>General Overview</h3>
         <p>The main use of {html.escape(APP_NAME)} is a <b>standard pipeline</b> for
         DBS <b>programming sessions</b>: baseline setup, session scales, and
         real-time recording of each stimulation configuration you test in clinic.</p>
         <ol>
-            <li><b>File &amp; patient setup</b>: choose where to save the session file
+            <li><b>File setup</b>: choose where to save the session file
                 (BIDS-style name).</li>
             <li><b>Initial configuration</b>: electrode model, starting stimulation
                 parameters, and baseline clinical scales.</li>
@@ -412,9 +427,9 @@ class WizardWindow(QWidget):
         <h3>Credits &amp; support</h3>
         <p><b>Publisher:</b> {html.escape(ORGANIZATION_PUBLISHER)}<br/>
         <b>Lead developer:</b> {html.escape(APP_LEAD_AUTHOR)}</p>
-        <p><b>Repository:</b> <a href="{repo}">{repo}</a><br/>
-        <b>Issues:</b> <a href="{issues}">{issues}</a><br/>
-        <b>Contact:</b> <a href="mailto:{email}">{email}</a></p>
+        <p><b>Repository:</b> {repo}<br/>
+        <b>Issues:</b> {issues}<br/>
+        <b>Contact:</b> {email}</p>
         """
 
     def _show_info_dialog(self) -> None:
@@ -431,10 +446,10 @@ class WizardWindow(QWidget):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
-        # Description
-        desc_text = QTextEdit()
-        desc_text.setReadOnly(True)
+        desc_text = QTextBrowser()
+        desc_text.setOpenExternalLinks(True)
         desc_text.setHtml(self._help_dialog_html())
+        desc_text.anchorClicked.connect(QDesktopServices.openUrl)
 
         layout.addWidget(desc_text)
 

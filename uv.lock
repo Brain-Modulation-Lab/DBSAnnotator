@@ -14,7 +14,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-05-11T15:00:26.1434378Z"
+exclude-newer = "2026-05-12T13:07:12.2457424Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -447,6 +447,7 @@ wheels = [
 name = "dbs-annotator"
 source = { editable = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "docx2pdf" },
     { name = "matplotlib" },
     { name = "packaging" },
@@ -483,6 +484,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi", specifier = ">=2024.0.0" },
     { name = "docx2pdf", specifier = ">=0.1.8" },
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "packaging", specifier = ">=26.2" },

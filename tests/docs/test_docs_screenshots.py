@@ -76,7 +76,6 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     sh.save_clinical_scales_settings_dialog(
         wizard, out / "clinical_scales_settings_dialog.png"
     )
-    sh.save_electrode_canvas(s1.left_canvas, out / "electrode_diagram.png")
 
     qtbot.mouseClick(s1.next_button, Qt.MouseButton.LeftButton)
     sh.wait_for_render()

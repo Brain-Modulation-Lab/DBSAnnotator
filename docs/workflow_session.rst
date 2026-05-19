@@ -73,13 +73,11 @@ This step records the **baseline** state at the beginning of the session
 Electrode Model
 ^^^^^^^^^^^^^^^
 
-Select the implanted electrode model from the dropdown.  The application
-supports all common Medtronic Percept, Abbott, and Boston Scientific leads.
-An interactive diagram of the selected electrode is displayed immediately.
-
-.. image:: _static/electrode_diagram.png
-   :alt: Interactive electrode contact diagram
-   :class: screenshot-native
+Select the implanted electrode model from the **Model** dropdown.  Optionally,
+pick a **Manufacturer** to narrow the list.  The application supports common DBS
+leads from Medtronic, Abbott, Boston Scientific, and other vendors.  The Step 1
+screenshot above shows the interactive diagram (example:
+Medtronic SenSight B33005, left and right hemispheres).
 
 Contact Selection
 ^^^^^^^^^^^^^^^^^
