@@ -28,6 +28,7 @@ from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
 from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 from ..models import ElectrodeCanvas, is_session_scale_value_omitted
+from .tsv_columns import BLOCK_ID_COLUMN
 
 
 class _ExportTransientParent(Protocol):
@@ -253,26 +254,18 @@ class SessionExporter:
         """
         try:
             if hasattr(self.session_data, "file_path") and self.session_data.file_path:
-                return pd.read_csv(
-                    self.session_data.file_path, sep="\t", na_filter=False
-                )
+                from .tsv_columns import read_session_tsv
+
+                return read_session_tsv(self.session_data.file_path)
             return None
         except Exception:
             return None
 
     def _normalize_block_id_column(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Rename variant block-id column names to the canonical 'block_id'."""
-        if df is None or df.empty:
-            return df
+        from .tsv_columns import normalize_block_id_dataframe
 
-        if "block_id" in df.columns:
-            return df
-
-        for candidate in ("block_ID", "blockId", "blockID"):
-            if candidate in df.columns:
-                return df.rename(columns={candidate: "block_id"})
-
-        return df
+        normalized = normalize_block_id_dataframe(df)
+        return df if normalized is None else normalized
 
     def _get_manufacturer_for_model(self, model_name: str) -> str:
         """Return the manufacturer string for a given electrode model name."""
@@ -287,11 +280,11 @@ class SessionExporter:
         return ""
 
     def _pick_latest_session_row(self, df: pd.DataFrame) -> pd.Series | None:
-        """Return the row with the highest session_ID and block_id."""
+        """Return the row with the highest session_ID and block_ID."""
         if df is None or df.empty:
             return None
 
-        # Prefer: latest session_ID, then latest block_id
+        # Prefer: latest session_ID, then latest block_ID
         if "session_ID" in df.columns:
             try:
                 s = pd.to_numeric(df["session_ID"], errors="coerce")
@@ -390,8 +383,8 @@ class SessionExporter:
         # Number of configurations tested
         df_normalized = self._normalize_block_id_column(df)
         num_configs = 0
-        if "block_id" in df_normalized.columns:
-            num_configs = df_normalized["block_id"].nunique()
+        if "block_ID" in df_normalized.columns:
+            num_configs = df_normalized["block_ID"].nunique()
 
         # Parameter ranges per side (Left / Right)
         def _param_range(series, *, split_sum: bool = False):
@@ -497,9 +490,9 @@ class SessionExporter:
 
         df = self._normalize_block_id_column(df)
 
-        # Group by block_id to consolidate multiple scales
-        if "block_id" in df.columns:
-            grouped = df.groupby("block_id", sort=False, dropna=False)
+        # Group by block_ID to consolidate multiple scales
+        if "block_ID" in df.columns:
+            grouped = df.groupby("block_ID", sort=False, dropna=False)
         else:
             grouped = [(0, df)]
 
@@ -507,7 +500,7 @@ class SessionExporter:
         lateral_data = []
 
         # Process each block
-        for block_id, block_df in grouped:
+        for bid, block_df in grouped:
             # Get first row to extract common values
             first_row = block_df.iloc[0]
 
@@ -538,10 +531,10 @@ class SessionExporter:
             left_row = {}
             right_row = {}
 
-            # Keep block_id in the output for styling logic (excluded from
+            # Keep block_ID in the output for styling logic (excluded from
             # display columns later).
-            left_row["block_id"] = block_id
-            right_row["block_id"] = block_id
+            left_row[BLOCK_ID_COLUMN] = bid
+            right_row[BLOCK_ID_COLUMN] = bid
 
             # Common columns (non-lateral) - use combined scales with internal lines
             left_row["program_ID"] = first_row.get("program_ID") or first_row.get(
@@ -618,7 +611,7 @@ class SessionExporter:
             "date",
             "time",
             "onset",
-            "block_id",
+            "block_ID",
             "session_ID",
             "is_initial",
             "electrode_model",
@@ -705,13 +698,13 @@ class SessionExporter:
             row_cells = table.rows[i + 1].cells
 
             # Highlight best block(s) with darker green, second-best with lighter green
-            current_block_id = row.get("block_id", None)
+            current_block_id = row.get("block_ID", None)
             if best_block_ids and current_block_id in best_block_ids:
                 self._highlight_cells_green(row_cells, intensity="best")
             elif second_best_ids and current_block_id in second_best_ids:
                 self._highlight_cells_green(row_cells, intensity="second")
 
-            current_block_id = row.get("block_id", None)
+            current_block_id = row.get("block_ID", None)
             if (
                 prev_block_id is not None
                 and current_block_id != prev_block_id
@@ -893,7 +886,7 @@ class SessionExporter:
             or "scale_value" not in lateral_df.columns
         ):
             return
-        if "block_id" not in lateral_df.columns:
+        if "block_ID" not in lateral_df.columns:
             return
 
         # Use L rows only to avoid duplicates
@@ -902,13 +895,13 @@ class SessionExporter:
         else:
             df_l = lateral_df.copy()
         if df_l.empty:
-            df_l = lateral_df.drop_duplicates(subset=["block_id"]).copy()
+            df_l = lateral_df.drop_duplicates(subset=["block_ID"]).copy()
 
         # Collect scale values per block
         scale_data: dict[str, dict[int, float]] = {}
         for _, row in df_l.iterrows():
             try:
-                block_id = int(row.get("block_id", 0))
+                bid = int(row.get("block_ID", 0))
             except (ValueError, TypeError):
                 continue
             names = str(row.get("scale_name", "") or "").split("\n")
@@ -924,7 +917,7 @@ class SessionExporter:
                     continue
                 if _math.isnan(val):
                     continue
-                scale_data.setdefault(name, {})[block_id] = val
+                scale_data.setdefault(name, {})[bid] = val
 
         if not scale_data:
             return
@@ -956,12 +949,12 @@ class SessionExporter:
         return str(col).replace("_", " ").title()
 
     def _pick_latest_row(self, df: pd.DataFrame) -> pd.Series | None:
-        """Return the row with the highest block_id, or the last row."""
+        """Return the row with the highest block_ID, or the last row."""
         if df is None or df.empty:
             return None
-        if "block_id" in df.columns:
+        if "block_ID" in df.columns:
             try:
-                bid = pd.to_numeric(df["block_id"], errors="coerce")
+                bid = pd.to_numeric(df["block_ID"], errors="coerce")
                 result = df.loc[bid.idxmax()]
                 if isinstance(result, pd.DataFrame):
                     return result.iloc[-1]
@@ -972,7 +965,7 @@ class SessionExporter:
 
     def _find_best_and_second_best_blocks(self, lateral_df: pd.DataFrame) -> tuple:
         """
-        Find block_ids with the best and second-best scores based on the
+        Find block_IDs with the best and second-best scores based on the
         current optimization preferences.
 
         Returns a tuple: (best_block_ids, second_best_block_ids)
@@ -981,7 +974,7 @@ class SessionExporter:
         if lateral_df is None or lateral_df.empty:
             return [], []
         if (
-            "block_id" not in lateral_df.columns
+            "block_ID" not in lateral_df.columns
             or "scale_value" not in lateral_df.columns
         ):
             return [], []
@@ -999,12 +992,12 @@ class SessionExporter:
             # Get unique blocks (use only L rows to avoid double counting)
             df_l = lateral_df[lateral_df.get("laterality", "") == "L"].copy()
             if df_l.empty:
-                df_l = lateral_df.drop_duplicates(subset=["block_id"]).copy()
+                df_l = lateral_df.drop_duplicates(subset=["block_ID"]).copy()
 
             block_scores = {}
             for _, row in df_l.iterrows():
-                block_id = row.get("block_id")
-                if block_id is None:
+                bid = row.get("block_ID")
+                if bid is None:
                     continue
 
                 scale_name_str = str(row.get("scale_name", "") or "")
@@ -1056,7 +1049,7 @@ class SessionExporter:
                             total_score += val
 
                 if has_value:
-                    block_scores[block_id] = total_score
+                    block_scores[bid] = total_score
 
             if not block_scores:
                 return [], []

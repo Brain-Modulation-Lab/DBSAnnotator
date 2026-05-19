@@ -190,7 +190,9 @@ class LongitudinalExporter:
         frames = []
         for path in file_paths:
             try:
-                df = pd.read_csv(path, sep="\t", na_filter=False)
+                from .tsv_columns import read_session_tsv
+
+                df = read_session_tsv(path)
                 # Tag each row with its source file for traceability
                 df["_source_file"] = os.path.basename(path)
                 frames.append(df)
@@ -379,14 +381,14 @@ class LongitudinalExporter:
             if "is_initial" in sub_df.columns:
                 session_rows = sub_df[sub_df["is_initial"] == 0]
 
-            # Count unique block_ids (entries)
-            if "block_id" in session_rows.columns:
-                unique_entries = session_rows["block_id"].nunique()
+            # Count unique block_IDs (entries)
+            if "block_ID" in session_rows.columns:
+                unique_entries = session_rows["block_ID"].nunique()
             else:
                 unique_entries = len(session_rows)
             row_cells[3].text = str(unique_entries)
 
-            # Collect scales from is_initial=1 rows with highest block_id per file
+            # Collect scales from is_initial=1 rows with highest block_ID per file
             scale_pairs = []
             if "scale_name" in sub_df.columns and "scale_value" in sub_df.columns:
                 # Filter for is_initial=1 only (baseline)
@@ -399,17 +401,17 @@ class LongitudinalExporter:
                         == 1
                     ]
 
-                if not baseline_df.empty and "block_id" in baseline_df.columns:
+                if not baseline_df.empty and "block_ID" in baseline_df.columns:
                     try:
-                        baseline_df["block_id_num"] = pd.to_numeric(
-                            baseline_df["block_id"], errors="coerce"
+                        baseline_df["block_ID_num"] = pd.to_numeric(
+                            baseline_df["block_ID"], errors="coerce"
                         )
-                        max_block = baseline_df["block_id_num"].max()
+                        max_block = baseline_df["block_ID_num"].max()
 
-                        # Get ALL rows with the highest block_id (there
+                        # Get ALL rows with the highest block_ID (there
                         # could be multiple).
                         max_block_rows = baseline_df[
-                            baseline_df["block_id_num"] == max_block
+                            baseline_df["block_ID_num"] == max_block
                         ]
 
                         # Collect all scale pairs from these rows
@@ -696,7 +698,7 @@ class LongitudinalExporter:
 
             sub_n = self._normalize_block_id(sub_sess)
             n_configs = (
-                sub_n["block_id"].nunique() if "block_id" in sub_n.columns else 0
+                sub_n["block_ID"].nunique() if "block_ID" in sub_n.columns else 0
             )
 
             def _range_str(series, unit="", split_sum: bool = False):
@@ -832,7 +834,7 @@ class LongitudinalExporter:
         columns_to_exclude = [
             "time",
             "onset",
-            "block_id",
+            "block_ID",
             "session_ID",
             "source",
             "is_initial",
@@ -1061,12 +1063,12 @@ class LongitudinalExporter:
         if df_clin.empty:
             return {}, []
 
-        if "block_id" in df_clin.columns:
-            df_clin["block_id"] = pd.to_numeric(
-                df_clin["block_id"], errors="coerce"
+        if "block_ID" in df_clin.columns:
+            df_clin["block_ID"] = pd.to_numeric(
+                df_clin["block_ID"], errors="coerce"
             ).fillna(0)
         else:
-            df_clin["block_id"] = 0
+            df_clin["block_ID"] = 0
 
         # Build ordered source list (files already sorted earliest→latest)
         sources = [os.path.basename(fp) for fp in file_paths]
@@ -1088,8 +1090,8 @@ class LongitudinalExporter:
                 # No clinical scales for this file - leave data blank
                 continue
 
-            max_bid = df_src["block_id"].max()
-            df_latest = df_src[df_src["block_id"] == max_bid]
+            max_bid = df_src["block_ID"].max()
+            df_latest = df_src[df_src["block_ID"] == max_bid]
 
             for _, row in df_latest.iterrows():
                 sname = str(row.get("scale_name", "") or "").strip()
@@ -1131,16 +1133,16 @@ class LongitudinalExporter:
         ):
             return {}, []
 
-        # Ensure block_id is numeric
+        # Ensure block_ID is numeric
         df = df_session.copy()
-        if "block_id" in df.columns:
-            df["block_id"] = pd.to_numeric(df["block_id"], errors="coerce").fillna(0)
+        if "block_ID" in df.columns:
+            df["block_ID"] = pd.to_numeric(df["block_ID"], errors="coerce").fillna(0)
         else:
-            df["block_id"] = 0
+            df["block_ID"] = 0
 
-        # Build ordered (source, block_id) pairs as the x-axis
+        # Build ordered (source, block_ID) pairs as the x-axis
         sources = [os.path.basename(fp) for fp in file_paths]
-        point_keys: list[tuple[str, float]] = []  # (source_file, block_id)
+        point_keys: list[tuple[str, float]] = []  # (source_file, block_ID)
         tick_labels: list[str] = []
 
         for src in sources:
@@ -1150,19 +1152,19 @@ class LongitudinalExporter:
             date_str = self._extract_date_from_source(df, src)
             run_id = self._extract_run_from_filename(src)
 
-            blocks = sorted(df_src["block_id"].unique())
+            blocks = sorted(df_src["block_ID"].unique())
             for i, bid in enumerate(blocks):
                 point_keys.append((src, bid))
                 bid_str = str(int(bid)) if bid == int(bid) else str(bid)
                 if i == 0:
-                    # First block: full label {date}_{run_id}_{block_id}
+                    # First block: full label {date}_{run_id}_{block_ID}
                     parts = [date_str]
                     if run_id:
                         parts.append(run_id)
                     parts.append(bid_str)
                     tick_labels.append("_".join(parts))
                 else:
-                    # Subsequent blocks: only block_id
+                    # Subsequent blocks: only block_ID
                     tick_labels.append(bid_str)
 
         if not point_keys:
@@ -1172,7 +1174,7 @@ class LongitudinalExporter:
 
         scale_data: dict[str, dict[int, float]] = {}
         for (src, bid), idx in key_idx.items():
-            df_block = df[(df["_source_file"] == src) & (df["block_id"] == bid)]
+            df_block = df[(df["_source_file"] == src) & (df["block_ID"] == bid)]
             for _, row in df_block.iterrows():
                 sname = str(row.get("scale_name", "") or "").strip()
                 sval = str(row.get("scale_value", "") or "").strip()
@@ -1224,19 +1226,19 @@ class LongitudinalExporter:
 
         df = self._normalize_block_id(df)
 
-        # Sort by source file (chronological order) and block_id (ascending)
+        # Sort by source file (chronological order) and block_ID (ascending)
         if "_source_file" in df.columns:
-            df = df.sort_values(by=["_source_file", "block_id"], ascending=[True, True])
-        elif "block_id" in df.columns:
-            df = df.sort_values(by=["block_id"], ascending=True)
+            df = df.sort_values(by=["_source_file", "block_ID"], ascending=[True, True])
+        elif "block_ID" in df.columns:
+            df = df.sort_values(by=["block_ID"], ascending=True)
 
-        # Create a global entry id combining source file + block_id
-        if "_source_file" in df.columns and "block_id" in df.columns:
+        # Create a global entry id combining source file + block_ID
+        if "_source_file" in df.columns and "block_ID" in df.columns:
             df["_global_entry_id"] = (
-                df["_source_file"] + "_" + df["block_id"].astype(str)
+                df["_source_file"] + "_" + df["block_ID"].astype(str)
             )
-        elif "block_id" in df.columns:
-            df["_global_entry_id"] = df["block_id"].astype(str)
+        elif "block_ID" in df.columns:
+            df["_global_entry_id"] = df["block_ID"].astype(str)
         else:
             df["_global_entry_id"] = range(len(df))
 
@@ -1510,10 +1512,10 @@ class LongitudinalExporter:
 
     @staticmethod
     def _pick_latest_row(df: pd.DataFrame):
-        """Return the row with the highest block_id, or the last row if unavailable."""
+        """Return the row with the highest block_ID, or the last row if unavailable."""
         if df is None or df.empty:
             return None
-        for col in ("block_id", "block_ID", "blockId", "blockID"):
+        for col in ("block_ID", "block_id", "blockId", "blockID"):
             if col in df.columns:
                 try:
                     numeric = pd.to_numeric(df[col], errors="coerce")
@@ -1526,12 +1528,10 @@ class LongitudinalExporter:
 
     @staticmethod
     def _normalize_block_id(df: pd.DataFrame) -> pd.DataFrame:
-        if df is None or df.empty or "block_id" in df.columns:
-            return df
-        for c in ("block_ID", "blockId", "blockID"):
-            if c in df.columns:
-                return df.rename(columns={c: "block_id"})
-        return df
+        from .tsv_columns import normalize_block_id_dataframe
+
+        normalized = normalize_block_id_dataframe(df)
+        return df if normalized is None else normalized
 
     @staticmethod
     def _column_header(col: str) -> str:

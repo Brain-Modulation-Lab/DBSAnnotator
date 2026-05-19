@@ -16,10 +16,6 @@ window opens, showing the **Home screen**.
    :alt: Application home screen
    :width: 680px
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/launch_overview.mp4">Watch: Application launch and home screen (video)</a></em></p>
-
 ----
 
 Choosing Your Workflow
@@ -33,13 +29,13 @@ From the home screen you can start one of three workflows:
 
    * - Button
      - When to use it
-   * - **Start Session**
+   * - **Complete Workflow**
      - You are about to perform a DBS programming session and want to record
        stimulation parameters, clinical scales, and notes in real-time.
-   * - **Longitudinal Report**
+   * - **Create Longitudinal Report**
      - You already have multiple ``*_events.tsv`` files from previous sessions
        and want to generate a combined comparative report.
-   * - **Free Annotations**
+   * - **Annotations-only Workflow**
      - You want to take quick timestamped notes without the full stimulation
        workflow (e.g. during an in-clinic observation).
 
@@ -60,10 +56,10 @@ Theme Toggle
 
 Click the **☀ / ☾** button in the top-right corner at any time to switch
 between the light and dark colour scheme.  Your preference is applied
-immediately.
+immediately and maintained between pages.
 
-.. image:: _static/theme_toggle.png
-   :alt: Dark and light theme comparison
+.. image:: _static/home_screen_dark.png
+   :alt: Application home screen (dark theme)
    :width: 680px
 
 ----
@@ -71,6 +67,6 @@ immediately.
 Next Steps
 ----------
 
-* If you are starting a programming session → :doc:`workflow_session`
-* If you want to generate a longitudinal report → :doc:`longitudinal_report`
-* If you want to record free annotations → :doc:`workflow_annotations`
+* :doc:`workflow_session` — **Complete Workflow**
+* :doc:`longitudinal_report` — **Create Longitudinal Report**
+* :doc:`workflow_annotations` — **Annotation-only Workflow**

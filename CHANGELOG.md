@@ -7,11 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Read the Docs screenshot pipeline: home screen (light and dark theme), clinical
+  scales settings dialog, and session scales settings dialog (draft preset fields,
+  not persisted during capture).
+- ``docs/_static/custom.css`` so RTD content uses the full viewport width instead
+  of the theme default narrow column.
+
 ### Changed
 
 - Read the Docs user guide aligned with current clinical and session scale presets
   (OCD, MDD, PD, ET, Dystonia, TS), 0–10 session scales, and report export options
   (Session Data graph and table, longitudinal clinical/session timeline charts).
+- ``docs/installation.rst`` and updating section aligned with README end-user install
+  commands (GitHub Releases ``.msi`` / ``.dmg`` / ``.deb``, PowerShell and shell
+  one-liners, in-app update checker).
+- Workflow documentation renamed for consistency with the home screen:
+  **Complete Workflow** (formerly “Session Workflow”) and **Annotation-only Workflow**
+  (formerly “Free Annotations”); quickstart and index updated accordingly.
+- ``docs/workflow_session.rst``: Step 1 and Step 2 sections document per-session scale
+  rows (**−** / **+**), score-only TSV persistence for clinical scales, min/max ranges
+  for session scales, and permanent preset editing via **settings** (including
+  ``Name:min-max`` format for session presets).
+- Home screen buttons relabelled to **Complete Workflow** and **Annotations-only
+  Workflow** (capital W).
 - Documentation copyright updated for Massachusetts General Hospital, Wyss Center
   for Bio and Neuroengineering, and Charité Universitätsmedizin Berlin; contact
   remains lucia.poma@wysscenter.ch.

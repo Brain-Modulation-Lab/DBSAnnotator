@@ -17,6 +17,7 @@ from dbs_annotator.ui.amplitude_split_widget import (
     AmplitudeSplitWidget,
     get_cathode_labels,
 )
+from dbs_annotator.utils.theme_manager import Theme
 
 _FONT_FALLBACK_CHAIN = (
     "Segoe UI",
@@ -61,13 +62,12 @@ STEP3_ENTRY_NOTES = (
 STEP3_SESSION_SCALE_VALUES = [6, 8, 4, 7, 5, 9, 3]
 
 
-def prepare_qt_for_docs(qapp: QApplication) -> None:
-    """Apply the same theme, fonts, and SVG support as the real application."""
+def apply_docs_theme(qapp: QApplication, theme: Theme) -> None:
+    """Apply light/dark QSS and fonts for documentation screenshots."""
     import PySide6.QtSvg  # noqa: F401 - enables SVG icons referenced in QSS
     from PySide6.QtGui import QFont, QFontDatabase
 
     from dbs_annotator.utils import get_theme_manager
-    from dbs_annotator.utils.theme_manager import Theme
 
     families = set(QFontDatabase.families())
     for name in _FONT_FALLBACK_CHAIN:
@@ -76,7 +76,6 @@ def prepare_qt_for_docs(qapp: QApplication) -> None:
             break
 
     theme_manager = get_theme_manager()
-    theme = Theme.LIGHT
     try:
         stylesheet = theme_manager.load_stylesheet(theme)
         if "Segoe UI" not in families:
@@ -87,6 +86,11 @@ def prepare_qt_for_docs(qapp: QApplication) -> None:
         theme_manager.apply_theme(theme, qapp)
 
     wait_for_render(150)
+
+
+def prepare_qt_for_docs(qapp: QApplication) -> None:
+    """Apply the same theme, fonts, and SVG support as the real application."""
+    apply_docs_theme(qapp, Theme.LIGHT)
 
 
 def screenshot_dir() -> Path:
@@ -196,6 +200,46 @@ def save_scale_optimization_dialog(dlg: QWidget, path: Path) -> None:
     save_pixmap(dlg.grab(), path)
 
 
+def save_clinical_scales_settings_dialog(
+    wizard,
+    path: Path,
+    *,
+    draft_preset_name: str = "Example",
+    draft_scales: str = "CUSTOM1, CUSTOM2",
+) -> None:
+    """Clinical Scales Settings with draft fields filled (not saved)."""
+    from dbs_annotator.config import PRESET_BUTTONS
+    from dbs_annotator.ui.clinical_scales_settings_dialog import (
+        ClinicalScalesSettingsDialog,
+    )
+
+    s1 = wizard.step1_view
+    dlg = ClinicalScalesSettingsDialog(s1.clinical_presets, wizard, PRESET_BUTTONS)
+    dlg.preset_name_edit.setText(draft_preset_name)
+    dlg.scales_edit.setText(draft_scales)
+    save_dialog(dlg, path, min_width=500)
+
+
+def save_session_scales_settings_dialog(
+    wizard,
+    path: Path,
+    *,
+    draft_preset_name: str = "MyPreset",
+    draft_scales: str = "CustomScale:0-10, Mood:0-10",
+) -> None:
+    """Session Scales Settings with draft new-preset fields filled (not saved)."""
+    from dbs_annotator.config import PRESET_BUTTONS
+    from dbs_annotator.ui.session_scales_settings_dialog import (
+        SessionScalesSettingsDialog,
+    )
+
+    s2 = wizard.step2_view
+    dlg = SessionScalesSettingsDialog(s2.session_presets, wizard, PRESET_BUTTONS)
+    dlg.preset_name_edit.setText(draft_preset_name)
+    dlg.scales_edit.setText(draft_scales)
+    save_dialog(dlg, path, min_width=520)
+
+
 def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     """Capture a dialog at its natural size (avoids extra empty vertical space)."""
     layout = dlg.layout()
@@ -257,7 +301,7 @@ def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
         {
             "date": "2025-01-10",
             "time": "09:00:00",
-            "block_id": "1",
+            "block_ID": "1",
             "is_initial": "1",
             "scale_name": name,
             "scale_value": str(val),
@@ -268,7 +312,7 @@ def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
     session_row = {
         "date": "2025-01-10",
         "time": "10:00:00",
-        "block_id": "2",
+        "block_ID": "2",
         "is_initial": "0",
         "scale_name": "Tremor",
         "scale_value": "15",
@@ -279,7 +323,7 @@ def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
     }
     paths: list[Path] = []
     for run in ("01", "02"):
-        rows = [*rows_template, {**session_row, "block_id": "2"}]
+        rows = [*rows_template, {**session_row, "block_ID": "2"}]
         p = (
             tmp_path
             / f"sub-{PATIENT_ID}_ses-202501{run}_task-programming_run-{run}_events.tsv"

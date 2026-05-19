@@ -24,10 +24,13 @@ def test_normalize_block_id_column_variants(exporter):
     ex, _ = exporter
     df = pd.DataFrame({"block_ID": [1, 2]})
     out = ex._normalize_block_id_column(df)
-    assert "block_id" in out.columns
+    assert "block_ID" in out.columns
 
-    df2 = pd.DataFrame({"blockId": [1]})
-    assert "block_id" in ex._normalize_block_id_column(df2).columns
+    df2 = pd.DataFrame({"block_id": [1]})
+    assert "block_ID" in ex._normalize_block_id_column(df2).columns
+
+    df3 = pd.DataFrame({"blockId": [1]})
+    assert "block_ID" in ex._normalize_block_id_column(df3).columns
 
     empty = pd.DataFrame()
     assert ex._normalize_block_id_column(empty).empty
@@ -47,9 +50,9 @@ def test_get_manufacturer_for_model(exporter):
 def test_pick_latest_row(exporter):
     ex, _ = exporter
     assert ex._pick_latest_row(pd.DataFrame()) is None
-    df = pd.DataFrame({"block_id": [1, 3, 2], "x": [1, 2, 3]})
+    df = pd.DataFrame({"block_ID": [1, 3, 2], "x": [1, 2, 3]})
     row = ex._pick_latest_row(df)
-    assert int(row["block_id"]) == 3
+    assert int(row["block_ID"]) == 3
 
 
 def test_pick_latest_session_row(exporter):
@@ -58,7 +61,7 @@ def test_pick_latest_session_row(exporter):
     df = pd.DataFrame(
         {
             "session_ID": [1, 2, 2],
-            "block_id": [1, 1, 2],
+            "block_ID": [1, 1, 2],
             "scale_value": [1, 2, 3],
         }
     )
@@ -97,7 +100,7 @@ def test_add_summary_section_with_notes(exporter):
             "scale_name": ["Y"],
             "scale_value": ["1"],
             "notes": ["hello"],
-            "block_id": [0],
+            "block_ID": [0],
         }
     )
     ex._add_summary_section(doc, df, df_init, df)
@@ -116,7 +119,7 @@ def test_add_programming_summary_parses_split_amplitude_and_numeric_text(exporte
     doc = Document()
     df = pd.DataFrame(
         {
-            "block_id": [1, 2],
+            "block_ID": [1, 2],
             "left_amplitude": ["2.5_1.5", "3.0_2.0"],
             "right_amplitude": ["1.0_1.0", "1.5_1.5"],
             "left_stim_freq": ["130", "140 Hz"],
@@ -143,7 +146,7 @@ def test_find_best_and_second_best_blocks_minimal(exporter):
     ex.set_scale_optimization_prefs([("Mood", "0", "10", "max", "")])
     df = pd.DataFrame(
         {
-            "block_id": [1, 1],
+            "block_ID": [1, 1],
             "scale_name": ["Mood", "Mood"],
             "scale_value": ["5", "8"],
             "laterality": ["L", "L"],

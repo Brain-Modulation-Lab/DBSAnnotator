@@ -6,7 +6,7 @@ General
 
 **Does the application require an internet connection?**
 
-No for normal clinical use: session recording, editing, and export work fully
+No : session recording, editing, and export work fully
 offline and only read and write local files.  Optionally, the application can
 contact the public GitHub *releases* API (about once per day when enabled) to
 see whether a newer build is published; that request does not include patient
@@ -48,7 +48,7 @@ Files & Data
 
 **Where are my data files saved?**
 
-In the folder you selected in Step 0 of the session workflow.  The application
+In the folder you selected in Step 0 of the Complete Workflow.  The application
 never writes files outside that folder.
 
 **Can I open the TSV files in Excel?**
@@ -78,7 +78,7 @@ file will be detected.
 **Can I merge two TSV files from the same session?**
 
 Manually: open both files in a text editor and copy the rows from the second
-file (excluding the header row) to the end of the first.  Make sure block IDs
+file (excluding the header row) to the end of the first.  Make sure session IDs
 are unique after merging.
 
 ----
@@ -109,7 +109,7 @@ without the full entry table, select **Session Data Graph** only.
 
 Session and longitudinal exporters build PNG charts with matplotlib
 (``report_chart_utils``).  **Session Data Graph** plots session-scale values
-(0–10) against configuration block index.  **Sessions Overview** in the
+(0–10) against ``block_ID`` (configuration index).  **Sessions Overview** in the
 longitudinal report adds a separate chart of baseline clinical scales across
 loaded session files.
 

@@ -16,7 +16,7 @@ SESSION_META: dict[str, tuple[str, str]] = {
     "date": ("string", "Date of the entry (``YYYY-MM-DD``)."),
     "time": ("string", "Time of the entry (``HH:MM:SS``)."),
     "timezone": ("string", "Timezone abbreviation/offset at capture time."),
-    "block_id": ("integer", "Index of the stimulation block within a session."),
+    "block_ID": ("integer", "Index of the stimulation block within a session."),
     "session_ID": ("integer", "Internal session counter."),
     "is_initial": (
         "integer",

@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..ui import FileDropLineEdit
+from ..utils.tsv_columns import block_id_from_row
 
 
 class AnnotationsFileView(QWidget):
@@ -93,8 +94,8 @@ class AnnotationsFileView(QWidget):
                 reader = csv.DictReader(f, delimiter="\t")
                 for row in reader:
                     try:
-                        bid_raw = row.get("block_id", "")
-                        if bid_raw is None or bid_raw == "":
+                        bid_raw = block_id_from_row(row)
+                        if bid_raw is None:
                             continue
                         int(float(bid_raw))
                     except Exception:

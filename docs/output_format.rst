@@ -39,15 +39,40 @@ The schema tables below are generated from the code-level constants in
    amplitude field stores the **total** delivered current.  The per-contact
    split (in mA) is shown in the report but not stored in a separate column.
 
+Row layout and ``block_ID``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Each **scale** is stored on its own row.  Rows that belong to the same
+recording event (one Step 1 baseline or one Step 3 **Record entry**) share the
+same ``block_ID``; stimulation parameters, ``date``, ``time``, ``timezone``,
+``program_ID``, ``electrode_model``, and ``notes`` are repeated on every row of
+that block.  After each write, ``block_ID`` increments by one.
+
 Example rows
 ^^^^^^^^^^^^
 
+The table below is abbreviated (stimulation columns omitted on continuation
+lines); in the real file every row includes the full column set.
+
 .. code-block:: text
 
-   date	time	timezone	block_id	session_ID	is_initial	scale_name	scale_value	electrode_model	program_ID	left_stim_freq	left_anode	left_cathode	left_amplitude	left_pulse_width	right_stim_freq	right_anode	right_cathode	right_amplitude	right_pulse_width	notes
-   2025-03-15	10:02:31	UTC-04:00	0	0	1	MDS-UPDRS\nUPDRS-III	28\n32	SenSight B33005	A	130	Case	E1a	0.0	90	130	Case	E2	0.0	90	Baseline pre-stim
-   2025-03-15	10:15:44	UTC-04:00	1	1	0	Tremor\nRigidity\nBradykinesia	6.0\n5.0\n4.0	SenSight B33005	A	130	Case	E1a,E1b	2.0	90	130	Case	E2	2.0	90	Config 1
-   2025-03-15	10:28:12	UTC-04:00	2	2	0	Tremor\nRigidity\nBradykinesia	4.0\n3.0\n3.0	SenSight B33005	B	130	Case	E2A,E2B	2.5	90	130	Case	E3	2.5	90	Config 2
+   date        time      timezone                 block_ID  session_ID  is_initial  scale_name   scale_value  program_ID  electrode_model      notes
+   2025-03-15  10:02:31  Europe/Zurich +0100      0         1           1           MDS-UPDRS    28           A           Medtronic SenSight…  Baseline pre-stim
+   2025-03-15  10:02:31  Europe/Zurich +0100      0         1           1           UPDRS-III    32           A           Medtronic SenSight…  Baseline pre-stim
+   2025-03-15  10:15:44  Europe/Zurich +0100      1         1           0           Tremor       6.0          A           Medtronic SenSight…  Config 1
+   2025-03-15  10:15:44  Europe/Zurich +0100      1         1           0           Rigidity     5.0          A           Medtronic SenSight…  Config 1
+   2025-03-15  10:15:44  Europe/Zurich +0100      1         1           0           Bradykinesia 4.0          A           Medtronic SenSight…  Config 1
+   2025-03-15  10:28:12  Europe/Zurich +0100      2         1           0           Tremor       4.0          B           Medtronic SenSight…  Config 2
+   2025-03-15  10:28:12  Europe/Zurich +0100      2         1           0           Rigidity     3.0          B           Medtronic SenSight…  Config 2
+   2025-03-15  10:28:12  Europe/Zurich +0100      2         1           0           Bradykinesia 3.0          B           Medtronic SenSight…  Config 2
+
+``is_initial = 1`` rows are baseline clinical scales (Step 1); ``is_initial = 0``
+rows are session scales recorded with each stimulation configuration (Step 3).
+
+.. note::
+   Older files may use the legacy header ``block_id``.  The application accepts
+   both ``block_ID`` and ``block_id`` when opening, appending, exporting, and
+   generating longitudinal reports; new rows are written with ``block_ID``.
 
 ----
 
@@ -70,7 +95,7 @@ Sections (in order):
 3. **Session Data** *(optional)* — one or both of:
 
    * **Session Data Graph** — matplotlib timeline chart of session-scale
-     values vs configuration block (best entry per scale highlighted).
+     values vs ``block_ID`` (best entry per scale highlighted).
    * **Session Data Table** — lateral table (L/R rows per configuration) with
      stimulation parameters, scale values, and notes.
 
@@ -84,6 +109,17 @@ Sections (in order):
 
 5. **Programming Summary** *(optional)* — session duration, number of
    configurations, and amplitude / frequency / pulse-width ranges per side.
+
+Example export
+^^^^^^^^^^^^^^
+
+.. image:: _static/session_report_example.png
+   :alt: Example single-session Word report (graph, table, electrode diagrams)
+   :width: 680px
+
+.. tip::
+   Add a representative screenshot as ``docs/_static/session_report_example.png``
+   (e.g. session data graph + table + electrode configuration section).
 
 Longitudinal Report
 ^^^^^^^^^^^^^^^^^^^^
@@ -102,12 +138,30 @@ Sections (in order, selected at export time):
    separated by page breaks.
 5. **Programming Summary** *(optional)* — per-session parameter ranges.
 
+Example export
+^^^^^^^^^^^^^^
+
+.. image:: _static/longitudinal_report_example.png
+   :alt: Example longitudinal Word report (overview chart and session data)
+   :width: 680px
+
+.. tip::
+   Add a representative screenshot as
+   ``docs/_static/longitudinal_report_example.png`` (e.g. sessions overview with
+   clinical-scales chart and combined session data).
+
 ----
 
-Timestamp Alignment
---------------------
+Timestamps and timezone
+-----------------------
 
-All timestamps are recorded in **Eastern Time (ET)** to align with the
-Medtronic Percept PC neurostimulator's internal clock.  If you are working in
-a different timezone, note this when interpreting combined Percept + annotator
-datasets.
+``date`` and ``time`` are recorded in the **local timezone of the machine running
+DBS Annotator** at capture time (see ``TIMEZONE`` in ``dbs_annotator.config``;
+the default is ``local``, i.e. the system timezone).
+
+The ``timezone`` column stores how that instant was labelled when the row was
+written, for example ``Europe/Zurich +0100`` or ``EST -0500`` — the IANA or
+abbreviated zone name plus the UTC offset.  Use ``date``, ``time``, and
+``timezone`` together when aligning annotator rows with external logs or device
+exports; do not assume a fixed offset such as ET unless your workstation was
+configured that way.
