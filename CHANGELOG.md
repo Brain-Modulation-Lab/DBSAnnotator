@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Dependency audit: pin ``idna>=3.15`` (GHSA-65pc-fj4g-8rjx); allow ``idna`` in
+  ``exclude-newer-package`` so the fix is not blocked by the one-week cooldown.
 - Update checker: HTTPS uses the ``certifi`` CA bundle (fixes failed or empty
   GitHub API responses in Briefcase MSI/ZIP on Windows); compares against
   ``APP_VERSION``; empty or invalid release data surfaces as errors instead of
