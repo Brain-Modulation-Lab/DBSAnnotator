@@ -23,7 +23,7 @@ The filename follows the `BIDS <https://bids.neuroimaging.io/>`_ specification::
 Examples::
 
    sub-01_ses-20250315_task-programming_run-01_events.tsv
-   sub-01_ses-20250315_task-annotations_run-01_events.tsv
+   sub-01_ses-20250315_task-notes_run-01_events.tsv
 
 Columns
 ^^^^^^^
@@ -43,7 +43,7 @@ Row layout and ``block_ID``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each **scale** is stored on its own row.  Rows that belong to the same
-recording event (one Step 1 baseline or one Step 3 **Record entry**) share the
+recording event (one Step 1 baseline or one Step 3 **Insert**) share the
 same ``block_ID``; stimulation parameters, ``date``, ``time``, ``timezone``,
 ``program_ID``, ``electrode_model``, and ``notes`` are repeated on every row of
 that block.  After each write, ``block_ID`` increments by one.

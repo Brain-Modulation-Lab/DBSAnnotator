@@ -9,8 +9,18 @@ choosing the right workflow for your needs.
 Launching the Application
 --------------------------
 
-Double-click **DBSAnnotator.exe** (or the Desktop shortcut).  The main
-window opens, showing the **Home screen**.
+After :doc:`installation`, open **DBS Annotator** from your system's
+application launcher (the installed app, not a loose ``.exe`` in a download
+folder):
+
+* **Windows** — **Start** menu entry **DBS Annotator** (from the ``.msi``
+  installer or the PowerShell install script shortcut).
+* **macOS** — *Applications* after installing from the ``.dmg`` or install
+  script.
+* **Linux** — application menu after installing the ``.deb`` or install
+  script.
+
+The main window opens on the **Home screen**.
 
 .. image:: _static/home_screen.png
    :alt: Application home screen
@@ -32,6 +42,9 @@ From the home screen you can start one of three workflows:
    * - **Complete Workflow**
      - You are about to perform a DBS programming session and want to record
        stimulation parameters, clinical scales, and notes in real-time.
+   * - **Annotations-only Workflow**
+     - You only need timestamped text notes — no stimulation parameters or
+       clinical scale values.
    * - **Create Longitudinal Report**
      - You already have multiple programming-session TSV files from the same
        subject (BIDS example:
@@ -66,6 +79,6 @@ immediately and maintained between pages.
 Next Steps
 ----------
 
-* :doc:`workflow_session` — **Complete Workflow**
+* :doc:`workflow_complete` — **Complete Workflow**
+* :doc:`workflow_annotations` — **Annotations-only Workflow**
 * :doc:`longitudinal_report` — **Create Longitudinal Report**
-* :doc:`workflow_annotations` — **Annotation-only Workflow**

@@ -4,7 +4,7 @@ API Reference
 This page is generated automatically from the docstrings of the
 ``dbs_annotator`` package.  It is aimed at developers extending or embedding
 the application; clinicians and researchers should prefer the
-:doc:`quickstart` and :doc:`workflow_session` guides.
+:doc:`quickstart` and :doc:`workflow_complete` guides.
 
 The reference deliberately covers the **data, configuration, and control
 layers** of the application.  The Qt UI layers (``dbs_annotator.ui`` and
