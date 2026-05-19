@@ -1,7 +1,7 @@
-Free Annotations
-================
+Annotation-only Workflow
+========================
 
-The **Free Annotations** mode lets you record quick timestamped text notes
+The **Annotation-only Workflow** lets you record quick timestamped text notes
 without going through the full stimulation workflow.  Use it for:
 
 * In-clinic observations during a visit that does not involve parameter changes.
@@ -10,17 +10,17 @@ without going through the full stimulation workflow.  Use it for:
 
 .. raw:: html
 
-   <p><em>▶ <a href="_static/videos/annotations_overview.mp4">Watch: Free annotations workflow (video)</a></em></p>
+   <p><em>▶ <a href="_static/videos/annotations_overview.mp4">Watch: Annotation-only Workflow overview (video)</a></em></p>
 
 ----
 
-Opening Free Annotations
--------------------------
+Opening the Annotation-only Workflow
+------------------------------------
 
-From the home screen click **Free Annotations**.
+From the home screen click **Annotations-only Workflow**.
 
 .. image:: _static/annotations_view.png
-   :alt: Free annotations screen
+   :alt: Annotation-only Workflow — file setup screen
    :width: 680px
 
 ----

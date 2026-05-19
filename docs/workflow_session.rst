@@ -1,13 +1,13 @@
-Session Workflow
-================
+Complete Workflow
+=================
 
-The session workflow guides you through a complete DBS programming session in
+The **Complete Workflow** guides you through a DBS programming session in
 **four steps**.  Data is saved automatically after each entry; you never need to
 press a manual "Save" button.
 
 .. raw:: html
 
-   <p><em>▶ <a href="_static/videos/session_overview.mp4">Watch: Full session workflow overview (video)</a></em></p>
+   <p><em>▶ <a href="_static/videos/session_overview.mp4">Watch: Complete Workflow overview (video)</a></em></p>
 
 ----
 
@@ -113,15 +113,15 @@ Stimulation Parameters
      - Stimulation frequency.
    * - **Pulse width (µs)**
      - Pulse width.
-   * - **Group**
-     - Stimulation group label (e.g. A, B, C, D).
+   * - **Program**
+     - Stimulation program label (e.g. A, B, C, D).
 
 Both the **Left** and **Right** hemispheres have independent parameter panels.
 
-Baseline Clinical Scales
+Clinical Scales
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Below the stimulation parameters you will find a panel for **baseline clinical
+Below the stimulation parameters you will find a panel for **clinical
 scales** (validated rating instruments recorded once at the start of the
 session).  Click a **preset button** (OCD, MDD, PD, ET, Dystonia, TS) to load
 the standard scale set for that indication, or use the settings control to
@@ -136,9 +136,33 @@ Built-in clinical presets (Step 1):
 * **Dystonia** — BFMDRS, TWSTRS
 * **TS** — YGTSS, PUTS, TS-CGI, Y-BOCS
 
-Each scale has a **slider** with arrow buttons and a numeric display.  Press
-the **✕** button on a slider to mark that scale as "not assessed" (stored as
-``NaN`` and excluded from reports).
+Managing scales for this session
+""""""""""""""""""""""""""""""""
+
+Under **Clinical scales**, only rows where you enter a numeric **Score** are
+written to the TSV when you continue.  Preset scales stay visible even if you
+leave the score blank — they are simply omitted from the file.
+
+* Click **−** on a row to remove that scale from the current session list.
+* To add a scale for **this session only**, type the name and score in the empty
+  row at the bottom, then click **+** to open another blank row.
+
+Permanent preset customisation
+""""""""""""""""""""""""""""""
+
+To change the built-in preset buttons for all future sessions, click the
+**settings** control (gear icon, top right of the Clinical scales panel).  The
+**Clinical Scales Settings** dialog lets you:
+
+* Select a preset from the list and edit its scale names.
+* **Add/Update Preset** — enter a **Preset Name** and **Scales** as a
+  comma-separated list (e.g. ``Y-BOCS, MADRS, HAM-D``).
+* **Delete Selected** to remove a preset.
+* **Save & Close** to persist your changes.
+
+.. image:: _static/clinical_scales_settings_dialog.png
+   :alt: Clinical Scales Settings dialog
+   :width: 520px
 
 .. raw:: html
 
@@ -146,14 +170,14 @@ the **✕** button on a slider to mark that scale as "not assessed" (stored as
 
 ----
 
-Step 2 — Scale Selection
--------------------------
+Step 2 — Session Scale Selection
+--------------------------------
 
 .. image:: _static/step2.png
    :alt: Step 2 – Scale selection screen
    :width: 680px
 
-Choose which clinical scales to track **during the session** (i.e. at each
+Choose which session scales to track **during the session** (i.e. at each
 stimulation configuration tested).
 
 Built-in presets
@@ -172,12 +196,39 @@ a **0–10** numeric range with slider controls.
 * **TS** — Tic severity, Premonitory urge, Control over tics, Anxiety,
   Impulsivity
 
-Custom scales
-^^^^^^^^^^^^^
+Managing scales for this session
+""""""""""""""""""""""""""""""""
 
-Click **+ Add scale** to define a custom scale with a name and a numeric
-range (min / max).  Custom scales are saved for the current session via the
-session-scales settings dialog.
+As on Step 1, you configure which scales appear in Step 3.  Each row has a
+**Name**, **Min**, and **Max** value that define the rating range used by the
+sliders during recording.  Built-in presets use **0** and **10** by default.
+
+* Click **−** to remove a scale from the current session list.
+* Type **Name**, **Min**, and **Max** in the empty row at the bottom, then click
+  **+** to add another row.
+
+Permanent preset customisation
+""""""""""""""""""""""""""""""
+
+Click **settings** (top right of the Session scales panel) to open **Session
+Scales Settings**.  You can delete presets, edit existing ones, or create a new
+preset:
+
+* **Preset Name** — label shown on the preset button (e.g. ``MyPreset``).
+* **Scales** — comma-separated entries in the form ``Name:min-max``, for example
+  ``Mood:0-10, Anxiety:0-10, Custom:0-5``.
+
+Click **Add/Update Preset** to stage the entry, then **Save & Close** to keep
+your changes.  (The screenshot below shows a new preset being drafted; it is
+not saved until you confirm.)
+
+.. image:: _static/session_scales_settings_dialog.png
+   :alt: Session Scales Settings dialog
+   :width: 520px
+
+In Step 3, each session scale is rated with a **slider** (0–10 for built-in
+presets).  Press **✕** on a slider to mark that scale as not assessed (stored
+as ``NaN`` and excluded from reports).
 
 ----
 

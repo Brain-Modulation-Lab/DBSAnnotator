@@ -1,0 +1,11 @@
+/*
+ * sphinx-rtd-theme caps main content at ~800px for readability.
+ * Override so clinical screenshots and wide tables use the full viewport.
+ */
+.wy-nav-content {
+  max-width: none;
+}
+
+.wy-nav-content-wrap {
+  max-width: 100%;
+}

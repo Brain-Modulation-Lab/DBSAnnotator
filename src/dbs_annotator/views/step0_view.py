@@ -47,13 +47,13 @@ class Step0View(QWidget):
         notes_buttons_layout.setSpacing(30)
 
         # Full mode button
-        self.full_mode_button = QPushButton("Complete workflow")
+        self.full_mode_button = QPushButton("Complete Workflow")
         self.full_mode_button.setObjectName("full_mode_button")
         self.full_mode_button.setCursor(Qt.CursorShape.PointingHandCursor)
         notes_buttons_layout.addWidget(self.full_mode_button)
 
         # Annotations only button
-        self.annotations_only_button = QPushButton("Annotation-only workflow")
+        self.annotations_only_button = QPushButton("Annotations-only Workflow")
         self.annotations_only_button.setObjectName("annotations_only_button")
         self.annotations_only_button.setCursor(Qt.CursorShape.PointingHandCursor)
         notes_buttons_layout.addWidget(self.annotations_only_button)

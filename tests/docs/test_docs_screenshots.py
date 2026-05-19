@@ -51,6 +51,14 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     save_wizard = sh.save_wizard
     save_wizard(wizard, out / "home_screen.png")
 
+    from dbs_annotator.utils.theme_manager import Theme
+
+    sh.apply_docs_theme(wizard.app, Theme.DARK)
+    wizard._update_theme_button_icon()
+    save_wizard(wizard, out / "home_screen_dark.png")
+    sh.apply_docs_theme(wizard.app, Theme.LIGHT)
+    wizard._update_theme_button_icon()
+
     # --- Full session workflow ---
     qtbot.mouseClick(wizard.step0_view.full_mode_button, Qt.MouseButton.LeftButton)
     sh.wait_for_render()
@@ -65,6 +73,9 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     sh.configure_stimulation(s1)
     sh.fill_step1_initial_notes(s1)
     save_wizard(wizard, out / "step1.png")
+    sh.save_clinical_scales_settings_dialog(
+        wizard, out / "clinical_scales_settings_dialog.png"
+    )
     sh.save_electrode_canvas(s1.left_canvas, out / "electrode_diagram.png")
     sh.save_electrode_canvas(s1.left_canvas, out / "electrode-canvas.png")
 
@@ -74,6 +85,9 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
 
     sh.apply_pd_session_preset(wizard)
     save_wizard(wizard, out / "step2.png")
+    sh.save_session_scales_settings_dialog(
+        wizard, out / "session_scales_settings_dialog.png"
+    )
 
     qtbot.mouseClick(wizard.step2_view.next_button, Qt.MouseButton.LeftButton)
     sh.wait_for_render()

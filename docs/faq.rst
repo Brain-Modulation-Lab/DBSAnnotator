@@ -48,7 +48,7 @@ Files & Data
 
 **Where are my data files saved?**
 
-In the folder you selected in Step 0 of the session workflow.  The application
+In the folder you selected in Step 0 of the Complete Workflow.  The application
 never writes files outside that folder.
 
 **Can I open the TSV files in Excel?**

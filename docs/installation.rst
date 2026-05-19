@@ -1,107 +1,135 @@
 Installation
 ============
 
-DBS Annotator ships as a **single self-contained executable** — no
-Python, no libraries, no system configuration required.
+DBS Annotator is a **self-contained desktop application** — no Python or
+extra libraries are required to run the packaged build.  Session data are
+plain ``.tsv`` files in a folder you choose when you start a session.
 
 ----
 
-Windows
--------
+For end users
+-------------
 
-Requirements
-^^^^^^^^^^^^
+You can find installation files for **Windows** (``.msi``), **macOS**
+(``.dmg``), and **Linux** (``.deb``) on
+`GitHub Releases <https://github.com/Brain-Modulation-Lab/DBSAnnotator/releases>`_.
 
-* Windows 10 or Windows 11 (64-bit)
-* ~150 MB of free disk space
-* No administrator rights needed to *run* the application
+However, the files are **unsigned**, so a warning may appear during
+installation or on first launch.  You must accept the risk and continue.
+On Windows, see :ref:`windows-smartscreen` if SmartScreen blocks the app.
 
-Steps
-^^^^^
+In some cases — for example when your organization has strict settings — a
+direct download may not be possible.  Use the **install commands below** for
+your operating system.
 
-1. Download the installer or the standalone ``.exe`` file provided by your lab.
-2. **If you received an installer (``.msi`` or ``setup.exe``):**
+----
 
-   a. Double-click the installer.
-   b. Follow the on-screen prompts (Next → Next → Finish).
-   c. A shortcut appears on your Desktop and in the Start Menu.
+Windows — install via PowerShell
+--------------------------------
 
-3. **If you received a standalone** ``DBSAnnotator.exe`` **file:**
+In an **open PowerShell** window:
 
-   a. Copy the file to any folder you prefer (e.g. ``C:\Users\YourName\DBS_Tool\``).
-   b. Double-click to launch — no further steps needed.
+.. code-block:: powershell
 
-4. **GitHub release with portable** ``.zip`` **(``DBSAnnotator-*.zip``):** to install
-   without using the unsigned MSI, use the README one-liner
-   (``irm https://…/install.ps1 | iex``) or a saved copy of ``scripts/install.ps1``
-   (use parameters such as ``-VersionTag`` only when you run a local file or a
-   script block; see the README). It unpacks under
-   ``%LOCALAPPDATA%\\WyssGeneva\\DBSAnnotator\\app`` and adds a Start Menu
-   shortcut.
+   irm https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.ps1 | iex
 
-.. note::
-   The first launch may take 5–10 seconds while Windows extracts bundled
-   libraries.  Subsequent launches are faster.
+From **cmd.exe** (or if execution policy blocks scripts):
 
-Windows SmartScreen Warning
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: bat
 
-Because the application is not yet signed with a commercial certificate,
-Windows may display a blue *SmartScreen* warning the first time you run it.
+   powershell -ExecutionPolicy Bypass -NoProfile -Command "irm https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.ps1 | iex"
+
+The script fetches the latest Windows portable ``.zip`` from GitHub Releases,
+unpacks under ``%LOCALAPPDATA%\\WyssGeneva\\DBSAnnotator\\app``, and creates a
+Start Menu shortcut.
+
+.. _windows-smartscreen:
+
+Windows SmartScreen warning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you run the ``.msi`` or the installed app directly, Windows may show a blue
+*SmartScreen* warning because the build is not signed with a commercial
+certificate:
 
 .. image:: _static/smartscreen.png
    :alt: Windows SmartScreen dialog
    :width: 420px
 
-To proceed:
-
-1. Click **"More info"**.
-2. Click **"Run anyway"**.
-
-This is a one-time step per machine.
+To proceed: click **More info**, then **Run anyway**.  This is usually a
+one-time step per machine.
 
 ----
 
-macOS
------
+macOS / Linux — shell install
+-----------------------------
 
-.. note::
-   A macOS build is available from the development team on request.  The steps
-   below assume a ``.dmg`` disk image has been provided.
+**macOS** and **Linux** use the same install script.  It needs **Python 3**
+and ``curl`` or ``wget``.  On macOS it prefers the release **raw** ``.tar.gz``,
+otherwise the ``.dmg``.  On Linux (x86_64) it prefers the raw ``.tar.gz``,
+otherwise the published ``.deb``.
 
-1. Open the ``.dmg`` file.
-2. Drag **DBSAnnotator** to your *Applications* folder.
-3. On first launch, right-click the app icon → **Open** → **Open** again in the
-   dialog.  This is required once because the app is not notarised.
+.. code-block:: sh
 
-**Or** use the install script from the repository (see the README: ``curl`` /
-``wget`` pipe to ``sh``), which prefers the release **raw** ``.tar.gz`` when
-present, else the ``.dmg``.
+   curl -LsSf https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
 
-----
+.. code-block:: sh
 
-Linux (x86_64)
----------------
+   wget -qO- https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
 
-On **x86_64** Linux distributions, you can use the same shell script (README) to
-install the **raw** ``.tar.gz`` or the published ``.deb`` from GitHub
-Releases. You need **Python 3** for the script. Non-x86_64 is not supported by
-the current pre-built artifacts.
+On **macOS**, if you install from the ``.dmg`` manually instead: open the disk
+image from GitHub Releases and drag **DBSAnnotator** to *Applications*.  On
+first launch, right-click → **Open** → **Open** again (required once when the
+app is not notarized).
+
+On **Linux** non-x86_64 systems, install the ``.deb`` from Releases manually or
+build from source (see :doc:`contributing`).
 
 ----
 
 Updating
 --------
 
-To update to a newer version simply replace the old ``.exe`` / application
-bundle with the new one.  Your data files (``*.tsv``) are stored separately
-and are not affected.
+Updating the application does **not** change your session ``*_events.tsv``
+files — they stay in the folders you chose in the app.
+
+Re-run the same install command
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the **same one-liner** as for a fresh install to pull the latest release:
+
+**Windows:**
+
+.. code-block:: powershell
+
+   irm https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.ps1 | iex
+
+**macOS / Linux:**
+
+.. code-block:: sh
+
+   curl -LsSf https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
+
+Automatic update notification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When enabled, the app checks GitHub Releases (about once per day) and notifies
+you if a newer version is available.  No patient or session data are sent.
+Toggle checks from **Help**, or opt out on the update dialog.  See :doc:`faq`
+(*How does the automatic update checker work?*).
+
+Installer from GitHub Releases
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can also download a newer ``.msi``, ``.dmg``, or ``.deb`` from
+`GitHub Releases <https://github.com/Brain-Modulation-Lab/DBSAnnotator/releases>`_
+and run it over the previous install.
 
 ----
 
-Data Storage
+Data storage
 ------------
 
-The application does **not** create a database or modify system settings.
-All data is written to plain TSV files in the folder you choose at session
-start.  You can back up, move, or share these files freely.
+The application does not use a database or registry entries for clinical
+data.  All recordings are tab-separated ``.tsv`` files in the output folder
+you select at session start.  Column schema: :doc:`output_format`.
