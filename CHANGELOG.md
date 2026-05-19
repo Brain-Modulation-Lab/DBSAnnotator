@@ -10,31 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Read the Docs screenshot pipeline: home screen (light and dark theme), clinical
-  scales settings dialog, and session scales settings dialog (draft preset fields,
-  not persisted during capture).
-- ``docs/_static/custom.css`` so RTD content uses the full viewport width instead
-  of the theme default narrow column.
+  and session scales settings dialogs, and regenerated workflow captures at
+  native resolution (HiDPI-aware screen grab, improved PNG settings).
+- ``docs/_static/custom.css``: full-width RTD content; ``screenshot-full`` (wizard
+  steps) and ``screenshot-medium`` (home, dialogs) with ``max-width: 720px`` to
+  avoid upscaled blurry dialog images.
+- ``COPYRIGHT_HOLDERS`` and ``APP_LICENSE_NAME`` in ``config.py`` (shared with
+  documentation).
 
 ### Changed
 
-- Read the Docs user guide aligned with current clinical and session scale presets
-  (OCD, MDD, PD, ET, Dystonia, TS), 0–10 session scales, and report export options
-  (Session Data graph and table, longitudinal clinical/session timeline charts).
-- ``docs/installation.rst`` and updating section aligned with README end-user install
-  commands (GitHub Releases ``.msi`` / ``.dmg`` / ``.deb``, PowerShell and shell
-  one-liners, in-app update checker).
-- Workflow documentation renamed for consistency with the home screen:
-  **Complete Workflow** (formerly “Session Workflow”) and **Annotation-only Workflow**
-  (formerly “Free Annotations”); quickstart and index updated accordingly.
-- ``docs/workflow_session.rst``: Step 1 and Step 2 sections document per-session scale
-  rows (**−** / **+**), score-only TSV persistence for clinical scales, min/max ranges
-  for session scales, and permanent preset editing via **settings** (including
-  ``Name:min-max`` format for session presets).
-- Home screen buttons relabelled to **Complete Workflow** and **Annotations-only
-  Workflow** (capital W).
-- Documentation copyright updated for Massachusetts General Hospital, Wyss Center
-  for Bio and Neuroengineering, and Charité Universitätsmedizin Berlin; contact
-  remains lucia.poma@wysscenter.ch.
+- **Help** dialog rewritten around the standard **Complete Workflow** programming
+  pipeline, timestamped ``task-programming`` TSV output, and Word/PDF reports;
+  copyright lists MGH, Wyss Center, and Charité; MIT license noted.
+- Annotations-only file step header title: **Clinical Annotations Setup** (was
+  "Output File").
+- Home screen buttons: **Complete Workflow** and **Annotations-only Workflow**.
+- Read the Docs: installation aligned with README; workflow pages renamed
+  (**Complete Workflow**, **Annotation-only Workflow**); ``workflow_session.rst``
+  documents per-session scales (**−** / **+**, settings dialogs);
+  ``longitudinal_report.rst`` and ``quickstart.rst`` specify ``task-programming``
+  BIDS files for longitudinal reports.
+- Documentation copyright: Massachusetts General Hospital, Wyss Center for Bio
+  and Neuroengineering, and Charité Universitätsmedizin Berlin.
 
 ## [0.4.0b1] - 2026-05-08
 

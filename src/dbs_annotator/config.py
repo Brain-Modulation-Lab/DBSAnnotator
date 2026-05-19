@@ -16,6 +16,16 @@ APP_VERSION = get_version()
 # Publisher (UI, About, docs). Not used for on-disk paths.
 ORGANIZATION_PUBLISHER = "Wyss Center for Bio and Neuroengineering"
 
+# Copyright holders shown in Help, documentation, and license notices.
+COPYRIGHT_HOLDERS = (
+    "Massachusetts General Hospital, "
+    "Wyss Center for Bio and Neuroengineering, "
+    "and Charité Universitätsmedizin Berlin"
+)
+
+# SPDX-style license name (see LICENSE in the repository root).
+APP_LICENSE_NAME = "MIT License"
+
 # Lead author (About; list same person first in package metadata).
 APP_LEAD_AUTHOR = "Lucia Poma"
 

@@ -16,7 +16,7 @@ Step 0 — File & Patient Setup
 
 .. image:: _static/step0.png
    :alt: Step 0 – File setup screen
-   :width: 680px
+   :class: screenshot-full
 
 On this screen you configure where data will be saved and identify the patient.
 
@@ -61,7 +61,7 @@ Step 1 — Initial Configuration
 
 .. image:: _static/step1.png
    :alt: Step 1 – Initial configuration screen
-   :width: 680px
+   :class: screenshot-full
 
 .. raw:: html
 
@@ -79,7 +79,7 @@ An interactive diagram of the selected electrode is displayed immediately.
 
 .. image:: _static/electrode_diagram.png
    :alt: Interactive electrode contact diagram
-   :width: 340px
+   :class: screenshot-medium
 
 Contact Selection
 ^^^^^^^^^^^^^^^^^
@@ -162,7 +162,7 @@ To change the built-in preset buttons for all future sessions, click the
 
 .. image:: _static/clinical_scales_settings_dialog.png
    :alt: Clinical Scales Settings dialog
-   :width: 520px
+   :class: screenshot-medium
 
 .. raw:: html
 
@@ -175,7 +175,7 @@ Step 2 — Session Scale Selection
 
 .. image:: _static/step2.png
    :alt: Step 2 – Scale selection screen
-   :width: 680px
+   :class: screenshot-full
 
 Choose which session scales to track **during the session** (i.e. at each
 stimulation configuration tested).
@@ -224,7 +224,7 @@ not saved until you confirm.)
 
 .. image:: _static/session_scales_settings_dialog.png
    :alt: Session Scales Settings dialog
-   :width: 520px
+   :class: screenshot-medium
 
 In Step 3, each session scale is rated with a **slider** (0–10 for built-in
 presets).  Press **✕** on a slider to mark that scale as not assessed (stored
@@ -237,7 +237,7 @@ Step 3 — Active Recording
 
 .. image:: _static/step3.png
    :alt: Step 3 – Active recording screen
-   :width: 680px
+   :class: screenshot-full
 
 .. raw:: html
 
@@ -264,7 +264,7 @@ timestamp.
 
 .. image:: _static/step3_entry_recorded.png
    :alt: Entry recorded confirmation
-   :width: 400px
+   :class: screenshot-full
 
 Session Table
 ^^^^^^^^^^^^^
@@ -290,7 +290,7 @@ Before the file-save dialog appears, two dialogs will be shown:
 
    .. image:: _static/scale_optimization_dialog.png
       :alt: Scale optimisation dialog
-      :width: 500px
+      :class: screenshot-medium
 
 2. **Report Sections** — choose which sections to include in the report.
    By default all main sections are checked.  Under **Session Data** you can
@@ -309,7 +309,7 @@ Before the file-save dialog appears, two dialogs will be shown:
 
    .. image:: _static/report_sections_dialog.png
       :alt: Report sections dialog
-      :width: 380px
+      :class: screenshot-medium
 
 3. Choose the **save location** for the report file.
 

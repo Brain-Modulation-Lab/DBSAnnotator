@@ -57,6 +57,10 @@ class AnnotationsFileView(QWidget):
         # Add the next button to the layout
         self.main_layout.addWidget(self.next_button)
 
+    def get_header_title(self) -> str:
+        """Return the wizard header title for the file-setup step."""
+        return "Clinical Annotations Setup"
+
     def _on_file_dropped(self, file_path: str) -> None:
         """Handle a file dropped onto the line-edit widget."""
         if file_path:

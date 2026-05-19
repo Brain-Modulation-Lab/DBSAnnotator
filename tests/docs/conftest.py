@@ -5,6 +5,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
 
 from dbs_annotator.views.wizard_window import WizardWindow
 from tests.docs.screenshot_helpers import prepare_qt_for_docs
@@ -20,6 +22,9 @@ def pytest_collection_modifyitems(items) -> None:
 @pytest.fixture
 def wizard(qtbot, qapp):
     """Wizard with production theme/fonts applied (readable text in PNGs)."""
+    QApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    )
     prepare_qt_for_docs(qapp)
     # Avoid background update checks (network/COM) during screenshot capture.
     with (

@@ -9,3 +9,19 @@
 .wy-nav-content-wrap {
   max-width: 100%;
 }
+
+/* Full application window (wizard steps, session views). */
+.rst-content img.screenshot-full,
+.wy-nav-content img.screenshot-full {
+  width: 100% !important;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Home screen, settings dialogs, and other modal / partial captures. */
+.rst-content img.screenshot-medium,
+.wy-nav-content img.screenshot-medium {
+  width: 60% !important;
+  max-width: 720px;
+  height: auto;
+}

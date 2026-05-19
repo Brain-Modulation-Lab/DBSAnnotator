@@ -24,6 +24,26 @@ your operating system.
 
 ----
 
+.. _windows-smartscreen:
+
+Windows — SmartScreen warnings
+------------------------------
+
+Release builds are not code-signed.  **Windows Defender SmartScreen** may
+block the installer (``.msi``) or the application on first launch.
+
+If you see **"Windows protected your PC"** or **"Microsoft Defender SmartScreen
+prevented an unrecognized app from starting"**:
+
+1. Click **More info** (or **Show more** on newer Windows builds).
+2. Click **Run anyway** (installer) or **Run** (application).
+
+If your organization blocks unsigned software entirely, use the PowerShell
+install command below (portable build under your user profile), or ask IT for
+an exception.
+
+----
+
 Windows — install via PowerShell
 --------------------------------
 
@@ -42,22 +62,6 @@ From **cmd.exe** (or if execution policy blocks scripts):
 The script fetches the latest Windows portable ``.zip`` from GitHub Releases,
 unpacks under ``%LOCALAPPDATA%\\WyssGeneva\\DBSAnnotator\\app``, and creates a
 Start Menu shortcut.
-
-.. _windows-smartscreen:
-
-Windows SmartScreen warning
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you run the ``.msi`` or the installed app directly, Windows may show a blue
-*SmartScreen* warning because the build is not signed with a commercial
-certificate:
-
-.. image:: _static/smartscreen.png
-   :alt: Windows SmartScreen dialog
-   :width: 420px
-
-To proceed: click **More info**, then **Run anyway**.  This is usually a
-one-time step per machine.
 
 ----
 
