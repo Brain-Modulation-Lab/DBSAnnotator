@@ -1,9 +1,11 @@
 Longitudinal Report
 ===================
 
-The Longitudinal Report workflow combines data from **multiple session files**
-into a single comparative document.  Use it to track a patient's progression
-across visits.
+The Longitudinal Report workflow combines data from **multiple programming-session
+TSV files** for the **same subject** into a single comparative document.  Use it
+to track a patient's progression across visits.  Files must follow the BIDS
+``task-programming`` naming convention (e.g.
+``sub-01_ses-20250115_task-programming_run-01_events.tsv``).
 
 .. raw:: html
 
@@ -18,30 +20,33 @@ From the home screen click **Longitudinal Report**.
 
 .. image:: _static/longitudinal_view.png
    :alt: Longitudinal file view
-   :width: 680px
+   :class: screenshot-full
 
 ----
 
 Loading Session Files
 ----------------------
 
-You can add session TSV files in two ways:
+Add one or more **programming-session** TSV files from the same patient
+(``task-programming`` in the filename).  You can load them in two ways:
 
 Drag and Drop
 ^^^^^^^^^^^^^
 
-Drag one or more ``*_events.tsv`` files from Windows Explorer directly into
-the **file list area** of the application.
+Drag one or more files from Windows Explorer directly into the **file list
+area** of the application.  Each file should match the BIDS pattern
+``sub-<ID>_ses-<YYYYMMDD>_task-programming_run-<NN>_events.tsv`` (for example
+``sub-01_ses-20250115_task-programming_run-01_events.tsv``).
 
 .. image:: _static/longitudinal_drag_drop.png
    :alt: Drag and drop files into the file list
-   :width: 500px
+   :class: screenshot-full
 
 Browse Button
 ^^^^^^^^^^^^^
 
 Click **Add files** and use the file picker to select one or more
-``*_events.tsv`` files.
+``*_task-programming_*_events.tsv`` files for the same subject.
 
 Managing the File List
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -62,9 +67,10 @@ Managing the File List
    to reorder them if needed.
 
 .. note::
-   All files must belong to the **same patient**.  The application reads the
-   patient ID from the BIDS filename and will warn you if files from different
-   patients are mixed.
+   All files must belong to the **same patient** and should be **programming
+   sessions** (``task-programming``).  The application reads the patient ID from
+   the BIDS filename and will warn you if files from different patients are
+   mixed.
 
 ----
 
@@ -83,7 +89,7 @@ each **clinical (baseline) scale** found across all loaded files.
 
 .. image:: _static/scale_optimization_dialog.png
    :alt: Scale optimisation dialog
-   :width: 500px
+   :class: screenshot-medium
 
 For each scale, select:
 
@@ -131,7 +137,7 @@ Choose which sections to include.  By default **Sessions Overview** and
 
 .. image:: _static/report_sections_dialog_longitudinal.png
    :alt: Report sections dialog – longitudinal
-   :width: 380px
+   :class: screenshot-medium
 
 Step 3 — Save Location
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -180,7 +186,7 @@ notes.  The best entry per session is highlighted in **green**.
 
 .. image:: _static/longitudinal_session_data.png
    :alt: Session data table in longitudinal report
-   :width: 680px
+   :class: screenshot-medium
 
 Electrode Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,7 +207,7 @@ A page break separates each file's configuration page.
 
 .. image:: _static/electrode_config_longitudinal.png
    :alt: Electrode configuration in longitudinal report
-   :width: 680px
+   :class: screenshot-medium
 
 Programming Summary
 ^^^^^^^^^^^^^^^^^^^^

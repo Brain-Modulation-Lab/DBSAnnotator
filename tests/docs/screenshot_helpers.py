@@ -7,9 +7,10 @@ import shutil
 from pathlib import Path
 
 import pandas as pd
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLayout, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QLayout, QWidget
 
 from dbs_annotator.config import CLINICAL_SCALES_PRESETS, SESSION_SCALES_PRESETS
 from dbs_annotator.config_electrode_models import ELECTRODE_MODELS, ContactState
@@ -34,6 +35,11 @@ _QSS_FONT_CHAIN_LINUX = (
 
 DOCS_STATIC_DIR = Path("docs/_static")
 LOGO_SOURCE = Path("icons/logosimple/logosimple-256.png")
+# Qt PNG quality: compression 0 (largest) .. 9 (smallest); 2 = high fidelity.
+PNG_SAVE_COMPRESSION = 2
+WIZARD_SCREENSHOT_WIDTH = 1600
+WIZARD_SCREENSHOT_HEIGHT = 1000
+ELECTRODE_SCREENSHOT_SCALE = 2
 
 PATIENT_ID = "01"
 BIDS_FILENAME = f"sub-{PATIENT_ID}_ses-20250115_task-programming_run-01_events.tsv"
@@ -108,15 +114,43 @@ def wait_for_render(ms: int = 400) -> None:
 
 def save_pixmap(pixmap: QPixmap, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    assert pixmap.save(str(path)), f"Failed to save screenshot: {path}"
+    image = pixmap.toImage()
+    ok = image.save(str(path), b"PNG", PNG_SAVE_COMPRESSION)
+    assert ok, f"Failed to save screenshot: {path}"
+
+
+def grab_window_pixmap(widget: QWidget) -> QPixmap:
+    """Capture a top-level window/dialog at native resolution (incl. HiDPI)."""
+    widget.show()
+    widget.raise_()
+    widget.activateWindow()
+    wait_for_render(500)
+
+    win_id = widget.winId()
+    if win_id:
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            try:
+                grabbed = screen.grabWindow(int(win_id))
+                if not grabbed.isNull():
+                    return grabbed
+            except (TypeError, ValueError):
+                pass
+
+    return widget.grab()
+
+
+def grab_widget_pixmap(widget: QWidget) -> QPixmap:
+    """Dialogs/modals: native-resolution grab (sharp when CSS scales down)."""
+    return grab_window_pixmap(widget)
 
 
 def save_electrode_canvas(
     canvas,
     path: Path,
     *,
-    width: int = 420,
-    height: int = 760,
+    width: int = 420 * ELECTRODE_SCREENSHOT_SCALE,
+    height: int = 760 * ELECTRODE_SCREENSHOT_SCALE,
     background: str = "#f8fafc",
 ) -> None:
     """Render electrode state to PNG (same offscreen path as session export).
@@ -157,9 +191,7 @@ def save_widget(
 ) -> None:
     if width and height:
         widget.resize(width, height)
-    widget.show()
-    wait_for_render()
-    save_pixmap(widget.grab(), path)
+    save_pixmap(grab_window_pixmap(widget), path)
 
 
 def pd_session_scales_for_export_dialog() -> list[tuple[str, str, str]]:
@@ -195,49 +227,53 @@ def save_scale_optimization_dialog(dlg: QWidget, path: Path) -> None:
     width = max(int(getattr(dlg, "minimumWidth", lambda: 720)()), 720)
     height = 130 + row_count * 46 + 72
     dlg.setFixedSize(width, height)
-    dlg.show()
-    wait_for_render()
-    save_pixmap(dlg.grab(), path)
+    save_pixmap(grab_window_pixmap(dlg), path)
 
 
-def save_clinical_scales_settings_dialog(
-    wizard,
-    path: Path,
-    *,
-    draft_preset_name: str = "Example",
-    draft_scales: str = "CUSTOM1, CUSTOM2",
-) -> None:
-    """Clinical Scales Settings with draft fields filled (not saved)."""
+def _select_list_preset(dlg: QDialog, preset_name: str) -> None:
+    """Select a preset row in settings dialogs (Clinical / Session Scales)."""
+    presets_list = getattr(dlg, "presets_list", None)
+    if presets_list is None:
+        return
+    for row in range(presets_list.count()):
+        item = presets_list.item(row)
+        if item is not None and item.data(Qt.ItemDataRole.UserRole) == preset_name:
+            presets_list.setCurrentRow(row)
+            return
+
+
+def save_clinical_scales_settings_dialog(wizard, path: Path) -> None:
+    """Clinical Scales Settings — same size and PD selection as the live dialog."""
     from dbs_annotator.config import PRESET_BUTTONS
     from dbs_annotator.ui.clinical_scales_settings_dialog import (
         ClinicalScalesSettingsDialog,
     )
 
+    wizard.show()
+    wizard.raise_()
     s1 = wizard.step1_view
     dlg = ClinicalScalesSettingsDialog(s1.clinical_presets, wizard, PRESET_BUTTONS)
-    dlg.preset_name_edit.setText(draft_preset_name)
-    dlg.scales_edit.setText(draft_scales)
-    save_dialog(dlg, path, min_width=500)
+    dlg.resize(500, 400)
+    _select_list_preset(dlg, "PD")
+    save_pixmap(grab_widget_pixmap(dlg), path)
 
 
-def save_session_scales_settings_dialog(
-    wizard,
-    path: Path,
-    *,
-    draft_preset_name: str = "MyPreset",
-    draft_scales: str = "CustomScale:0-10, Mood:0-10",
-) -> None:
-    """Session Scales Settings with draft new-preset fields filled (not saved)."""
+def save_session_scales_settings_dialog(wizard, path: Path) -> None:
+    """Session Scales Settings — draft new preset (not saved), native dialog size."""
     from dbs_annotator.config import PRESET_BUTTONS
     from dbs_annotator.ui.session_scales_settings_dialog import (
         SessionScalesSettingsDialog,
     )
 
+    wizard.show()
+    wizard.raise_()
     s2 = wizard.step2_view
     dlg = SessionScalesSettingsDialog(s2.session_presets, wizard, PRESET_BUTTONS)
-    dlg.preset_name_edit.setText(draft_preset_name)
-    dlg.scales_edit.setText(draft_scales)
-    save_dialog(dlg, path, min_width=520)
+    dlg.resize(520, 420)
+    dlg._clear_selection()
+    dlg.preset_name_edit.setText("MyPreset")
+    dlg.scales_edit.setText("Mood:0-10, Anxiety:0-10, CustomScale:0-5")
+    save_pixmap(grab_widget_pixmap(dlg), path)
 
 
 def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
@@ -249,38 +285,20 @@ def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     dlg.setMaximumSize(16777215, 16777215)  # reset any prior max from test resizes
     dlg.adjustSize()
     hint = dlg.sizeHint()
-    dlg.setFixedSize(max(hint.width(), min_width), hint.height())
-    dlg.show()
-    wait_for_render()
-    save_pixmap(dlg.grab(), path)
+    dlg.resize(max(hint.width(), min_width), hint.height())
+    save_pixmap(grab_widget_pixmap(dlg), path)
 
 
 def save_wizard(
-    wizard: QWidget, path: Path, width: int = 1400, height: int = 900
+    wizard: QWidget,
+    path: Path,
+    width: int = WIZARD_SCREENSHOT_WIDTH,
+    height: int = WIZARD_SCREENSHOT_HEIGHT,
 ) -> None:
-    """Capture the window; use screen grab for native frame when possible."""
+    """Capture the wizard window at native resolution (screen grab, HiDPI)."""
+    wizard.setMinimumSize(width, height)
     wizard.resize(width, height)
-    wizard.show()
-    wizard.raise_()
-    wizard.activateWindow()
-    wait_for_render(500)
-
-    pixmap = None
-    win_id = wizard.winId()
-    if win_id:
-        screen = QApplication.primaryScreen()
-        if screen is not None:
-            try:
-                grabbed = screen.grabWindow(int(win_id))
-                if not grabbed.isNull():
-                    pixmap = grabbed
-            except (TypeError, ValueError):
-                pass
-
-    if pixmap is None or pixmap.isNull():
-        pixmap = wizard.grab()
-
-    save_pixmap(pixmap, path)
+    save_pixmap(grab_window_pixmap(wizard), path)
 
 
 def copy_logo(out_dir: Path) -> None:

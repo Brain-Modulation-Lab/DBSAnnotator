@@ -14,7 +14,7 @@ window opens, showing the **Home screen**.
 
 .. image:: _static/home_screen.png
    :alt: Application home screen
-   :width: 680px
+   :class: screenshot-medium
 
 ----
 
@@ -33,11 +33,10 @@ From the home screen you can start one of three workflows:
      - You are about to perform a DBS programming session and want to record
        stimulation parameters, clinical scales, and notes in real-time.
    * - **Create Longitudinal Report**
-     - You already have multiple ``*_events.tsv`` files from previous sessions
-       and want to generate a combined comparative report.
-   * - **Annotations-only Workflow**
-     - You want to take quick timestamped notes without the full stimulation
-       workflow (e.g. during an in-clinic observation).
+     - You already have multiple programming-session TSV files from the same
+       subject (BIDS example:
+       ``sub-XX_ses-YYYYMMDD_task-programming_run-XX_events.tsv``) from
+       previous visits and want to generate a combined comparative report.
 
 ----
 
@@ -60,7 +59,7 @@ immediately and maintained between pages.
 
 .. image:: _static/home_screen_dark.png
    :alt: Application home screen (dark theme)
-   :width: 680px
+   :class: screenshot-medium
 
 ----
 

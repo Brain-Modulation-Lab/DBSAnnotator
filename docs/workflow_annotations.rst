@@ -21,7 +21,7 @@ From the home screen click **Annotations-only Workflow**.
 
 .. image:: _static/annotations_view.png
    :alt: Annotation-only Workflow — file setup screen
-   :width: 680px
+   :class: screenshot-full
 
 ----
 
@@ -39,7 +39,7 @@ The entry is immediately appended to the list below with:
 
 .. image:: _static/annotations_list.png
    :alt: Annotation list with timestamps
-   :width: 680px
+   :class: screenshot-full
 
 Entries are saved to the TSV file in real-time; no manual save is needed.
 

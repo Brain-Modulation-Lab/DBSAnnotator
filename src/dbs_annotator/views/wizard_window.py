@@ -9,6 +9,7 @@ import html
 import logging
 import os
 import typing
+from datetime import datetime
 from typing import Protocol
 
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl
@@ -35,10 +36,12 @@ from PySide6.QtWidgets import (
 from ..config import (
     APP_ISSUES_URL,
     APP_LEAD_AUTHOR,
+    APP_LICENSE_NAME,
     APP_NAME,
     APP_REPOSITORY_URL,
     APP_VERSION,
     BASE_DPI,
+    COPYRIGHT_HOLDERS,
     FONT_SCALE_ENABLED,
     ICON_FILENAME,
     ICONS_DIR,
@@ -319,7 +322,7 @@ class WizardWindow(QWidget):
         if isinstance(current, Step0View):
             return ""
         if isinstance(current, AnnotationsFileView):
-            return "Output File"
+            return "Clinical Annotations Setup"
         if isinstance(current, AnnotationsSessionView):
             return "Session Annotations"
         if isinstance(current, LongitudinalFileView):
@@ -365,11 +368,60 @@ class WizardWindow(QWidget):
         else:
             self.theme_toggle_btn.setText("🌙")  # Moon = will switch to dark
 
+    def _help_dialog_html(self) -> str:
+        """HTML body for the Help / About dialog."""
+        year = datetime.now().year
+        repo = html.escape(APP_REPOSITORY_URL)
+        issues = html.escape(APP_ISSUES_URL)
+        email = html.escape(UPDATE_FEEDBACK_EMAIL)
+        return f"""
+        <h3>General Overview</h3>
+        <p>The main use of {html.escape(APP_NAME)} is a <b>standard pipeline</b> for
+        DBS <b>programming sessions</b>: baseline setup, session scales, and
+        real-time recording of each stimulation configuration you test in clinic.</p>
+        <ol>
+            <li><b>File &amp; patient setup</b>: choose where to save the session file
+                (BIDS-style name).</li>
+            <li><b>Initial configuration</b>: electrode model, starting stimulation
+                parameters, and baseline clinical scales.</li>
+            <li><b>Session scales</b>: which rating scales to score at each
+                configuration (e.g. tremor, mood; typically 0-10).</li>
+            <li><b>Active recording</b>: adjust parameters, score scales, add notes;
+                each configuration is saved as it is recorded.</li>
+        </ol>
+
+        <h3>Timestamped data for analysis</h3>
+        <p>Every entry is written immediately to a tab-separated
+        <code>task-programming</code> events file (date, time, timezone, stimulation
+        fields, scales, and notes).  Consistent timestamps make it easier to align
+        sessions with device logs, perioperative data, or downstream analysis tools.</p>
+
+        <h3>Clinical reports for quick review</h3>
+        <p>After a session, export a <b>Word</b> or <b>PDF</b> report with electrode
+        diagrams, scale timelines, tables, and programming summaries for rapid
+        clinical inspection without reopening the raw TSV.</p>
+        <p>You can also build a <b>longitudinal report</b> from several
+        <code>task-programming</code> files (same subject), or use
+        <b>Annotations-only Workflow</b> for lightweight timestamped notes.</p>
+
+        <h3>Copyright</h3>
+        <p>© 2025-{year} {html.escape(COPYRIGHT_HOLDERS)}</p>
+        <p>This application is open source ({html.escape(APP_LICENSE_NAME)}).
+        The full license text is in the GitHub repository.</p>
+
+        <h3>Credits &amp; support</h3>
+        <p><b>Publisher:</b> {html.escape(ORGANIZATION_PUBLISHER)}<br/>
+        <b>Lead developer:</b> {html.escape(APP_LEAD_AUTHOR)}</p>
+        <p><b>Repository:</b> <a href="{repo}">{repo}</a><br/>
+        <b>Issues:</b> <a href="{issues}">{issues}</a><br/>
+        <b>Contact:</b> <a href="mailto:{email}">{email}</a></p>
+        """
+
     def _show_info_dialog(self) -> None:
         """Show application info dialog with help and contact information."""
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"About {APP_NAME}")
-        dialog.setMinimumSize(600, 500)
+        dialog.setWindowTitle(f"Help - {APP_NAME}")
+        dialog.setMinimumSize(640, 520)
         dialog.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         layout = QVBoxLayout(dialog)
@@ -382,50 +434,7 @@ class WizardWindow(QWidget):
         # Description
         desc_text = QTextEdit()
         desc_text.setReadOnly(True)
-        desc_text.setHtml(
-            f"""
-        <h3>About this application</h3>
-        <p>DBS Annotator is a specialized tool for clinicians and researchers
-        working with Deep Brain Stimulation (DBS) systems. This application provides:</p>
-        <ul>
-            <li>Interactive electrode visualization and configuration</li>
-            <li>Clinical scale assessment and tracking</li>
-            <li>Session annotation and management</li>
-            <li>Export functionality for clinical documentation</li>
-        </ul>
-        <h3>Key Features</h3>
-        <ul>
-            <li><b>Electrode Modeling:</b> Support for various DBS lead models with directional contacts</li>
-            <li><b>Stimulation Configuration:</b> Visual interface for setting stimulation parameters</li>
-            <li><b>Clinical Assessment:</b> Standardized clinical scales (UPDRS, Y-BOCS, HAM-D, etc.)</li>
-            <li><b>Session Management:</b> Track patient sessions over time with detailed annotations</li>
-            <li><b>Export Capabilities:</b> Generate clinical reports in multiple formats</li>
-        </ul>
-        <h3>Getting Started</h3>
-        <ol>
-            <li>Select your workflow mode (Full or Annotations Only)</li>
-            <li>Choose the electrode model being used</li>
-            <li>Configure stimulation parameters using the interactive electrode viewer</li>
-            <li>Complete clinical assessments as needed</li>
-            <li>Add session annotations and notes</li>
-            <li>Export your session data for documentation</li>
-        </ol>
-
-        <h3>Credits</h3>
-        <p><b>Publisher:</b> {ORGANIZATION_PUBLISHER}<br/>
-        <b>Lead developer:</b> {APP_LEAD_AUTHOR}</p>
-
-        <h3>Support & Contact</h3>
-        <p><b>Repository:</b> <a href="{APP_REPOSITORY_URL}">{APP_REPOSITORY_URL}</a></p>
-        <p>For bug reports and feature requests, use the
-        <a href="{APP_ISSUES_URL}">issue tracker</a> or email
-        <a href="mailto:{UPDATE_FEEDBACK_EMAIL}">{UPDATE_FEEDBACK_EMAIL}</a>.</p>
-
-        <h3>License</h3>
-        <p>This software is released under an open-source license. Please see the GitHub repository
-        for detailed licensing information.</p>
-        """
-        )
+        desc_text.setHtml(self._help_dialog_html())
 
         layout.addWidget(desc_text)
 
