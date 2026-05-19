@@ -43,7 +43,7 @@ ANNOTATION_META: dict[str, tuple[str, str]] = {
     "date": ("string", "Date of the entry (``YYYY-MM-DD``)."),
     "time": ("string", "Time of the entry (``HH:MM:SS``)."),
     "timezone": ("string", "Timezone abbreviation/offset at capture time."),
-    "annotation": ("string", "Free-text annotation."),
+    "notes": ("string", "Free-text note for this entry."),
 }
 
 

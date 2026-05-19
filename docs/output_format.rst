@@ -16,14 +16,21 @@ are recorded.
 Filename Convention
 ^^^^^^^^^^^^^^^^^^^
 
-The filename follows the `BIDS <https://bids.neuroimaging.io/>`_ specification::
+Filenames follow the `BIDS <https://bids.neuroimaging.io/>`_ pattern::
 
-   sub-<PatientID>_ses-<YYYYMMDD>_task-programming_run-<NN>_events.tsv
+   sub-<PatientID>_ses-<YYYYMMDD>_task-<TASK>_run-<NN>_events.tsv
+
+The ``task`` segment depends on which workflow created the file:
+
+* **Complete Workflow** — ``task-programming`` (stimulation parameters, clinical
+  and session scales, notes).
+* **Annotations-only Workflow** — ``task-annotations`` (timestamped text annotations
+  only; dedicated column schema — see *Annotations-only TSV columns* below).
 
 Examples::
 
    sub-01_ses-20250315_task-programming_run-01_events.tsv
-   sub-01_ses-20250315_task-notes_run-01_events.tsv
+   sub-01_ses-20250315_task-annotations_run-01_events.tsv
 
 Columns
 ^^^^^^^
@@ -117,10 +124,6 @@ Example export
    :alt: Example single-session Word report (graph, table, electrode diagrams)
    :class: screenshot-native
 
-.. tip::
-   Add a representative screenshot as ``docs/_static/session_report_example.png``
-   (e.g. session data graph + table + electrode configuration section).
-
 Longitudinal Report
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -144,11 +147,6 @@ Example export
 .. image:: _static/longitudinal_report_example.png
    :alt: Example longitudinal Word report (overview chart and session data)
    :class: screenshot-native
-
-.. tip::
-   Add a representative screenshot as
-   ``docs/_static/longitudinal_report_example.png`` (e.g. sessions overview with
-   clinical-scales chart and combined session data).
 
 ----
 

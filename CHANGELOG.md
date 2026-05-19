@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   width so dialogs are not upscaled on wide screens.
 - ``COPYRIGHT_HOLDERS`` and ``APP_LICENSE_NAME`` in ``config.py`` (shared with
   documentation).
+- ``APP_MAINTAINER`` in ``config.py``; **Help** dialog lists **Maintainer: Richard
+  Köhler** under lead developer.
 
 ### Changed
 
@@ -26,16 +28,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Annotations-only file step header title: **Clinical Annotations Setup** (was
   "Output File").
 - Home screen buttons: **Complete Workflow** and **Annotations-only Workflow**.
-- Read the Docs: installation aligned with README; workflow pages renamed
-  (**Complete Workflow**, **Annotation-only Workflow**); ``workflow_session.rst``
-  documents per-session scales (**−** / **+**, settings dialogs);
-  ``longitudinal_report.rst`` and ``quickstart.rst`` specify ``task-programming``
-  BIDS files for longitudinal reports.
+- Annotations-only TSV column ``annotation`` renamed to ``notes`` (aligned with
+  the Complete Workflow); legacy files with an ``annotation`` header remain
+  readable and appendable.
+- Read the Docs: ``workflow_session.rst`` renamed to ``workflow_complete.rst``;
+  ``quickstart.rst`` documents launching the installed app (Start Menu / MSI /
+  install script), all three workflows in home-screen order, and links to the
+  full guides; ``index.rst`` Quick Overview matches the same order.
+- ``workflow_complete.rst``: Step 0 file setup (**Open** / **New**, Session ID /
+  Run ID); UI actions documented as **Insert** and **Close session**; only one
+  overview video at the top of the page.
+- ``workflow_annotations.rst``: dedicated ``task-notes`` schema (``date``, ``time``,
+  ``timezone``, ``notes``); no merge of multiple TSV files; **Insert** /
+  **Close Session**; overview video removed.
+- ``longitudinal_report.rst``: single overview video at the top; **Create
+  Longitudinal Report** button naming.
+- ``output_format.rst``: ``task-programming`` vs ``task-notes`` / annotations
+  workflow called out in filename convention; generated schema uses ``notes`` for
+  annotations-only files.
+- ``faq.rst``: TSV save path references Step 0 file setup.
+- README **What It Does** aligned with RTD (four Complete Workflow steps, three
+  workflows, link to ``workflow_complete.rst``); installation and Contributing
+  sections unchanged.
 - Documentation copyright: Massachusetts General Hospital, Wyss Center for Bio
   and Neuroengineering, and Charité Universitätsmedizin Berlin.
 - Screenshot capture uses the app's responsive window geometry (step 0 compact,
   steps 1+ full workflow) instead of a fixed 1600×1000 frame.
-- ``workflow_session.rst``: drop standalone ``electrode_diagram.png`` (electrode
+- ``workflow_complete.rst``: drop standalone ``electrode_diagram.png`` (electrode
   UI is already visible in the Step 1 screenshot).
 
 ### Fixed

@@ -210,10 +210,6 @@ Step 3 — Active Recording
    :alt: Step 3 – Active recording screen
    :class: screenshot-full
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/step3_recording.mp4">Watch: Real-time recording in Step 3 (video)</a></em></p>
-
 This is the main working screen during the programming session.
 
 Adjusting Stimulation Parameters
@@ -299,10 +295,6 @@ The generated report includes (depending on the selected sections):
   final electrode contact selection (Left and Right hemispheres).
 * **Programming Summary** — session duration, number of configurations
   tested, and parameter ranges per hemisphere.
-
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/export_report.mp4">Watch: Exporting a session report (video)</a></em></p>
 
 ----
 

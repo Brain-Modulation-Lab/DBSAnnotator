@@ -9,10 +9,6 @@ this workflow does not combine multiple files into one.
 Use it for in-clinic observations, ward notes, or any visit where you need a
 lightweight timestamped log without running the full programming workflow.
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/annotations_overview.mp4">Watch: Annotations-only Workflow overview (video)</a></em></p>
-
 ----
 
 Opening the Annotations-only Workflow
@@ -79,8 +75,8 @@ Each row is one annotation.  Columns (see also :doc:`output_format`):
      - Time of the annotation (``HH:MM:SS``)
    * - ``timezone``
      - Timezone abbreviation/offset at capture time
-   * - ``annotation``
-     - The annotation text
+   * - ``notes``
+     - The note text (same column name as in the Complete Workflow TSV)
 
 ----
 

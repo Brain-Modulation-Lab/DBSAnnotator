@@ -47,7 +47,7 @@ def test_validate_annotations_file_new_mode(c, tmp_path):
 
 def test_validate_annotations_file_existing_mode(c, tmp_path):
     p = tmp_path / "e.tsv"
-    p.write_text("date\ttime\ttimezone\tannotation\n", encoding="utf-8")
+    p.write_text("date\ttime\ttimezone\tnotes\n", encoding="utf-8")
     view = MagicMock()
     view.file_path_edit.text.return_value = str(p)
     view.current_file_mode = "existing"

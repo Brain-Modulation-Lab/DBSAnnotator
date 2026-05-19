@@ -59,13 +59,13 @@ data saved automatically after each entry:
   click **Insert** to record an entry; export a Word/PDF report when finished.
 
 See `[docs/workflow_complete.rst](docs/workflow_complete.rst)` for the full
-step-by-step guide (screenshots, scale presets, report sections, and videos).
+step-by-step guide (screenshots, scale presets, and report sections).
 
 ### Annotations-only Workflow
 
 Timestamped text notes only — no stimulation parameters or scale values.  Uses a
 dedicated TSV (`task-notes`) with columns `date`, `time`, `timezone`, and
-`annotation`.  See `[docs/workflow_annotations.rst](docs/workflow_annotations.rst)`.
+`notes`.  See `[docs/workflow_annotations.rst](docs/workflow_annotations.rst)`.
 
 ### Create Longitudinal Report
 

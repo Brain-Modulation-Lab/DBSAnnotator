@@ -37,6 +37,7 @@ from ..config import (
     APP_ISSUES_URL,
     APP_LEAD_AUTHOR,
     APP_LICENSE_NAME,
+    APP_MAINTAINER,
     APP_NAME,
     APP_REPOSITORY_URL,
     APP_VERSION,
@@ -426,7 +427,8 @@ class WizardWindow(QWidget):
 
         <h3>Credits &amp; support</h3>
         <p><b>Publisher:</b> {html.escape(ORGANIZATION_PUBLISHER)}<br/>
-        <b>Lead developer:</b> {html.escape(APP_LEAD_AUTHOR)}</p>
+        <b>Lead developer:</b> {html.escape(APP_LEAD_AUTHOR)}<br/>
+        <b>Maintainer:</b> {html.escape(APP_MAINTAINER)}</p>
         <p><b>Repository:</b> {repo}<br/>
         <b>Issues:</b> {issues}<br/>
         <b>Contact:</b> {email}</p>

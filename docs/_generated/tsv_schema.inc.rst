@@ -95,6 +95,6 @@ Annotations-only TSV columns
    * - ``timezone``
      - string
      - Timezone abbreviation/offset at capture time.
-   * - ``annotation``
+   * - ``notes``
      - string
-     - Free-text annotation.
+     - Free-text note for this entry.

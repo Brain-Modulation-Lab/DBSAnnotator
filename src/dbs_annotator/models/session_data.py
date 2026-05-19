@@ -371,7 +371,7 @@ class SessionData:
         # Create the file with headers
         self.tsv_file = open(filepath, "w", newline="", encoding="utf-8")
 
-        # Simple header: date, time, timezone, and annotation.
+        # Simple header: date, time, timezone, and notes.
         fieldnames = list(ANNOTATION_TSV_COLUMNS)
 
         self.tsv_writer = csv.DictWriter(
@@ -456,12 +456,18 @@ class SessionData:
         date_str = now_localized.strftime("%Y-%m-%d")
         tz_str = self._timezone_string(now_localized)
 
-        # Write row
+        # Write row (legacy files may still use the ``annotation`` header).
+        fieldnames = list(writer.fieldnames or [])
+        text_key = (
+            "notes"
+            if "notes" in fieldnames
+            else ("annotation" if "annotation" in fieldnames else "notes")
+        )
         row = {
             "date": date_str,
             "time": time_str,
             "timezone": tz_str,
-            "annotation": annotation,
+            text_key: annotation,
         }
         writer.writerow(row)
         tsv_file.flush()
