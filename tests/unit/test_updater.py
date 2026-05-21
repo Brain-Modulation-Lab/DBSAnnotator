@@ -10,8 +10,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from dbs_annotator.config import RELEASES_GITHUB_REPO
 from dbs_annotator.utils import updater as updater_mod
-from dbs_annotator.utils.updater import UpdateChecker, _CheckSignals, _CheckWorker
+from dbs_annotator.utils.updater import (
+    DEFAULT_RELEASES_REPO,
+    UpdateChecker,
+    _CheckSignals,
+    _CheckWorker,
+)
 
 
 class _FakeResp:
@@ -53,6 +59,10 @@ def test_fetch_releases_404_raises() -> None:
         worker._fetch_newest_applicable_release()
 
 
+def test_default_releases_repo_matches_config() -> None:
+    assert DEFAULT_RELEASES_REPO == RELEASES_GITHUB_REPO
+
+
 def test_urlopen_uses_certifi_ssl_context() -> None:
     signals = _CheckSignals()
     worker = _CheckWorker("o/r", "1.0.0", 10.0, signals)
@@ -67,6 +77,47 @@ def test_urlopen_uses_certifi_ssl_context() -> None:
             worker._fetch_newest_applicable_release()
     mock_ctx.assert_called()
     assert mock_open.call_args.kwargs.get("context") is mock_ctx.return_value
+
+
+def test_check_async_uses_fresh_installed_version(monkeypatch) -> None:
+    checker = UpdateChecker(current_version=None)
+    checker._settings = MagicMock()
+    checker._settings.value.return_value = True
+    versions = iter(["1.0.0", "2.0.0"])
+
+    def fake_get_version() -> str:
+        return next(versions)
+
+    monkeypatch.setattr("dbs_annotator.utils.updater.get_version", fake_get_version)
+
+    pool = MagicMock()
+    with patch(
+        "dbs_annotator.utils.updater.QThreadPool.globalInstance",
+        return_value=pool,
+    ):
+        checker.check_async(force=True)
+        worker = pool.start.call_args[0][0]
+        assert worker._current_version == "1.0.0"
+
+        checker._finish_check()
+        checker.check_async(force=True)
+        worker2 = pool.start.call_args[0][0]
+        assert worker2._current_version == "2.0.0"
+
+
+def test_check_async_busy_blocks_second_start() -> None:
+    checker = UpdateChecker(current_version="1.0.0")
+    checker._settings = MagicMock()
+    checker._settings.value.return_value = True
+    checker._check_in_progress = True
+
+    pool = MagicMock()
+    with patch(
+        "dbs_annotator.utils.updater.QThreadPool.globalInstance",
+        return_value=pool,
+    ):
+        assert checker.check_async(force=True) is False
+    pool.start.assert_not_called()
 
 
 @pytest.mark.parametrize("code", [403, 500, 502])

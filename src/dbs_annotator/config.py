@@ -39,6 +39,27 @@ FS_APP_NAME = "DBSAnnotator"
 # Canonical upstream (releases + issue tracker; keep aligned with updater repo slug).
 APP_REPOSITORY_URL = "https://github.com/Brain-Modulation-Lab/DBSAnnotator"
 APP_ISSUES_URL = f"{APP_REPOSITORY_URL}/issues"
+
+
+def github_repository_slug(repository_url: str) -> str:
+    """Return ``owner/repo`` from a ``https://github.com/owner/repo`` URL."""
+    prefix = "https://github.com/"
+    if not repository_url.startswith(prefix):
+        raise ValueError(
+            f"Expected a GitHub repository URL starting with {prefix!r}, "
+            f"got {repository_url!r}"
+        )
+    rest = repository_url.removeprefix(prefix).strip("/")
+    owner, sep, repo = rest.partition("/")
+    if not sep or not owner or not repo:
+        raise ValueError(
+            f"Could not parse owner/repo from GitHub URL {repository_url!r}"
+        )
+    return f"{owner}/{repo.split('/')[0]}"
+
+
+# GitHub Releases API slug for :mod:`dbs_annotator.utils.updater`.
+RELEASES_GITHUB_REPO = github_repository_slug(APP_REPOSITORY_URL)
 # Primary contact for feedback (same person as APP_LEAD_AUTHOR).
 UPDATE_FEEDBACK_EMAIL = "lucia.poma@wysscenter.ch"
 

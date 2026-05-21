@@ -110,7 +110,7 @@ class WizardWindow(QWidget):
 
         # Background update check. Runs once per cooldown window (24h by
         # default); offline / rate-limited failures are logged silently.
-        self._update_checker = UpdateChecker(current_version=APP_VERSION, parent=self)
+        self._update_checker = UpdateChecker(parent=self)
         self._update_checker.update_available.connect(self._on_update_available)
         # Defer slightly so the window is painted before any dialog appears.
         QTimer.singleShot(1500, self._run_deferred_update_check)
@@ -393,7 +393,7 @@ class WizardWindow(QWidget):
         return f"""
         <h3>General Overview</h3>
         <p>The main use of {html.escape(APP_NAME)} is a <b>standard pipeline</b> for
-        DBS <b>programming sessions</b>: baseline setup, session scales, and
+        <b>DBS programming sessions</b>: baseline setup, session scales, and
         real-time recording of each stimulation configuration you test in clinic.</p>
         <ol>
             <li><b>File setup</b>: choose where to save the session file
@@ -405,6 +405,11 @@ class WizardWindow(QWidget):
             <li><b>Active recording</b>: adjust parameters, score scales, add notes;
                 each configuration is saved as it is recorded.</li>
         </ol>
+        <p>{html.escape(APP_NAME)} records each stimulation configuration
+        you enter during a session in a consistent, reviewable form. Word and
+        PDF reports summarise that programming history for clinical follow-up,
+        audit, and research, together with scale scores and clinical
+        observations.</p>
 
         <h3>Timestamped data for analysis</h3>
         <p>Every entry is written immediately to a tab-separated
@@ -418,7 +423,7 @@ class WizardWindow(QWidget):
         clinical inspection without reopening the raw TSV.</p>
         <p>You can also build a <b>longitudinal report</b> from several
         <code>task-programming</code> files (same subject), or use
-        <b>Annotations-only Workflow</b> for lightweight timestamped notes.</p>
+        Annotations-only Workflow for lightweight timestamped notes.</p>
 
         <h3>Copyright</h3>
         <p>© 2025-{year} {html.escape(COPYRIGHT_HOLDERS)}</p>
@@ -486,6 +491,15 @@ class WizardWindow(QWidget):
 
     def _manual_update_check(self, button: QPushButton) -> None:
         """Force an update check and show the result, used by the Help dialog."""
+        checker = self._update_checker
+        if checker.is_busy():
+            QMessageBox.information(
+                self,
+                "Checking for updates",
+                "An update check is already in progress. Please wait a moment.",
+            )
+            return
+
         button.setEnabled(False)
         original_text = button.text()
         button.setText("Checking…")
@@ -501,6 +515,15 @@ class WizardWindow(QWidget):
                 except (RuntimeError, TypeError):
                     pass
             connections.clear()
+            try:
+                checker.update_available.connect(self._on_update_available)
+            except RuntimeError:
+                pass
+
+        try:
+            checker.update_available.disconnect(self._on_update_available)
+        except RuntimeError:
+            pass
 
         def on_available(release: ReleaseInfo) -> None:
             cleanup()
@@ -522,13 +545,19 @@ class WizardWindow(QWidget):
                 f"Could not reach the update server:\n\n{error}",
             )
 
-        connections.append((self._update_checker.update_available, on_available))
-        connections.append((self._update_checker.up_to_date, on_up_to_date))
-        connections.append((self._update_checker.failed, on_failed))
+        connections.append((checker.update_available, on_available))
+        connections.append((checker.up_to_date, on_up_to_date))
+        connections.append((checker.failed, on_failed))
         for signal, slot in connections:
             signal.connect(slot)
 
-        self._update_checker.check_async(force=True)
+        if not checker.check_async(force=True):
+            cleanup()
+            QMessageBox.warning(
+                self,
+                "Update check failed",
+                "Could not start the update check. Please try again in a moment.",
+            )
 
     def _on_update_available(self, release: ReleaseInfo) -> None:
         """Show a non-blocking dialog when a newer release is published."""
