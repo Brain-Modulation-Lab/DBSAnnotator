@@ -17,6 +17,8 @@ if os.environ.get("DOCS_SCREENSHOT_DIR"):
 else:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from dbs_annotator.views.wizard_window import WizardWindow
@@ -25,7 +27,13 @@ from dbs_annotator.views.wizard_window import WizardWindow
 @pytest.fixture
 def wizard(qtbot, qapp):
     """Main wizard window bound to the session QApplication."""
-    w = WizardWindow(qapp)
+    # Do not schedule deferred GitHub update checks (network + cross-test leaks).
+    with (
+        patch("dbs_annotator.views.wizard_window.UpdateChecker") as checker_cls,
+        patch("dbs_annotator.views.wizard_window.QTimer.singleShot"),
+    ):
+        checker_cls.return_value = MagicMock()
+        w = WizardWindow(qapp)
     qtbot.addWidget(w)
     w.show()
     return w

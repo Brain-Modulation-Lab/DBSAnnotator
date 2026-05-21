@@ -83,10 +83,12 @@ def test_check_async_uses_fresh_installed_version(monkeypatch) -> None:
     checker = UpdateChecker(current_version=None)
     checker._settings = MagicMock()
     checker._settings.value.return_value = True
-    versions = iter(["1.0.0", "2.0.0"])
+    seen: list[str] = []
 
     def fake_get_version() -> str:
-        return next(versions)
+        v = "1.0.0" if len(seen) == 0 else "2.0.0"
+        seen.append(v)
+        return v
 
     monkeypatch.setattr("dbs_annotator.utils.updater.get_version", fake_get_version)
 
