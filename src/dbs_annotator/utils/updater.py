@@ -54,7 +54,7 @@ _MAX_RELEASE_PAGES = 5
 
 
 def _ca_bundle_path() -> str:
-    """Return a readable CA bundle path (Briefcase/MSI layouts may break ``where()``)."""
+    """Readable CA bundle path (Briefcase/MSI layouts may break ``where()``)."""
     path = certifi.where()
     if Path(path).is_file():
         return path
