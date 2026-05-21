@@ -12,7 +12,7 @@ import typing
 from datetime import datetime
 from typing import Protocol
 
-from PySide6.QtCore import QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -56,6 +56,11 @@ from ..config import (
 )
 from ..controllers import WizardController
 from ..utils import get_theme_manager, resource_path, rounded_pixmap
+from ..utils.auto_update import (
+    automatic_update_supported,
+    automatic_update_targets_packaged_install,
+    launch_automatic_update,
+)
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from ..utils.updater import ReleaseInfo, UpdateChecker
 from .annotation_only_view import AnnotationsFileView, AnnotationsSessionView
@@ -559,6 +564,39 @@ class WizardWindow(QWidget):
                 "Could not start the update check. Please try again in a moment.",
             )
 
+    def _show_release_notes_dialog(self, release: ReleaseInfo) -> None:
+        """Show full release notes for *release* in a separate dialog."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Release notes — {release.version}")
+        dialog.setMinimumSize(520, 400)
+
+        layout = QVBoxLayout(dialog)
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(True)
+        notes = release.body.strip() if release.body else ""
+        if notes:
+            notes_html = html.escape(notes).replace("\n", "<br>")
+            browser.setHtml(f"<p>{notes_html}</p>")
+        else:
+            browser.setHtml(
+                "<p><i>No release notes were published for this version.</i></p>"
+            )
+        if release.html_url:
+            browser.append(
+                f'<p><a href="{html.escape(release.html_url, quote=True)}">'
+                "View on GitHub</a></p>"
+            )
+        browser.anchorClicked.connect(QDesktopServices.openUrl)
+        layout.addWidget(browser)
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(close_btn)
+        layout.addLayout(row)
+        dialog.exec()
+
     def _on_update_available(self, release: ReleaseInfo) -> None:
         """Show a non-blocking dialog when a newer release is published."""
         box = QMessageBox(self)
@@ -572,40 +610,51 @@ class WizardWindow(QWidget):
             f"<b>{html.escape(release.version)}</b> "
             f"(you have {html.escape(APP_VERSION)})."
         )
-        info_parts: list[str] = []
         if release.is_prerelease:
             mail_href = html.escape(f"mailto:{UPDATE_FEEDBACK_EMAIL}", quote=True)
             issues_href = html.escape(APP_ISSUES_URL, quote=True)
             email_lbl = html.escape(UPDATE_FEEDBACK_EMAIL)
-            info_parts.append(
+            box.setInformativeText(
                 "<p><b>Note:</b> This is <u>not</u> a stable release; bugs may occur. "
-                "If you try this version, please report issues to "
+                "If you encounter issues, please report them to "
                 f'<a href="{mail_href}">{email_lbl}</a> or on '
                 f'<a href="{issues_href}">GitHub</a>.</p>'
             )
-        notes = release.body.strip() if release.body else ""
-        if notes:
-            excerpt = notes if len(notes) <= 600 else notes[:600] + "…"
-            excerpt_html = html.escape(excerpt).replace("\n", "<br>")
-            info_parts.append(f"<p>Release notes:</p><p>{excerpt_html}</p>")
-        if info_parts:
-            box.setInformativeText("".join(info_parts))
 
-        opt_out_cb = QCheckBox("Don't notify me automatically about new updates")
-        opt_out_cb.setChecked(False)
-        box.setCheckBox(opt_out_cb)
-
-        download_btn = box.addButton(
-            "Open download page", QMessageBox.ButtonRole.AcceptRole
+        update_btn = None
+        notes_btn = box.addButton(
+            "View release notes", QMessageBox.ButtonRole.ActionRole
         )
+        if automatic_update_supported():
+            update_btn = box.addButton("Update now", QMessageBox.ButtonRole.AcceptRole)
         box.addButton("Remind me later", QMessageBox.ButtonRole.RejectRole)
         box.exec()
 
-        if opt_out_cb.isChecked():
-            self._update_checker.set_auto_update_checks_enabled(False)
-
-        if box.clickedButton() is download_btn and release.html_url:
-            QDesktopServices.openUrl(QUrl(release.html_url))
+        clicked = box.clickedButton()
+        if clicked is update_btn:
+            ok, detail = launch_automatic_update(release.tag_name)
+            if ok:
+                extra = ""
+                if not automatic_update_targets_packaged_install():
+                    extra = (
+                        "<p><i>Running from source: the installer places the "
+                        "released build in the standard install location "
+                        "(not this development checkout).</i></p>"
+                    )
+                started = QMessageBox(self)
+                started.setIcon(QMessageBox.Icon.Information)
+                started.setWindowTitle("Update started")
+                started.setTextFormat(Qt.TextFormat.RichText)
+                started.setText(f"<p>{html.escape(detail)}</p>{extra}")
+                started.exec()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Update failed",
+                    f"Could not start the automatic updater:\n\n{detail}",
+                )
+        elif clicked is notes_btn:
+            self._show_release_notes_dialog(release)
 
     def _toggle_theme(self) -> None:
         """Toggle between dark and light themes."""
