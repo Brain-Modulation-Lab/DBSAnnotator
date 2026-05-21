@@ -47,7 +47,7 @@ dev = [
     "pyside6-stubs>=6.7.3.0",
     "towncrier>=24.8.0",
 ]
-build = ["briefcase>=0.3.26"]
+build = ["briefcase>=0.4.2"]
 docs = [
     "sphinx>=9.0.4",
     "sphinx-rtd-theme>=3.1.0",
