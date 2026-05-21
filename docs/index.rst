@@ -8,22 +8,26 @@ DBS Annotator
    :align: center
    :width: 180px
 
-|
-
 **DBS Annotator** is a desktop application for recording and analysing
-Deep Brain Stimulation (DBS) clinical programming sessions.  It guides the
-clinician or researcher through the **Complete Workflow** — from initial
-electrode configuration and baseline scales, through real-time stimulation
-adjustments, to the automatic generation of structured Word and PDF reports.
+Deep Brain Stimulation (DBS) clinical programming sessions.  It guides
+the clinician or researcher through a DBS programming pipeline: initial
+electrode configuration, clinical scales, and general annotations;
+real-time stimulation adjustments; and session-specific scale changes and
+notes.  Finally, it can generate structured Word and PDF reports from the
+programming session data.
 
-Developed at the **Brain Modulation Lab, Massachusetts General Hospital** (Boston, USA),
-the **Wyss Center for Bio and Neuroengineering** (Geneva, Switzerland), and
-**Charité Universitätsmedizin Berlin** (Germany).
+Developed at the **Brain Modulation Lab, Massachusetts General Hospital**
+(Boston, USA), the **Wyss Center for Bio and Neuroengineering** (Geneva,
+Switzerland), and **Charité Universitätsmedizin Berlin** (Germany).
 
 .. note::
-   | Version |release|.
-   | Copyright © Massachusetts General Hospital, Wyss Center for Bio and Neuroengineering, and Charité Universitätsmedizin Berlin.
-   | Contact: lucia.poma@wysscenter.ch
+
+   **Version:** |release|
+
+   Copyright © Massachusetts General Hospital, Wyss Center for Bio and
+   Neuroengineering, and Charité Universitätsmedizin Berlin.
+
+   **Contact:** lucia.poma@wysscenter.ch
 
 ----
 
@@ -68,17 +72,19 @@ Quick Overview
    :header-rows: 0
 
    * - **Complete Workflow**
-     - Record stimulation parameters, clinical scales, and notes step-by-step.
-       Export a structured report (Word / PDF) with tables, electrode diagrams,
-       and session-scale timeline charts.
+     - Record stimulation parameters, clinical scales, and notes
+       step-by-step in a timestamped TSV table.  Export a structured report
+       (Word / PDF) with tables, electrode diagrams, and session-scale
+       timeline charts.
    * - **Annotations-only Workflow**
-     - Quick timestamped text notes without the full stimulation workflow.
-   * - **Longitudinal report**
-     - Combine multiple session files into a single comparative document with
-       overview tables, clinical and session-scale charts, electrode diagrams,
-       and programming summaries.
+     - Quick timestamped text notes.
+   * - **Session and longitudinal reports**
+     - Combine single or multiple session files into a single comparative
+       document with overview tables, clinical and session-scale charts,
+       electrode diagrams, and programming summaries.
    * - **BIDS-compliant output**
-     - Data saved as ``sub-XX_ses-YYYYMMDD_task-programming_run-XX_events.tsv``.
+     - Data saved as
+       ``sub-XXXX_ses-YYYYMMDD_task-<TASK>_run-XX_<type-of-data>.<ext>``.
    * - **Self-contained desktop app**
-     - Packaged installers (``.msi``, ``.dmg``, ``.deb``); no separate Python
-       runtime required.
+     - Packaged installers (``.msi``, ``.dmg``, ``.deb``); no separate
+       Python runtime required.

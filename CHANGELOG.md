@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- In-app **Update now** on the update-available dialog: downloads and runs the
+  platform install scripts (``install.ps1`` on Windows, ``install.sh`` on macOS /
+  Linux) for the selected GitHub release tag, then prompts you to restart the
+  app from the Start menu or applications launcher.
+- **View release notes** on the same dialog opens full release notes (and a
+  GitHub link) in a separate window.
+- ``dbs_annotator.utils.auto_update`` with optional ``dry_run=True`` (PowerShell
+  ``-WhatIf`` / ``install.sh --dry-run``) for maintainers to preview an install.
 - Read the Docs screenshot pipeline: home screen (light and dark theme), clinical
   and session scales settings dialogs, and regenerated workflow captures at
   native resolution (HiDPI-aware screen grab, improved PNG settings).
@@ -24,7 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Help** dialog rewritten around the standard **Complete Workflow** programming
   pipeline, timestamped ``task-programming`` TSV output, and Word/PDF reports;
+  notes that each stimulation configuration is saved and summarised in reports;
   copyright lists MGH, Wyss Center, and Charité; MIT license noted.
+- Update-available dialog: removed the extra “don't notify automatically”
+  checkbox (that preference stays under **Help** only); release notes are no
+  longer inlined—use **View release notes**; **Open download page** removed in
+  favour of **Update now**.
+- Pre-release update notice: “If you encounter issues, please report them to …”.
 - Annotations-only file step header title: **Clinical Annotations Setup** (was
   "Output File").
 - Home screen buttons: **Complete Workflow** and **Annotations-only Workflow**.

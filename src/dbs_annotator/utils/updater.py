@@ -30,18 +30,20 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any, cast
 
 import certifi
 from packaging.version import InvalidVersion, Version
 from PySide6.QtCore import QObject, QRunnable, QSettings, QThreadPool, Signal
 
+from ..config import RELEASES_GITHUB_REPO
 from ..version import get_version
 
 logger = logging.getLogger(__name__)
 
 #: Owner/repo pair on GitHub whose releases advertise new builds.
-DEFAULT_RELEASES_REPO = "Brain-Modulation-Lab/DBSAnnotator"
+DEFAULT_RELEASES_REPO = RELEASES_GITHUB_REPO
 
 DEFAULT_COOLDOWN = timedelta(hours=24)
 DEFAULT_TIMEOUT_SECONDS = 10
@@ -51,9 +53,28 @@ _RELEASES_PAGE_SIZE = 100
 _MAX_RELEASE_PAGES = 5
 
 
+def _ca_bundle_path() -> str:
+    """Readable CA bundle path (Briefcase/MSI layouts may break ``where()``)."""
+    path = certifi.where()
+    if Path(path).is_file():
+        return path
+    try:
+        from importlib.resources import as_file, files
+
+        ref = files("certifi").joinpath("cacert.pem")
+        with as_file(ref) as bundle:
+            return str(bundle)
+    except Exception:
+        logger.warning(
+            "certifi CA bundle not found at %r; HTTPS update checks may fail",
+            path,
+        )
+        return path
+
+
 def _ssl_context() -> ssl.SSLContext:
     """CA bundle for HTTPS in packaged apps (Briefcase MSI/ZIP on Windows)."""
-    return ssl.create_default_context(cafile=certifi.where())
+    return ssl.create_default_context(cafile=_ca_bundle_path())
 
 
 @dataclass(frozen=True)
@@ -255,14 +276,25 @@ class UpdateChecker(QObject):
     ) -> None:
         super().__init__(parent)
         self._repo = repo
-        self._current_version = current_version or get_version()
+        # None => resolve via get_version() on each check (matches Help UI / metadata).
+        self._version_override = current_version
         self._cooldown = cooldown
         self._timeout = timeout
         self._settings = QSettings()
+        self._check_in_progress = False
         self._signals = _CheckSignals()
         self._signals.update_available.connect(self._on_update_available)
         self._signals.up_to_date.connect(self._on_up_to_date)
         self._signals.failed.connect(self._on_failed)
+
+    def is_busy(self) -> bool:
+        """True while a background GitHub API request is in flight."""
+        return self._check_in_progress
+
+    def _installed_version(self) -> str:
+        if self._version_override is not None:
+            return self._version_override
+        return get_version()
 
     def auto_update_checks_enabled(self) -> bool:
         """Whether startup / periodic background checks are allowed."""
@@ -274,15 +306,21 @@ class UpdateChecker(QObject):
         self._settings.setValue(_AUTO_CHECK_KEY, enabled)
         self._settings.sync()
 
+    def _finish_check(self) -> None:
+        self._check_in_progress = False
+
     def _on_update_available(self, release: ReleaseInfo) -> None:
+        self._finish_check()
         self._record_check_time()
         self.update_available.emit(release)
 
     def _on_up_to_date(self) -> None:
+        self._finish_check()
         self._record_check_time()
         self.up_to_date.emit()
 
     def _on_failed(self, error: str) -> None:
+        self._finish_check()
         # Intentionally do NOT record a check time on hard failures so the
         # next launch retries instead of waiting out the cooldown.
         self.failed.emit(error)
@@ -308,10 +346,13 @@ class UpdateChecker(QObject):
             return False
         if not force and not self._cooldown_elapsed(now()):
             return False
+        if self._check_in_progress:
+            return False
 
+        self._check_in_progress = True
         worker = _CheckWorker(
             repo=self._repo,
-            current_version=self._current_version,
+            current_version=self._installed_version(),
             timeout=self._timeout,
             signals=self._signals,
         )
