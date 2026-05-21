@@ -8,6 +8,7 @@ import ssl
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -19,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 _INSTALL_SCRIPT_BRANCH = "main"
 _USER_AGENT = "DBSAnnotator-AutoUpdate/1.0"
+# Windows-only; absent on Linux/macOS (CI runs unit tests there too).
+_WINDOWS_NEW_CONSOLE = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
 
 
 def _install_script_url(filename: str) -> str:
@@ -116,7 +119,7 @@ def _launch_windows(tag: str, *, dry_run: bool = False) -> tuple[bool, str]:
             cmd.append("-WhatIf")
         subprocess.Popen(
             cmd,
-            creationflags=subprocess.CREATE_NEW_CONSOLE,
+            creationflags=_WINDOWS_NEW_CONSOLE,
             close_fds=True,
         )
     finally:
