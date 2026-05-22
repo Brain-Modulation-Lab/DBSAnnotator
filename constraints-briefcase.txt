@@ -29,7 +29,7 @@ numpy==2.4.4
     #   pandas
 packaging==26.2
     # via matplotlib
-pandas==3.0.2
+pandas==3.0.3
     # via dbs-annotator
 pillow==12.2.0
     # via matplotlib
