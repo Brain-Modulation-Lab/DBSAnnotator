@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
     "certifi>=2024.0.0",
     "tzdata>=2026.2",
-    "pandas>=2.1",
+    "pandas>=3.0.3",
     "python-docx>=1.1",
     "docx2pdf>=0.1.8",
     "pydantic>=2.13.4",
@@ -42,12 +42,12 @@ dev = [
     "ruff>=0.1.0",
     "pre-commit>=3.6",
     "pre-commit-uv>=4.2.1",
-    "ty>=0.0.29",
+    "ty>=0.0.35",
     "pandas-stubs>=3.0.0.260204",
     "pyside6-stubs>=6.7.3.0",
     "towncrier>=24.8.0",
 ]
-build = ["briefcase>=0.3.26"]
+build = ["briefcase>=0.4.2"]
 docs = [
     "sphinx>=9.0.4",
     "sphinx-rtd-theme>=3.1.0",
