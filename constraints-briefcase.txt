@@ -33,7 +33,7 @@ pandas==3.0.2
     # via dbs-annotator
 pillow==12.2.0
     # via matplotlib
-pydantic==2.13.3
+pydantic==2.13.4
     # via dbs-annotator
 pydantic-core==2.46.4
     # via pydantic
