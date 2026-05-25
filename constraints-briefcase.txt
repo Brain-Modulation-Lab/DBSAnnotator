@@ -41,7 +41,7 @@ pyparsing==3.3.2
     # via matplotlib
 pyside6==6.11.0
     # via dbs-annotator
-pyside6-addons==6.11.0
+pyside6-addons==6.11.1
     # via pyside6
 pyside6-essentials==6.11.0
     # via
