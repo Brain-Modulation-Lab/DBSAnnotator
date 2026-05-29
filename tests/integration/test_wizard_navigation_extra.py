@@ -53,6 +53,19 @@ def test_go_back_annotations_only_step1_to_step0(wizard, qtbot):
     assert wizard.stack.currentWidget() is wizard.step0_view
 
 
+def test_main_workflow_window_allows_maximize(wizard, qtbot):
+    qtbot.mouseClick(wizard.step0_view.full_mode_button, Qt.MouseButton.LeftButton)
+    max_size = wizard.maximumSize()
+    min_size = wizard.minimumSize()
+    assert max_size.width() > min_size.width()
+    assert max_size.height() > min_size.height()
+    flags = wizard.windowFlags()
+    assert flags & Qt.WindowType.WindowMaximizeButtonHint
+    assert flags & Qt.WindowType.WindowSystemMenuHint
+    assert flags & Qt.WindowType.WindowCloseButtonHint
+    assert flags & Qt.WindowType.WindowMinimizeButtonHint
+
+
 def test_longitudinal_mode_sets_workflow_and_loads_view(wizard, qtbot):
     assert wizard.longitudinal_file_view is None
     wizard._select_longitudinal_report()

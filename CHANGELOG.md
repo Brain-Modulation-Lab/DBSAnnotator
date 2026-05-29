@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
+
+- Step 1 **Clinical scales** preset buttons scroll horizontally when there are
+  more presets than fit on one row; the settings gear stays fixed on the right.
+
+### Fixed
+
+- Main wizard window: the title-bar **maximize** control works on workflow steps
+  1+ (Step 0 stays compact); resizing and full-screen no longer blocked after
+  leaving the mode-selection screen.
+- Step 1 **Initial settings**: the vertical scrollbar sits in its own column
+  beside the Electrode / Program / Left / Right controls (slightly narrower
+  strip), with clear spacing before the electrode canvases so the bar is not
+  covered by the diagram panels.
+
 ## [0.4.0b2] - 2026-05-21
 
 ### Added
