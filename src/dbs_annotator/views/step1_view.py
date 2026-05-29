@@ -11,7 +11,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import cast
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
     QComboBox,
@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QScrollBar,
     QSizePolicy,
     QSplitter,
     QStyle,
@@ -65,6 +66,52 @@ from ..utils.tsv_columns import block_id_from_row
 from .base_view import BaseStepView
 
 logger = logging.getLogger(__name__)
+
+# Horizontal budget for the initial-settings strip (content + external scrollbar).
+# Slightly narrower than before so the scrollbar fits without touching the canvases.
+_SETTINGS_STRIP_CONTENT_WIDTH = 334
+
+
+def _panel_with_external_vertical_scroll(scroll: QScrollArea) -> QWidget:
+    """
+    Settings strip: scroll content plus a dedicated vertical scrollbar column.
+
+    The scrollbar sits inside this panel only; callers should leave a layout gap
+    before the electrode canvases so nothing overlaps.
+    """
+    scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    external_bar = QScrollBar(Qt.Orientation.Vertical)
+    external_bar.setFixedWidth(external_bar.sizeHint().width())
+    internal_bar = scroll.verticalScrollBar()
+
+    def sync_from_internal() -> None:
+        external_bar.blockSignals(True)
+        external_bar.setRange(internal_bar.minimum(), internal_bar.maximum())
+        external_bar.setPageStep(internal_bar.pageStep())
+        external_bar.setSingleStep(internal_bar.singleStep())
+        external_bar.setValue(internal_bar.value())
+        external_bar.blockSignals(False)
+        needs_scroll = internal_bar.maximum() > internal_bar.minimum()
+        external_bar.setVisible(needs_scroll)
+        external_bar.setEnabled(needs_scroll)
+
+    internal_bar.rangeChanged.connect(lambda *_args: sync_from_internal())
+    internal_bar.valueChanged.connect(external_bar.setValue)
+    external_bar.valueChanged.connect(internal_bar.setValue)
+
+    panel = QWidget()
+    panel.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+    row = QHBoxLayout(panel)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(4)
+    row.addWidget(scroll, 1)
+    row.addWidget(external_bar)
+    QTimer.singleShot(0, sync_from_internal)
+
+    strip_width = _SETTINGS_STRIP_CONTENT_WIDTH + external_bar.width() + row.spacing()
+    panel.setFixedWidth(strip_width)
+    scroll.setMinimumWidth(_SETTINGS_STRIP_CONTENT_WIDTH)
+    return panel
 
 
 class Step1View(BaseStepView):
@@ -475,8 +522,9 @@ class Step1View(BaseStepView):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        sidebar_scroll.setMinimumWidth(380)
         sidebar_scroll.setWidget(sidebar_widget)
+
+        settings_panel = _panel_with_external_vertical_scroll(sidebar_scroll)
 
         electrodes_layout = QVBoxLayout()
         electrodes_row = QHBoxLayout()
@@ -507,8 +555,15 @@ class Step1View(BaseStepView):
         electrodes_layout.addLayout(electrodes_row)
         electrodes_layout.addLayout(self._create_electrode_legend_layout())
 
-        container_layout.addWidget(sidebar_scroll, 0)
-        container_layout.addLayout(electrodes_layout, 1)
+        electrodes_widget = QWidget()
+        electrodes_widget.setLayout(electrodes_layout)
+        electrodes_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+
+        container_layout.setSpacing(12)
+        container_layout.addWidget(settings_panel, 0)
+        container_layout.addWidget(electrodes_widget, 1)
 
         layout = QVBoxLayout(gb_init)
         layout.addLayout(container_layout)
@@ -892,25 +947,50 @@ class Step1View(BaseStepView):
 
         layout = QVBoxLayout(gb_clinical)
 
-        # Preset buttons
-        preset_row = QHBoxLayout()
+        # Preset buttons — scroll horizontally when they exceed available width
+        self.preset_scroll_content = QWidget()
+        self.preset_scroll_content.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+        )
+        self.preset_row_layout = QHBoxLayout(self.preset_scroll_content)
+        self.preset_row_layout.setContentsMargins(0, 0, 0, 0)
         self.preset_buttons = []
-        # preset_row.addStretch(1)
 
-        # Settings button
+        self.preset_scroll_area = QScrollArea()
+        self.preset_scroll_area.setWidget(self.preset_scroll_content)
+        self.preset_scroll_area.setWidgetResizable(False)
+        self.preset_scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.preset_scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.preset_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.preset_scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.preset_scroll_area.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
+
         settings_btn = QPushButton()
         settings_btn.setIcon(self._create_settings_icon())
         settings_btn.setObjectName("settings_clincal_scales")
         settings_btn.setToolTip("Settings clinical scales")
         settings_btn.clicked.connect(self._open_clinical_scales_settings)
-        preset_row.addWidget(settings_btn)
 
-        layout.addLayout(preset_row)
+        preset_bar = QHBoxLayout()
+        preset_bar.setContentsMargins(0, 0, 0, 0)
+        preset_bar.addWidget(self.preset_scroll_area, 1)
+        preset_bar.addWidget(settings_btn, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(preset_bar)
 
-        # Store the layout for later updates
-        self.preset_row_layout = preset_row
-
-        # Build buttons from current presets (JSON) once the row exists
         self._refresh_preset_buttons()
 
         # Container for dynamic scale rows - expands to show all rows
@@ -1828,87 +1908,55 @@ class Step1View(BaseStepView):
                     # Preset was deleted - clear scales
                     self._apply_preset_scales([])
 
+    def _update_preset_buttons_geometry(self) -> None:
+        """Size the preset strip so horizontal scrolling appears when needed."""
+        if not hasattr(self, "preset_scroll_content"):
+            return
+        self.preset_scroll_content.adjustSize()
+        hint = self.preset_scroll_content.sizeHint()
+        width = max(hint.width(), 1)
+        content_height = max(hint.height(), 1)
+        self.preset_scroll_content.setMinimumSize(width, content_height)
+        self.preset_scroll_content.resize(width, content_height)
+
+        # Reserve space below the buttons for the horizontal scrollbar
+        scrollbar = self.preset_scroll_area.horizontalScrollBar()
+        sb_height = scrollbar.sizeHint().height() if scrollbar is not None else 0
+        self.preset_scroll_area.setFixedHeight(content_height + sb_height)
+
     def _refresh_preset_buttons(self):
         """Refresh preset buttons with new presets."""
-        # Clear existing preset buttons
         for btn in self.preset_buttons:
             btn.setParent(None)
             btn.deleteLater()
         self.preset_buttons.clear()
 
-        # Use the stored preset row layout
         preset_row = self.preset_row_layout
+        if not preset_row:
+            return
 
-        if preset_row:
-            # Remove all existing widgets from the preset row (except the
-            # stretch and the settings button).
-            widgets_to_remove = []
-            for i in range(preset_row.count()):
-                item = preset_row.itemAt(i)
-                if item and item.widget():
-                    widget = item.widget()
-                    if widget and widget.objectName() != "settings_clincal_scales":
-                        widgets_to_remove.append(widget)
-
-            for widget in widgets_to_remove:
-                preset_row.removeWidget(widget)
+        while preset_row.count():
+            item = preset_row.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
                 widget.setParent(None)
                 widget.deleteLater()
 
-            # Find the settings button and its position
-            settings_btn = None
-            settings_index = -1
-            for i in range(preset_row.count()):
-                item = preset_row.itemAt(i)
-                if item and item.widget():
-                    widget = item.widget()
-                    if widget and widget.objectName() == "settings_clincal_scales":
-                        settings_btn = widget
-                        settings_index = i
-                        break
+        ordered_names: list[str] = []
+        for name in PRESET_BUTTONS:
+            if name in self.clinical_presets:
+                ordered_names.append(name)
+        for name in self.clinical_presets.keys():
+            if name not in ordered_names:
+                ordered_names.append(name)
 
-            if settings_btn is None:
-                return
+        for preset_name in ordered_names:
+            btn = QPushButton(preset_name)
+            btn.setObjectName(f"preset_{preset_name}")
+            self.preset_buttons.append(btn)
+            preset_row.addWidget(btn)
 
-            # Ensure exactly one stretch before the settings button
-            stretch_index = settings_index - 1
-            if stretch_index < 0 or not (
-                preset_row.itemAt(stretch_index)
-                and preset_row.itemAt(stretch_index).spacerItem()
-            ):
-                preset_row.insertStretch(settings_index, 1)
-                settings_index += 1
-                stretch_index = settings_index - 1
+        self._update_preset_buttons_geometry()
 
-            # # Remove any other stretches before the settings button
-            # # (keep only the one right before it).
-            # for i in range(stretch_index):
-            #     item = preset_row.itemAt(i)
-            #     if item and item.spacerItem():
-            #         preset_row.takeAt(i)
-            #         break
-
-            # Insert new preset buttons before the stretch
-            insert_index = stretch_index
-
-            # Prefer showing defaults first IF they exist in the current presets
-            ordered_names: list[str] = []
-            for name in PRESET_BUTTONS:
-                if name in self.clinical_presets:
-                    ordered_names.append(name)
-            for name in self.clinical_presets.keys():
-                if name not in ordered_names:
-                    ordered_names.append(name)
-
-            for preset_name in ordered_names:
-                btn = QPushButton(preset_name)
-                btn.setObjectName(f"preset_{preset_name}")
-                self.preset_buttons.append(btn)
-                preset_row.insertWidget(insert_index, btn)
-                insert_index += 1
-                settings_index += 1
-                stretch_index += 1
-
-            # Reconnect all preset buttons after refresh
-            if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
-                self._connect_preset_buttons()
+        if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
+            self._connect_preset_buttons()
