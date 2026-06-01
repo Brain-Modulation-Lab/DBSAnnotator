@@ -42,6 +42,7 @@ dev = [
     "ruff>=0.1.0",
     "pre-commit>=3.6",
     "pre-commit-uv>=4.2.1",
+    "uv>=0.11.15",
     "ty>=0.0.35",
     "pandas-stubs>=3.0.0.260204",
     "pyside6-stubs>=6.7.3.0",
@@ -192,7 +193,7 @@ showcontent = true
 project_name = "DBSAnnotator"
 bundle = "ch.wysscenter.dbsannotator"
 # Briefcase requires a static version here even when [project] uses dynamic version
-version = "0.4.0b2"
+version = "0.4.0"
 license = { file = "LICENSE" }
 # Windows per-user install dir is %LOCALAPPDATA%\<author>\<formal_name>; must match
 # FS_ORG_NAME in dbs_annotator.config (Qt user data / lab convention).
