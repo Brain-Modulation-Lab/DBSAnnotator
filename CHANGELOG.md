@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bump PySide6 to 6.11.1.
+
 ### Fixed
 
 - Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph).
