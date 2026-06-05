@@ -5,22 +5,30 @@
 :root {
   /* Match sphinx-rtd-theme sidebar (.wy-nav-side). */
   --dbs-docs-canvas: #343131;
+  --dbs-docs-panel: #ffffff;
 }
 
 /* Dark outer canvas (same tone as the left navigation column). */
+/* !important beats theme.css (.wy-nav-content-wrap { background: #fcfcfc }). */
 html,
-body,
+body.wy-body-for-nav,
 .wy-body-for-nav,
 .wy-grid-for-nav,
+section.wy-nav-content-wrap,
 .wy-nav-content-wrap {
-  background: var(--dbs-docs-canvas);
+  background: var(--dbs-docs-canvas) !important;
+  background-color: var(--dbs-docs-canvas) !important;
 }
 
-/* Readable "window" for prose, screenshots, and tables. */
+/* Readable white "window" for prose, screenshots, and tables. */
 .wy-nav-content {
-  max-width: none;
-  background: #ffffff;
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.28);
+  max-width: none !important;
+  background: var(--dbs-docs-panel) !important;
+  background-color: var(--dbs-docs-panel) !important;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.35);
+  /* Let the dark canvas show at the sides on wide viewports. */
+  margin-inline: clamp(0px, 2.5vw, 40px);
+  min-height: 100%;
 }
 
 .wy-nav-content-wrap {
