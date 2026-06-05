@@ -16,12 +16,31 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
 from ..config import BUTTON_SIZES, COLORS, ICON_SIZES
 from ..utils import create_arrow_icon
+
+
+def line_edit_min_width_for_text(
+    edit: QLineEdit, text: str, *, floor: int, padding: int = 20
+) -> None:
+    """Ensure a line edit is wide enough to show *text* (or its placeholder)."""
+    sample = text.strip() or edit.placeholderText() or ""
+    width = edit.fontMetrics().horizontalAdvance(sample) + padding
+    edit.setMinimumWidth(max(floor, width))
+
+
+def push_button_min_width_for_label(
+    button: QPushButton, label: str, *, floor: int = 40, padding: int = 28
+) -> None:
+    """Ensure a pill-style button is wide enough for the full label."""
+    width = button.fontMetrics().horizontalAdvance(label) + padding
+    button.setMinimumWidth(max(floor, width))
+    button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
 
 def create_horizontal_line() -> QFrame:

@@ -31,10 +31,12 @@ def test_launch_windows_invokes_powershell(tmp_path: Path) -> None:
     assert "new window" in msg.lower()
     mock_popen.assert_called_once()
     cmd = mock_popen.call_args[0][0]
+    cmd_text = " ".join(cmd)
     assert cmd[0] == "powershell.exe"
-    assert "-VersionTag" in cmd
-    assert "v0.4.0b2" in cmd
-    assert "-WhatIf" not in cmd
+    assert "-Command" in cmd
+    assert "v0.4.0b2" in cmd_text
+    assert "-WhatIf" not in cmd_text
+    assert script.exists()
 
 
 def test_launch_windows_dry_run_adds_whatif(tmp_path: Path) -> None:
@@ -50,7 +52,8 @@ def test_launch_windows_dry_run_adds_whatif(tmp_path: Path) -> None:
     assert ok is True
     assert "dry run" in msg.lower()
     cmd = mock_popen.call_args[0][0]
-    assert "-WhatIf" in cmd
+    cmd_text = " ".join(cmd)
+    assert "-WhatIf" in cmd_text
 
 
 def test_launch_automatic_update_empty_tag() -> None:

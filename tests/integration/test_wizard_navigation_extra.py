@@ -72,3 +72,28 @@ def test_longitudinal_mode_sets_workflow_and_loads_view(wizard, qtbot):
     assert wizard.workflow_mode == "longitudinal"
     assert wizard.longitudinal_file_view is not None
     assert wizard.stack.currentWidget() is wizard.longitudinal_file_view
+
+
+def test_clinical_preset_buttons_survive_settings_refresh(wizard, qtbot):
+    """Adding a preset in settings must not collapse the horizontal button strip."""
+    qtbot.mouseClick(wizard.step0_view.full_mode_button, Qt.MouseButton.LeftButton)
+    step1 = wizard.step1_view
+    assert step1 is not None
+    initial_count = len(step1.preset_buttons)
+    assert initial_count > 0
+
+    preset_name = "LongClinicalPreset"
+    updated = dict(step1.clinical_presets)
+    updated[preset_name] = ["MDS-UPDRS", "Y-BOCS-o"]
+    step1._on_presets_changed(updated)
+
+    def strip_ready() -> bool:
+        btn = step1.get_preset_button(preset_name)
+        return (
+            btn is not None
+            and btn.text() == preset_name
+            and step1.preset_scroll_content.width() > 20
+            and step1.preset_scroll_area.height() > 10
+        )
+
+    qtbot.waitUntil(strip_ready, timeout=2000)

@@ -57,6 +57,7 @@ from ..ui import (
     get_cathode_labels,
 )
 from ..ui.clinical_scales_settings_dialog import ClinicalScalesSettingsDialog
+from ..ui.widgets import line_edit_min_width_for_text, push_button_min_width_for_label
 from ..utils.program_config_manager import (
     ProgramConfigManager,
     get_program_config_manager,
@@ -1805,14 +1806,24 @@ class Step1View(BaseStepView):
 
         name_edit = QLineEdit()
         name_edit.setPlaceholderText(PLACEHOLDERS["scale_name"])
-        name_edit.setMaximumWidth(80)
         name_edit.setText(name)
+        line_edit_min_width_for_text(name_edit, name, floor=56)
+        name_edit.textChanged.connect(
+            lambda text, edit=name_edit: line_edit_min_width_for_text(
+                edit, text, floor=56
+            )
+        )
 
         score_edit = QLineEdit()
         score_edit.setPlaceholderText(PLACEHOLDERS["scale_score"])
-        score_edit.setMaximumWidth(50)
         score_edit.setValidator(QIntValidator())
         score_edit.setText(value)
+        line_edit_min_width_for_text(score_edit, value, floor=44)
+        score_edit.textChanged.connect(
+            lambda text, edit=score_edit: line_edit_min_width_for_text(
+                edit, text, floor=44
+            )
+        )
 
         btn = None
         if with_plus:
@@ -1908,14 +1919,39 @@ class Step1View(BaseStepView):
                     # Preset was deleted - clear scales
                     self._apply_preset_scales([])
 
+    def _preset_buttons_content_size(self) -> QSize:
+        """Measure preset row size from buttons.
+
+        Container ``sizeHint()`` can be 0 immediately after a rebuild.
+        """
+        layout = self.preset_row_layout
+        if layout is None or not self.preset_buttons:
+            return QSize(0, 0)
+
+        margins = layout.contentsMargins()
+        spacing = layout.spacing()
+        width = margins.left() + margins.right()
+        height = margins.top() + margins.bottom()
+        for index, btn in enumerate(self.preset_buttons):
+            hint = btn.sizeHint()
+            width += hint.width()
+            height = max(height, hint.height() + margins.top() + margins.bottom())
+            if index > 0:
+                width += spacing
+        return QSize(width, height)
+
     def _update_preset_buttons_geometry(self) -> None:
         """Size the preset strip so horizontal scrolling appears when needed."""
         if not hasattr(self, "preset_scroll_content"):
             return
+        if self.preset_row_layout is not None:
+            self.preset_row_layout.activate()
+
+        measured = self._preset_buttons_content_size()
         self.preset_scroll_content.adjustSize()
         hint = self.preset_scroll_content.sizeHint()
-        width = max(hint.width(), 1)
-        content_height = max(hint.height(), 1)
+        width = max(measured.width(), hint.width(), 1)
+        content_height = max(measured.height(), hint.height(), 1)
         self.preset_scroll_content.setMinimumSize(width, content_height)
         self.preset_scroll_content.resize(width, content_height)
 
@@ -1953,10 +1989,13 @@ class Step1View(BaseStepView):
         for preset_name in ordered_names:
             btn = QPushButton(preset_name)
             btn.setObjectName(f"preset_{preset_name}")
+            push_button_min_width_for_label(btn, preset_name)
             self.preset_buttons.append(btn)
             preset_row.addWidget(btn)
 
-        self._update_preset_buttons_geometry()
+        # Defer sizing until Qt has laid out the new buttons; immediate sizeHint()
+        # on the scroll content is often 0 and collapses the strip to 1px wide.
+        QTimer.singleShot(0, self._update_preset_buttons_geometry)
 
         if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
             self._connect_preset_buttons()

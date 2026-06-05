@@ -230,7 +230,6 @@ QPushButton[objectName^="preset_"], QPushButton[objectName^="preset2_"] {
     border: none;
     border-radius: 6px;
     min-width: 40px;
-    max-width: 60px;
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 600;

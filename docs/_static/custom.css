@@ -2,8 +2,25 @@
  * sphinx-rtd-theme caps main content at ~800px for readability.
  * Override so clinical screenshots and wide tables use the full viewport.
  */
+:root {
+  /* Match sphinx-rtd-theme sidebar (.wy-nav-side). */
+  --dbs-docs-canvas: #343131;
+}
+
+/* Dark outer canvas (same tone as the left navigation column). */
+html,
+body,
+.wy-body-for-nav,
+.wy-grid-for-nav,
+.wy-nav-content-wrap {
+  background: var(--dbs-docs-canvas);
+}
+
+/* Readable "window" for prose, screenshots, and tables. */
 .wy-nav-content {
   max-width: none;
+  background: #ffffff;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.28);
 }
 
 .wy-nav-content-wrap {
