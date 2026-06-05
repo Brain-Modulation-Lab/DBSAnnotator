@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph).
+- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph); upgrade ``pip`` to
+  26.1.2 (PYSEC-2026-196, Briefcase transitive dep).
 
 ## [0.4.0] - 2026-06-01
 
