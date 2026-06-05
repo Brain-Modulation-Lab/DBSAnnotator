@@ -31,6 +31,13 @@ def _install_script_url(filename: str) -> str:
     )
 
 
+def _install_script_dir() -> Path:
+    """Stable temp dir so the install script is not deleted before PowerShell starts."""
+    directory = Path(tempfile.gettempdir()) / "dbs_annotator_update"
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
 def _download_install_script(filename: str) -> Path:
     url = _install_script_url(filename)
     request = urllib.request.Request(
@@ -40,14 +47,45 @@ def _download_install_script(filename: str) -> Path:
     ctx = ssl.create_default_context(cafile=certifi.where())
     with urllib.request.urlopen(request, timeout=60, context=ctx) as response:
         data = response.read()
-    suffix = ".ps1" if filename.endswith(".ps1") else ".sh"
-    fd, path_str = tempfile.mkstemp(prefix="dbs_annotator_install_", suffix=suffix)
-    os.close(fd)
-    path = Path(path_str)
+    path = _install_script_dir() / filename
     path.write_bytes(data)
-    if suffix == ".sh":
+    if filename.endswith(".sh"):
         path.chmod(0o755)
     return path
+
+
+def _escape_ps_single_quoted(value: str) -> str:
+    return value.replace("'", "''")
+
+
+def _windows_powershell_command(
+    script: Path, tag: str, *, dry_run: bool = False
+) -> list[str]:
+    """Build a PowerShell invocation that keeps the console open on install failure."""
+    whatif = " -WhatIf" if dry_run else ""
+    ps = (
+        "$ErrorActionPreference = 'Stop'; "
+        f"try {{ & '{_escape_ps_single_quoted(script.as_posix())}' "
+        f"-VersionTag '{_escape_ps_single_quoted(tag)}' "
+        f"-GitHubRepository '{_escape_ps_single_quoted(RELEASES_GITHUB_REPO)}'{whatif} "
+        "} catch { "
+        "Write-Host $_.Exception.Message -ForegroundColor Red; "
+        "exit 1 "
+        "}; "
+        "if ($LASTEXITCODE -ne 0) { "
+        "Write-Host ''; "
+        "Write-Host 'Install did not finish (exit' $LASTEXITCODE ').'; "
+        "Read-Host 'Press Enter to close' "
+        "}"
+    )
+    return [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        ps,
+    ]
 
 
 def automatic_update_supported() -> bool:
@@ -102,32 +140,12 @@ def launch_automatic_update(
 
 def _launch_windows(tag: str, *, dry_run: bool = False) -> tuple[bool, str]:
     script = _download_install_script("install.ps1")
-    try:
-        cmd = [
-            "powershell.exe",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            str(script),
-            "-VersionTag",
-            tag,
-            "-GitHubRepository",
-            RELEASES_GITHUB_REPO,
-        ]
-        if dry_run:
-            cmd.append("-WhatIf")
-        subprocess.Popen(
-            cmd,
-            creationflags=_WINDOWS_NEW_CONSOLE,
-            close_fds=True,
-        )
-    finally:
-        if not dry_run:
-            try:
-                script.unlink(missing_ok=True)
-            except OSError:
-                pass
+    cmd = _windows_powershell_command(script, tag, dry_run=dry_run)
+    subprocess.Popen(
+        cmd,
+        creationflags=_WINDOWS_NEW_CONSOLE,
+        close_fds=True,
+    )
 
     if dry_run:
         return True, (

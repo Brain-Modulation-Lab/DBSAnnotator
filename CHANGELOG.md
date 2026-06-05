@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Read the Docs: dark outer page background (matching the sidebar); browser tab
+  favicon uses the application icon.
+
+### Changed
+
+- Clinical and session preset pill buttons grow to fit their full label (theme
+  ``max-width`` cap removed).
+- Step 1 and Step 2 scale name/value fields widen as needed to show the full text.
+
+### Fixed
+
+- In-app **Update now** on Windows: keep the install script on disk until PowerShell
+  finishes (avoids a flash-and-close with no install) and pause the console when
+  the installer fails so the error message stays visible.
+- Step 1 clinical preset buttons disappearing after adding a preset in settings
+  (horizontal scroll strip sizing).
+- Step 3 session settings: external vertical scrollbar column (same layout as Step 1;
+  no overlap with electrode canvases).
+- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph).
+
+## [0.4.0] - 2026-06-01
+
+### Changed
+
+- Step 1 clinical preset buttons scroll horizontally when they do not fit on one row.
+
+### Fixed
+
+- Wizard window: title-bar maximize and resize on steps 1+ (step 0 stays compact).
+- Step 1 initial settings: vertical scrollbar in its own column; no overlap with electrode canvases.
+
+## [0.4.0b2] - 2026-05-21
+
+### Added
+
 - In-app **Update now** on the update-available dialog: downloads and runs the
   platform install scripts (``install.ps1`` on Windows, ``install.sh`` on macOS /
   Linux) for the selected GitHub release tag, then prompts you to restart the

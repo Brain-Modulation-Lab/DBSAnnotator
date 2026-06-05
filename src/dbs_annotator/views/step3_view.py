@@ -8,7 +8,7 @@ session data including stimulation parameters and scale values.
 import logging
 from typing import cast
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
     QComboBox,
@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QScrollBar,
     QSizePolicy,
     QSplitter,
     QStyle,
@@ -54,6 +55,51 @@ from ..utils.program_config_manager import (
 from .base_view import BaseStepView
 
 logger = logging.getLogger(__name__)
+
+# Horizontal budget for the session-settings strip (content + external scrollbar).
+_SETTINGS_STRIP_CONTENT_WIDTH = 334
+
+
+def _panel_with_external_vertical_scroll(scroll: QScrollArea) -> QWidget:
+    """
+    Settings strip: scroll content plus a dedicated vertical scrollbar column.
+
+    The scrollbar sits inside this panel only; callers should leave a layout gap
+    before the electrode canvases so nothing overlaps.
+    """
+    scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    external_bar = QScrollBar(Qt.Orientation.Vertical)
+    external_bar.setFixedWidth(external_bar.sizeHint().width())
+    internal_bar = scroll.verticalScrollBar()
+
+    def sync_from_internal() -> None:
+        external_bar.blockSignals(True)
+        external_bar.setRange(internal_bar.minimum(), internal_bar.maximum())
+        external_bar.setPageStep(internal_bar.pageStep())
+        external_bar.setSingleStep(internal_bar.singleStep())
+        external_bar.setValue(internal_bar.value())
+        external_bar.blockSignals(False)
+        needs_scroll = internal_bar.maximum() > internal_bar.minimum()
+        external_bar.setVisible(needs_scroll)
+        external_bar.setEnabled(needs_scroll)
+
+    internal_bar.rangeChanged.connect(lambda *_args: sync_from_internal())
+    internal_bar.valueChanged.connect(external_bar.setValue)
+    external_bar.valueChanged.connect(internal_bar.setValue)
+
+    panel = QWidget()
+    panel.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+    row = QHBoxLayout(panel)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(4)
+    row.addWidget(scroll, 1)
+    row.addWidget(external_bar)
+    QTimer.singleShot(0, sync_from_internal)
+
+    strip_width = _SETTINGS_STRIP_CONTENT_WIDTH + external_bar.width() + row.spacing()
+    panel.setFixedWidth(strip_width)
+    scroll.setMinimumWidth(_SETTINGS_STRIP_CONTENT_WIDTH)
+    return panel
 
 
 class Step3View(BaseStepView):
@@ -441,8 +487,9 @@ class Step3View(BaseStepView):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         sidebar_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        sidebar_scroll.setMinimumWidth(380)
         sidebar_scroll.setWidget(sidebar_widget)
+
+        settings_panel = _panel_with_external_vertical_scroll(sidebar_scroll)
 
         electrodes_layout = QVBoxLayout()
         electrodes_row = QHBoxLayout()
@@ -473,8 +520,15 @@ class Step3View(BaseStepView):
         electrodes_layout.addLayout(electrodes_row)
         electrodes_layout.addLayout(self._create_electrode_legend_layout())
 
-        container_layout.addWidget(sidebar_scroll, 0)
-        container_layout.addLayout(electrodes_layout, 1)
+        electrodes_widget = QWidget()
+        electrodes_widget.setLayout(electrodes_layout)
+        electrodes_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+
+        container_layout.setSpacing(12)
+        container_layout.addWidget(settings_panel, 0)
+        container_layout.addWidget(electrodes_widget, 1)
 
         layout = QVBoxLayout(gb_session)
         layout.addLayout(container_layout)

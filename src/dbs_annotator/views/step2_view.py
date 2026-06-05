@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from ..config import PLACEHOLDERS, PRESET_BUTTONS
 from ..ui.session_scales_settings_dialog import SessionScalesSettingsDialog
+from ..ui.widgets import line_edit_min_width_for_text, push_button_min_width_for_label
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
 
@@ -232,6 +233,7 @@ class Step2View(BaseStepView):
         for preset_name in ordered_names:
             btn = QPushButton(preset_name)
             btn.setObjectName(f"preset2_{preset_name}")
+            push_button_min_width_for_label(btn, preset_name)
             self.preset_buttons.append(btn)
             preset_row.insertWidget(insert_index, btn)
             insert_index += 1
@@ -406,18 +408,33 @@ class Step2View(BaseStepView):
 
         name_edit = QLineEdit()
         name_edit.setPlaceholderText(PLACEHOLDERS["scale_name"])
-        name_edit.setMaximumWidth(100)
         name_edit.setText(name)
+        line_edit_min_width_for_text(name_edit, name, floor=64)
+        name_edit.textChanged.connect(
+            lambda text, edit=name_edit: line_edit_min_width_for_text(
+                edit, text, floor=64
+            )
+        )
 
         scale1_edit = QLineEdit()
         scale1_edit.setPlaceholderText(PLACEHOLDERS["scale_min"])
-        scale1_edit.setMaximumWidth(40)
         scale1_edit.setText(minval)
+        line_edit_min_width_for_text(scale1_edit, minval, floor=40)
+        scale1_edit.textChanged.connect(
+            lambda text, edit=scale1_edit: line_edit_min_width_for_text(
+                edit, text, floor=40
+            )
+        )
 
         scale2_edit = QLineEdit()
         scale2_edit.setPlaceholderText(PLACEHOLDERS["scale_max"])
-        scale2_edit.setMaximumWidth(40)
         scale2_edit.setText(maxval)
+        line_edit_min_width_for_text(scale2_edit, maxval, floor=40)
+        scale2_edit.textChanged.connect(
+            lambda text, edit=scale2_edit: line_edit_min_width_for_text(
+                edit, text, floor=40
+            )
+        )
 
         if with_plus:
             btn = QPushButton("+")
