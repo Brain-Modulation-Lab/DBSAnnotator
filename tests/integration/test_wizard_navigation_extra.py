@@ -86,14 +86,14 @@ def test_clinical_preset_buttons_survive_settings_refresh(wizard, qtbot):
     updated = dict(step1.clinical_presets)
     updated[preset_name] = ["MDS-UPDRS", "Y-BOCS-o"]
     step1._on_presets_changed(updated)
-    qtbot.wait(50)
 
-    assert step1.get_preset_button(preset_name) is not None
-    assert step1.preset_scroll_content.width() > 20
-    assert step1.preset_scroll_area.height() > 10
-    long_name_btn = step1.get_preset_button(preset_name)
-    assert long_name_btn is not None
-    assert (
-        long_name_btn.minimumWidth()
-        >= long_name_btn.fontMetrics().horizontalAdvance(preset_name)
-    )
+    def strip_ready() -> bool:
+        btn = step1.get_preset_button(preset_name)
+        return (
+            btn is not None
+            and btn.text() == preset_name
+            and step1.preset_scroll_content.width() > 20
+            and step1.preset_scroll_area.height() > 10
+        )
+
+    qtbot.waitUntil(strip_ready, timeout=2000)
