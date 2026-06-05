@@ -23,10 +23,10 @@ classifiers = [
 dependencies = [
     "certifi>=2024.0.0",
     "tzdata>=2026.2",
-    "pandas>=2.1",
+    "pandas>=3.0.3",
     "python-docx>=1.1",
     "docx2pdf>=0.1.8",
-    "pydantic>=2.13.3",
+    "pydantic>=2.13.4",
     "pyside6>=6.11.0",
     "matplotlib>=3.10.9",
     "packaging>=26.2",
@@ -42,12 +42,13 @@ dev = [
     "ruff>=0.1.0",
     "pre-commit>=3.6",
     "pre-commit-uv>=4.2.1",
-    "ty>=0.0.29",
+    "uv>=0.11.15",
+    "ty>=0.0.35",
     "pandas-stubs>=3.0.0.260204",
     "pyside6-stubs>=6.7.3.0",
     "towncrier>=24.8.0",
 ]
-build = ["briefcase>=0.3.26"]
+build = ["briefcase>=0.4.2"]
 docs = [
     "sphinx>=9.0.4",
     "sphinx-rtd-theme>=3.1.0",
@@ -192,7 +193,7 @@ showcontent = true
 project_name = "DBSAnnotator"
 bundle = "ch.wysscenter.dbsannotator"
 # Briefcase requires a static version here even when [project] uses dynamic version
-version = "0.4.0b1"
+version = "0.4.0"
 license = { file = "LICENSE" }
 # Windows per-user install dir is %LOCALAPPDATA%\<author>\<formal_name>; must match
 # FS_ORG_NAME in dbs_annotator.config (Qt user data / lab convention).

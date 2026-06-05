@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph).
+
+## [0.4.0] - 2026-06-01
+
+### Changed
+
+- Step 1 clinical preset buttons scroll horizontally when they do not fit on one row.
+
+### Fixed
+
+- Wizard window: title-bar maximize and resize on steps 1+ (step 0 stays compact).
+- Step 1 initial settings: vertical scrollbar in its own column; no overlap with electrode canvases.
+
+## [0.4.0b2] - 2026-05-21
+
 ### Added
 
 - Read the Docs: dark outer page background (matching the sidebar); browser tab

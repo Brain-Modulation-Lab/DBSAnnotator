@@ -182,9 +182,6 @@ class WizardWindow(QWidget):
         self.setGeometry(x, y, width, height)
         self.setMinimumSize(WINDOW_MIN_SIZE["width"], WINDOW_MIN_SIZE["height"])
 
-        # Make window resizable
-        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
-
         # Set smaller size for step 0 (mode selection)
         self._update_window_size_for_step0()
 
@@ -866,49 +863,81 @@ class WizardWindow(QWidget):
         self.setGeometry(x, y, compact_width, compact_height)
         self.setMinimumSize(compact_width, compact_height)
         self.setMaximumSize(compact_width, compact_height)
+        self._refresh_title_bar_maximize(enabled=False)
 
-    def _update_window_size_for_main_workflow(self) -> None:
-        """Restore normal window size for main workflow (steps 1+)."""
-        # Restore normal size policies and remove fixed constraints from step0
-        if hasattr(self, "stack"):
-            self.stack.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-            )
-            self.stack.setMaximumWidth(16777215)  # Remove fixed width
-            self.stack.setMaximumHeight(16777215)  # Remove fixed height
+    def _refresh_title_bar_maximize(self, *, enabled: bool) -> None:
+        """
+        Enable or disable the native title-bar maximize button.
+
+        On Windows, fixed min/max sizing (step 0) removes WS_MAXIMIZEBOX from the
+        native frame; ``setWindowFlag`` alone does not restore it — the frame must
+        be recreated with ``setWindowFlags`` and ``show()``.
+
+        All standard title-bar hints must be set explicitly; otherwise Windows may
+        drop the close or maximize button when the frame is recreated.
+        """
+        flags = (
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowSystemMenuHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
+        if enabled:
+            flags |= Qt.WindowType.WindowMaximizeButtonHint
+
+        geometry = self.geometry()
+        visible = self.isVisible()
+        self.setWindowFlags(flags)
+        if visible:
+            self.setGeometry(geometry)
+            self.show()
+
+    def _release_stack_size_constraints(self) -> None:
+        """Remove fixed sizes left over from step 0 so content can grow with the window."""
+        if not hasattr(self, "stack"):
+            return
+        self.stack.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        self.stack.setMinimumWidth(0)
+        self.stack.setMinimumHeight(0)
+        self.stack.setMaximumWidth(16777215)
+        self.stack.setMaximumHeight(16777215)
         if hasattr(self, "stack_scroll_area"):
             self.stack_scroll_area.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
 
-        # Get original normal size
+    def _update_window_size_for_main_workflow(self) -> None:
+        """Restore normal window size for main workflow (steps 1+)."""
+        self._release_stack_size_constraints()
+
         screen = self.app.primaryScreen()
         rect = screen.availableGeometry()
         screen_width = rect.width()
         screen_height = rect.height()
 
-        # Calculate desired window size with ratio
+        min_width = min(WINDOW_MIN_SIZE["width"], screen_width)
+        min_height = min(WINDOW_MIN_SIZE["height"], screen_height)
+
         desired_width = int(screen_width * WINDOW_SIZE_RATIO["width"])
         desired_height = int(screen_height * WINDOW_SIZE_RATIO["height"])
+        width = max(desired_width, min_width)
+        height = max(desired_height, min_height)
 
-        # Apply minimum size constraints
-        width = max(desired_width, WINDOW_MIN_SIZE["width"])
-        height = max(desired_height, WINDOW_MIN_SIZE["height"])
-
-        # Center the normal window
         x = int((screen_width - width) / 2)
         y = int((screen_height - height) / 2)
 
-        # Reset constraints first to avoid min/max conflicts
+        # Reset constraints first to avoid min/max conflicts from step 0
         self.setMinimumSize(1, 1)
-        self.setMaximumSize(16777215, 16777215)  # Qt max size
+        self.setMaximumSize(16777215, 16777215)
 
-        # Apply new geometry and constraints (allow full maximization)
         self.setGeometry(x, y, width, height)
-        self.setMinimumSize(WINDOW_MIN_SIZE["width"], WINDOW_MIN_SIZE["height"])
-        self.setMaximumSize(
-            screen_width, screen_height
-        )  # Allow full screen maximization
+        self.setMinimumSize(min_width, min_height)
+        # No practical max cap — lets the title-bar maximize button work on Windows
+        self.setMaximumSize(16777215, 16777215)
+        self._refresh_title_bar_maximize(enabled=True)
 
         self._clamp_to_screen()
 
