@@ -321,6 +321,17 @@ QGroupBox::indicator:unchecked {
     margin-top: 2px;
 }
 
+/* Preset pill strip — match QGroupBox card, not global QWidget grey */
+QScrollArea#clinical_preset_scroll_area,
+QScrollArea#clinical_preset_scroll_area > QWidget,
+QScrollArea#clinical_preset_scroll_area > QWidget > QWidget,
+QScrollArea#session_preset_scroll_area,
+QScrollArea#session_preset_scroll_area > QWidget,
+QScrollArea#session_preset_scroll_area > QWidget > QWidget {
+    background-color: #ffffff;
+    border: none;
+}
+
 QGroupBox::indicator:checked {
     border: 1px solid #475569;
     border-radius: 2px;

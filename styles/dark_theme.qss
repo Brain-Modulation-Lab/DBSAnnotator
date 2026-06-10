@@ -289,6 +289,17 @@ QGroupBox::title {
     background-color: #1e293b;
 }
 
+/* Preset pill strip — match QGroupBox card */
+QScrollArea#clinical_preset_scroll_area,
+QScrollArea#clinical_preset_scroll_area > QWidget,
+QScrollArea#clinical_preset_scroll_area > QWidget > QWidget,
+QScrollArea#session_preset_scroll_area,
+QScrollArea#session_preset_scroll_area > QWidget,
+QScrollArea#session_preset_scroll_area > QWidget > QWidget {
+    background-color: #1e293b;
+    border: none;
+}
+
 QGroupBox::indicator:unchecked {
     border: 1px solid #64748b;
     border-radius: 2px;

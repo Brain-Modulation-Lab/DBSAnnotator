@@ -57,7 +57,12 @@ from ..ui import (
     get_cathode_labels,
 )
 from ..ui.clinical_scales_settings_dialog import ClinicalScalesSettingsDialog
-from ..ui.widgets import line_edit_min_width_for_text, push_button_min_width_for_label
+from ..ui.widgets import (
+    PRESET_BUTTON_ACTIVE_BORDER_PX,
+    line_edit_min_width_for_text,
+    panel_with_external_horizontal_scroll,
+    push_button_min_width_for_label,
+)
 from ..utils.program_config_manager import (
     ProgramConfigManager,
     get_program_config_manager,
@@ -950,6 +955,7 @@ class Step1View(BaseStepView):
 
         # Preset buttons — scroll horizontally when they exceed available width
         self.preset_scroll_content = QWidget()
+
         self.preset_scroll_content.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
         )
@@ -970,15 +976,14 @@ class Step1View(BaseStepView):
         self.preset_scroll_area.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
-        self.preset_scroll_area.setStyleSheet("""
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-        """)
+        self.preset_scroll_area.setObjectName("clinical_preset_scroll_area")
+
+        self.preset_scroll_panel = panel_with_external_horizontal_scroll(
+            self.preset_scroll_area
+        )
+        self._sync_preset_horizontal_scroll = (
+            self.preset_scroll_panel.sync_horizontal_scroll
+        )
 
         settings_btn = QPushButton()
         settings_btn.setIcon(self._create_settings_icon())
@@ -988,7 +993,7 @@ class Step1View(BaseStepView):
 
         preset_bar = QHBoxLayout()
         preset_bar.setContentsMargins(0, 0, 0, 0)
-        preset_bar.addWidget(self.preset_scroll_area, 1)
+        preset_bar.addWidget(self.preset_scroll_panel, 1)
         preset_bar.addWidget(settings_btn, 0, Qt.AlignmentFlag.AlignTop)
         layout.addLayout(preset_bar)
 
@@ -1706,6 +1711,8 @@ class Step1View(BaseStepView):
             button.style().unpolish(button)
             button.style().polish(button)
 
+        QTimer.singleShot(0, self._update_preset_buttons_geometry)
+
     def _apply_preset_scales(self, scales: list[str]):
         """Apply a preset's scales to the clinical scales section.
 
@@ -1933,9 +1940,16 @@ class Step1View(BaseStepView):
         width = margins.left() + margins.right()
         height = margins.top() + margins.bottom()
         for index, btn in enumerate(self.preset_buttons):
-            hint = btn.sizeHint()
-            width += hint.width()
-            height = max(height, hint.height() + margins.top() + margins.bottom())
+            btn.ensurePolished()
+            btn_width = max(
+                btn.sizeHint().width(),
+                btn.minimumSizeHint().width(),
+                btn.minimumWidth(),
+            )
+            width += btn_width
+            btn_height = max(btn.sizeHint().height(), btn.minimumHeight())
+            btn_height += PRESET_BUTTON_ACTIVE_BORDER_PX
+            height = max(height, btn_height + margins.top() + margins.bottom())
             if index > 0:
                 width += spacing
         return QSize(width, height)
@@ -1947,6 +1961,9 @@ class Step1View(BaseStepView):
         if self.preset_row_layout is not None:
             self.preset_row_layout.activate()
 
+        for btn in self.preset_buttons:
+            push_button_min_width_for_label(btn, btn.text())
+
         measured = self._preset_buttons_content_size()
         self.preset_scroll_content.adjustSize()
         hint = self.preset_scroll_content.sizeHint()
@@ -1954,11 +1971,10 @@ class Step1View(BaseStepView):
         content_height = max(measured.height(), hint.height(), 1)
         self.preset_scroll_content.setMinimumSize(width, content_height)
         self.preset_scroll_content.resize(width, content_height)
+        self.preset_scroll_area.setFixedHeight(content_height)
 
-        # Reserve space below the buttons for the horizontal scrollbar
-        scrollbar = self.preset_scroll_area.horizontalScrollBar()
-        sb_height = scrollbar.sizeHint().height() if scrollbar is not None else 0
-        self.preset_scroll_area.setFixedHeight(content_height + sb_height)
+        if hasattr(self, "_sync_preset_horizontal_scroll"):
+            self._sync_preset_horizontal_scroll()
 
     def _refresh_preset_buttons(self):
         """Refresh preset buttons with new presets."""
@@ -1989,9 +2005,9 @@ class Step1View(BaseStepView):
         for preset_name in ordered_names:
             btn = QPushButton(preset_name)
             btn.setObjectName(f"preset_{preset_name}")
-            push_button_min_width_for_label(btn, preset_name)
             self.preset_buttons.append(btn)
             preset_row.addWidget(btn)
+            push_button_min_width_for_label(btn, preset_name)
 
         # Defer sizing until Qt has laid out the new buttons; immediate sizeHint()
         # on the scroll content is often 0 and collapses the strip to 1px wide.
