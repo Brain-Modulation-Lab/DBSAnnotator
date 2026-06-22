@@ -352,18 +352,12 @@ class WizardController:
 
         return True
 
-    def prepare_step3(self, view) -> None:
-        """
-        Prepare Step 3 view with initial data (first-time setup).
-
-        Args:
-            view: The Step3View instance
-        """
+    def _sync_step3_baseline_from_step1(self, view) -> None:
+        """Apply Step 1 electrode model and stimulation params to Step 3."""
         model = ELECTRODE_MODELS.get(self.current_electrode_model_name)
         if model and hasattr(view, "set_electrode_model"):
             view.set_electrode_model(model)
 
-        # Set initial stimulation parameters from Step 1
         view.set_initial_stimulation_params(
             self.current_stimulation.left_frequency or "",
             self.current_stimulation.left_cathode or "",
@@ -378,17 +372,27 @@ class WizardController:
             self.current_group or "",
         )
 
+    def prepare_step3(self, view) -> None:
+        """
+        Prepare Step 3 view with initial data (first-time setup).
+
+        Args:
+            view: The Step3View instance
+        """
+        self._sync_step3_baseline_from_step1(view)
+
         # Update session scales
         view.update_session_scales(self.session_scales_data)
 
     def refresh_step3_scales(self, view) -> None:
         """
-        Refresh only session scales in Step 3 if definitions changed.
-        Called when returning to step3 (not first time).
+        Refresh Step 3 when returning from earlier steps.
 
         Args:
             view: The Step3View instance
         """
+        self._sync_step3_baseline_from_step1(view)
+
         current_names = (
             [name for name, _ in view.session_scale_value_edits]
             if hasattr(view, "session_scale_value_edits")

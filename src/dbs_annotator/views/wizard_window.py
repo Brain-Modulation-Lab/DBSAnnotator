@@ -1271,7 +1271,7 @@ class WizardWindow(QWidget):
             except Exception:
                 logger.exception("Step 3 preparation retry failed")
         else:
-            # Only refresh scales if definitions changed; keep everything else as-is
+            # Refresh Step 1 baseline settings and scales if definitions changed
             self.controller.refresh_step3_scales(self.step3_view)
 
         self.current_step = 3
