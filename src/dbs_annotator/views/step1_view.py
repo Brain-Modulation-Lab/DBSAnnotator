@@ -9,7 +9,7 @@ import logging
 import os
 from collections.abc import Callable
 from datetime import datetime
-from typing import cast
+from typing import Literal, cast
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QDoubleValidator, QIntValidator
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QGraphicsEffect,
     QGroupBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -33,6 +34,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QStyle,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -68,6 +70,7 @@ from ..utils.program_config_manager import (
     get_program_config_manager,
 )
 from ..utils.scale_preset_manager import get_scale_preset_manager
+from ..utils.setting_presets_manager import get_setting_presets_manager
 from ..utils.tsv_columns import block_id_from_row
 from .base_view import BaseStepView
 
@@ -302,7 +305,7 @@ class Step1View(BaseStepView):
         edit_programs_btn = QPushButton()
         edit_programs_btn.setIcon(self._create_settings_icon())
         edit_programs_btn.setToolTip("Edit program names")
-        edit_programs_btn.setObjectName("programSettingsButton")
+        edit_programs_btn.setObjectName("settingsGearButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
 
@@ -318,11 +321,23 @@ class Step1View(BaseStepView):
         )
         left_group_layout = QVBoxLayout()
 
+        settings_row = QHBoxLayout()
+        settings_row.addStretch()
+        edit_setting_presets_btn = QPushButton()
+        edit_setting_presets_btn.setIcon(self._create_settings_icon())
+        edit_setting_presets_btn.setToolTip("Edit setting presets")
+        edit_setting_presets_btn.setObjectName("settingsGearButton")
+        edit_setting_presets_btn.clicked.connect(self._edit_setting_presets)
+        settings_row.addWidget(edit_setting_presets_btn)
+
         freq_row = QHBoxLayout()
         freq_row.addWidget(QLabel("Frequency:"))
         freq_row.addStretch()
+        self.left_stim_freq_presets_combo = QComboBox()
+        self.left_stim_freq_presets_combo.setMaximumWidth(80)
+        freq_row.addWidget(self.left_stim_freq_presets_combo)
         self.left_stim_freq_edit = QLineEdit()
-        self.left_stim_freq_edit.setMaximumWidth(80)
+        self.left_stim_freq_edit.setMaximumWidth(60)
         self.left_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
         self.left_stim_freq_edit.setValidator(
             QIntValidator(int(freq_limits["min"]), int(freq_limits["max"]))
@@ -340,8 +355,11 @@ class Step1View(BaseStepView):
         amp_row = QHBoxLayout()
         amp_row.addWidget(QLabel("Amplitude:"))
         amp_row.addStretch()
+        self.left_stim_amp_presets_combo = QComboBox()
+        self.left_stim_amp_presets_combo.setMaximumWidth(80)
+        amp_row.addWidget(self.left_stim_amp_presets_combo)
         self.left_amp_edit = QLineEdit()
-        self.left_amp_edit.setMaximumWidth(80)
+        self.left_amp_edit.setMaximumWidth(60)
         self.left_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
         self.left_amp_edit.setValidator(
             QDoubleValidator(
@@ -363,8 +381,11 @@ class Step1View(BaseStepView):
         pw_row = QHBoxLayout()
         pw_row.addWidget(QLabel("Pulse width:"))
         pw_row.addStretch()
+        self.left_stim_pw_presets_combo = QComboBox()
+        self.left_stim_pw_presets_combo.setMaximumWidth(80)
+        pw_row.addWidget(self.left_stim_pw_presets_combo)
         self.left_pw_edit = QLineEdit()
-        self.left_pw_edit.setMaximumWidth(80)
+        self.left_pw_edit.setMaximumWidth(60)
         self.left_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
         self.left_pw_edit.setValidator(
             QIntValidator(int(pw_limits["min"]), int(pw_limits["max"]))
@@ -381,6 +402,7 @@ class Step1View(BaseStepView):
 
         self.left_amp_split = AmplitudeSplitWidget(self.left_amp_edit)
 
+        left_group_layout.addLayout(settings_row)
         left_group_layout.addLayout(freq_row)
         left_group_layout.addLayout(amp_row)
         left_group_layout.addWidget(self.left_amp_split)
@@ -413,11 +435,23 @@ class Step1View(BaseStepView):
         )
         right_group_layout = QVBoxLayout()
 
+        settings_row = QHBoxLayout()
+        settings_row.addStretch()
+        edit_setting_presets_btn = QPushButton()
+        edit_setting_presets_btn.setIcon(self._create_settings_icon())
+        edit_setting_presets_btn.setToolTip("Edit setting presets")
+        edit_setting_presets_btn.setObjectName("settingsGearButton")
+        edit_setting_presets_btn.clicked.connect(self._edit_setting_presets)
+        settings_row.addWidget(edit_setting_presets_btn)
+
         freq_row = QHBoxLayout()
         freq_row.addWidget(QLabel("Frequency:"))
         freq_row.addStretch()
+        self.right_stim_freq_presets_combo = QComboBox()
+        self.right_stim_freq_presets_combo.setMaximumWidth(80)
+        freq_row.addWidget(self.right_stim_freq_presets_combo)
         self.right_stim_freq_edit = QLineEdit()
-        self.right_stim_freq_edit.setMaximumWidth(80)
+        self.right_stim_freq_edit.setMaximumWidth(60)
         self.right_stim_freq_edit.setPlaceholderText(PLACEHOLDERS["frequency"])
         self.right_stim_freq_edit.setValidator(
             QIntValidator(int(freq_limits["min"]), int(freq_limits["max"]))
@@ -435,8 +469,11 @@ class Step1View(BaseStepView):
         amp_row = QHBoxLayout()
         amp_row.addWidget(QLabel("Amplitude:"))
         amp_row.addStretch()
+        self.right_stim_amp_presets_combo = QComboBox()
+        self.right_stim_amp_presets_combo.setMaximumWidth(80)
+        amp_row.addWidget(self.right_stim_amp_presets_combo)
         self.right_amp_edit = QLineEdit()
-        self.right_amp_edit.setMaximumWidth(80)
+        self.right_amp_edit.setMaximumWidth(60)
         self.right_amp_edit.setPlaceholderText(PLACEHOLDERS["amplitude"])
         self.right_amp_edit.setValidator(
             QDoubleValidator(
@@ -458,8 +495,11 @@ class Step1View(BaseStepView):
         pw_row = QHBoxLayout()
         pw_row.addWidget(QLabel("Pulse width:"))
         pw_row.addStretch()
+        self.right_stim_pw_presets_combo = QComboBox()
+        self.right_stim_pw_presets_combo.setMaximumWidth(80)
+        pw_row.addWidget(self.right_stim_pw_presets_combo)
         self.right_pw_edit = QLineEdit()
-        self.right_pw_edit.setMaximumWidth(80)
+        self.right_pw_edit.setMaximumWidth(60)
         self.right_pw_edit.setPlaceholderText(PLACEHOLDERS["pulse_width"])
         self.right_pw_edit.setValidator(
             QIntValidator(int(pw_limits["min"]), int(pw_limits["max"]))
@@ -476,6 +516,7 @@ class Step1View(BaseStepView):
 
         self.right_amp_split = AmplitudeSplitWidget(self.right_amp_edit)
 
+        right_group_layout.addLayout(settings_row)
         right_group_layout.addLayout(freq_row)
         right_group_layout.addLayout(amp_row)
         right_group_layout.addWidget(self.right_amp_split)
@@ -501,6 +542,22 @@ class Step1View(BaseStepView):
         right_group_layout.addWidget(self.right_config_box)
         right_group_layout.addStretch(1)
         self.right_group.setLayout(right_group_layout)
+
+        self._stim_preset_combo_specs: list[tuple[QComboBox, QLineEdit, str]] = [
+            (self.left_stim_freq_presets_combo, self.left_stim_freq_edit, "frequency"),
+            (self.left_stim_amp_presets_combo, self.left_amp_edit, "amplitude"),
+            (self.left_stim_pw_presets_combo, self.left_pw_edit, "pulse_width"),
+            (
+                self.right_stim_freq_presets_combo,
+                self.right_stim_freq_edit,
+                "frequency",
+            ),
+            (self.right_stim_amp_presets_combo, self.right_amp_edit, "amplitude"),
+            (self.right_stim_pw_presets_combo, self.right_pw_edit, "pulse_width"),
+        ]
+        for combo, line_edit, _kind in self._stim_preset_combo_specs:
+            self._connect_stim_preset_combo(combo, line_edit)
+        self._refresh_stim_preset_combos()
 
         sidebar_layout.addWidget(model_group)
         sidebar_layout.addWidget(group_row)
@@ -987,7 +1044,7 @@ class Step1View(BaseStepView):
 
         settings_btn = QPushButton()
         settings_btn.setIcon(self._create_settings_icon())
-        settings_btn.setObjectName("settings_clincal_scales")
+        settings_btn.setObjectName("settingsGearButton")
         settings_btn.setToolTip("Settings clinical scales")
         settings_btn.clicked.connect(self._open_clinical_scales_settings)
 
@@ -1090,26 +1147,151 @@ class Step1View(BaseStepView):
 
         return gb_notes
 
-    def _edit_program_names(self) -> None:
-        """Open dialog to edit custom program names."""
-        from PySide6.QtWidgets import QLineEdit, QListWidget, QVBoxLayout
+    def _format_stim_preset(
+        self, value: float | int, kind: Literal["frequency", "amplitude", "pulse_width"]
+    ) -> str:
+        if kind == "amplitude":
+            text = f"{float(value):.1f}".rstrip("0").rstrip(".")
+            return text
+        return str(int(round(float(value))))
 
+    def _populate_stim_preset_combo(
+        self,
+        combo: QComboBox,
+        values: list[float] | list[int],
+        kind: Literal["frequency", "amplitude", "pulse_width"],
+    ) -> None:
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem("Presets")
+        for value in values:
+            combo.addItem(self._format_stim_preset(value, kind))
+        combo.setCurrentIndex(0)
+        combo.blockSignals(False)
+
+    def _connect_stim_preset_combo(
+        self, combo: QComboBox, line_edit: QLineEdit
+    ) -> None:
+        def on_changed(index: int) -> None:
+            if index <= 0:
+                return
+            text = combo.itemText(index)
+            if text:
+                line_edit.setText(text)
+            combo.blockSignals(True)
+            combo.setCurrentIndex(0)
+            combo.blockSignals(False)
+
+        combo.currentIndexChanged.connect(on_changed)
+
+    def _refresh_stim_preset_combos(self) -> None:
+        manager = get_setting_presets_manager()
+        presets_by_kind: dict[str, list] = {
+            "frequency": manager.get_frequencies(),
+            "amplitude": manager.get_amplitudes(),
+            "pulse_width": manager.get_pulse_widths(),
+        }
+        for combo, _line_edit, kind in self._stim_preset_combo_specs:
+            self._populate_stim_preset_combo(
+                combo,
+                presets_by_kind[kind],
+                cast(Literal["frequency", "amplitude", "pulse_width"], kind),
+            )
+
+    def _build_setting_presets_dialog(
+        self, parent: QWidget | None = None
+    ) -> tuple[QDialog, QTabWidget, QListWidget, QListWidget, QListWidget]:
+        """Build stimulation setting presets editor (UI and doc screenshots)."""
+        manager = get_setting_presets_manager()
+        dialog = QDialog(parent or self)
+        dialog.setWindowTitle("Edit Setting Presets")
+        dialog.setMinimumWidth(420)
+
+        layout = QVBoxLayout(dialog)
+        tabs = QTabWidget()
+
+        freq_list = QListWidget()
+        freq_list.addItems(
+            [
+                self._format_stim_preset(v, "frequency")
+                for v in manager.get_frequencies()
+            ]
+        )
+        amp_list = QListWidget()
+        amp_list.addItems(
+            [self._format_stim_preset(v, "amplitude") for v in manager.get_amplitudes()]
+        )
+        pw_list = QListWidget()
+        pw_list.addItems(
+            [
+                self._format_stim_preset(v, "pulse_width")
+                for v in manager.get_pulse_widths()
+            ]
+        )
+
+        tabs.addTab(
+            self._build_preset_list_editor(freq_list, "frequency", "Frequency"),
+            "Frequencies",
+        )
+        tabs.addTab(
+            self._build_preset_list_editor(amp_list, "amplitude", "Amplitude"),
+            "Amplitudes",
+        )
+        tabs.addTab(
+            self._build_preset_list_editor(pw_list, "pulse_width", "Pulse width"),
+            "Pulse widths",
+        )
+        layout.addWidget(tabs)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        return dialog, tabs, freq_list, amp_list, pw_list
+
+    def _edit_setting_presets(self) -> None:
+        """Open dialog to edit stimulation parameter preset lists."""
+        manager = get_setting_presets_manager()
+        dialog, _tabs, freq_list, amp_list, pw_list = (
+            self._build_setting_presets_dialog()
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        try:
+            manager.save_presets(
+                self._list_widget_numeric_values(freq_list, "frequency"),
+                self._list_widget_numeric_values(amp_list, "amplitude"),
+                self._list_widget_numeric_values(pw_list, "pulse_width"),
+            )
+        except ValueError as exc:
+            QMessageBox.warning(self, "Error", str(exc))
+            return
+
+        self._refresh_stim_preset_combos()
+
+    def _build_program_names_dialog(
+        self, parent: QWidget | None = None
+    ) -> tuple[QDialog, QListWidget, QLineEdit, ProgramConfigManager]:
+        """Build the custom program names editor (used by UI and doc screenshots)."""
         program_config = get_program_config_manager()
         custom_programs = program_config.get_custom_programs()
         default_programs = ProgramConfigManager.DEFAULT_PROGRAMS
 
-        dialog = QDialog(self)
+        dialog = QDialog(parent or self)
         dialog.setWindowTitle("Edit Program Names")
         dialog.setMinimumWidth(400)
 
         layout = QVBoxLayout(dialog)
 
-        # List widget to show custom programs
         list_widget = QListWidget()
         list_widget.addItems(custom_programs)
         layout.addWidget(list_widget)
 
-        # Input for new program name
         input_layout = QHBoxLayout()
         new_program_edit = QLineEdit()
         new_program_edit.setPlaceholderText("New program name...")
@@ -1124,7 +1306,6 @@ class Step1View(BaseStepView):
         input_layout.addWidget(add_btn)
         layout.addLayout(input_layout)
 
-        # Edit and remove buttons
         button_layout = QHBoxLayout()
         edit_btn = QPushButton("Edit Selected")
         remove_btn = QPushButton("Remove Selected")
@@ -1132,7 +1313,6 @@ class Step1View(BaseStepView):
         button_layout.addWidget(remove_btn)
         layout.addLayout(button_layout)
 
-        # Connect edit/remove buttons
         edit_btn.clicked.connect(
             lambda: self._edit_selected_program(
                 list_widget, program_config, default_programs
@@ -1144,7 +1324,6 @@ class Step1View(BaseStepView):
             )
         )
 
-        # Dialog buttons
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -1152,8 +1331,15 @@ class Step1View(BaseStepView):
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
 
+        return dialog, list_widget, new_program_edit, program_config
+
+    def _edit_program_names(self) -> None:
+        """Open dialog to edit custom program names."""
+        dialog, _list_widget, _new_program_edit, program_config = (
+            self._build_program_names_dialog()
+        )
+
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            # Refresh combo box with updated programs
             current_text = self.group_combo.currentText()
             programs = program_config.get_all_programs()
             self.group_combo.clear()
@@ -1162,6 +1348,156 @@ class Step1View(BaseStepView):
                 self.group_combo.setCurrentText(current_text)
             else:
                 self.group_combo.setCurrentText("None")
+
+    def _build_preset_list_editor(
+        self,
+        list_widget: QListWidget,
+        kind: Literal["frequency", "amplitude", "pulse_width"],
+        label: str,
+    ) -> QWidget:
+        panel = QWidget()
+        panel_layout = QVBoxLayout(panel)
+
+        list_widget.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        panel_layout.addWidget(list_widget)
+
+        input_row = QHBoxLayout()
+        value_edit = QLineEdit()
+        value_edit.setPlaceholderText(f"New {label.lower()}...")
+        input_row.addWidget(value_edit)
+        add_btn = QPushButton("Add")
+        add_btn.clicked.connect(
+            lambda: self._add_numeric_preset_value(
+                value_edit.text(), list_widget, kind, label
+            )
+        )
+        input_row.addWidget(add_btn)
+        panel_layout.addLayout(input_row)
+
+        button_row = QHBoxLayout()
+        edit_btn = QPushButton("Edit Selected")
+        remove_btn = QPushButton("Remove Selected")
+        edit_btn.clicked.connect(
+            lambda: self._edit_selected_numeric_preset(list_widget, kind, label)
+        )
+        remove_btn.clicked.connect(
+            lambda: self._remove_selected_preset_value(list_widget, label)
+        )
+        button_row.addWidget(edit_btn)
+        button_row.addWidget(remove_btn)
+        panel_layout.addLayout(button_row)
+        return panel
+
+    def _parse_preset_value(
+        self, text: str, kind: Literal["frequency", "amplitude", "pulse_width"]
+    ) -> float | int | None:
+        text = text.strip()
+        if not text:
+            return None
+        limits = STIMULATION_LIMITS[kind]
+        try:
+            if kind == "amplitude":
+                value = round(float(text), int(limits["decimals"]))
+                if not limits["min"] <= value <= limits["max"]:
+                    return None
+                return value
+            value = int(round(float(text)))
+            if not int(limits["min"]) <= value <= int(limits["max"]):
+                return None
+            return value
+        except (TypeError, ValueError):
+            return None
+
+    def _add_numeric_preset_value(
+        self,
+        text: str,
+        list_widget: QListWidget,
+        kind: Literal["frequency", "amplitude", "pulse_width"],
+        label: str,
+    ) -> None:
+        value = self._parse_preset_value(text, kind)
+        if value is None:
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Enter a valid {label.lower()} within the allowed range.",
+            )
+            return
+        formatted = self._format_stim_preset(value, kind)
+        for index in range(list_widget.count()):
+            if list_widget.item(index).text() == formatted:
+                QMessageBox.warning(self, "Error", "That value is already in the list.")
+                return
+        list_widget.addItem(formatted)
+        list_widget.setCurrentRow(list_widget.count() - 1)
+
+    def _edit_selected_numeric_preset(
+        self,
+        list_widget: QListWidget,
+        kind: Literal["frequency", "amplitude", "pulse_width"],
+        label: str,
+    ) -> None:
+        current_item = list_widget.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Error", "No value selected.")
+            return
+        new_text, ok = QInputDialog.getText(
+            self,
+            f"Edit {label}",
+            f"New {label.lower()}:",
+            QLineEdit.EchoMode.Normal,
+            current_item.text(),
+        )
+        if not ok:
+            return
+        value = self._parse_preset_value(new_text, kind)
+        if value is None:
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Enter a valid {label.lower()} within the allowed range.",
+            )
+            return
+        formatted = self._format_stim_preset(value, kind)
+        for index in range(list_widget.count()):
+            item = list_widget.item(index)
+            if item is not current_item and item.text() == formatted:
+                QMessageBox.warning(self, "Error", "That value is already in the list.")
+                return
+        current_item.setText(formatted)
+
+    def _remove_selected_preset_value(
+        self, list_widget: QListWidget, label: str
+    ) -> None:
+        current_item = list_widget.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Error", "No value selected.")
+            return
+        if list_widget.count() <= 1:
+            QMessageBox.warning(
+                self, "Error", f"At least one {label.lower()} preset is required."
+            )
+            return
+        reply = QMessageBox.question(
+            self,
+            "Confirm",
+            f"Remove preset '{current_item.text()}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            list_widget.takeItem(list_widget.row(current_item))
+
+    def _list_widget_numeric_values(
+        self,
+        list_widget: QListWidget,
+        kind: Literal["frequency", "amplitude", "pulse_width"],
+    ) -> list[float] | list[int]:
+        values: list[float] | list[int] = []
+        for index in range(list_widget.count()):
+            parsed = self._parse_preset_value(list_widget.item(index).text(), kind)
+            if parsed is not None:
+                values.append(parsed)
+        return values
 
     def _add_program_to_list(
         self, name: str, list_widget: QListWidget, program_config: ProgramConfigManager

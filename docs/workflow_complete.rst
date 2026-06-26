@@ -89,9 +89,47 @@ Stimulation Parameters
    * - **Pulse width (µs)**
      - Pulse width.
    * - **Program**
-     - Stimulation program label (e.g. A, B, C, D).
+     - Stimulation program label (e.g. A, B, C, D).  Use the gear icon next to
+       the **Program** dropdown to add custom program names beyond the built-in
+       defaults (None, A, B, C, D).
 
 Both the **Left** and **Right** hemispheres have independent parameter panels.
+
+Preset dropdowns
+""""""""""""""""
+
+Each stimulation row (frequency, amplitude, pulse width) has a **Presets**
+dropdown beside the numeric field.  Pick a value to fill the field; the dropdown
+returns to **Presets** after selection.
+
+Permanent preset customisation
+""""""""""""""""""""""""""""""
+
+Click the gear icon at the top of the **Left** or **Right** stimulation panel
+(same dialog for both sides) to open **Edit Setting Presets**.  Three tabs let
+you manage the frequency, amplitude, and pulse-width lists used by those
+dropdowns:
+
+* **Add** — enter a value and click **Add**.
+* **Edit Selected** / **Remove Selected** — change or delete a list entry.
+* **OK** — save to ``setting_presets.json`` (bundled defaults plus your user
+  file under application data).
+
+.. image:: _static/setting_presets_dialog.png
+   :alt: Edit Setting Presets dialog
+   :class: screenshot-native
+
+Custom program names
+""""""""""""""""""""
+
+Click the gear icon beside the **Program** dropdown to open **Edit Program
+Names**.  Add names beyond the built-in labels (None, A, B, C, D); they appear
+in the program combo on Step 1 and Step 3.  Default programs cannot be renamed
+or removed.
+
+.. image:: _static/program_names_settings_dialog.png
+   :alt: Edit Program Names dialog
+   :class: screenshot-native
 
 Clinical Scales
 ^^^^^^^^^^^^^^^^^^^^^^^^^

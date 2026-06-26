@@ -31,6 +31,18 @@ def test_step1_creates(qtbot, qapp):
 
 
 @pytest.mark.gui
+def test_step1_stim_preset_combo_fills_line_edit(qtbot, qapp):
+    view = Step1View()
+    qtbot.addWidget(view)
+    combo = view.left_stim_freq_presets_combo
+    edit = view.left_stim_freq_edit
+    assert combo.count() > 1
+    combo.setCurrentIndex(1)
+    assert edit.text() == combo.itemText(1)
+    assert combo.currentIndex() == 0
+
+
+@pytest.mark.gui
 def test_step2_creates(qtbot, qapp):
     view = Step2View()
     qtbot.addWidget(view)
