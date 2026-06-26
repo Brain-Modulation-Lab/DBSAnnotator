@@ -5,10 +5,6 @@ The **Complete Workflow** guides you through a DBS programming session in
 **four steps**.  Data is saved automatically after each entry; you never need to
 press a manual "Save" button.
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/session_overview.mp4">Watch: Complete Workflow overview (video)</a></em></p>
-
 ----
 
 Step 0 — File setup

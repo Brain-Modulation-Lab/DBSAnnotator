@@ -59,6 +59,10 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     sh.apply_docs_theme(wizard.app, Theme.LIGHT)
     wizard._update_theme_button_icon()
 
+    sh.save_help_dialog(wizard, out / "help_dialog.png")
+    sh.save_update_available_dialog(wizard, out / "update_available_dialog.png")
+    sh.save_release_notes_dialog(wizard, out / "release_notes_dialog.png")
+
     # --- Full session workflow ---
     qtbot.mouseClick(wizard.step0_view.full_mode_button, Qt.MouseButton.LeftButton)
     sh.wait_for_render()
@@ -157,7 +161,8 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     long_view = wizard.longitudinal_file_view
     save_wizard(wizard, out / "longitudinal_view.png")
 
-    for path in sh.make_longitudinal_tsv_files(docs_tsv.parent):
+    long_paths = sh.make_longitudinal_tsv_files(docs_tsv.parent)
+    for path in long_paths:
         long_view.loaded_files.append(str(path))
     long_view._refresh_file_list()
     sh.wait_for_render()

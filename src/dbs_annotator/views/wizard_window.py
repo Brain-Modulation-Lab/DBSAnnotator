@@ -441,8 +441,8 @@ class WizardWindow(QWidget):
         <b>Contact:</b> {email}</p>
         """
 
-    def _show_info_dialog(self) -> None:
-        """Show application info dialog with help and contact information."""
+    def _build_info_dialog(self) -> QDialog:
+        """Build the Help / About dialog (caller runs ``exec()`` or captures for docs)."""
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Help - {APP_NAME}")
         dialog.setMinimumSize(640, 520)
@@ -450,7 +450,6 @@ class WizardWindow(QWidget):
 
         layout = QVBoxLayout(dialog)
 
-        # Title and version
         title_label = QLabel(f"<h2>{APP_NAME} v{APP_VERSION}</h2>")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
@@ -459,7 +458,6 @@ class WizardWindow(QWidget):
         desc_text.setOpenExternalLinks(True)
         desc_text.setHtml(self._help_dialog_html())
         desc_text.anchorClicked.connect(QDesktopServices.openUrl)
-
         layout.addWidget(desc_text)
 
         auto_check_cb = QCheckBox(
@@ -471,25 +469,24 @@ class WizardWindow(QWidget):
         )
         layout.addWidget(auto_check_cb)
 
-        # Footer buttons
         button_layout = QHBoxLayout()
-
         check_updates_btn = QPushButton("Check for updates")
         check_updates_btn.setMinimumWidth(160)
         check_updates_btn.clicked.connect(
             lambda: self._manual_update_check(check_updates_btn)
         )
         button_layout.addWidget(check_updates_btn)
-
         button_layout.addStretch()
-
         close_btn = QPushButton("Close")
         close_btn.setMinimumWidth(100)
         close_btn.clicked.connect(dialog.accept)
         button_layout.addWidget(close_btn)
         layout.addLayout(button_layout)
+        return dialog
 
-        dialog.exec()
+    def _show_info_dialog(self) -> None:
+        """Show application info dialog with help and contact information."""
+        self._build_info_dialog().exec()
 
     def _manual_update_check(self, button: QPushButton) -> None:
         """Force an update check and show the result, used by the Help dialog."""
@@ -561,8 +558,8 @@ class WizardWindow(QWidget):
                 "Could not start the update check. Please try again in a moment.",
             )
 
-    def _show_release_notes_dialog(self, release: ReleaseInfo) -> None:
-        """Show full release notes for *release* in a separate dialog."""
+    def _build_release_notes_dialog(self, release: ReleaseInfo) -> QDialog:
+        """Build release-notes dialog (caller runs ``exec()`` or captures for docs)."""
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Release notes — {release.version}")
         dialog.setMinimumSize(520, 400)
@@ -592,10 +589,14 @@ class WizardWindow(QWidget):
         row.addStretch()
         row.addWidget(close_btn)
         layout.addLayout(row)
-        dialog.exec()
+        return dialog
 
-    def _on_update_available(self, release: ReleaseInfo) -> None:
-        """Show a non-blocking dialog when a newer release is published."""
+    def _show_release_notes_dialog(self, release: ReleaseInfo) -> None:
+        """Show full release notes for *release* in a separate dialog."""
+        self._build_release_notes_dialog(release).exec()
+
+    def _build_update_available_message_box(self, release: ReleaseInfo) -> QMessageBox:
+        """Build update-notification message box (caller runs ``exec()``)."""
         box = QMessageBox(self)
         box.setTextFormat(Qt.TextFormat.RichText)
         box.setIcon(QMessageBox.Icon.Information)
@@ -618,13 +619,23 @@ class WizardWindow(QWidget):
                 f'<a href="{issues_href}">GitHub</a>.</p>'
             )
 
-        update_btn = None
-        notes_btn = box.addButton(
-            "View release notes", QMessageBox.ButtonRole.ActionRole
-        )
+        box.addButton("View release notes", QMessageBox.ButtonRole.ActionRole)
         if automatic_update_supported():
-            update_btn = box.addButton("Update now", QMessageBox.ButtonRole.AcceptRole)
+            box.addButton("Update now", QMessageBox.ButtonRole.AcceptRole)
         box.addButton("Remind me later", QMessageBox.ButtonRole.RejectRole)
+        return box
+
+    def _on_update_available(self, release: ReleaseInfo) -> None:
+        """Show a non-blocking dialog when a newer release is published."""
+        box = self._build_update_available_message_box(release)
+        update_btn = None
+        notes_btn = None
+        for btn in box.buttons():
+            text = btn.text()
+            if text == "Update now":
+                update_btn = btn
+            elif text == "View release notes":
+                notes_btn = btn
         box.exec()
 
         clicked = box.clickedButton()

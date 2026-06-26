@@ -97,14 +97,33 @@ Sections (in order):
 
 1. **Title** — "Clinical DBS Session Report", generated date, patient ID,
    session number.
+
+   .. image:: _static/session_report_intro.png
+      :alt: Session report title page
+      :class: screenshot-native
+
 2. **Initial Clinical Notes** *(optional)* — baseline clinical scale scores
    and any initial notes recorded in Step 1.
+
+   .. image:: _static/session_report_clinical_scores.png
+      :alt: Initial clinical notes and baseline scale scores
+      :class: screenshot-native
+
 3. **Session Data** *(optional)* — one or both of:
 
    * **Session Data Graph** — matplotlib timeline chart of session-scale
      values vs ``block_ID`` (best entry per scale highlighted).
+
+     .. image:: _static/session_report_session_scales_figure.png
+        :alt: Session data timeline chart
+        :class: screenshot-native
+
    * **Session Data Table** — lateral table (L/R rows per configuration) with
      stimulation parameters, scale values, and notes.
+
+     .. image:: _static/session_report_session_scales_table.png
+        :alt: Session data table (L/R stimulation and scale values)
+        :class: screenshot-native
 
 4. **Electrode Configurations** *(optional)* — a borderless 4-column table:
 
@@ -114,15 +133,32 @@ Sections (in order):
    | Diagram + text    | Diagram + text    | Diagram + text    | Diagram + text    |
    +-------------------+-------------------+-------------------+-------------------+
 
+   .. image:: _static/session_electrodes.png
+      :alt: Initial and final electrode configuration diagrams
+      :class: screenshot-native
+
 5. **Programming Summary** *(optional)* — session duration, number of
    configurations, and amplitude / frequency / pulse-width ranges per side.
 
-Example export
-^^^^^^^^^^^^^^
+   .. image:: _static/session_report_parameters_summary.png
+      :alt: Programming summary (duration, configuration count, parameter ranges)
+      :class: screenshot-native
 
-.. image:: _static/session_report_example.png
-   :alt: Example single-session Word report (graph, table, electrode diagrams)
-   :class: screenshot-native
+Source data (example session)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Word report screenshots above were exported from the programming-session
+TSV below (BIDS filename
+``sub-01_ses-20260626_task-programming_run-01_events.tsv``).  Each scale is
+stored on its own row; rows sharing the same ``block_ID`` belong to one baseline
+(Step 1) or stimulation configuration (Step 3 **Insert**).
+
+`Download the example TSV`_
+
+.. _Download the example TSV:
+   _static/session_report_example/sub-01_ses-20260626_task-programming_run-01_events.tsv
+
+.. include:: _generated/session_report_example_tsv.inc.rst
 
 Longitudinal Report
 ^^^^^^^^^^^^^^^^^^^^

@@ -43,6 +43,11 @@ repos:
         entry: uv run python scripts/generate_tsv_schema_docs.py --check
         language: system
         pass_filenames: false
+      - id: session-report-example-docs
+        name: session report example docs
+        entry: uv run python scripts/generate_session_report_example_docs.py --check
+        language: system
+        pass_filenames: false
       - id: ty-check
         name: ty check
         entry: uv run ty check .

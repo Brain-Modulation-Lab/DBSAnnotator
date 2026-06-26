@@ -7,10 +7,6 @@ to track a patient's progression across visits.  Files must follow the BIDS
 ``task-programming`` naming convention (e.g.
 ``sub-01_ses-20250115_task-programming_run-01_events.tsv``).
 
-.. raw:: html
-
-   <p><em>▶ <a href="_static/videos/longitudinal_overview.mp4">Watch: Longitudinal report workflow overview (video)</a></em></p>
-
 ----
 
 Opening the Longitudinal View

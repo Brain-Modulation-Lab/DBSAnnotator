@@ -352,6 +352,48 @@ def save_program_names_settings_dialog(wizard, path: Path) -> None:
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
+def save_help_dialog(wizard: WizardWindow, path: Path) -> None:
+    """Capture the Help / About dialog (footer with update check visible)."""
+    wizard.show()
+    wizard.raise_()
+    save_dialog(wizard._build_info_dialog(), path, min_width=640)
+
+
+def _demo_release_info():
+    from dbs_annotator.config import APP_REPOSITORY_URL
+    from dbs_annotator.utils.updater import ReleaseInfo
+
+    return ReleaseInfo(
+        version="0.5.0",
+        tag_name="v0.5.0",
+        html_url=f"{APP_REPOSITORY_URL}/releases/tag/v0.5.0",
+        published_at="2025-06-01T12:00:00Z",
+        body=(
+            "Documentation screenshot example.\n"
+            "- Improved report export layout\n"
+            "- Updated Help dialog and update notifications"
+        ),
+        is_prerelease=False,
+    )
+
+
+def save_update_available_dialog(wizard: WizardWindow, path: Path) -> None:
+    """Capture the update-available message box."""
+    wizard.show()
+    wizard.raise_()
+    box = wizard._build_update_available_message_box(_demo_release_info())
+    save_dialog(box, path, min_width=460)
+
+
+def save_release_notes_dialog(wizard: WizardWindow, path: Path) -> None:
+    """Capture the release-notes dialog opened from an update notification."""
+    wizard.show()
+    wizard.raise_()
+    dlg = wizard._build_release_notes_dialog(_demo_release_info())
+    dlg.resize(560, 420)
+    save_pixmap(grab_widget_pixmap(dlg), path)
+
+
 def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     """Capture a dialog at its natural size (avoids extra empty vertical space)."""
     layout = dlg.layout()
