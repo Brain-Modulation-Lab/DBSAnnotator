@@ -21,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   light content panel, default blue links/headings); explicit table/body text
   contrast on the light panel; browser tab favicon uses the logo on a cream
   background (``scripts/generate_docs_favicon.py``); screenshots and figures
-  capped at 60% width (centered) via ``docs/_static/custom.css``.
-- Docs screenshot pipeline: wizard captures use 60% of the app's normal step window
+  capped at 65% width (centered) via ``docs/_static/custom.css``.
+- Docs screenshot pipeline: wizard captures use 65% of the app's normal step window
   size (``WIZARD_SCREENSHOT_SIZE_RATIO`` in ``tests/docs/screenshot_helpers.py``)
   for denser, balanced full-window PNGs on RTD.
 

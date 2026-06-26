@@ -69,8 +69,8 @@ STEP3_ENTRY_NOTES = (
 # Session-scale slider values in the 0–10 range (matches PD preset in Step 2).
 STEP3_SESSION_SCALE_VALUES = [6, 8, 4, 7, 5, 9, 3]
 
-# Wizard PNGs: 60% of the app's normal step geometry (matches RTD screenshot-full cap).
-WIZARD_SCREENSHOT_SIZE_RATIO = 0.6
+# Wizard PNGs: 65% of the app's normal step geometry (matches RTD screenshot cap).
+WIZARD_SCREENSHOT_SIZE_RATIO = 0.65
 WIZARD_SCREENSHOT_MIN_WIDTH = 520
 WIZARD_SCREENSHOT_MIN_HEIGHT = 320
 
@@ -402,7 +402,7 @@ def _apply_wizard_screenshot_geometry(
 
 
 def save_wizard(wizard: WizardWindow, path: Path) -> None:
-    """Capture the wizard at 60% of the app's normal step size (step 0 compact)."""
+    """Capture the wizard at 65% of the app's normal step size (step 0 compact)."""
     _apply_wizard_screenshot_geometry(wizard)
     save_pixmap(grab_window_pixmap(wizard), path)
 

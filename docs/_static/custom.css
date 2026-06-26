@@ -1,14 +1,14 @@
 /*
  * DBS Annotator Read the Docs overrides (sphinx-rtd-theme).
  * Keep standard RTD colours (dark sidebar, light content, blue links/headings);
- * widen the prose column; cap screenshots at 60%.
+ * widen the prose column; cap screenshots at 65%.
  */
 :root {
   /* sphinx-rtd-theme .wy-nav-side */
   --dbs-docs-sidebar: #343131;
   /* sphinx-rtd-theme .wy-nav-content-wrap / content area */
   --dbs-docs-content-bg: #fcfcfc;
-  --dbs-docs-screenshot-max: 60%;
+  --dbs-docs-screenshot-max: 65%;
 }
 
 /* Outer area — same dark grey as the left navigation column (standard RTD). */
@@ -85,7 +85,7 @@ section.wy-nav-content-wrap,
   color: #b3b3b3;
 }
 
-/* ---- Screenshots & figures (max 60% width, centered) ---- */
+/* ---- Screenshots & figures (max 65% width, centered) ---- */
 .rst-content img.screenshot-full,
 .rst-content img.screenshot-native,
 .rst-content img.screenshot-medium,
