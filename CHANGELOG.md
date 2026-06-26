@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   electrode diagrams, programming summary), downloadable example
   ``task-programming`` TSV under ``docs/_static/session_report_example/``, and a
   generated data table (``scripts/generate_session_report_example_docs.py``).
+- Read the Docs: longitudinal report walkthrough on ``output_format.rst`` and
+  ``longitudinal_report.rst`` — per-section export screenshots (title, sessions
+  overview chart/table, combined session-scale figure, programming summary); session
+  data table and per-session electrode pages cross-reference the single-session
+  examples where layouts match.
 - Docs screenshot pipeline: capture Help, update-available, and release-notes
   dialogs (``WizardWindow._build_*`` helpers for non-blocking capture).
 

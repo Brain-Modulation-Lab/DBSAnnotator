@@ -90,6 +90,14 @@ Reports are generated in Microsoft Word (``.docx``) format and optionally
 converted to PDF.  The document structure depends on the sections selected
 at export time.
 
+.. note::
+
+   **Illustrative examples only.**  The report screenshots and sample data
+   files shown below are synthetic documentation materials.  They are not
+   derived from, and do not represent, any real patient, clinical encounter,
+   or identifiable health information.  They are provided solely to
+   demonstrate report layout and export format.
+
 Single-Session Report
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -121,9 +129,11 @@ Sections (in order):
    * **Session Data Table** — lateral table (L/R rows per configuration) with
      stimulation parameters, scale values, and notes.
 
-     .. image:: _static/session_report_session_scales_table.png
-        :alt: Session data table (L/R stimulation and scale values)
-        :class: screenshot-native
+.. _session-report-session-table:
+
+   .. image:: _static/session_report_session_scales_table.png
+      :alt: Session data table (L/R stimulation and scale values)
+      :class: screenshot-native
 
 4. **Electrode Configurations** *(optional)* — a borderless 4-column table:
 
@@ -132,6 +142,8 @@ Sections (in order):
    +===================+===================+===================+===================+
    | Diagram + text    | Diagram + text    | Diagram + text    | Diagram + text    |
    +-------------------+-------------------+-------------------+-------------------+
+
+.. _session-report-electrode-config:
 
    .. image:: _static/session_electrodes.png
       :alt: Initial and final electrode configuration diagrams
@@ -167,22 +179,55 @@ Sections (in order, selected at export time):
 
 1. **Title** — "Longitudinal DBS Report", generated date, patient ID,
    list of included files.
+
+   .. image:: _static/longitudinal_report_initial.png
+      :alt: Longitudinal report title page
+      :class: screenshot-native
+
 2. **Sessions Overview** *(optional)* — clinical-scales timeline chart across
    sessions plus a one-row-per-session summary table (date, entry count,
    baseline scale names and values).
+
+   .. image:: _static/longitudinal_report_clinical_figure.png
+      :alt: Clinical scales timeline across sessions
+      :class: screenshot-native
+
+   .. image:: _static/longitudinal_report_clinical_table.png
+      :alt: Sessions overview summary table
+      :class: screenshot-native
+
 3. **Session Data** *(optional)* — session-scale timeline chart and/or
    combined table across all sessions.  The table's first column is the entry
    **date**; the best entry per session is highlighted.
-4. **Electrode Configuration** *(optional)* — per-file Initial/Final diagrams
-   separated by page breaks.
+
+   * **Session Data Graph** — one subplot per session scale, with data from
+     **all** loaded ``task-programming`` files combined so you can compare
+     configurations across acquisitions.
+
+     .. image:: _static/longitudinal_report_session_scales_figure.png
+        :alt: Session-scale timeline across all loaded sessions
+        :class: screenshot-native
+
+   * **Session Data Table** — same lateral layout as the
+     :ref:`single-session session data table <session-report-session-table>`,
+     but rows from every loaded file are merged; the **date** column identifies
+     each acquisition and the best configuration **per session** is highlighted
+     in green.
+
+4. **Electrode Configuration** *(optional)* — for **each** loaded session file,
+   a page with the same Initial / Final, Left / Right layout as the
+   :ref:`single-session electrode section <session-report-electrode-config>`
+   (see example below); pages are separated by page breaks.
+
+   .. image:: _static/session_electrodes.png
+      :alt: Electrode layout (one page per session file in longitudinal reports)
+      :class: screenshot-native
+
 5. **Programming Summary** *(optional)* — per-session parameter ranges.
 
-Example export
-^^^^^^^^^^^^^^
-
-.. image:: _static/longitudinal_report_example.png
-   :alt: Example longitudinal Word report (overview chart and session data)
-   :class: screenshot-native
+   .. image:: _static/longitudinal_report_parameters_summary.png
+      :alt: Programming summary per loaded session
+      :class: screenshot-native
 
 ----
 
