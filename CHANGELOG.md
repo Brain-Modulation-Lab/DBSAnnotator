@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``setting_presets.json``).
 - Documentation screenshots for **Edit Setting Presets** and **Edit Program Names**
   dialogs on Step 1.
+- Read the Docs: **Help**, **Update available**, and **Release notes** dialog
+  screenshots in ``quickstart.rst`` (Interface Overview).
+- Read the Docs: single-session report walkthrough on ``output_format.rst`` — per-section
+  Word export screenshots (title, clinical scores, session scales chart/table,
+  electrode diagrams, programming summary), downloadable example
+  ``task-programming`` TSV under ``docs/_static/session_report_example/``, and a
+  generated data table (``scripts/generate_session_report_example_docs.py``).
+- Docs screenshot pipeline: capture Help, update-available, and release-notes
+  dialogs (``WizardWindow._build_*`` helpers for non-blocking capture).
 
 ### Changed
 
@@ -25,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs screenshot pipeline: wizard captures use 65% of the app's normal step window
   size (``WIZARD_SCREENSHOT_SIZE_RATIO`` in ``tests/docs/screenshot_helpers.py``)
   for denser, balanced full-window PNGs on RTD.
+- ``output_format.rst``: session report sections illustrated step-by-step instead of
+  a single composite screenshot.
+- ``workflow_complete.rst`` and ``longitudinal_report.rst``: remove overview video
+  links (media files were not shipped in the repository).
 
 ### Fixed
 
