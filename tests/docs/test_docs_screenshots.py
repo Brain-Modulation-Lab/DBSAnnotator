@@ -168,8 +168,6 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     sh.wait_for_render()
     save_wizard(wizard, out / "longitudinal_drag_drop.png")
 
-    sh.save_report_example_pngs(wizard, docs_tsv.parent, out, long_paths)
-
     # --- Free annotations workflow (close programming session file first) ---
     wizard.controller.session_data.close_file()
     wizard.current_step = 0

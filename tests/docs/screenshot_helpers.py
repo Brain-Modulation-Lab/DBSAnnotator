@@ -69,9 +69,6 @@ STEP3_ENTRY_NOTES = (
 # Session-scale slider values in the 0–10 range (matches PD preset in Step 2).
 STEP3_SESSION_SCALE_VALUES = [6, 8, 4, 7, 5, 9, 3]
 
-ELECTRODE_MODEL_NAME = "Medtronic SenSight B33005"
-_REPORT_PDF_DPI = 144
-
 # Wizard PNGs: 65% of the app's normal step geometry (matches RTD screenshot cap).
 WIZARD_SCREENSHOT_SIZE_RATIO = 0.65
 WIZARD_SCREENSHOT_MIN_WIDTH = 520
@@ -397,144 +394,6 @@ def save_release_notes_dialog(wizard: WizardWindow, path: Path) -> None:
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
-def _pdf_to_pixmaps(
-    pdf_path: Path, *, dpi: int = _REPORT_PDF_DPI, max_pages: int | None = None
-) -> list[QPixmap]:
-    import fitz
-
-    doc = fitz.open(pdf_path)
-    pages: list[QPixmap] = []
-    try:
-        page_count = doc.page_count
-        limit = page_count if max_pages is None else min(page_count, max_pages)
-        scale = dpi / 72
-        matrix = fitz.Matrix(scale, scale)
-        for index in range(limit):
-            pix = doc[index].get_pixmap(matrix=matrix, alpha=False)
-            qpix = QPixmap()
-            qpix.loadFromData(pix.tobytes("png"))
-            pages.append(qpix)
-    finally:
-        doc.close()
-    return pages
-
-
-def _stitch_pixmaps_vertically(
-    pixmaps: list[QPixmap], *, max_width: int = 1100
-) -> QPixmap:
-    if not pixmaps:
-        raise ValueError("no pages to stitch")
-
-    scaled: list[QPixmap] = []
-    for pixmap in pixmaps:
-        if pixmap.width() > max_width:
-            scaled.append(
-                pixmap.scaledToWidth(
-                    max_width, Qt.TransformationMode.SmoothTransformation
-                )
-            )
-        else:
-            scaled.append(pixmap)
-
-    width = max(pm.width() for pm in scaled)
-    height = sum(pm.height() for pm in scaled)
-    out = QPixmap(width, height)
-    out.fill(Qt.GlobalColor.white)
-    painter = QPainter(out)
-    y = 0
-    for pixmap in scaled:
-        x = (width - pixmap.width()) // 2
-        painter.drawPixmap(x, y, pixmap)
-        y += pixmap.height()
-    painter.end()
-    return out
-
-
-def _docx_to_stitched_png(
-    exporter,
-    docx_path: Path,
-    pdf_path: Path,
-    out_path: Path,
-    *,
-    max_pages: int = 2,
-) -> None:
-    exporter._convert_docx_to_pdf(str(docx_path), str(pdf_path))
-    pages = _pdf_to_pixmaps(pdf_path, max_pages=max_pages)
-    save_pixmap(_stitch_pixmaps_vertically(pages), out_path)
-
-
-def save_report_example_pngs(
-    wizard: WizardWindow,
-    tmp_path: Path,
-    out_dir: Path,
-    longitudinal_paths: list[Path],
-) -> None:
-    """Export Word reports and render example PNGs for Sphinx docs."""
-    from dbs_annotator.utils.longitudinal_exporter import LongitudinalExporter
-
-    session_exporter = wizard.controller.session_exporter
-    session_docx = tmp_path / "session_report.docx"
-    session_pdf = tmp_path / "session_report.pdf"
-    if not session_exporter._export_to_word_path(str(session_docx)):
-        raise RuntimeError(
-            "session report export failed — is the session TSV populated?"
-        )
-    _docx_to_stitched_png(
-        session_exporter,
-        session_docx,
-        session_pdf,
-        out_dir / "session_report_example.png",
-        max_pages=3,
-    )
-
-    long_exporter = LongitudinalExporter()
-    paths_str = [str(p) for p in longitudinal_paths]
-
-    long_docx = tmp_path / "longitudinal_full.docx"
-    long_pdf = tmp_path / "longitudinal_full.pdf"
-    if not long_exporter._build_report(paths_str, str(long_docx)):
-        raise RuntimeError("longitudinal report export failed")
-    _docx_to_stitched_png(
-        long_exporter,
-        long_docx,
-        long_pdf,
-        out_dir / "longitudinal_report_example.png",
-        max_pages=2,
-    )
-
-    session_data_docx = tmp_path / "longitudinal_session_data.docx"
-    session_data_pdf = tmp_path / "longitudinal_session_data.pdf"
-    if not long_exporter._build_report(
-        paths_str,
-        str(session_data_docx),
-        sections=["session_data_graph", "session_data_table"],
-    ):
-        raise RuntimeError("longitudinal session-data export failed")
-    _docx_to_stitched_png(
-        long_exporter,
-        session_data_docx,
-        session_data_pdf,
-        out_dir / "longitudinal_session_data.png",
-        max_pages=2,
-    )
-
-    electrode_docx = tmp_path / "longitudinal_electrode.docx"
-    electrode_pdf = tmp_path / "longitudinal_electrode.pdf"
-    if not long_exporter._build_report(
-        paths_str,
-        str(electrode_docx),
-        sections=["electrode_config"],
-    ):
-        raise RuntimeError("longitudinal electrode-config export failed")
-    _docx_to_stitched_png(
-        long_exporter,
-        electrode_docx,
-        electrode_pdf,
-        out_dir / "electrode_config_longitudinal.png",
-        max_pages=3,
-    )
-
-
 def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     """Capture a dialog at its natural size (avoids extra empty vertical space)."""
     layout = dlg.layout()
@@ -603,71 +462,39 @@ def make_bids_tsv(tmp_path: Path) -> Path:
 
 
 def make_longitudinal_tsv_files(tmp_path: Path) -> list[Path]:
-    """Two sub-01 session files with PD scales and stim rows for longitudinal docs."""
-    stim_fields = {
-        "electrode_model": ELECTRODE_MODEL_NAME,
-        "program_ID": PROGRAM_NAME,
+    """Two sub-01 session files with PD session-scale rows for longitudinal UI."""
+    rows_template = [
+        {
+            "date": "2025-01-10",
+            "time": "09:00:00",
+            "block_ID": "1",
+            "is_initial": "1",
+            "scale_name": name,
+            "scale_value": str(val),
+            "notes": "baseline",
+        }
+        for name, val in zip(PD_CLINICAL_SCALES, PD_CLINICAL_VALUES, strict=True)
+    ]
+    session_row = {
+        "date": "2025-01-10",
+        "time": "10:00:00",
+        "block_ID": "2",
+        "is_initial": "0",
+        "scale_name": "Tremor",
+        "scale_value": "15",
         "left_stim_freq": STIM_FREQ_HZ,
-        "left_anode": "case",
-        "left_cathode": "E1a_E1b",
-        "left_amplitude": STIM_AMPLITUDE_MA,
         "left_pulse_width": STIM_PULSE_WIDTH_US,
-        "right_stim_freq": STIM_FREQ_HZ,
-        "right_anode": "case",
-        "right_cathode": "E2",
-        "right_amplitude": STIM_AMPLITUDE_MA,
-        "right_pulse_width": STIM_PULSE_WIDTH_US,
+        "left_amplitude": STIM_AMPLITUDE_MA,
+        "notes": "config 1",
     }
     paths: list[Path] = []
-    for run, (ses_day, config_vals) in enumerate(
-        (("10", ((6, 7), (8, 5))), ("24", ((5, 6), (7, 4)))),
-        start=1,
-    ):
-        date = f"2025-01-{ses_day}"
-        initial_rows = []
-        for idx, (name, val) in enumerate(
-            zip(PD_CLINICAL_SCALES, PD_CLINICAL_VALUES, strict=True)
-        ):
-            row = {
-                "date": date,
-                "time": "09:00:00",
-                "timezone": "UTC+1",
-                "block_ID": "1",
-                "session_ID": "1",
-                "is_initial": "1",
-                "scale_name": name,
-                "scale_value": str(val),
-                "notes": "baseline",
-            }
-            if idx == 0:
-                row.update(stim_fields)
-            initial_rows.append(row)
-
-        config_rows = []
-        for block_id, (tremor, mood) in enumerate(config_vals, start=2):
-            for scale_name, scale_value in (("Tremor", tremor), ("Mood", mood)):
-                config_rows.append(
-                    {
-                        "date": date,
-                        "time": f"10:{block_id:02d}:00",
-                        "timezone": "UTC+1",
-                        "block_ID": str(block_id),
-                        "session_ID": str(block_id),
-                        "is_initial": "0",
-                        "scale_name": scale_name,
-                        "scale_value": str(scale_value),
-                        "notes": f"config {block_id - 1}",
-                        **stim_fields,
-                        "left_amplitude": str(
-                            float(STIM_AMPLITUDE_MA) + block_id * 0.5
-                        ),
-                    }
-                )
-
-        p = tmp_path / (
-            f"sub-{PATIENT_ID}_ses-202501{ses_day}_task-programming_run-{run:02d}_events.tsv"
+    for run in ("01", "02"):
+        rows = [*rows_template, {**session_row, "block_ID": "2"}]
+        p = (
+            tmp_path
+            / f"sub-{PATIENT_ID}_ses-202501{run}_task-programming_run-{run}_events.tsv"
         )
-        pd.DataFrame([*initial_rows, *config_rows]).to_csv(p, sep="\t", index=False)
+        pd.DataFrame(rows).to_csv(p, sep="\t", index=False)
         paths.append(p)
     return paths
 
