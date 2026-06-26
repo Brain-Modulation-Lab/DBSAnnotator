@@ -8,7 +8,7 @@ the session tracking scales that will be used during the programming session.
 import logging
 from collections.abc import Callable
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QFrame,
@@ -26,7 +26,12 @@ from PySide6.QtWidgets import (
 
 from ..config import PLACEHOLDERS, PRESET_BUTTONS
 from ..ui.session_scales_settings_dialog import SessionScalesSettingsDialog
-from ..ui.widgets import line_edit_min_width_for_text, push_button_min_width_for_label
+from ..ui.widgets import (
+    PRESET_BUTTON_ACTIVE_BORDER_PX,
+    line_edit_min_width_for_text,
+    panel_with_external_horizontal_scroll,
+    push_button_min_width_for_label,
+)
 from ..utils.scale_preset_manager import get_scale_preset_manager
 from .base_view import BaseStepView
 
@@ -71,7 +76,7 @@ class Step2View(BaseStepView):
         """Set up the UI layout."""
         # Session scales group
         session_group = self._create_session_scales_group()
-        self.main_layout.addWidget(session_group)
+        self.main_layout.addWidget(session_group, 1)
         # self.main_layout.addStretch(1)
 
         self.next_button = QPushButton("Next")
@@ -93,30 +98,61 @@ class Step2View(BaseStepView):
         )
 
         layout = QVBoxLayout(gb_session)
+        layout.setSpacing(10)
 
-        # Preset buttons (dynamic from JSON)
-        preset_row = QHBoxLayout()
-        preset_row.addStretch(1)
+        # Preset buttons — scroll horizontally when they exceed available width
+        self.preset_scroll_content = QWidget()
+        self.preset_scroll_content.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+        )
+        self.preset_row_layout = QHBoxLayout(self.preset_scroll_content)
+        self.preset_row_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.preset_scroll_area = QScrollArea()
+        self.preset_scroll_area.setWidget(self.preset_scroll_content)
+        self.preset_scroll_area.setWidgetResizable(False)
+        self.preset_scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.preset_scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.preset_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.preset_scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.preset_scroll_area.setObjectName("session_preset_scroll_area")
+
+        self.preset_scroll_panel = panel_with_external_horizontal_scroll(
+            self.preset_scroll_area
+        )
+        self._sync_preset_horizontal_scroll = (
+            self.preset_scroll_panel.sync_horizontal_scroll
+        )
 
         settings_btn = QPushButton()
         settings_btn.setIcon(self._create_settings_icon())
-        settings_btn.setObjectName("settings_session_scales")
+        settings_btn.setObjectName("settingsGearButton")
         settings_btn.setToolTip("Settings session scales")
         settings_btn.clicked.connect(self._open_session_scales_settings)
-        preset_row.addWidget(settings_btn)
 
-        layout.addLayout(preset_row)
+        preset_bar = QHBoxLayout()
+        preset_bar.setContentsMargins(0, 0, 0, 0)
+        preset_bar.setAlignment(Qt.AlignmentFlag.AlignTop)
+        preset_bar.addWidget(self.preset_scroll_panel, 1, Qt.AlignmentFlag.AlignTop)
+        preset_bar.addWidget(settings_btn, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(preset_bar)
 
-        self.preset_row_layout = preset_row
         self._refresh_preset_buttons()
 
         # Container for dynamic scale rows - expands to show all rows
         scroll_content = QWidget()
         scroll_content.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.session_scales_container = QVBoxLayout(scroll_content)
         self.session_scales_container.setContentsMargins(0, 0, 0, 0)
+        self.session_scales_container.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Scrollable area - will only scroll when user resizes window smaller
         scroll_area = QScrollArea()
@@ -133,12 +169,13 @@ class Step2View(BaseStepView):
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         scroll_area.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         scroll_area.setWidget(scroll_content)
 
-        layout.addWidget(scroll_area)
+        layout.addWidget(scroll_area, 1)
 
         return gb_session
 
@@ -173,6 +210,53 @@ class Step2View(BaseStepView):
         if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
             self._connect_preset_buttons()
 
+    def _preset_buttons_content_size(self) -> QSize:
+        """Measure preset row size from buttons."""
+        layout = self.preset_row_layout
+        if layout is None or not self.preset_buttons:
+            return QSize(0, 0)
+
+        margins = layout.contentsMargins()
+        spacing = layout.spacing()
+        width = margins.left() + margins.right()
+        height = margins.top() + margins.bottom()
+        for index, btn in enumerate(self.preset_buttons):
+            btn.ensurePolished()
+            btn_width = max(
+                btn.sizeHint().width(),
+                btn.minimumSizeHint().width(),
+                btn.minimumWidth(),
+            )
+            width += btn_width
+            btn_height = max(btn.sizeHint().height(), btn.minimumHeight())
+            btn_height += PRESET_BUTTON_ACTIVE_BORDER_PX
+            height = max(height, btn_height + margins.top() + margins.bottom())
+            if index > 0:
+                width += spacing
+        return QSize(width, height)
+
+    def _update_preset_buttons_geometry(self) -> None:
+        """Size the preset strip so horizontal scrolling appears when needed."""
+        if not hasattr(self, "preset_scroll_content"):
+            return
+        if self.preset_row_layout is not None:
+            self.preset_row_layout.activate()
+
+        for btn in self.preset_buttons:
+            push_button_min_width_for_label(btn, btn.text())
+
+        measured = self._preset_buttons_content_size()
+        self.preset_scroll_content.adjustSize()
+        hint = self.preset_scroll_content.sizeHint()
+        width = max(measured.width(), hint.width(), 1)
+        content_height = max(measured.height(), hint.height(), 1)
+        self.preset_scroll_content.setMinimumSize(width, content_height)
+        self.preset_scroll_content.resize(width, content_height)
+        self.preset_scroll_area.setFixedHeight(content_height)
+
+        if hasattr(self, "_sync_preset_horizontal_scroll"):
+            self._sync_preset_horizontal_scroll()
+
     def _refresh_preset_buttons(self):
         """Rebuild the preset button row from the current presets dictionary."""
         for btn in self.preset_buttons:
@@ -180,47 +264,16 @@ class Step2View(BaseStepView):
             btn.deleteLater()
         self.preset_buttons.clear()
 
-        preset_row = getattr(self, "preset_row_layout", None)
+        preset_row = self.preset_row_layout
         if not preset_row:
             return
 
-        widgets_to_remove = []
-        for i in range(preset_row.count()):
-            item = preset_row.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if widget and widget.objectName() != "settings_session_scales":
-                    widgets_to_remove.append(widget)
-
-        for widget in widgets_to_remove:
-            preset_row.removeWidget(widget)
-            widget.setParent(None)
-            widget.deleteLater()
-
-        settings_btn = None
-        settings_index = -1
-        for i in range(preset_row.count()):
-            item = preset_row.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if widget and widget.objectName() == "settings_session_scales":
-                    settings_btn = widget
-                    settings_index = i
-                    break
-
-        if settings_btn is None:
-            return
-
-        stretch_index = settings_index - 1
-        if stretch_index < 0 or not (
-            preset_row.itemAt(stretch_index)
-            and preset_row.itemAt(stretch_index).spacerItem()
-        ):
-            preset_row.insertStretch(settings_index, 1)
-            settings_index += 1
-            stretch_index = settings_index - 1
-
-        insert_index = stretch_index
+        while preset_row.count():
+            item = preset_row.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
 
         ordered_names: list[str] = []
         for name in PRESET_BUTTONS:
@@ -233,12 +286,11 @@ class Step2View(BaseStepView):
         for preset_name in ordered_names:
             btn = QPushButton(preset_name)
             btn.setObjectName(f"preset2_{preset_name}")
-            push_button_min_width_for_label(btn, preset_name)
             self.preset_buttons.append(btn)
-            preset_row.insertWidget(insert_index, btn)
-            insert_index += 1
-            settings_index += 1
-            stretch_index += 1
+            preset_row.addWidget(btn)
+            push_button_min_width_for_label(btn, preset_name)
+
+        QTimer.singleShot(0, self._update_preset_buttons_geometry)
 
         if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
             self._connect_preset_buttons()
@@ -285,6 +337,8 @@ class Step2View(BaseStepView):
             button.setProperty("active", "true")
             button.style().unpolish(button)
             button.style().polish(button)
+
+        QTimer.singleShot(0, self._update_preset_buttons_geometry)
 
     def _apply_preset_scales(self, scales: list[tuple[str, str, str]]):
         """Replace the current session scale rows with the given preset scales."""

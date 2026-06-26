@@ -6,8 +6,9 @@ section labels, and horizontal lines.
 """
 
 import typing
+from collections.abc import Callable
 
-from PySide6.QtCore import QByteArray, QEvent, QObject, QSize, Qt, Signal
+from PySide6.QtCore import QByteArray, QEvent, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
@@ -16,6 +17,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
+    QScrollBar,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -35,12 +38,69 @@ def line_edit_min_width_for_text(
 
 
 def push_button_min_width_for_label(
-    button: QPushButton, label: str, *, floor: int = 40, padding: int = 28
+    button: QPushButton, label: str, *, floor: int = 40, padding: int = 32
 ) -> None:
     """Ensure a pill-style button is wide enough for the full label."""
+    button.ensurePolished()
     width = button.fontMetrics().horizontalAdvance(label) + padding
     button.setMinimumWidth(max(floor, width))
     button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    button.updateGeometry()
+
+
+# Active preset pills use a 2px border; reserve extra row height when measuring.
+PRESET_BUTTON_ACTIVE_BORDER_PX = 4
+
+
+class PresetScrollPanel(QWidget):
+    """Preset strip panel with an external horizontal scrollbar."""
+
+    def __init__(
+        self, sync_fn: Callable[[], None], parent: QWidget | None = None
+    ) -> None:
+        super().__init__(parent)
+        self._sync_fn = sync_fn
+
+    def sync_horizontal_scroll(self) -> None:
+        """Refresh the external scrollbar from the internal scroll area."""
+        self._sync_fn()
+
+
+def panel_with_external_horizontal_scroll(scroll: QScrollArea) -> PresetScrollPanel:
+    """
+    Preset button strip: scroll content plus a dedicated horizontal scrollbar row.
+
+    Keeps pills fully visible above the bar (internal QScrollArea bars overlap content).
+    """
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    external_bar = QScrollBar(Qt.Orientation.Horizontal)
+    internal_bar = scroll.horizontalScrollBar()
+
+    def sync_from_internal() -> None:
+        external_bar.blockSignals(True)
+        external_bar.setRange(internal_bar.minimum(), internal_bar.maximum())
+        external_bar.setPageStep(internal_bar.pageStep())
+        external_bar.setSingleStep(internal_bar.singleStep())
+        external_bar.setValue(internal_bar.value())
+        external_bar.blockSignals(False)
+        needs_scroll = internal_bar.maximum() > internal_bar.minimum()
+        external_bar.setVisible(needs_scroll)
+        external_bar.setEnabled(needs_scroll)
+
+    internal_bar.rangeChanged.connect(lambda *_args: sync_from_internal())
+    internal_bar.valueChanged.connect(external_bar.setValue)
+    external_bar.valueChanged.connect(internal_bar.setValue)
+
+    panel = PresetScrollPanel(sync_from_internal)
+    panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    col = QVBoxLayout(panel)
+    col.setContentsMargins(0, 0, 0, 0)
+    col.setSpacing(2)
+    col.setAlignment(Qt.AlignmentFlag.AlignTop)
+    col.addWidget(scroll)
+    col.addWidget(external_bar)
+    QTimer.singleShot(0, sync_from_internal)
+    return panel
 
 
 def create_horizontal_line() -> QFrame:

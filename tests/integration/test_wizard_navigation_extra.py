@@ -74,6 +74,19 @@ def test_longitudinal_mode_sets_workflow_and_loads_view(wizard, qtbot):
     assert wizard.stack.currentWidget() is wizard.longitudinal_file_view
 
 
+def test_clinical_preset_dystonia_button_not_pinched(wizard, qtbot):
+    """Preset pills must be wide enough for longer labels such as Dystonia."""
+    qtbot.mouseClick(wizard.step0_view.full_mode_button, Qt.MouseButton.LeftButton)
+    step1 = wizard.step1_view
+    assert step1 is not None
+
+    def dystonia_ready() -> bool:
+        btn = step1.get_preset_button("Dystonia")
+        return btn is not None and btn.minimumWidth() >= 72
+
+    qtbot.waitUntil(dystonia_ready, timeout=2000)
+
+
 def test_clinical_preset_buttons_survive_settings_refresh(wizard, qtbot):
     """Adding a preset in settings must not collapse the horizontal button strip."""
     qtbot.mouseClick(wizard.step0_view.full_mode_button, Qt.MouseButton.LeftButton)
