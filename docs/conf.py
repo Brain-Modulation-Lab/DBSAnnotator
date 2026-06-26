@@ -58,7 +58,8 @@ suppress_warnings = [
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-# Browser tab icon (same asset as the packaged Qt / Briefcase application).
+# Browser tab icon — cream background for RTD only
+# (regenerate: scripts/generate_docs_favicon.py).
 html_favicon = "_static/favicon.ico"
 
 html_theme_options = {
