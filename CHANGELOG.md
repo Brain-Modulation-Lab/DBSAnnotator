@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Step 1: preset combo boxes for frequency, amplitude, and pulse width on left and
   right stimulation rows; gear button edits preset lists (stored in
   ``setting_presets.json``).
+- Documentation screenshots for **Edit Setting Presets** and **Edit Program Names**
+  dialogs on Step 1.
+
+### Changed
+
+- Read the Docs: dark content panel and prose styling; screenshots and figures capped
+  at 60% width (centered) via ``docs/_static/custom.css``.
 
 ### Fixed
 

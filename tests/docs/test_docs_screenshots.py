@@ -76,6 +76,10 @@ def test_generate_documentation_screenshots(wizard, qtbot, docs_out, docs_tsv) -
     sh.save_clinical_scales_settings_dialog(
         wizard, out / "clinical_scales_settings_dialog.png"
     )
+    sh.save_setting_presets_dialog(wizard, out / "setting_presets_dialog.png")
+    sh.save_program_names_settings_dialog(
+        wizard, out / "program_names_settings_dialog.png"
+    )
 
     qtbot.mouseClick(s1.next_button, Qt.MouseButton.LeftButton)
     sh.wait_for_render()

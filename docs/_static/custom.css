@@ -1,11 +1,20 @@
 /*
- * sphinx-rtd-theme caps main content at ~800px for readability.
- * Override so clinical screenshots and wide tables use the full viewport.
+ * DBS Annotator Read the Docs overrides (sphinx-rtd-theme).
+ * Dark content panel; screenshots capped at 60% of the prose column.
  */
 :root {
   /* Match sphinx-rtd-theme sidebar (.wy-nav-side). */
   --dbs-docs-canvas: #343131;
-  --dbs-docs-panel: #ffffff;
+  --dbs-docs-panel: #1e293b;
+  --dbs-docs-panel-text: #f1f5f9;
+  --dbs-docs-muted: #94a3b8;
+  --dbs-docs-border: #475569;
+  --dbs-docs-link: #fbbf24;
+  --dbs-docs-link-hover: #f59e0b;
+  --dbs-docs-code-bg: #334155;
+  --dbs-docs-code-text: #e2e8f0;
+  --dbs-docs-admonition-bg: #334155;
+  --dbs-docs-screenshot-max: 60%;
 }
 
 /* Dark outer canvas (same tone as the left navigation column). */
@@ -20,13 +29,13 @@ section.wy-nav-content-wrap,
   background-color: var(--dbs-docs-canvas) !important;
 }
 
-/* Readable white "window" for prose, screenshots, and tables. */
+/* Main prose column — dark panel. */
 .wy-nav-content {
   max-width: none !important;
   background: var(--dbs-docs-panel) !important;
   background-color: var(--dbs-docs-panel) !important;
-  box-shadow: 0 0 24px rgba(0, 0, 0, 0.35);
-  /* Let the dark canvas show at the sides on wide viewports. */
+  color: var(--dbs-docs-panel-text);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.45);
   margin-inline: clamp(0px, 2.5vw, 40px);
   min-height: 100%;
 }
@@ -35,29 +44,164 @@ section.wy-nav-content-wrap,
   max-width: 100%;
 }
 
-/* Full application window (wizard steps, session views). */
+/* Breadcrumbs & page chrome on the dark canvas (outside the content panel). */
+.wy-nav-content-wrap .wy-breadcrumbs li,
+.wy-nav-content-wrap .wy-breadcrumbs li a {
+  color: var(--dbs-docs-muted);
+}
+
+.wy-nav-content-wrap .wy-breadcrumbs li a:hover {
+  color: var(--dbs-docs-link-hover);
+}
+
+.wy-nav-content-wrap .wy-breadcrumbs li.wy-breadcrumbs-aside {
+  color: var(--dbs-docs-panel-text);
+}
+
+.wy-nav-content-wrap footer,
+.wy-nav-content-wrap footer span,
+.wy-nav-content-wrap .rst-footer-buttons {
+  color: var(--dbs-docs-muted);
+}
+
+.wy-nav-content-wrap footer a {
+  color: var(--dbs-docs-link);
+}
+
+/* ---- Typography & prose (dark) ---- */
+.wy-nav-content .rst-content {
+  color: var(--dbs-docs-panel-text);
+}
+
+.wy-nav-content .rst-content h1,
+.wy-nav-content .rst-content h2,
+.wy-nav-content .rst-content h3,
+.wy-nav-content .rst-content h4,
+.wy-nav-content .rst-content h5,
+.wy-nav-content .rst-content h6 {
+  color: #ffffff;
+}
+
+.wy-nav-content .rst-content a {
+  color: var(--dbs-docs-link);
+}
+
+.wy-nav-content .rst-content a:hover {
+  color: var(--dbs-docs-link-hover);
+}
+
+.wy-nav-content .rst-content p,
+.wy-nav-content .rst-content li,
+.wy-nav-content .rst-content td,
+.wy-nav-content .rst-content th {
+  color: var(--dbs-docs-panel-text);
+}
+
+.wy-nav-content .rst-content .caption-text,
+.wy-nav-content .rst-content .legend,
+.wy-nav-content .rst-content .figure .caption {
+  color: var(--dbs-docs-muted);
+}
+
+.wy-nav-content .rst-content hr {
+  border-color: var(--dbs-docs-border);
+}
+
+.wy-nav-content .rst-content blockquote {
+  border-left-color: var(--dbs-docs-link);
+  background: var(--dbs-docs-code-bg);
+  color: var(--dbs-docs-panel-text);
+}
+
+/* Inline and block code */
+.wy-nav-content .rst-content code,
+.wy-nav-content .rst-content code.literal {
+  background: var(--dbs-docs-code-bg);
+  color: var(--dbs-docs-code-text);
+  border: 1px solid var(--dbs-docs-border);
+}
+
+.wy-nav-content .rst-content pre,
+.wy-nav-content .rst-content .highlight {
+  background: var(--dbs-docs-code-bg) !important;
+  border: 1px solid var(--dbs-docs-border);
+}
+
+.wy-nav-content .rst-content .highlight pre {
+  color: var(--dbs-docs-code-text);
+}
+
+/* Tables */
+.wy-nav-content .rst-content table.docutils,
+.wy-nav-content .wy-table-responsive table {
+  background: var(--dbs-docs-code-bg);
+  border-color: var(--dbs-docs-border);
+}
+
+.wy-nav-content .rst-content table.docutils th,
+.wy-nav-content .wy-table-responsive table thead th {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: var(--dbs-docs-border);
+}
+
+.wy-nav-content .rst-content table.docutils td,
+.wy-nav-content .wy-table-responsive table td {
+  border-color: var(--dbs-docs-border);
+  color: var(--dbs-docs-panel-text);
+}
+
+/* Admonitions (note, tip, warning, …) */
+.wy-nav-content .rst-content .admonition {
+  background: var(--dbs-docs-admonition-bg);
+  border-color: var(--dbs-docs-border);
+  color: var(--dbs-docs-panel-text);
+}
+
+.wy-nav-content .rst-content .admonition .admonition-title {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.wy-nav-content .rst-content .note .admonition-title {
+  background: #1e3a5f;
+}
+
+.wy-nav-content .rst-content .warning .admonition-title {
+  background: #7c2d12;
+}
+
+.wy-nav-content .rst-content .tip .admonition-title {
+  background: #14532d;
+}
+
+/* Footer inside content */
+.wy-nav-content .rst-footer-buttons,
+.wy-nav-content footer {
+  color: var(--dbs-docs-muted);
+}
+
+/* ---- Screenshots & figures (max 60% width, centered) ---- */
 .rst-content img.screenshot-full,
-.wy-nav-content img.screenshot-full {
-  width: 100% !important;
-  max-width: 100%;
-  height: auto;
-}
-
-/*
- * Dialogs, home screen, and other partial captures.
- * Never upscale beyond the PNG's intrinsic width; shrink only on narrow viewports.
- */
 .rst-content img.screenshot-native,
-.wy-nav-content img.screenshot-native {
+.rst-content img.screenshot-medium,
+.rst-content .figure img,
+.wy-nav-content img.screenshot-full,
+.wy-nav-content img.screenshot-native,
+.wy-nav-content img.screenshot-medium,
+.wy-nav-content .figure img {
+  display: block;
   width: auto !important;
-  max-width: 100%;
+  max-width: var(--dbs-docs-screenshot-max);
   height: auto;
+  margin-inline: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
 
-/* Back-compat alias (older docs / branches). */
-.rst-content img.screenshot-medium,
-.wy-nav-content img.screenshot-medium {
-  width: auto !important;
-  max-width: 100%;
-  height: auto;
+/* Home-page logo keeps its explicit :width: from RST. */
+.rst-content img[src*="logo.png"],
+.wy-nav-content img[src*="logo.png"] {
+  max-width: none;
+  box-shadow: none;
 }

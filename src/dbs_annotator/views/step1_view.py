@@ -1198,10 +1198,12 @@ class Step1View(BaseStepView):
                 cast(Literal["frequency", "amplitude", "pulse_width"], kind),
             )
 
-    def _edit_setting_presets(self) -> None:
-        """Open dialog to edit stimulation parameter preset lists."""
+    def _build_setting_presets_dialog(
+        self, parent: QWidget | None = None
+    ) -> tuple[QDialog, QTabWidget, QListWidget, QListWidget, QListWidget]:
+        """Build stimulation setting presets editor (UI and doc screenshots)."""
         manager = get_setting_presets_manager()
-        dialog = QDialog(self)
+        dialog = QDialog(parent or self)
         dialog.setWindowTitle("Edit Setting Presets")
         dialog.setMinimumWidth(420)
 
@@ -1248,6 +1250,15 @@ class Step1View(BaseStepView):
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
 
+        return dialog, tabs, freq_list, amp_list, pw_list
+
+    def _edit_setting_presets(self) -> None:
+        """Open dialog to edit stimulation parameter preset lists."""
+        manager = get_setting_presets_manager()
+        dialog, _tabs, freq_list, amp_list, pw_list = (
+            self._build_setting_presets_dialog()
+        )
+
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
@@ -1262,6 +1273,81 @@ class Step1View(BaseStepView):
             return
 
         self._refresh_stim_preset_combos()
+
+    def _build_program_names_dialog(
+        self, parent: QWidget | None = None
+    ) -> tuple[QDialog, QListWidget, QLineEdit, ProgramConfigManager]:
+        """Build the custom program names editor (used by UI and doc screenshots)."""
+        program_config = get_program_config_manager()
+        custom_programs = program_config.get_custom_programs()
+        default_programs = ProgramConfigManager.DEFAULT_PROGRAMS
+
+        dialog = QDialog(parent or self)
+        dialog.setWindowTitle("Edit Program Names")
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        list_widget = QListWidget()
+        list_widget.addItems(custom_programs)
+        layout.addWidget(list_widget)
+
+        input_layout = QHBoxLayout()
+        new_program_edit = QLineEdit()
+        new_program_edit.setPlaceholderText("New program name...")
+        input_layout.addWidget(new_program_edit)
+
+        add_btn = QPushButton("Add")
+        add_btn.clicked.connect(
+            lambda: self._add_program_to_list(
+                new_program_edit.text(), list_widget, program_config
+            )
+        )
+        input_layout.addWidget(add_btn)
+        layout.addLayout(input_layout)
+
+        button_layout = QHBoxLayout()
+        edit_btn = QPushButton("Edit Selected")
+        remove_btn = QPushButton("Remove Selected")
+        button_layout.addWidget(edit_btn)
+        button_layout.addWidget(remove_btn)
+        layout.addLayout(button_layout)
+
+        edit_btn.clicked.connect(
+            lambda: self._edit_selected_program(
+                list_widget, program_config, default_programs
+            )
+        )
+        remove_btn.clicked.connect(
+            lambda: self._remove_selected_program(
+                list_widget, program_config, default_programs
+            )
+        )
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        return dialog, list_widget, new_program_edit, program_config
+
+    def _edit_program_names(self) -> None:
+        """Open dialog to edit custom program names."""
+        dialog, _list_widget, _new_program_edit, program_config = (
+            self._build_program_names_dialog()
+        )
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            current_text = self.group_combo.currentText()
+            programs = program_config.get_all_programs()
+            self.group_combo.clear()
+            self.group_combo.addItems(programs)
+            if current_text in programs:
+                self.group_combo.setCurrentText(current_text)
+            else:
+                self.group_combo.setCurrentText("None")
 
     def _build_preset_list_editor(
         self,
@@ -1412,79 +1498,6 @@ class Step1View(BaseStepView):
             if parsed is not None:
                 values.append(parsed)
         return values
-
-    def _edit_program_names(self) -> None:
-        """Open dialog to edit custom program names."""
-        from PySide6.QtWidgets import QLineEdit, QListWidget, QVBoxLayout
-
-        program_config = get_program_config_manager()
-        custom_programs = program_config.get_custom_programs()
-        default_programs = ProgramConfigManager.DEFAULT_PROGRAMS
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Edit Program Names")
-        dialog.setMinimumWidth(400)
-
-        layout = QVBoxLayout(dialog)
-
-        # List widget to show custom programs
-        list_widget = QListWidget()
-        list_widget.addItems(custom_programs)
-        layout.addWidget(list_widget)
-
-        # Input for new program name
-        input_layout = QHBoxLayout()
-        new_program_edit = QLineEdit()
-        new_program_edit.setPlaceholderText("New program name...")
-        input_layout.addWidget(new_program_edit)
-
-        add_btn = QPushButton("Add")
-        add_btn.clicked.connect(
-            lambda: self._add_program_to_list(
-                new_program_edit.text(), list_widget, program_config
-            )
-        )
-        input_layout.addWidget(add_btn)
-        layout.addLayout(input_layout)
-
-        # Edit and remove buttons
-        button_layout = QHBoxLayout()
-        edit_btn = QPushButton("Edit Selected")
-        remove_btn = QPushButton("Remove Selected")
-        button_layout.addWidget(edit_btn)
-        button_layout.addWidget(remove_btn)
-        layout.addLayout(button_layout)
-
-        # Connect edit/remove buttons
-        edit_btn.clicked.connect(
-            lambda: self._edit_selected_program(
-                list_widget, program_config, default_programs
-            )
-        )
-        remove_btn.clicked.connect(
-            lambda: self._remove_selected_program(
-                list_widget, program_config, default_programs
-            )
-        )
-
-        # Dialog buttons
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            # Refresh combo box with updated programs
-            current_text = self.group_combo.currentText()
-            programs = program_config.get_all_programs()
-            self.group_combo.clear()
-            self.group_combo.addItems(programs)
-            if current_text in programs:
-                self.group_combo.setCurrentText(current_text)
-            else:
-                self.group_combo.setCurrentText("None")
 
     def _add_program_to_list(
         self, name: str, list_widget: QListWidget, program_config: ProgramConfigManager

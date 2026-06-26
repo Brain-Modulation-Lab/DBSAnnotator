@@ -319,6 +319,34 @@ def save_session_scales_settings_dialog(wizard, path: Path) -> None:
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
+def save_setting_presets_dialog(wizard, path: Path) -> None:
+    """Edit Setting Presets — Frequencies tab with a row selected."""
+    wizard.show()
+    wizard.raise_()
+    s1 = wizard.step1_view
+    dlg, tabs, freq_list, _amp_list, _pw_list = s1._build_setting_presets_dialog(wizard)
+    tabs.setCurrentIndex(0)
+    freq_list.setCurrentRow(2)
+    dlg.resize(480, 380)
+    save_pixmap(grab_widget_pixmap(dlg), path)
+
+
+def save_program_names_settings_dialog(wizard, path: Path) -> None:
+    """Edit Program Names — demo custom names with a new name being drafted."""
+    wizard.show()
+    wizard.raise_()
+    s1 = wizard.step1_view
+    dlg, list_widget, new_program_edit, _program_config = (
+        s1._build_program_names_dialog(wizard)
+    )
+    list_widget.clear()
+    list_widget.addItems(["Morning", "Afternoon"])
+    list_widget.setCurrentRow(0)
+    new_program_edit.setText("Evening")
+    dlg.resize(420, 340)
+    save_pixmap(grab_widget_pixmap(dlg), path)
+
+
 def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     """Capture a dialog at its natural size (avoids extra empty vertical space)."""
     layout = dlg.layout()
