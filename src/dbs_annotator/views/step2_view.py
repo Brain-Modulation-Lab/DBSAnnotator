@@ -132,7 +132,7 @@ class Step2View(BaseStepView):
 
         settings_btn = QPushButton()
         settings_btn.setIcon(self._create_settings_icon())
-        settings_btn.setObjectName("settings_session_scales")
+        settings_btn.setObjectName("settingsGearButton")
         settings_btn.setToolTip("Settings session scales")
         settings_btn.clicked.connect(self._open_session_scales_settings)
 

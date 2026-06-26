@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Step 1: preset combo boxes for frequency, amplitude, and pulse width on left and
+  right stimulation rows; gear button edits preset lists (stored in
+  ``setting_presets.json``).
+
 ### Fixed
 
 - Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph); upgrade ``pip`` to
