@@ -7,45 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph); upgrade ``pip`` to
-  26.1.2 (PYSEC-2026-196, Briefcase transitive dep).
-
-## [0.4.0] - 2026-06-01
-
-### Changed
-
-- Step 1 clinical preset buttons scroll horizontally when they do not fit on one row.
-
-### Fixed
-
-- Wizard window: title-bar maximize and resize on steps 1+ (step 0 stays compact).
-- Step 1 initial settings: vertical scrollbar in its own column; no overlap with electrode canvases.
-
-## [0.4.0b2] - 2026-05-21
-
 ### Added
 
-- Read the Docs: dark outer page background (matching the sidebar); browser tab
-  favicon uses the application icon.
+- Step 1: preset combo boxes for frequency, amplitude, and pulse width on left and
+  right stimulation rows; gear button edits preset lists (stored in
+  ``setting_presets.json``).
+- Documentation screenshots for **Edit Setting Presets** and **Edit Program Names**
+  dialogs on Step 1.
 
 ### Changed
 
-- Clinical and session preset pill buttons grow to fit their full label (theme
-  ``max-width`` cap removed).
-- Step 1 and Step 2 scale name/value fields widen as needed to show the full text.
+- Read the Docs: standard sphinx-rtd-theme palette (dark grey sidebar frame,
+  light content panel, default blue links/headings); explicit table/body text
+  contrast on the light panel; browser tab favicon uses the logo on a cream
+  background (``scripts/generate_docs_favicon.py``); screenshots and figures
+  capped at 60% width (centered) via ``docs/_static/custom.css``.
+- Docs screenshot pipeline: wizard captures use 60% of the app's normal step window
+  size (``WIZARD_SCREENSHOT_SIZE_RATIO`` in ``tests/docs/screenshot_helpers.py``)
+  for denser, balanced full-window PNGs on RTD.
 
 ### Fixed
 
-- In-app **Update now** on Windows: keep the install script on disk until PowerShell
-  finishes (avoids a flash-and-close with no install) and pause the console when
-  the installer fails so the error message stays visible.
-- Step 1 clinical preset buttons disappearing after adding a preset in settings
-  (horizontal scroll strip sizing).
-- Step 3 session settings: external vertical scrollbar column (same layout as Step 1;
-  no overlap with electrode canvases).
-- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph).
+- In-app **Update now** on Windows: download ``install.ps1`` into a stable folder
+  (``%TEMP%\dbs_annotator_update\``) instead of a short-lived temp file deleted
+  immediately after launch, so PowerShell can run the script (fixes flash-and-close
+  with no install when upgrading, e.g. from ``0.4.0b2`` to ``0.4.0``); pause the
+  console when the installer fails so the error stays visible.
+- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph); upgrade ``pip`` to
+  26.1.2 (PYSEC-2026-196, Briefcase transitive dep).
 
 ## [0.4.0] - 2026-06-01
 
@@ -70,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GitHub link) in a separate window.
 - ``dbs_annotator.utils.auto_update`` with optional ``dry_run=True`` (PowerShell
   ``-WhatIf`` / ``install.sh --dry-run``) for maintainers to preview an install.
+- Read the Docs: dark outer page background (matching the sidebar); browser tab
+  favicon uses the application icon.
 - Read the Docs screenshot pipeline: home screen (light and dark theme), clinical
   and session scales settings dialogs, and regenerated workflow captures at
   native resolution (HiDPI-aware screen grab, improved PNG settings).
@@ -83,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clinical and session preset pill buttons grow to fit their full label (theme
+  ``max-width`` cap removed).
+- Step 1 and Step 2 scale name/value fields widen as needed to show the full text.
 - **Help** dialog rewritten around the standard **Complete Workflow** programming
   pipeline, timestamped ``task-programming`` TSV output, and Word/PDF reports;
   notes that each stimulation configuration is saved and summarised in reports;
@@ -126,8 +120,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Step 1 clinical preset buttons disappearing after adding a preset in settings
+  (horizontal scroll strip sizing).
+- Step 3 session settings: external vertical scrollbar column (same layout as Step 1;
+  no overlap with electrode canvases).
 - Dependency audit: pin ``idna>=3.15`` (GHSA-65pc-fj4g-8rjx); allow ``idna`` in
   ``exclude-newer-package`` so the fix is not blocked by the one-week cooldown.
+- Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph).
 - Update checker: HTTPS uses the ``certifi`` CA bundle (fixes failed or empty
   GitHub API responses in Briefcase MSI/ZIP on Windows); compares against
   ``APP_VERSION``; empty or invalid release data surfaces as errors instead of
@@ -151,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Persist deactivated Step 3 session scales as ``NaN`` in the session TSV and omit them from Word and PDF reports. ([#94](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/94))
 - Refreshed ``uv.lock`` with upgraded dependencies (including security-related updates for
   ``pip`` and ``gitpython``). ([#95](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/95))
+
 ### Fixed
 
 - Fix `install.ps1` when run with `iex`: move install into a nested function so `$PSCmdlet` binds; document `iex` vs script parameters (`& ([scriptblock]::Create((iwr …).Content))` or local `install.ps1`). ([#77](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/77))
@@ -164,6 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add a Windows PowerShell installer (``scripts/install.ps1``) and README one-liner to install the portable release ``.zip`` from GitHub when the MSI is unsigned. ([#70](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/70))
 - Add ``scripts/install.sh`` (curl/wget) to install from GitHub Releases on Linux x86_64 and macOS (raw ``.tar.gz`` when present, else ``.deb`` / ``.dmg``), with README and installation docs. ([#71](https://github.com/Brain-Modulation-Lab/DBSAnnotator/pull/71))
+
 ## [0.4.0a1] - 2026-04-22
 
 ### Added
