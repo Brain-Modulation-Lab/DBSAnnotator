@@ -145,11 +145,27 @@ Choose where to save the generated ``.docx`` or ``.pdf`` file.
 Report Contents
 ----------------
 
+The exported Word/PDF follows the same section order as the
+:doc:`longitudinal summary on output_format <output_format>`.  Example
+screenshots from a multi-session export (synthetic documentation data only;
+not a real clinical case):
+
+Title
+^^^^^
+
+.. image:: _static/longitudinal_report_initial.png
+   :alt: Longitudinal report title page
+   :class: screenshot-native
+
 Sessions Overview
 ^^^^^^^^^^^^^^^^^^
 
 A **clinical scales timeline chart** (baseline ``is_initial = 1`` values per
 session file) followed by a summary table with one row per loaded file:
+
+.. image:: _static/longitudinal_report_clinical_figure.png
+   :alt: Clinical scales timeline across sessions
+   :class: screenshot-native
 
 .. list-table::
    :widths: 30 70
@@ -168,6 +184,10 @@ session file) followed by a summary table with one row per loaded file:
    * - Values
      - Corresponding baseline scores
 
+.. image:: _static/longitudinal_report_clinical_table.png
+   :alt: Sessions overview summary table
+   :class: screenshot-native
+
 Session Data
 ^^^^^^^^^^^^^
 
@@ -175,19 +195,23 @@ Depending on your section selection, the report includes a **session-scale
 timeline chart** (values across programming blocks in all files), a **combined
 data table**, or both.
 
-The table's first column shows the **date** of each entry (from the ``date``
-field in the TSV).  Other columns include laterality (L/R), stimulation
-frequency, contacts (+/−), amplitude, pulse width, session scale values, and
-notes.  The best entry per session is highlighted in **green**.
+* **Session Data Graph** — all acquisitions in one chart so you can spot the
+  best configuration overall across visits.
 
-.. image:: _static/longitudinal_session_data.png
-   :alt: Session data table in longitudinal report
+.. image:: _static/longitudinal_report_session_scales_figure.png
+   :alt: Session-scale timeline across all loaded sessions
    :class: screenshot-native
+
+* **Session Data Table** — same lateral layout as the
+  :ref:`single-session session data table <session-report-session-table>`, with
+  rows from **every** loaded file merged.  The first column is the entry
+  **date**; laterality (L/R), stimulation parameters, scale values, and notes
+  follow.  The best entry **per session** is highlighted in **green**.
 
 Electrode Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-For each file, a page showing:
+For **each** loaded session file, the report adds a page with:
 
 * **File / session label** as a sub-heading.
 * **Electrode model** name and manufacturer.
@@ -199,10 +223,12 @@ For each file, a page showing:
   | Contact diagram  | Contact diagram  | Contact diagram  | Contact diagram  |
   +------------------+------------------+------------------+------------------+
 
-A page break separates each file's configuration page.
+The layout matches the
+:ref:`single-session electrode section <session-report-electrode-config>`; a page
+break separates each file.
 
-.. image:: _static/electrode_config_longitudinal.png
-   :alt: Electrode configuration in longitudinal report
+.. image:: _static/session_electrodes.png
+   :alt: Electrode layout (repeated once per session file)
    :class: screenshot-native
 
 Programming Summary
@@ -214,6 +240,10 @@ A table with one row per session showing:
 * Amplitude range (Left / Right)
 * Frequency range (Left / Right)
 * Pulse width range (Left / Right)
+
+.. image:: _static/longitudinal_report_parameters_summary.png
+   :alt: Programming summary per loaded session
+   :class: screenshot-native
 
 ----
 
