@@ -1,32 +1,33 @@
 /*
- * sphinx-rtd-theme caps main content at ~800px for readability.
- * Override so clinical screenshots and wide tables use the full viewport.
+ * DBS Annotator Read the Docs overrides (sphinx-rtd-theme).
+ * Keep standard RTD colours (dark sidebar, light content, blue links/headings);
+ * widen the prose column; cap screenshots at 60%.
  */
 :root {
-  /* Match sphinx-rtd-theme sidebar (.wy-nav-side). */
-  --dbs-docs-canvas: #343131;
-  --dbs-docs-panel: #ffffff;
+  /* sphinx-rtd-theme .wy-nav-side */
+  --dbs-docs-sidebar: #343131;
+  /* sphinx-rtd-theme .wy-nav-content-wrap / content area */
+  --dbs-docs-content-bg: #fcfcfc;
+  --dbs-docs-screenshot-max: 60%;
 }
 
-/* Dark outer canvas (same tone as the left navigation column). */
-/* !important beats theme.css (.wy-nav-content-wrap { background: #fcfcfc }). */
+/* Outer area — same dark grey as the left navigation column (standard RTD). */
 html,
 body.wy-body-for-nav,
 .wy-body-for-nav,
 .wy-grid-for-nav,
 section.wy-nav-content-wrap,
 .wy-nav-content-wrap {
-  background: var(--dbs-docs-canvas) !important;
-  background-color: var(--dbs-docs-canvas) !important;
+  background: var(--dbs-docs-sidebar) !important;
+  background-color: var(--dbs-docs-sidebar) !important;
 }
 
-/* Readable white "window" for prose, screenshots, and tables. */
+/* Main prose column — standard RTD light panel (not app dark theme). */
 .wy-nav-content {
   max-width: none !important;
-  background: var(--dbs-docs-panel) !important;
-  background-color: var(--dbs-docs-panel) !important;
-  box-shadow: 0 0 24px rgba(0, 0, 0, 0.35);
-  /* Let the dark canvas show at the sides on wide viewports. */
+  background: var(--dbs-docs-content-bg) !important;
+  background-color: var(--dbs-docs-content-bg) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   margin-inline: clamp(0px, 2.5vw, 40px);
   min-height: 100%;
 }
@@ -35,29 +36,76 @@ section.wy-nav-content-wrap,
   max-width: 100%;
 }
 
-/* Full application window (wizard steps, session views). */
-.rst-content img.screenshot-full,
-.wy-nav-content img.screenshot-full {
-  width: 100% !important;
-  max-width: 100%;
-  height: auto;
-}
-
 /*
- * Dialogs, home screen, and other partial captures.
- * Never upscale beyond the PNG's intrinsic width; shrink only on narrow viewports.
+ * Prose on the light panel — pin body colour so it does not inherit from the
+ * dark outer wrap (tables/list-tables were unreadable when text stayed pale).
  */
-.rst-content img.screenshot-native,
-.wy-nav-content img.screenshot-native {
-  width: auto !important;
-  max-width: 100%;
-  height: auto;
+.wy-nav-content .rst-content {
+  color: #404040;
 }
 
-/* Back-compat alias (older docs / branches). */
+.wy-nav-content .rst-content table.docutils,
+.wy-nav-content .wy-table-responsive table {
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils th,
+.wy-nav-content .wy-table-responsive table thead th {
+  background-color: #f3f6f6;
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils td,
+.wy-nav-content .wy-table-responsive table td {
+  background-color: #ffffff;
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils tr:nth-child(2n) td,
+.wy-nav-content .wy-table-responsive table tr:nth-child(2n) td {
+  background-color: #f3f6f6;
+}
+
+/* Breadcrumbs sit on the dark canvas, outside the light panel. */
+.wy-nav-content-wrap .wy-breadcrumbs li,
+.wy-nav-content-wrap .wy-breadcrumbs li a {
+  color: #b3b3b3;
+}
+
+.wy-nav-content-wrap .wy-breadcrumbs li a:hover {
+  color: #ffffff;
+}
+
+.wy-nav-content-wrap footer,
+.wy-nav-content-wrap footer span,
+.wy-nav-content-wrap .rst-footer-buttons {
+  color: #b3b3b3;
+}
+
+/* ---- Screenshots & figures (max 60% width, centered) ---- */
+.rst-content img.screenshot-full,
+.rst-content img.screenshot-native,
 .rst-content img.screenshot-medium,
-.wy-nav-content img.screenshot-medium {
+.rst-content .figure img,
+.wy-nav-content img.screenshot-full,
+.wy-nav-content img.screenshot-native,
+.wy-nav-content img.screenshot-medium,
+.wy-nav-content .figure img {
+  display: block;
   width: auto !important;
-  max-width: 100%;
+  max-width: var(--dbs-docs-screenshot-max);
   height: auto;
+  margin-inline: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Home-page logo keeps its explicit :width: from RST. */
+.rst-content img[src*="logo.png"],
+.wy-nav-content img[src*="logo.png"] {
+  max-width: none;
+  box-shadow: none;
 }

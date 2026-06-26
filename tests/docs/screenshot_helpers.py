@@ -69,6 +69,11 @@ STEP3_ENTRY_NOTES = (
 # Session-scale slider values in the 0–10 range (matches PD preset in Step 2).
 STEP3_SESSION_SCALE_VALUES = [6, 8, 4, 7, 5, 9, 3]
 
+# Wizard PNGs: 60% of the app's normal step geometry (matches RTD screenshot-full cap).
+WIZARD_SCREENSHOT_SIZE_RATIO = 0.6
+WIZARD_SCREENSHOT_MIN_WIDTH = 520
+WIZARD_SCREENSHOT_MIN_HEIGHT = 320
+
 
 def apply_docs_theme(qapp: QApplication, theme: Theme) -> None:
     """Apply light/dark QSS and fonts for documentation screenshots."""
@@ -319,6 +324,34 @@ def save_session_scales_settings_dialog(wizard, path: Path) -> None:
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
+def save_setting_presets_dialog(wizard, path: Path) -> None:
+    """Edit Setting Presets — Frequencies tab with a row selected."""
+    wizard.show()
+    wizard.raise_()
+    s1 = wizard.step1_view
+    dlg, tabs, freq_list, _amp_list, _pw_list = s1._build_setting_presets_dialog(wizard)
+    tabs.setCurrentIndex(0)
+    freq_list.setCurrentRow(2)
+    dlg.resize(480, 380)
+    save_pixmap(grab_widget_pixmap(dlg), path)
+
+
+def save_program_names_settings_dialog(wizard, path: Path) -> None:
+    """Edit Program Names — demo custom names with a new name being drafted."""
+    wizard.show()
+    wizard.raise_()
+    s1 = wizard.step1_view
+    dlg, list_widget, new_program_edit, _program_config = (
+        s1._build_program_names_dialog(wizard)
+    )
+    list_widget.clear()
+    list_widget.addItems(["Morning", "Afternoon"])
+    list_widget.setCurrentRow(0)
+    new_program_edit.setText("Evening")
+    dlg.resize(420, 340)
+    save_pixmap(grab_widget_pixmap(dlg), path)
+
+
 def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     """Capture a dialog at its natural size (avoids extra empty vertical space)."""
     layout = dlg.layout()
@@ -332,17 +365,44 @@ def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
-def _apply_wizard_screenshot_geometry(wizard: WizardWindow) -> None:
-    """Resize wizard to the same geometry the app uses for the current step."""
+def _apply_wizard_screenshot_geometry(
+    wizard: WizardWindow,
+    *,
+    size_ratio: float = WIZARD_SCREENSHOT_SIZE_RATIO,
+) -> None:
+    """Resize wizard to app step geometry, then scale down for balanced RTD captures."""
     if wizard.current_step == 0:
         wizard._update_window_size_for_step0()
     else:
         wizard._update_window_size_for_main_workflow()
     wait_for_render(200)
 
+    if size_ratio >= 1.0:
+        return
+
+    wizard._release_stack_size_constraints()
+    geo = wizard.geometry()
+    width = max(int(geo.width() * size_ratio), WIZARD_SCREENSHOT_MIN_WIDTH)
+    height = max(int(geo.height() * size_ratio), WIZARD_SCREENSHOT_MIN_HEIGHT)
+
+    screen = wizard.app.primaryScreen()
+    if screen is not None:
+        rect = screen.availableGeometry()
+        width = min(width, max(WIZARD_SCREENSHOT_MIN_WIDTH, rect.width() - 40))
+        height = min(height, max(WIZARD_SCREENSHOT_MIN_HEIGHT, rect.height() - 40))
+        x = int((rect.width() - width) / 2)
+        y = int((rect.height() - height) / 2)
+    else:
+        x, y = geo.x(), geo.y()
+
+    wizard.setMinimumSize(1, 1)
+    wizard.setMaximumSize(16777215, 16777215)
+    wizard.setGeometry(x, y, width, height)
+    wait_for_render(300)
+
 
 def save_wizard(wizard: WizardWindow, path: Path) -> None:
-    """Capture the wizard at app-native size (step 0 compact, steps 1+ responsive)."""
+    """Capture the wizard at 60% of the app's normal step size (step 0 compact)."""
     _apply_wizard_screenshot_geometry(wizard)
     save_pixmap(grab_window_pixmap(wizard), path)
 

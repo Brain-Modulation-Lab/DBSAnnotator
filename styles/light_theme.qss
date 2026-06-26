@@ -60,11 +60,12 @@ QComboBox {
     background-color: #ffffff;
     color: #0f172a;
     border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-radius: 4px;
+    padding: 3px 5px;
     font-size: 12px;
     font-weight: 500;
-    min-width: 120px;
+    height: 20px;
+    min-width: 60px;
 }
 
 QComboBox:hover {
@@ -405,23 +406,23 @@ QPushButton#theme_toggle {
     font-size: 14px;
 }
 
-/* Program Settings Button - Square with same height as dropdown */
-QPushButton#programSettingsButton {
+/* Gear settings buttons - square icon buttons */
+QPushButton#settingsGearButton {
     background-color: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 4px;
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     icon-size: 16px;
 }
 
-QPushButton#programSettingsButton:hover {
+QPushButton#settingsGearButton:hover {
     background-color: #f1f5f9;
     border-color: #b45309;
 }
 
-QPushButton#programSettingsButton:pressed {
+QPushButton#settingsGearButton:pressed {
     background-color: #e2e8f0;
 }
 

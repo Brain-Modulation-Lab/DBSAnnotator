@@ -264,7 +264,7 @@ class Step3View(BaseStepView):
         edit_programs_btn = QPushButton()
         edit_programs_btn.setIcon(self._create_settings_icon())
         edit_programs_btn.setToolTip("Edit program names")
-        edit_programs_btn.setObjectName("programSettingsButton")
+        edit_programs_btn.setObjectName("settingsGearButton")
         edit_programs_btn.clicked.connect(self._edit_program_names)
         group_row_layout.addWidget(edit_programs_btn)
 
