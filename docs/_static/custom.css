@@ -36,6 +36,55 @@ section.wy-nav-content-wrap,
   max-width: 100%;
 }
 
+/*
+ * Prose on the light panel — pin body colour so it does not inherit from the
+ * dark outer wrap (tables/list-tables were unreadable when text stayed pale).
+ */
+.wy-nav-content .rst-content {
+  color: #404040;
+}
+
+.wy-nav-content .rst-content table.docutils,
+.wy-nav-content .wy-table-responsive table {
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils th,
+.wy-nav-content .wy-table-responsive table thead th {
+  background-color: #f3f6f6;
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils td,
+.wy-nav-content .wy-table-responsive table td {
+  background-color: #ffffff;
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils tr:nth-child(2n) td,
+.wy-nav-content .wy-table-responsive table tr:nth-child(2n) td {
+  background-color: #f3f6f6;
+}
+
+/* Breadcrumbs sit on the dark canvas, outside the light panel. */
+.wy-nav-content-wrap .wy-breadcrumbs li,
+.wy-nav-content-wrap .wy-breadcrumbs li a {
+  color: #b3b3b3;
+}
+
+.wy-nav-content-wrap .wy-breadcrumbs li a:hover {
+  color: #ffffff;
+}
+
+.wy-nav-content-wrap footer,
+.wy-nav-content-wrap footer span,
+.wy-nav-content-wrap .rst-footer-buttons {
+  color: #b3b3b3;
+}
+
 /* ---- Screenshots & figures (max 60% width, centered) ---- */
 .rst-content img.screenshot-full,
 .rst-content img.screenshot-native,

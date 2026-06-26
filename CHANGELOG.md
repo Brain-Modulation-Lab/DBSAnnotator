@@ -18,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Read the Docs: standard sphinx-rtd-theme palette (dark grey sidebar frame,
-  light content panel, default blue links/headings); screenshots and figures capped
-  at 60% width (centered) via ``docs/_static/custom.css``.
+  light content panel, default blue links/headings); explicit table/body text
+  contrast on the light panel; screenshots and figures capped at 60% width
+  (centered) via ``docs/_static/custom.css``.
 - Docs screenshot pipeline: wizard captures use 60% of the app's normal step window
   size (``WIZARD_SCREENSHOT_SIZE_RATIO`` in ``tests/docs/screenshot_helpers.py``)
   for denser, balanced full-window PNGs on RTD.
