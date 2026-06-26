@@ -153,7 +153,10 @@ TSV below (BIDS filename
 stored on its own row; rows sharing the same ``block_ID`` belong to one baseline
 (Step 1) or stimulation configuration (Step 3 **Insert**).
 
-.. download:: _static/session_report_example/sub-01_ses-20260626_task-programming_run-01_events.tsv
+`Download the example TSV`_
+
+.. _Download the example TSV:
+   _static/session_report_example/sub-01_ses-20260626_task-programming_run-01_events.tsv
 
 .. include:: _generated/session_report_example_tsv.inc.rst
 
