@@ -17,11 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Read the Docs: dark content panel and prose styling; screenshots and figures capped
+- Read the Docs: standard sphinx-rtd-theme palette (dark grey sidebar frame,
+  light content panel, default blue links/headings); screenshots and figures capped
   at 60% width (centered) via ``docs/_static/custom.css``.
+- Docs screenshot pipeline: wizard captures use 60% of the app's normal step window
+  size (``WIZARD_SCREENSHOT_SIZE_RATIO`` in ``tests/docs/screenshot_helpers.py``)
+  for denser, balanced full-window PNGs on RTD.
 
 ### Fixed
 
+- In-app **Update now** on Windows: download ``install.ps1`` into a stable folder
+  (``%TEMP%\dbs_annotator_update\``) instead of a short-lived temp file deleted
+  immediately after launch, so PowerShell can run the script (fixes flash-and-close
+  with no install when upgrading, e.g. from ``0.4.0b2`` to ``0.4.0``); pause the
+  console when the installer fails so the error stays visible.
 - Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph); upgrade ``pip`` to
   26.1.2 (PYSEC-2026-196, Briefcase transitive dep).
 
@@ -51,9 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- In-app **Update now** on Windows: keep the install script on disk until PowerShell
-  finishes (avoids a flash-and-close with no install) and pause the console when
-  the installer fails so the error message stays visible.
 - Step 1 clinical preset buttons disappearing after adding a preset in settings
   (horizontal scroll strip sizing).
 - Step 3 session settings: external vertical scrollbar column (same layout as Step 1;

@@ -1,184 +1,39 @@
 /*
  * DBS Annotator Read the Docs overrides (sphinx-rtd-theme).
- * Dark content panel; screenshots capped at 60% of the prose column.
+ * Keep standard RTD colours (dark sidebar, light content, blue links/headings);
+ * widen the prose column; cap screenshots at 60%.
  */
 :root {
-  /* Match sphinx-rtd-theme sidebar (.wy-nav-side). */
-  --dbs-docs-canvas: #343131;
-  --dbs-docs-panel: #1e293b;
-  --dbs-docs-panel-text: #f1f5f9;
-  --dbs-docs-muted: #94a3b8;
-  --dbs-docs-border: #475569;
-  --dbs-docs-link: #fbbf24;
-  --dbs-docs-link-hover: #f59e0b;
-  --dbs-docs-code-bg: #334155;
-  --dbs-docs-code-text: #e2e8f0;
-  --dbs-docs-admonition-bg: #334155;
+  /* sphinx-rtd-theme .wy-nav-side */
+  --dbs-docs-sidebar: #343131;
+  /* sphinx-rtd-theme .wy-nav-content-wrap / content area */
+  --dbs-docs-content-bg: #fcfcfc;
   --dbs-docs-screenshot-max: 60%;
 }
 
-/* Dark outer canvas (same tone as the left navigation column). */
-/* !important beats theme.css (.wy-nav-content-wrap { background: #fcfcfc }). */
+/* Outer area — same dark grey as the left navigation column (standard RTD). */
 html,
 body.wy-body-for-nav,
 .wy-body-for-nav,
 .wy-grid-for-nav,
 section.wy-nav-content-wrap,
 .wy-nav-content-wrap {
-  background: var(--dbs-docs-canvas) !important;
-  background-color: var(--dbs-docs-canvas) !important;
+  background: var(--dbs-docs-sidebar) !important;
+  background-color: var(--dbs-docs-sidebar) !important;
 }
 
-/* Main prose column — dark panel. */
+/* Main prose column — standard RTD light panel (not app dark theme). */
 .wy-nav-content {
   max-width: none !important;
-  background: var(--dbs-docs-panel) !important;
-  background-color: var(--dbs-docs-panel) !important;
-  color: var(--dbs-docs-panel-text);
-  box-shadow: 0 0 24px rgba(0, 0, 0, 0.45);
+  background: var(--dbs-docs-content-bg) !important;
+  background-color: var(--dbs-docs-content-bg) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   margin-inline: clamp(0px, 2.5vw, 40px);
   min-height: 100%;
 }
 
 .wy-nav-content-wrap {
   max-width: 100%;
-}
-
-/* Breadcrumbs & page chrome on the dark canvas (outside the content panel). */
-.wy-nav-content-wrap .wy-breadcrumbs li,
-.wy-nav-content-wrap .wy-breadcrumbs li a {
-  color: var(--dbs-docs-muted);
-}
-
-.wy-nav-content-wrap .wy-breadcrumbs li a:hover {
-  color: var(--dbs-docs-link-hover);
-}
-
-.wy-nav-content-wrap .wy-breadcrumbs li.wy-breadcrumbs-aside {
-  color: var(--dbs-docs-panel-text);
-}
-
-.wy-nav-content-wrap footer,
-.wy-nav-content-wrap footer span,
-.wy-nav-content-wrap .rst-footer-buttons {
-  color: var(--dbs-docs-muted);
-}
-
-.wy-nav-content-wrap footer a {
-  color: var(--dbs-docs-link);
-}
-
-/* ---- Typography & prose (dark) ---- */
-.wy-nav-content .rst-content {
-  color: var(--dbs-docs-panel-text);
-}
-
-.wy-nav-content .rst-content h1,
-.wy-nav-content .rst-content h2,
-.wy-nav-content .rst-content h3,
-.wy-nav-content .rst-content h4,
-.wy-nav-content .rst-content h5,
-.wy-nav-content .rst-content h6 {
-  color: #ffffff;
-}
-
-.wy-nav-content .rst-content a {
-  color: var(--dbs-docs-link);
-}
-
-.wy-nav-content .rst-content a:hover {
-  color: var(--dbs-docs-link-hover);
-}
-
-.wy-nav-content .rst-content p,
-.wy-nav-content .rst-content li,
-.wy-nav-content .rst-content td,
-.wy-nav-content .rst-content th {
-  color: var(--dbs-docs-panel-text);
-}
-
-.wy-nav-content .rst-content .caption-text,
-.wy-nav-content .rst-content .legend,
-.wy-nav-content .rst-content .figure .caption {
-  color: var(--dbs-docs-muted);
-}
-
-.wy-nav-content .rst-content hr {
-  border-color: var(--dbs-docs-border);
-}
-
-.wy-nav-content .rst-content blockquote {
-  border-left-color: var(--dbs-docs-link);
-  background: var(--dbs-docs-code-bg);
-  color: var(--dbs-docs-panel-text);
-}
-
-/* Inline and block code */
-.wy-nav-content .rst-content code,
-.wy-nav-content .rst-content code.literal {
-  background: var(--dbs-docs-code-bg);
-  color: var(--dbs-docs-code-text);
-  border: 1px solid var(--dbs-docs-border);
-}
-
-.wy-nav-content .rst-content pre,
-.wy-nav-content .rst-content .highlight {
-  background: var(--dbs-docs-code-bg) !important;
-  border: 1px solid var(--dbs-docs-border);
-}
-
-.wy-nav-content .rst-content .highlight pre {
-  color: var(--dbs-docs-code-text);
-}
-
-/* Tables */
-.wy-nav-content .rst-content table.docutils,
-.wy-nav-content .wy-table-responsive table {
-  background: var(--dbs-docs-code-bg);
-  border-color: var(--dbs-docs-border);
-}
-
-.wy-nav-content .rst-content table.docutils th,
-.wy-nav-content .wy-table-responsive table thead th {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: var(--dbs-docs-border);
-}
-
-.wy-nav-content .rst-content table.docutils td,
-.wy-nav-content .wy-table-responsive table td {
-  border-color: var(--dbs-docs-border);
-  color: var(--dbs-docs-panel-text);
-}
-
-/* Admonitions (note, tip, warning, …) */
-.wy-nav-content .rst-content .admonition {
-  background: var(--dbs-docs-admonition-bg);
-  border-color: var(--dbs-docs-border);
-  color: var(--dbs-docs-panel-text);
-}
-
-.wy-nav-content .rst-content .admonition .admonition-title {
-  background: #0f172a;
-  color: #ffffff;
-}
-
-.wy-nav-content .rst-content .note .admonition-title {
-  background: #1e3a5f;
-}
-
-.wy-nav-content .rst-content .warning .admonition-title {
-  background: #7c2d12;
-}
-
-.wy-nav-content .rst-content .tip .admonition-title {
-  background: #14532d;
-}
-
-/* Footer inside content */
-.wy-nav-content .rst-footer-buttons,
-.wy-nav-content footer {
-  color: var(--dbs-docs-muted);
 }
 
 /* ---- Screenshots & figures (max 60% width, centered) ---- */
@@ -195,8 +50,8 @@ section.wy-nav-content-wrap,
   max-width: var(--dbs-docs-screenshot-max);
   height: auto;
   margin-inline: auto;
-  border-radius: 6px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* Home-page logo keeps its explicit :width: from RST. */
