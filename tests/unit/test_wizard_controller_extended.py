@@ -134,7 +134,7 @@ def test_apply_clinical_preset_invokes_view(c):
         wraps=c.on_add_clinical_scale,
     ):
         c.apply_clinical_preset("OCD", view)
-    view.update_clinical_scales.assert_called()
+    view.apply_clinical_preset.assert_called_once_with("OCD")
 
 
 def test_apply_session_preset_invokes_view(c):

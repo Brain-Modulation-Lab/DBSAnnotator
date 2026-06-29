@@ -58,23 +58,25 @@ that block.  After each write, ``block_ID`` increments by one.
 Example rows
 ^^^^^^^^^^^^
 
+The programming-session example used in the report section below is stored as
+``sub-01_ses-20260626_task-programming_run-01_events.tsv`` (BIDS naming).
+Each scale is stored on its own row; rows sharing the same ``block_ID`` belong
+to one baseline (Step 1) or stimulation configuration (Step 3 **Insert**).
+
+`Download the example TSV`_
+
+.. _Download the example TSV:
+   _static/session_report_example/sub-01_ses-20260626_task-programming_run-01_events.tsv
+
 The table below is abbreviated (stimulation columns omitted on continuation
 lines); in the real file every row includes the full column set.
 
-.. code-block:: text
-
-   date        time      timezone                 block_ID  session_ID  is_initial  scale_name   scale_value  program_ID  electrode_model      notes
-   2025-03-15  10:02:31  Europe/Zurich +0100      0         1           1           MDS-UPDRS    28           A           Medtronic SenSight…  Baseline pre-stim
-   2025-03-15  10:02:31  Europe/Zurich +0100      0         1           1           UPDRS-III    32           A           Medtronic SenSight…  Baseline pre-stim
-   2025-03-15  10:15:44  Europe/Zurich +0100      1         1           0           Tremor       6.0          A           Medtronic SenSight…  Config 1
-   2025-03-15  10:15:44  Europe/Zurich +0100      1         1           0           Rigidity     5.0          A           Medtronic SenSight…  Config 1
-   2025-03-15  10:15:44  Europe/Zurich +0100      1         1           0           Bradykinesia 4.0          A           Medtronic SenSight…  Config 1
-   2025-03-15  10:28:12  Europe/Zurich +0100      2         1           0           Tremor       4.0          B           Medtronic SenSight…  Config 2
-   2025-03-15  10:28:12  Europe/Zurich +0100      2         1           0           Rigidity     3.0          B           Medtronic SenSight…  Config 2
-   2025-03-15  10:28:12  Europe/Zurich +0100      2         1           0           Bradykinesia 3.0          B           Medtronic SenSight…  Config 2
+.. include:: _generated/session_report_example_tsv.inc.rst
 
 ``is_initial = 1`` rows are baseline clinical scales (Step 1); ``is_initial = 0``
 rows are session scales recorded with each stimulation configuration (Step 3).
+
+The section below shows the report exported from this example session.
 
 .. note::
    Older files may use the legacy header ``block_id``.  The application accepts
@@ -100,6 +102,9 @@ at export time.
 
 Single-Session Report
 ^^^^^^^^^^^^^^^^^^^^^^
+
+The screenshots in this section are from the Word report exported from the
+example session TSV shown in *Example rows* above.
 
 Sections (in order):
 
@@ -155,22 +160,6 @@ Sections (in order):
    .. image:: _static/session_report_parameters_summary.png
       :alt: Programming summary (duration, configuration count, parameter ranges)
       :class: screenshot-native
-
-Source data (example session)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The Word report screenshots above were exported from the programming-session
-TSV below (BIDS filename
-``sub-01_ses-20260626_task-programming_run-01_events.tsv``).  Each scale is
-stored on its own row; rows sharing the same ``block_ID`` belong to one baseline
-(Step 1) or stimulation configuration (Step 3 **Insert**).
-
-`Download the example TSV`_
-
-.. _Download the example TSV:
-   _static/session_report_example/sub-01_ses-20260626_task-programming_run-01_events.tsv
-
-.. include:: _generated/session_report_example_tsv.inc.rst
 
 Longitudinal Report
 ^^^^^^^^^^^^^^^^^^^^

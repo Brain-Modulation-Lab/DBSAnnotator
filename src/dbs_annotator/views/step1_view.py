@@ -148,6 +148,8 @@ class Step1View(BaseStepView):
         self.current_file_mode = None  # Track file mode: 'existing', 'new', or None
         self.next_block_id: int | None = None
         self.active_preset_button: QPushButton | None = None  # Track active preset
+        self._active_clinical_preset_name: str | None = None
+        self._clinical_preset_values: dict[str, list[tuple[str, str]]] = {}
         self.clinical_presets: dict[str, list[str]] = self._load_clinical_presets()
 
         self.left_canvas = ElectrodeCanvas()
@@ -1587,6 +1589,8 @@ class Step1View(BaseStepView):
         if not text.strip():
             self.current_file_mode = None
             self.next_block_id = None
+            self._clinical_preset_values.clear()
+            self._active_clinical_preset_name = None
 
     def open_existing_file(self) -> None:
         """Open a file dialog to select an existing TSV file."""
@@ -1605,6 +1609,9 @@ class Step1View(BaseStepView):
     def _load_existing_file(self, file_path: str) -> None:
         """Load an existing TSV file and restore the latest session's settings."""
         import csv
+
+        self._clinical_preset_values.clear()
+        self._active_clinical_preset_name = None
 
         initial_rows = {}  # session_id -> row data
         max_session_id = -1
@@ -1767,6 +1774,10 @@ class Step1View(BaseStepView):
                             preset_btn = self.get_preset_button(preset_name)
                             if preset_btn:
                                 self._set_active_preset_button(preset_btn)
+                                self._active_clinical_preset_name = preset_name
+                                self._clinical_preset_values[preset_name] = list(
+                                    block0_scales
+                                )
 
                 self.update_configuration_display()
 
@@ -1917,6 +1928,90 @@ class Step1View(BaseStepView):
         """Get a preset button by name."""
         return self.findChild(QPushButton, f"preset_{preset_name}")
 
+    def _current_clinical_scale_entries(self) -> list[tuple[str, str]]:
+        """Return filled clinical scale name/value pairs (excludes the add row)."""
+        entries: list[tuple[str, str]] = []
+        for name_edit, score_edit, _ in self.clinical_scales_rows:
+            name = name_edit.text().strip()
+            if not name:
+                continue
+            entries.append((name, score_edit.text().strip()))
+        return entries
+
+    def _save_active_clinical_preset_values(self) -> None:
+        """Persist the current scale rows under the active clinical preset."""
+        if self._active_clinical_preset_name is None:
+            return
+        self._clinical_preset_values[self._active_clinical_preset_name] = (
+            self._current_clinical_scale_entries()
+        )
+
+    def _clear_clinical_scale_rows(self) -> None:
+        """Remove all clinical scale rows from the container."""
+        for _, _, row_layout in self.clinical_scales_rows:
+            while row_layout.count():
+                item = row_layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+            self.clinical_scales_container.removeItem(row_layout)
+        self.clinical_scales_rows = []
+
+        while self.clinical_scales_container.count():
+            item = self.clinical_scales_container.takeAt(0)
+            if item.spacerItem():
+                continue
+            if item.widget():
+                item.widget().deleteLater()
+
+    def _rebuild_clinical_scale_rows(
+        self, scales_to_load: list[tuple[str, str]]
+    ) -> None:
+        """Replace clinical scale rows from (name, value) pairs."""
+        if not hasattr(self, "on_add_callback") or not hasattr(
+            self, "on_remove_callback"
+        ):
+            return
+
+        self._clear_clinical_scale_rows()
+
+        for name, value in scales_to_load:
+            self._add_clinical_scale_row(
+                name,
+                value,
+                with_minus=True,
+                on_remove=self.on_remove_callback,
+            )
+
+        self._add_clinical_scale_row("", with_plus=True, on_add=self.on_add_callback)
+        self.clinical_scales_container.addStretch()
+
+    def apply_clinical_preset(self, preset_name: str) -> None:
+        """Switch clinical preset, restoring scores entered earlier for that preset."""
+        if preset_name not in self.clinical_presets:
+            return
+        if not hasattr(self, "on_add_callback") or not hasattr(
+            self, "on_remove_callback"
+        ):
+            return
+
+        if preset_name == self._active_clinical_preset_name:
+            return
+
+        self._save_active_clinical_preset_values()
+        self._active_clinical_preset_name = preset_name
+
+        preset_btn = self.get_preset_button(preset_name)
+        if preset_btn is not None:
+            self._set_active_preset_button(preset_btn)
+
+        if preset_name in self._clinical_preset_values:
+            scales_to_load = list(self._clinical_preset_values[preset_name])
+        else:
+            scales_to_load = [(name, "") for name in self.clinical_presets[preset_name]]
+
+        self._rebuild_clinical_scale_rows(scales_to_load)
+
     def update_clinical_scales(
         self,
         preset_scales: list[str],
@@ -1950,46 +2045,7 @@ class Step1View(BaseStepView):
                     # Legacy: just a name string, convert to tuple
                     scales_to_load.append((item, ""))
 
-        # Clear existing rows
-        for _, _, row_layout in self.clinical_scales_rows:
-            while row_layout.count():
-                item = row_layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-            self.clinical_scales_container.removeItem(row_layout)
-        self.clinical_scales_rows = []
-
-        # Remove any existing stretches from container
-        while self.clinical_scales_container.count():
-            item = self.clinical_scales_container.takeAt(0)
-            if item.spacerItem():
-                # Just remove the stretch, no widget to delete
-                continue
-            elif item.widget():
-                item.widget().deleteLater()
-
-        # Add scales (either from pending or preset)
-        for item in scales_to_load:
-            if isinstance(item, tuple):
-                name, value = item
-                self._add_clinical_scale_row(
-                    name,
-                    value,
-                    with_minus=True,
-                    on_remove=on_remove_callback,
-                )
-            else:
-                # Legacy: just a name string
-                self._add_clinical_scale_row(
-                    item, with_minus=True, on_remove=on_remove_callback
-                )
-
-        # Add empty row with add button
-        self._add_clinical_scale_row("", with_plus=True, on_add=on_add_callback)
-
-        # Add stretch at the bottom to push content up
-        self.clinical_scales_container.addStretch()
+        self._rebuild_clinical_scale_rows(scales_to_load)
 
         # Connect preset buttons to their respective scales (only now that
         # callbacks are available).
@@ -2012,21 +2068,11 @@ class Step1View(BaseStepView):
 
             # Get the scales for this preset from clinical_presets
             if preset_name in self.clinical_presets:
-                preset_scales = self.clinical_presets[preset_name]
-
-                if preset_scales and isinstance(preset_scales, list):
-                    # Create a proper closure using a function
-                    def create_preset_handler(scales, button):
-                        def handler():
-                            self._set_active_preset_button(button)
-                            self._apply_preset_scales(scales)
-
-                        return handler
-
-                    btn.clicked.connect(create_preset_handler(preset_scales, btn))
-                else:
-                    # Still connect with empty list as fallback
-                    btn.clicked.connect(lambda: self._apply_preset_scales([]))
+                btn.clicked.connect(
+                    lambda checked=False, name=preset_name: self.apply_clinical_preset(
+                        name
+                    )
+                )
 
     def _set_active_preset_button(self, button: QPushButton) -> None:
         """Set the active preset button and update visual state."""
@@ -2048,92 +2094,6 @@ class Step1View(BaseStepView):
             button.style().polish(button)
 
         QTimer.singleShot(0, self._update_preset_buttons_geometry)
-
-    def _apply_preset_scales(self, scales: list[str]):
-        """Apply a preset's scales to the clinical scales section.
-
-        If same preset is clicked: keep existing scales with values, add missing scales.
-        If different preset is clicked: replace all scales with preset scales.
-        """
-        if not isinstance(scales, list):
-            return
-
-        if hasattr(self, "on_add_callback") and hasattr(self, "on_remove_callback"):
-            # Get existing scale names - with and without values
-            existing_scales_with_values = set()
-            all_existing_scale_names = set()
-            for name_edit, score_edit, _ in self.clinical_scales_rows:
-                name = name_edit.text().strip()
-                value = score_edit.text().strip()
-                if name:
-                    all_existing_scale_names.add(name)
-                    if value:
-                        existing_scales_with_values.add(name)
-
-            # Find the empty row (with add button) index
-            add_button_row_index = -1
-            for i, (name_edit, _, _) in enumerate(self.clinical_scales_rows):
-                if (
-                    name_edit.text().strip() == ""
-                ):  # Empty name indicates add button row
-                    add_button_row_index = i
-                    break
-
-            # Remove only the add button row temporarily
-            if add_button_row_index >= 0:
-                name_edit, score_edit, row_layout = self.clinical_scales_rows[
-                    add_button_row_index
-                ]
-                while row_layout.count():
-                    item = row_layout.takeAt(0)
-                    widget = item.widget()
-                    if widget is not None:
-                        widget.deleteLater()
-                self.clinical_scales_container.removeItem(row_layout)
-                self.clinical_scales_rows.pop(add_button_row_index)
-
-            # Check if this is the same preset as before (i.e. every
-            # existing scale that has a value is in the new preset).
-            is_same_preset = all(name in scales for name in existing_scales_with_values)
-
-            if is_same_preset and existing_scales_with_values:
-                # Same preset: keep existing scales, add only truly missing
-                # scales (those not present at all).
-                for scale_name in scales:
-                    if scale_name not in all_existing_scale_names:
-                        self._add_clinical_scale_row(
-                            scale_name,
-                            with_minus=True,
-                            on_remove=self.on_remove_callback,
-                        )
-            else:
-                # Different preset or no existing scales: clear all and
-                # add the preset scales.
-                for _, _, row_layout in self.clinical_scales_rows:
-                    while row_layout.count():
-                        item = row_layout.takeAt(0)
-                        widget = item.widget()
-                        if widget is not None:
-                            widget.deleteLater()
-                    self.clinical_scales_container.removeItem(row_layout)
-                self.clinical_scales_rows = []
-
-                for scale_name in scales:
-                    self._add_clinical_scale_row(
-                        scale_name, with_minus=True, on_remove=self.on_remove_callback
-                    )
-
-            # Add empty row with add button back at the end
-            self._add_clinical_scale_row(
-                "", with_plus=True, on_add=self.on_add_callback
-            )
-
-            # Remove any existing stretches and add one at the very bottom
-            for i in range(self.clinical_scales_container.count() - 1, -1, -1):
-                item = self.clinical_scales_container.itemAt(i)
-                if item and item.spacerItem():
-                    self.clinical_scales_container.takeAt(i)
-            self.clinical_scales_container.addStretch()
 
     def _add_clinical_scale_row(
         self,
@@ -2251,16 +2211,34 @@ class Step1View(BaseStepView):
             # If we found a current preset, check if it was modified
             if current_preset:
                 if current_preset in new_presets:
-                    # Check if scales actually changed
                     old_scales = old_presets[current_preset]
                     new_scales = new_presets[current_preset]
 
                     if old_scales != new_scales:
-                        # Preset was modified - apply new scales
-                        self._apply_preset_scales(new_scales)
+                        self._save_active_clinical_preset_values()
+                        value_by_name = dict(
+                            self._clinical_preset_values.get(current_preset, [])
+                        )
+                        for name, value in self._current_clinical_scale_entries():
+                            value_by_name[name] = value
+
+                        merged: list[tuple[str, str]] = []
+                        for scale_name in new_scales:
+                            merged.append(
+                                (scale_name, value_by_name.get(scale_name, ""))
+                            )
+                        for name, value in value_by_name.items():
+                            if name not in new_scales:
+                                merged.append((name, value))
+
+                        self._clinical_preset_values[current_preset] = merged
+                        if current_preset == self._active_clinical_preset_name:
+                            self._rebuild_clinical_scale_rows(merged)
                 else:
-                    # Preset was deleted - clear scales
-                    self._apply_preset_scales([])
+                    if current_preset == self._active_clinical_preset_name:
+                        self._active_clinical_preset_name = None
+                        self._clinical_preset_values.pop(current_preset, None)
+                        self._rebuild_clinical_scale_rows([])
 
     def _preset_buttons_content_size(self) -> QSize:
         """Measure preset row size from buttons.

@@ -43,9 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a single composite screenshot.
 - ``workflow_complete.rst`` and ``longitudinal_report.rst``: remove overview video
   links (media files were not shipped in the repository).
+- Read the Docs: note on ``output_format.rst`` and ``longitudinal_report.rst`` that
+  session and longitudinal report screenshots and example files are synthetic
+  documentation only (not real clinical data).
 
 ### Fixed
 
+- Step 1: clinical scale scores are preserved when switching between clinical
+  preset buttons and returning to a preset you already filled in.
+- Read the Docs: replace removed Sphinx ``download`` directive (Sphinx 9) with a
+  normal hyperlink for the example programming-session TSV download.
 - In-app **Update now** on Windows: download ``install.ps1`` into a stable folder
   (``%TEMP%\dbs_annotator_update\``) instead of a short-lived temp file deleted
   immediately after launch, so PowerShell can run the script (fixes flash-and-close
