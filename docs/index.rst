@@ -36,12 +36,13 @@ Switzerland), and **Charité Universitätsmedizin Berlin** (Germany).
    :caption: Getting Started
 
    installation
-   quickstart
+   overview
 
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
 
+   quickstart
    workflow_complete
    workflow_annotations
    longitudinal_report

@@ -1,8 +1,9 @@
 Quick Start
 ===========
 
-This page walks you through opening the application for the first time and
-choosing the right workflow for your needs.
+This page walks you through opening the application and choosing the workflow
+that fits your session.  For the clinical motivation and design of the tool,
+see :doc:`overview`.
 
 ----
 
@@ -36,6 +37,7 @@ From the home screen you can start one of three workflows:
 .. list-table::
    :widths: 25 75
    :header-rows: 1
+   :class: workflow-choice-table
 
    * - Button
      - When to use it
