@@ -48,6 +48,12 @@ repos:
         entry: uv run python scripts/generate_session_report_example_docs.py --check
         language: system
         pass_filenames: false
+      - id: docs-favicon
+        name: docs favicon assets
+        entry: uv run python scripts/generate_docs_favicon.py
+        language: system
+        pass_filenames: false
+        files: ^(icons/logosimple/|scripts/generate_docs_favicon\.py)
       - id: ty-check
         name: ty check
         entry: uv run ty check .

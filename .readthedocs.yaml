@@ -22,6 +22,7 @@ build:
       # -> [dependency-groups].docs) into the RTD-managed virtualenv, honoring
       # uv.lock for reproducibility. No dev/build groups are needed to render docs.
       - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --locked --group docs --no-dev
+      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv run python scripts/generate_docs_favicon.py
 
 sphinx:
   configuration: docs/conf.py

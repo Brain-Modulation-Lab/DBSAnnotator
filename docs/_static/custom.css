@@ -114,7 +114,9 @@ section.wy-nav-content-wrap,
 
 /* Home-page logo keeps its explicit :width: from RST. */
 .rst-content img[src*="logo.png"],
-.wy-nav-content img[src*="logo.png"] {
+.rst-content img[src*="logo_docs.png"],
+.wy-nav-content img[src*="logo.png"],
+.wy-nav-content img[src*="logo_docs.png"] {
   max-width: none;
   box-shadow: none;
 }
