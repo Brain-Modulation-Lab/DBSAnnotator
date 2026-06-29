@@ -69,14 +69,9 @@ class WizardController:
             preset_name: Name of the preset (e.g., "OCD", "MDD")
             view: The Step1View instance to update
         """
-        preset_manager = get_scale_preset_manager()
-        clinical_presets = preset_manager.get_clinical_presets()
-        preset = clinical_presets.get(preset_name, [])
-        view.update_clinical_scales(
-            preset,
-            on_add_callback=lambda: self.on_add_clinical_scale(view),
-            on_remove_callback=lambda row: self.on_remove_clinical_scale(view, row),
-        )
+        view.on_add_callback = lambda: self.on_add_clinical_scale(view)
+        view.on_remove_callback = lambda row: self.on_remove_clinical_scale(view, row)
+        view.apply_clinical_preset(preset_name)
 
     def apply_session_preset(self, preset_name: str, view) -> None:
         """
