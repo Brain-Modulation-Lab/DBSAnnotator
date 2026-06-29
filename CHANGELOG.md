@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Read the Docs: note on ``output_format.rst`` and ``longitudinal_report.rst`` that
   session and longitudinal report screenshots and example files are synthetic
   documentation only (not real clinical data).
+- Read the Docs: new ``overview.rst`` (Getting Started) — clinical motivation
+  and design; ``quickstart`` moved to User Guide; workflow-choice table shown
+  without horizontal scroll.
 
 ### Fixed
 

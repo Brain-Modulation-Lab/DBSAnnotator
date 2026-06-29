@@ -137,3 +137,11 @@ Data storage
 The application does not use a database or registry entries for clinical
 data.  All recordings are tab-separated ``.tsv`` files in the output folder
 you select at session start.  Column schema: :doc:`output_format`.
+
+----
+
+Next steps
+----------
+
+* :doc:`overview` — motivation, design, and what the application records
+* :doc:`quickstart` — launch the app and choose a workflow
