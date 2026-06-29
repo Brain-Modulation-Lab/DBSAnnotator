@@ -3,7 +3,7 @@
 DBS Annotator
 =============
 
-.. image:: _static/logo.png
+.. image:: _static/logo_docs.png
    :alt: DBS Annotator
    :align: center
    :width: 180px

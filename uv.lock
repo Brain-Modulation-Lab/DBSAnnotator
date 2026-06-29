@@ -14,7 +14,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer = "2026-06-22T14:48:53.5795396Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -482,6 +482,7 @@ dev = [
 ]
 docs = [
     { name = "myst-parser" },
+    { name = "pillow" },
     { name = "sphinx" },
     { name = "sphinx-copybutton" },
     { name = "sphinx-rtd-theme" },
@@ -519,6 +520,7 @@ dev = [
 ]
 docs = [
     { name = "myst-parser", specifier = ">=4.0.0" },
+    { name = "pillow", specifier = ">=11.0.0" },
     { name = "sphinx", specifier = ">=9.0.4" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
     { name = "sphinx-rtd-theme", specifier = ">=3.1.0" },
