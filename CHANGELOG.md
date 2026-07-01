@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Read the Docs: new ``overview.rst`` (Getting Started) — motivation and
   design; ``quickstart`` moved to User Guide; workflow-choice table shown
   without horizontal scroll.
+- Read the Docs: ``faq`` contact section simplified; ``quickstart`` Help button
+  label aligned with the UI; minor punctuation in ``output_format.rst``.
 
 ### Fixed
 
