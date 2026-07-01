@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Wizard window: top bar and native title bar no longer clip off-screen when the
+  window is moved or resized on a smaller monitor; geometry clamping releases
+  layout minimums so content scrolls inside the step area instead of forcing
+  window height.
 - Step 1: clinical scale scores are preserved when switching between clinical
   preset buttons and returning to a preset you already filled in.
 - Read the Docs: replace removed Sphinx ``download`` directive (Sphinx 9) with a
