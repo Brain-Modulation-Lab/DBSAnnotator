@@ -30,6 +30,7 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 
@@ -53,6 +54,7 @@ _RELEASES_PAGE_SIZE = 100
 _MAX_RELEASE_PAGES = 5
 
 
+@lru_cache(maxsize=1)
 def _ca_bundle_path() -> str:
     """Readable CA bundle path (Briefcase/MSI layouts may break ``where()``)."""
     path = certifi.where()
@@ -72,6 +74,7 @@ def _ca_bundle_path() -> str:
         return path
 
 
+@lru_cache(maxsize=1)
 def _ssl_context() -> ssl.SSLContext:
     """CA bundle for HTTPS in packaged apps (Briefcase MSI/ZIP on Windows)."""
     return ssl.create_default_context(cafile=_ca_bundle_path())

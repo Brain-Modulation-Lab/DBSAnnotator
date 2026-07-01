@@ -20,6 +20,16 @@ from dbs_annotator.utils.updater import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _stub_ssl_context(request: pytest.FixtureRequest):
+    """Avoid slow/hanging certifi SSL setup on Windows CI (except SSL unit test)."""
+    if request.node.name == "test_urlopen_uses_certifi_ssl_context":
+        yield
+        return
+    with patch("dbs_annotator.utils.updater._ssl_context", return_value=MagicMock()):
+        yield
+
+
 class _FakeResp:
     def __init__(self, body: bytes) -> None:
         self._body = body
