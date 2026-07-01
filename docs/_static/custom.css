@@ -69,15 +69,6 @@ section.wy-nav-content-wrap,
   background-color: #f3f6f6;
 }
 
-/* Home / quickstart workflow table — no horizontal scroll wrapper. */
-.wy-nav-content .wy-table-responsive:has(.workflow-choice-table) {
-  overflow: visible;
-}
-
-.wy-nav-content .workflow-choice-table {
-  width: 100%;
-}
-
 /* Breadcrumbs sit on the dark canvas, outside the light panel. */
 .wy-nav-content-wrap .wy-breadcrumbs li,
 .wy-nav-content-wrap .wy-breadcrumbs li a {
@@ -112,11 +103,21 @@ section.wy-nav-content-wrap,
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 
+/* Dialog screenshots: intrinsic size (65% cap applies to main window only). */
+.rst-content img.screenshot-dialog,
+.wy-nav-content img.screenshot-dialog {
+  display: block;
+  width: auto !important;
+  max-width: none;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
 /* Home-page logo keeps its explicit :width: from RST. */
 .rst-content img[src*="logo.png"],
-.rst-content img[src*="logo_docs.png"],
-.wy-nav-content img[src*="logo.png"],
-.wy-nav-content img[src*="logo_docs.png"] {
+.wy-nav-content img[src*="logo.png"] {
   max-width: none;
   box-shadow: none;
 }

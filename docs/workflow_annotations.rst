@@ -1,10 +1,10 @@
 Annotations-only Workflow
 =========================
 
-The **Annotations-only Workflow** records timestamped text notes only — no
-stimulation parameters and no clinical or session scale values.  Each note is
-appended to its own annotations TSV file as you work; there is no merge step and
-this workflow does not combine multiple files into one.
+The **Annotations-only Workflow** records timestamped text notes only. It does
+not capture stimulation parameters or clinical or session scale values. Each
+note is appended to its own annotations TSV file as you work. There is no merge
+step and this workflow does not combine multiple files into one.
 
 Use it for in-clinic observations, ward notes, or any visit where you need a
 lightweight timestamped log without running the full programming workflow.

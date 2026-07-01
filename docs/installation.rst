@@ -1,26 +1,26 @@
 Installation
 ============
 
-DBS Annotator is a **self-contained desktop application** — no Python or
-extra libraries are required to run the packaged build.  Session data are
-plain ``.tsv`` files in a folder you choose when you start a session.
+DBS Annotator is a **self-contained desktop application**. No Python or extra
+libraries are required to run the packaged build. Session data are plain
+``.tsv`` files in a folder you choose when you start a session.
 
 ----
 
 For end users
 -------------
 
-You can find installation files for **Windows** (``.msi``), **macOS**
-(``.dmg``), and **Linux** (``.deb``) on
+Installation files for **Windows** (``.msi``), **macOS** (``.dmg``), and
+**Linux** (``.deb``) are on
 `GitHub Releases <https://github.com/Brain-Modulation-Lab/DBSAnnotator/releases>`_.
 
-However, the files are **unsigned**, so a warning may appear during
-installation or on first launch.  You must accept the risk and continue.
-On Windows, see :ref:`windows-smartscreen` if SmartScreen blocks the app.
+The files are **unsigned**, so a warning may appear during installation or on
+first launch. You must accept the risk and continue. On Windows, see
+:ref:`windows-smartscreen` if SmartScreen blocks the app.
 
-In some cases — for example when your organization has strict settings — a
-direct download may not be possible.  Use the **install commands below** for
-your operating system.
+In some cases, for example when your organization has strict settings, a direct
+download may not be possible. Use the install commands below for your operating
+system.
 
 ----
 
@@ -29,8 +29,8 @@ your operating system.
 Windows — SmartScreen warnings
 ------------------------------
 
-Release builds are not code-signed.  **Windows Defender SmartScreen** may
-block the installer (``.msi``) or the application on first launch.
+Release builds are not code-signed. **Windows Defender SmartScreen** may block
+the installer (``.msi``) or the application on first launch.
 
 If you see **"Windows protected your PC"** or **"Microsoft Defender SmartScreen
 prevented an unrecognized app from starting"**:
@@ -39,8 +39,8 @@ prevented an unrecognized app from starting"**:
 2. Click **Run anyway** (installer) or **Run** (application).
 
 If your organization blocks unsigned software entirely, use the PowerShell
-install command below (portable build under your user profile), or ask IT for
-an exception.
+install command below (portable build under your user profile), or ask IT for an
+exception.
 
 ----
 
@@ -68,9 +68,9 @@ Start Menu shortcut.
 macOS / Linux — shell install
 -----------------------------
 
-**macOS** and **Linux** use the same install script.  It needs **Python 3**
-and ``curl`` or ``wget``.  On macOS it prefers the release **raw** ``.tar.gz``,
-otherwise the ``.dmg``.  On Linux (x86_64) it prefers the raw ``.tar.gz``,
+**macOS** and **Linux** use the same install script. It needs **Python 3** and
+``curl`` or ``wget``. On macOS it prefers the release **raw** ``.tar.gz``,
+otherwise the ``.dmg``. On Linux (x86_64) it prefers the raw ``.tar.gz``,
 otherwise the published ``.deb``.
 
 .. code-block:: sh
@@ -82,9 +82,9 @@ otherwise the published ``.deb``.
    wget -qO- https://raw.githubusercontent.com/Brain-Modulation-Lab/DBSAnnotator/main/scripts/install.sh | sh
 
 On **macOS**, if you install from the ``.dmg`` manually instead: open the disk
-image from GitHub Releases and drag **DBSAnnotator** to *Applications*.  On
-first launch, right-click → **Open** → **Open** again (required once when the
-app is not notarized).
+image from GitHub Releases and drag **DBSAnnotator** to *Applications*. On first
+launch, right-click → **Open** → **Open** again (required once when the app is
+not notarized).
 
 On **Linux** non-x86_64 systems, install the ``.deb`` from Releases manually or
 build from source (see :doc:`contributing`).
@@ -95,7 +95,7 @@ Updating
 --------
 
 Updating the application does **not** change your session ``*_events.tsv``
-files — they stay in the folders you chose in the app.
+files. They stay in the folders you chose in the app.
 
 Re-run the same install command
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -118,8 +118,8 @@ Automatic update notification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When enabled, the app checks GitHub Releases (about once per day) and notifies
-you if a newer version is available.  No patient or session data are sent.
-Toggle checks from **Help**, or opt out on the update dialog.  See :doc:`faq`
+you if a newer version is available. No patient or session data are sent.
+Toggle checks from **Help**, or opt out on the update dialog. See :doc:`faq`
 (*How does the automatic update checker work?*).
 
 Installer from GitHub Releases
@@ -134,9 +134,9 @@ and run it over the previous install.
 Data storage
 ------------
 
-The application does not use a database or registry entries for clinical
-data.  All recordings are tab-separated ``.tsv`` files in the output folder
-you select at session start.  Column schema: :doc:`output_format`.
+The application does not use a database or registry entries for clinical data.
+All recordings are tab-separated ``.tsv`` files in the output folder you select
+at session start. Column schema: :doc:`output_format`.
 
 ----
 
