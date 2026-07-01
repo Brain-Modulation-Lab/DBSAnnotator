@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   console when the installer fails so the error stays visible.
 - Dependency audit: pin ``uv>=0.11.15`` (GHSA-4gg8-gxpx-9rph); upgrade ``pip`` to
   26.1.2 (PYSEC-2026-196, Briefcase transitive dep).
+- Update checker: cache the certifi SSL context; unit tests stub SSL setup to
+  avoid Windows CI timeouts in ``test_updater.py``.
 
 ## [0.4.0] - 2026-06-01
 
