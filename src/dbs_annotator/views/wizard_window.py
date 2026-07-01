@@ -12,8 +12,8 @@ import typing
 from datetime import datetime
 from typing import Protocol
 
-from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
+from PySide6.QtCore import QRect, QSize, Qt, QTimer
+from PySide6.QtGui import QCursor, QDesktopServices, QIcon, QPixmap, QScreen
 from PySide6.QtWidgets import (
     QAbstractButton,
     QCheckBox,
@@ -109,6 +109,14 @@ class WizardWindow(QWidget):
         logo_path = resource_path(os.path.join(ICONS_DIR, ICON_FILENAME))
         self.logo_pixmap = QPixmap(logo_path)
 
+        self._screen_changed_connected = False
+        self._is_clamping = False
+
+        self._clamp_timer = QTimer(self)
+        self._clamp_timer.setSingleShot(True)
+        self._clamp_timer.setInterval(80)
+        self._clamp_timer.timeout.connect(self._clamp_to_screen)
+
         self._setup_window()
         self._setup_ui()
         self._update_ui_state()
@@ -196,7 +204,7 @@ class WizardWindow(QWidget):
         # Create stacked widget for steps
         self.stack = QStackedWidget(self)
         self.stack.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
         self.stack.currentChanged.connect(lambda _: self._update_ui_state())
@@ -909,7 +917,7 @@ class WizardWindow(QWidget):
         if not hasattr(self, "stack"):
             return
         self.stack.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.stack.setMinimumWidth(0)
         self.stack.setMinimumHeight(0)
@@ -920,25 +928,89 @@ class WizardWindow(QWidget):
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
 
+    def _screen_under_window(self) -> QScreen | None:
+        """Return the screen under the cursor or window, else the primary screen."""
+        for point in (QCursor.pos(), self.frameGeometry().center()):
+            screen = self.app.screenAt(point)
+            if screen is not None:
+                return screen
+        return self.app.primaryScreen()
+
+    def _schedule_clamp_to_screen(self) -> None:
+        """Debounce geometry clamping so cross-monitor drags are not fought."""
+        if not self._clamp_timer.isActive():
+            self._clamp_timer.start()
+
+    def _fit_geometry_to_rect(self, rect: QRect) -> None:
+        """Resize and reposition the window to fit inside *rect*."""
+        if self._is_main_workflow_window():
+            # Briefly drop layout minimums so the window can shrink; content scrolls
+            # inside stack_scroll_area instead of pushing the header off-screen.
+            self.setMinimumSize(1, 1)
+            self.setMaximumSize(16777215, 16777215)
+
+        geo = self.geometry()
+        width = min(geo.width(), rect.width())
+        height = min(geo.height(), rect.height())
+        x = min(max(geo.x(), rect.x()), rect.x() + rect.width() - width)
+        y = min(max(geo.y(), rect.y()), rect.y() + rect.height() - height)
+
+        if (x, y, width, height) != (geo.x(), geo.y(), geo.width(), geo.height()):
+            self.setGeometry(x, y, width, height)
+
+    def _is_main_workflow_window(self) -> bool:
+        """True when the window uses resizable main-workflow geometry (not step 0)."""
+        return self.current_step != 0
+
+    def _effective_min_size(self, screen: QScreen) -> QSize:
+        """Minimum window size capped to the available area of the given screen."""
+        rect = screen.availableGeometry()
+        return QSize(
+            min(WINDOW_MIN_SIZE["width"], rect.width()),
+            min(WINDOW_MIN_SIZE["height"], rect.height()),
+        )
+
+    def _connect_screen_changed(self) -> None:
+        """Re-clamp geometry when the window moves to another monitor."""
+        handle = self.windowHandle()
+        if handle is None or self._screen_changed_connected:
+            return
+        handle.screenChanged.connect(self._on_screen_changed)
+        self._screen_changed_connected = True
+
+    def _on_screen_changed(self, _screen: QScreen | None) -> None:
+        """Keep the window on-screen after a monitor change."""
+        if not self._is_main_workflow_window():
+            return
+        if self.isMaximized():
+            screen = self._screen_under_window()
+            if screen is not None:
+                rect = screen.availableGeometry()
+                if not rect.contains(self.frameGeometry()):
+                    self.showNormal()
+        self._clamp_to_screen()
+
     def _update_window_size_for_main_workflow(self) -> None:
         """Restore normal window size for main workflow (steps 1+)."""
         self._release_stack_size_constraints()
 
-        screen = self.app.primaryScreen()
+        screen = self._screen_under_window()
+        if screen is None:
+            return
         rect = screen.availableGeometry()
         screen_width = rect.width()
         screen_height = rect.height()
 
-        min_width = min(WINDOW_MIN_SIZE["width"], screen_width)
-        min_height = min(WINDOW_MIN_SIZE["height"], screen_height)
+        min_width = self._effective_min_size(screen).width()
+        min_height = self._effective_min_size(screen).height()
 
         desired_width = int(screen_width * WINDOW_SIZE_RATIO["width"])
         desired_height = int(screen_height * WINDOW_SIZE_RATIO["height"])
         width = max(desired_width, min_width)
         height = max(desired_height, min_height)
 
-        x = int((screen_width - width) / 2)
-        y = int((screen_height - height) / 2)
+        x = rect.x() + int((screen_width - width) / 2)
+        y = rect.y() + int((screen_height - height) / 2)
 
         # Reset constraints first to avoid min/max conflicts from step 0
         self.setMinimumSize(1, 1)
@@ -954,39 +1026,44 @@ class WizardWindow(QWidget):
 
     def _clamp_to_screen(self) -> None:
         """Ensure the window stays within the available screen area."""
-        if getattr(self, "_is_clamping", False):
+        if self._is_clamping:
             return
         self._is_clamping = True
         try:
-            screen = (
-                self.app.screenAt(self.frameGeometry().center())
-                or self.app.primaryScreen()
-            )
+            screen = self._screen_under_window()
+            if screen is None:
+                return
             rect = screen.availableGeometry()
-            geo = self.geometry()
 
-            width = min(geo.width(), rect.width())
-            height = min(geo.height(), rect.height())
+            self._fit_geometry_to_rect(rect)
 
-            x = min(max(geo.x(), rect.x()), rect.x() + rect.width() - width)
-            y = min(max(geo.y(), rect.y()), rect.y() + rect.height() - height)
-
-            if (x, y, width, height) != (geo.x(), geo.y(), geo.width(), geo.height()):
-                self.setGeometry(x, y, width, height)
+            if self._is_main_workflow_window():
+                effective = self._effective_min_size(screen)
+                fitted = self.geometry()
+                self.setMinimumSize(
+                    min(effective.width(), fitted.width()),
+                    min(effective.height(), fitted.height()),
+                )
         finally:
             self._is_clamping = False
 
     @typing.override
+    def showEvent(self, event):
+        """Connect monitor-change handling once a native window exists."""
+        super().showEvent(event)
+        self._connect_screen_changed()
+
+    @typing.override
     def resizeEvent(self, event):
-        """Re-clamp to screen on every resize."""
+        """Re-clamp to screen after resize settles."""
         super().resizeEvent(event)
-        self._clamp_to_screen()
+        self._schedule_clamp_to_screen()
 
     @typing.override
     def moveEvent(self, event):
-        """Re-clamp to screen on every move."""
+        """Re-clamp to screen after move settles (avoids fighting cross-monitor drags)."""
         super().moveEvent(event)
-        self._clamp_to_screen()
+        self._schedule_clamp_to_screen()
 
     def _connect_step1_signals(self) -> None:
         """Connect Step 1 view signals to controller."""

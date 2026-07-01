@@ -8,7 +8,7 @@
   --dbs-docs-sidebar: #343131;
   /* sphinx-rtd-theme .wy-nav-content-wrap / content area */
   --dbs-docs-content-bg: #fcfcfc;
-  --dbs-docs-screenshot-max: 65%;
+  --dbs-docs-screenshot-max: 75%;
 }
 
 /* Outer area — same dark grey as the left navigation column (standard RTD). */
@@ -97,18 +97,6 @@ section.wy-nav-content-wrap,
   display: block;
   width: auto !important;
   max-width: var(--dbs-docs-screenshot-max);
-  height: auto;
-  margin-inline: auto;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-}
-
-/* Dialog screenshots: intrinsic size (65% cap applies to main window only). */
-.rst-content img.screenshot-dialog,
-.wy-nav-content img.screenshot-dialog {
-  display: block;
-  width: auto !important;
-  max-width: none;
   height: auto;
   margin-inline: auto;
   border-radius: 4px;
