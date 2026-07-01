@@ -5,10 +5,9 @@ Outputs under ``docs/_static/``:
 
 * ``favicon-16.png``, ``favicon-32.png``, ``favicon-48.png`` — RGB PNG tab icons
 * ``favicon.ico`` — multi-size fallback (24-bit BMP entries, no alpha)
-* ``logo_docs.png`` — landing-page logo (same background as favicons)
 
-The packaged desktop app keeps the default transparent icon; these files are
-docs-only (see ``docs/conf.py`` ``html_favicon`` and ``docs/index.rst``).
+The landing page uses the standard transparent ``logo.png``; only tab icons get
+the opaque background.
 """
 
 from __future__ import annotations
@@ -23,7 +22,6 @@ OUT_DIR = ROOT / "docs" / "_static"
 # Opaque white — visible on browser tabs and the RTD light content panel.
 BACKGROUND = "#FFFFFF"
 FAVICON_SIZES = (16, 32, 48)
-LOGO_DOCS_SIZE = 256
 
 
 def _render(size: int) -> Image.Image:
@@ -63,12 +61,8 @@ def main() -> None:
     for size in FAVICON_SIZES:
         _write_png(OUT_DIR / f"favicon-{size}.png", size)
     _write_ico(OUT_DIR / "favicon.ico")
-    _write_png(OUT_DIR / "logo_docs.png", LOGO_DOCS_SIZE)
 
-    print(
-        "Wrote favicon PNGs, favicon.ico, and logo_docs.png under",
-        OUT_DIR,
-    )
+    print("Wrote favicon PNGs and favicon.ico under", OUT_DIR)
 
 
 if __name__ == "__main__":

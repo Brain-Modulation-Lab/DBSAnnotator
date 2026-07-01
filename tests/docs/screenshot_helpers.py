@@ -160,7 +160,7 @@ def grab_window_pixmap(widget: QWidget) -> QPixmap:
 
 
 def grab_widget_pixmap(widget: QWidget) -> QPixmap:
-    """Dialogs/modals: native-resolution grab (sharp when CSS scales down)."""
+    """Capture a dialog or modal at native resolution."""
     return grab_window_pixmap(widget)
 
 
@@ -353,10 +353,12 @@ def save_program_names_settings_dialog(wizard, path: Path) -> None:
 
 
 def save_help_dialog(wizard: WizardWindow, path: Path) -> None:
-    """Capture the Help / About dialog (footer with update check visible)."""
+    """Capture the Help / About dialog at the app's normal size."""
     wizard.show()
     wizard.raise_()
-    save_dialog(wizard._build_info_dialog(), path, min_width=640)
+    dlg = wizard._build_info_dialog()
+    dlg.resize(640, max(dlg.sizeHint().height(), 520))
+    save_pixmap(grab_widget_pixmap(dlg), path)
 
 
 def _demo_release_info():
@@ -390,16 +392,22 @@ def save_release_notes_dialog(wizard: WizardWindow, path: Path) -> None:
     wizard.show()
     wizard.raise_()
     dlg = wizard._build_release_notes_dialog(_demo_release_info())
-    dlg.resize(560, 420)
+    dlg.resize(560, max(dlg.sizeHint().height(), 400))
     save_pixmap(grab_widget_pixmap(dlg), path)
 
 
-def save_dialog(dlg: QWidget, path: Path, *, min_width: int = 340) -> None:
+def save_dialog(
+    dlg: QWidget,
+    path: Path,
+    *,
+    min_width: int = 340,
+) -> None:
     """Capture a dialog at its natural size (avoids extra empty vertical space)."""
     layout = dlg.layout()
     if layout is not None:
         layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
-    dlg.setMinimumWidth(min_width)
+    if min_width > 0:
+        dlg.setMinimumWidth(min_width)
     dlg.setMaximumSize(16777215, 16777215)  # reset any prior max from test resizes
     dlg.adjustSize()
     hint = dlg.sizeHint()

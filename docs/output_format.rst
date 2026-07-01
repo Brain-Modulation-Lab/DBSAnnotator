@@ -9,9 +9,9 @@ structure of the exported reports.
 TSV Data File
 -------------
 
-All session data is stored as a **tab-separated values** (``.tsv``) file.
-One file is created per session; rows are appended in real-time as entries
-are recorded.
+All session data is stored as a **tab-separated values** (``.tsv``) file. One
+file is created per session; rows are appended in real time as entries are
+recorded.
 
 Filename Convention
 ^^^^^^^^^^^^^^^^^^^
@@ -22,10 +22,10 @@ Filenames follow the `BIDS <https://bids.neuroimaging.io/>`_ pattern::
 
 The ``task`` segment depends on which workflow created the file:
 
-* **Complete Workflow** — ``task-programming`` (stimulation parameters, clinical
+* **Complete Workflow**: ``task-programming`` (stimulation parameters, clinical
   and session scales, notes).
-* **Annotations-only Workflow** — ``task-annotations`` (timestamped text annotations
-  only; dedicated column schema — see *Annotations-only TSV columns* below).
+* **Annotations-only Workflow**: ``task-annotations`` (timestamped text
+  annotations only; see *Annotations-only TSV columns* below).
 
 Examples::
 
@@ -36,7 +36,8 @@ Columns
 ^^^^^^^
 
 The schema tables below are generated from the code-level constants in
-``dbs_annotator.config``. This keeps the docs and writer implementation in sync.
+``dbs_annotator.config``. This keeps the docs and writer implementation in
+sync.
 
 .. include:: _generated/tsv_schema.inc.rst
 
@@ -62,6 +63,12 @@ The programming-session example used in the report section below is stored as
 ``sub-01_ses-20260626_task-programming_run-01_events.tsv`` (BIDS naming).
 Each scale is stored on its own row; rows sharing the same ``block_ID`` belong
 to one baseline (Step 1) or stimulation configuration (Step 3 **Insert**).
+
+.. note::
+
+   **Illustrative example only.** The example TSV shown below is a synthetic
+   documentation example. It is not derived from, and does not represent, any
+   real patient or clinical encounter.
 
 `Download the example TSV`_
 
@@ -94,11 +101,10 @@ at export time.
 
 .. note::
 
-   **Illustrative examples only.**  The report screenshots and sample data
-   files shown below are synthetic documentation materials.  They are not
-   derived from, and do not represent, any real patient, clinical encounter,
-   or identifiable health information.  They are provided solely to
-   demonstrate report layout and export format.
+   **Illustrative examples only.** The report screenshots and sample data files
+   shown below are synthetic documentation materials. They are not derived from,
+   and do not represent, any real patient or clinical encounter.
+
 
 Single-Session Report
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -186,8 +192,7 @@ Sections (in order, selected at export time):
       :class: screenshot-native
 
 3. **Session Data** *(optional)* — session-scale timeline chart and/or
-   combined table across all sessions.  The table's first column is the entry
-   **date**; the best entry per session is highlighted.
+   combined table across all sessions. The best entry per session is highlighted.
 
    * **Session Data Graph** — one subplot per session scale, with data from
      **all** loaded ``task-programming`` files combined so you can compare

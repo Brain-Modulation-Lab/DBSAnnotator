@@ -2,7 +2,7 @@ Complete Workflow
 =================
 
 The **Complete Workflow** guides you through a DBS programming session in
-**four steps**.  Data is saved automatically after each entry; you never need to
+**four steps**. Data is saved automatically after each entry; you never need to
 press a manual "Save" button.
 
 ----

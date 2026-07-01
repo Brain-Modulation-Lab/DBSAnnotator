@@ -1,10 +1,10 @@
 Longitudinal Report
 ===================
 
-The Longitudinal Report workflow combines data from **multiple programming-session
-TSV files** for the **same subject** into a single comparative document.  Use it
-to track a patient's progression across visits.  Files must follow the BIDS
-``task-programming`` naming convention (e.g.
+The Longitudinal Report workflow combines data from **multiple
+programming-session TSV files** for the **same subject** into a single
+comparative document. Use it to track a patient's progression across visits.
+Files must follow the BIDS ``task-programming`` naming convention (for example
 ``sub-01_ses-20250115_task-programming_run-01_events.tsv``).
 
 ----
@@ -146,9 +146,9 @@ Report Contents
 ----------------
 
 The exported Word/PDF follows the same section order as the
-:doc:`longitudinal summary on output_format <output_format>`.  Example
-screenshots from a multi-session export (synthetic documentation data only;
-not a real clinical case):
+:doc:`longitudinal summary on output_format <output_format>`. Example
+screenshots from a multi-session export use synthetic documentation data only,
+not a real clinical case:
 
 Title
 ^^^^^

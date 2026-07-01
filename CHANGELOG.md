@@ -33,9 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Read the Docs: standard sphinx-rtd-theme palette (dark grey sidebar frame,
   light content panel, default blue links/headings); explicit table/body text
-  contrast on the light panel; browser tab favicon and landing-page logo use the
-  app icon on an opaque white background (``scripts/generate_docs_favicon.py``);
-  screenshots and figures
+  contrast on the light panel; browser tab favicon uses the app icon on an opaque
+  white background (``scripts/generate_docs_favicon.py``); the landing-page logo
+  keeps a transparent background; screenshots and figures
   capped at 65% width (centered) via ``docs/_static/custom.css``.
 - Docs screenshot pipeline: wizard captures use 65% of the app's normal step window
   size (``WIZARD_SCREENSHOT_SIZE_RATIO`` in ``tests/docs/screenshot_helpers.py``)
@@ -47,8 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Read the Docs: note on ``output_format.rst`` and ``longitudinal_report.rst`` that
   session and longitudinal report screenshots and example files are synthetic
   documentation only (not real clinical data).
-- Read the Docs: new ``overview.rst`` (Getting Started) — clinical motivation
-  and design; ``quickstart`` moved to User Guide; workflow-choice table shown
+- Read the Docs: new ``overview.rst`` (Getting Started) — motivation and
+  design; ``quickstart`` moved to User Guide; workflow-choice table shown
   without horizontal scroll.
 
 ### Fixed
