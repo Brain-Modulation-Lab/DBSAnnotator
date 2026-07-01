@@ -114,21 +114,21 @@ example session TSV shown in *Example rows* above.
 
 Sections (in order):
 
-1. **Title** — "Clinical DBS Session Report", generated date, patient ID,
+1. **Title** - "Clinical DBS Session Report", generated date, patient ID,
    session number.
 
    .. image:: _static/session_report_intro.png
       :alt: Session report title page
       :class: screenshot-native
 
-2. **Initial Clinical Notes** *(optional)* — baseline clinical scale scores
+2. **Initial Clinical Notes** *(optional)* - baseline clinical scale scores
    and any initial notes recorded in Step 1.
 
    .. image:: _static/session_report_clinical_scores.png
       :alt: Initial clinical notes and baseline scale scores
       :class: screenshot-native
 
-3. **Session Data** *(optional)* — one or both of:
+3. **Session Data** *(optional)* - one or both of:
 
    * **Session Data Graph** — matplotlib timeline chart of session-scale
      values vs ``block_ID`` (best entry per scale highlighted).
@@ -137,7 +137,7 @@ Sections (in order):
         :alt: Session data timeline chart
         :class: screenshot-native
 
-   * **Session Data Table** — lateral table (L/R rows per configuration) with
+   * **Session Data Table** - lateral table (L/R rows per configuration) with
      stimulation parameters, scale values, and notes.
 
 .. _session-report-session-table:
@@ -146,7 +146,7 @@ Sections (in order):
       :alt: Session data table (L/R stimulation and scale values)
       :class: screenshot-native
 
-4. **Electrode Configurations** *(optional)* — a borderless 4-column table:
+4. **Electrode Configurations** *(optional)* - a borderless 4-column table:
 
    +-------------------+-------------------+-------------------+-------------------+
    | Initial — Left    | Initial — Right   | Final — Left      | Final — Right     |
@@ -160,7 +160,7 @@ Sections (in order):
       :alt: Initial and final electrode configuration diagrams
       :class: screenshot-native
 
-5. **Programming Summary** *(optional)* — session duration, number of
+5. **Programming Summary** *(optional)* - session duration, number of
    configurations, and amplitude / frequency / pulse-width ranges per side.
 
    .. image:: _static/session_report_parameters_summary.png
@@ -172,14 +172,14 @@ Longitudinal Report
 
 Sections (in order, selected at export time):
 
-1. **Title** — "Longitudinal DBS Report", generated date, patient ID,
+1. **Title** - "Longitudinal DBS Report", generated date, patient ID,
    list of included files.
 
    .. image:: _static/longitudinal_report_initial.png
       :alt: Longitudinal report title page
       :class: screenshot-native
 
-2. **Sessions Overview** *(optional)* — clinical-scales timeline chart across
+2. **Sessions Overview** *(optional)* - clinical-scales timeline chart across
    sessions plus a one-row-per-session summary table (date, entry count,
    baseline scale names and values).
 
@@ -191,7 +191,7 @@ Sections (in order, selected at export time):
       :alt: Sessions overview summary table
       :class: screenshot-native
 
-3. **Session Data** *(optional)* — session-scale timeline chart and/or
+3. **Session Data** *(optional)* - session-scale timeline chart and/or
    combined table across all sessions. The best entry per session is highlighted.
 
    * **Session Data Graph** — one subplot per session scale, with data from
@@ -202,13 +202,13 @@ Sections (in order, selected at export time):
         :alt: Session-scale timeline across all loaded sessions
         :class: screenshot-native
 
-   * **Session Data Table** — same lateral layout as the
+   * **Session Data Table** - same lateral layout as the
      :ref:`single-session session data table <session-report-session-table>`,
      but rows from every loaded file are merged; the **date** column identifies
      each acquisition and the best configuration **per session** is highlighted
      in green.
 
-4. **Electrode Configuration** *(optional)* — for **each** loaded session file,
+4. **Electrode Configuration** *(optional)* - for **each** loaded session file,
    a page with the same Initial / Final, Left / Right layout as the
    :ref:`single-session electrode section <session-report-electrode-config>`
    (see example below); pages are separated by page breaks.
@@ -217,7 +217,7 @@ Sections (in order, selected at export time):
       :alt: Electrode layout (one page per session file in longitudinal reports)
       :class: screenshot-native
 
-5. **Programming Summary** *(optional)* — per-session parameter ranges.
+5. **Programming Summary** *(optional)* - per-session parameter ranges.
 
    .. image:: _static/longitudinal_report_parameters_summary.png
       :alt: Programming summary per loaded session

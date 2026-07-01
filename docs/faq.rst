@@ -89,9 +89,9 @@ The application highlights the "best" stimulation configuration in green in the
 Session Data table.  The scale optimisation dialog lets you define what "best"
 means for each scale:
 
-* **Min** — the entry with the lowest value is best (e.g. UPDRS-III, Tremor).
-* **Max** — the entry with the highest value is best (e.g. Mood, Energy).
-* **Custom** — the entry closest to a target value you specify.
+* **Min** - the entry with the lowest value is best (e.g. UPDRS-III, Tremor).
+* **Max** - the entry with the highest value is best (e.g. Mood, Energy).
+* **Custom** - the entry closest to a target value you specify.
 
 Uncheck a scale to exclude it from the calculation.
 
@@ -155,9 +155,5 @@ making any selection.
 Contact & Support
 -----------------
 
-For bug reports, feature requests, or questions:
-
-| **Massachusetts General Hospital** (Brain Modulation Lab)
-| **Wyss Center for Bio and Neuroengineering**
-| **Charité Universitätsmedizin Berlin**
-| **Lucia Poma** — lucia.poma@wysscenter.ch
+For bug reports, feature requests, or questions, you can contact Lucia Poma
+at **lucia.poma@wysscenter.ch**.

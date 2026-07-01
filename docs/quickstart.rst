@@ -76,7 +76,7 @@ and maintained between pages.
 Help and Updates
 ^^^^^^^^^^^^^^^^
 
-Click the **?** button in the top-right corner of the title bar (next to the
+Click the **Help** button in the top-right corner of the title bar (next to the
 theme toggle) to open the **Help** dialog. It summarises the main workflow,
 copyright and support links, and includes **Check for updates** plus an
 optional daily auto-check.
