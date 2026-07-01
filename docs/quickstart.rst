@@ -83,21 +83,21 @@ optional daily auto-check.
 
 .. image:: _static/help_dialog.png
    :alt: Help dialog with Check for updates
-   :class: screenshot-dialog
+   :class: screenshot-native
 
 When a newer release is published, the app shows an update notification with
 **View release notes**, **Update now** (when supported), and **Remind me later**.
 
 .. image:: _static/update_available_dialog.png
    :alt: Update available notification
-   :class: screenshot-dialog
+   :class: screenshot-native
 
 From **View release notes** you can read the full changelog text for that
 release.
 
 .. image:: _static/release_notes_dialog.png
    :alt: Release notes dialog
-   :class: screenshot-dialog
+   :class: screenshot-native
 
 See :doc:`faq` for network privacy and update-check behaviour.
 

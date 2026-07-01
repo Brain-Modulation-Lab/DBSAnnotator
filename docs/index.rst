@@ -25,8 +25,8 @@ Switzerland).
 
    **Version:** |release|
 
-   Copyright © Massachusetts General Hospital, Wyss Center for Bio and
-   Neuroengineering, and Charité Universitätsmedizin Berlin.
+   Copyright © Wyss Center for Bio and Neuroengineering, Massachusetts General Hospital,
+   and Charité Universitätsmedizin Berlin.
 
    **Contact:** lucia.poma@wysscenter.ch
 

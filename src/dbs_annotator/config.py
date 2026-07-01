@@ -90,8 +90,8 @@ SCREEN_SIZE_THRESHOLDS = {
 
 # Minimum window size (in pixels) for usability
 WINDOW_MIN_SIZE = {
-    "width": 1000,  # Increased from 600 for better usability
-    "height": 700,  # Increased from 400 for better usability
+    "width": 1000,
+    "height": 700,
 }
 
 # Maximum window size ratio (prevents window from being too large on big screens)
