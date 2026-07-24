@@ -8,6 +8,7 @@ value is passed in explicitly.
 
 from __future__ import annotations
 
+import importlib
 import os
 import shutil
 import subprocess
@@ -94,11 +95,13 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
     """
     errors: list[str] = []
 
-    # 1. Try docx2pdf
+    # 1. Try docx2pdf. Imported dynamically: it is an optional dependency only
+    # installed on Windows/macOS (see pyproject), so a static import would fail
+    # type-checking on Linux where the package is intentionally absent.
     try:
-        from docx2pdf import convert as _docx2pdf_convert
+        convert = importlib.import_module("docx2pdf").convert
 
-        _docx2pdf_convert(docx_path, pdf_path)
+        convert(docx_path, pdf_path)
         if os.path.exists(pdf_path):
             return
     except Exception as exc:
