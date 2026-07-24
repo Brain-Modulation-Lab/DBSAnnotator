@@ -8,11 +8,8 @@ upgrades.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from ..config import CLINICAL_SCALES_PRESETS, SESSION_SCALES_PRESETS
-from .user_data import user_config_file, user_data_dir
+from .user_data import read_json, resolve_config_file, write_json
 
 
 class ScalePresetManager:
@@ -28,13 +25,9 @@ class ScalePresetManager:
                 platform-appropriate per-user data directory (upgrade-safe).
                 Explicit paths are primarily for tests.
         """
-        if config_dir is None:
-            self.config_dir = user_data_dir()
-            self.config_file = user_config_file(self.CONFIG_FILENAME)
-        else:
-            self.config_dir = Path(config_dir)
-            self.config_dir.mkdir(parents=True, exist_ok=True)
-            self.config_file = self.config_dir / self.CONFIG_FILENAME
+        self.config_dir, self.config_file = resolve_config_file(
+            self.CONFIG_FILENAME, config_dir
+        )
 
     def get_clinical_presets(self) -> dict[str, list[str]]:
         """Get clinical scale presets, loading user modifications if available.
@@ -84,29 +77,12 @@ class ScalePresetManager:
         self._save_user_presets(user_presets)
 
     def _load_user_presets(self) -> dict | None:
-        """Load user presets from config file.
-
-        Returns:
-            Dictionary with 'clinical' and 'session' keys, or None if the
-            file does not exist.
-        """
-        if not self.config_file.exists():
-            return None
-
-        try:
-            with open(self.config_file, encoding="utf-8") as f:
-                return json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return None
+        """Load user presets ('clinical'/'session' keys), or None if absent."""
+        return read_json(self.config_file)
 
     def _save_user_presets(self, presets: dict) -> None:
-        """Save user presets to config file.
-
-        Args:
-            presets: Dictionary with 'clinical' and 'session' keys
-        """
-        with open(self.config_file, "w", encoding="utf-8") as f:
-            json.dump(presets, f, indent=4)
+        """Save user presets ('clinical'/'session' keys) to the config file."""
+        write_json(self.config_file, presets, indent=4)
 
 
 # Global instance

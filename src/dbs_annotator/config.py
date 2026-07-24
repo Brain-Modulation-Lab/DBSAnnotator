@@ -18,8 +18,8 @@ ORGANIZATION_PUBLISHER = "Wyss Center for Bio and Neuroengineering"
 
 # Copyright holders shown in Help, documentation, and license notices.
 COPYRIGHT_HOLDERS = (
-    "Massachusetts General Hospital, "
     "Wyss Center for Bio and Neuroengineering, "
+    "Massachusetts General Hospital, "
     "and Charité Universitätsmedizin Berlin"
 )
 

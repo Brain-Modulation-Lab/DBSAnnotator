@@ -15,7 +15,6 @@ from typing import Any
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 from docx.document import Document as DocumentType
 from docx.shared import Inches
 from matplotlib import cm
@@ -279,9 +278,9 @@ def build_scales_chart(
             c = colors[idx]
             ls = _LINE_STYLES[idx % len(_LINE_STYLES)]
             ys = [pts.get(x, float("nan")) for x in all_x]
-            # Build segment arrays so NaN creates gaps in lines
-            xs_arr = np.array(all_x, dtype=float)
-            ys_arr = np.array(ys, dtype=float)
+            # Coerce to float so NaN entries create gaps in the lines
+            xs_arr = [float(x) for x in all_x]
+            ys_arr = [float(y) for y in ys]
             ax1.plot(
                 xs_arr,
                 ys_arr,

@@ -8,7 +8,6 @@ based on user-selected scale optimization preferences.
 
 import os
 import re
-import tempfile
 from datetime import datetime
 
 import pandas as pd
@@ -17,14 +16,14 @@ from docx.document import Document as DocumentType
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Inches, Pt, RGBColor
-from PySide6.QtCore import Qt, QTimer
+from docx.shared import Inches
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from .. import __app_name__, __version__
 from ..config import PLACEHOLDERS
-from ..config_electrode_models import ELECTRODE_MODELS, MANUFACTURERS, ContactState
 from ..models import is_session_scale_value_omitted
+from . import report_common
+from .docx_layout import keep_paragraphs_with_following_block, keep_table_rows_together
 
 
 class LongitudinalExporter:
@@ -137,18 +136,7 @@ class LongitudinalExporter:
     @staticmethod
     def _open_file(path: str) -> None:
         """Open a file with the system default application."""
-        try:
-            import subprocess
-            import sys
-
-            if sys.platform == "win32":
-                os.startfile(path)  # noqa: S606
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", path])  # noqa: S603
-            else:
-                subprocess.Popen(["xdg-open", path])  # noqa: S603
-        except Exception:
-            pass
+        report_common.open_file(path)
 
     # ------------------------------------------------------------------
     # Report building
@@ -465,6 +453,7 @@ class LongitudinalExporter:
             return
 
         doc.add_heading("Electrode Configurations", level=1)
+        keep_paragraphs_with_following_block([doc.paragraphs[-1]])
 
         from docx.enum.text import WD_BREAK
 
@@ -513,13 +502,17 @@ class LongitudinalExporter:
 
             # File sub-heading
             label = basename.replace("_events.tsv", "").replace(".tsv", "")
-            doc.add_heading(label, level=2)
+            file_intro = [doc.add_heading(label, level=2)]
 
             manufacturer = self._get_manufacturer_for_model(model_name)
             if manufacturer:
-                doc.add_paragraph(f"Electrode model: {manufacturer} | {model_name}")
+                file_intro.append(
+                    doc.add_paragraph(f"Electrode model: {manufacturer} | {model_name}")
+                )
             else:
-                doc.add_paragraph(f"Electrode model: {model_name}")
+                file_intro.append(doc.add_paragraph(f"Electrode model: {model_name}"))
+
+            keep_paragraphs_with_following_block(file_intro)
 
             # Helper to extract contact strings from a row
             def _contacts(row, side):
@@ -645,6 +638,8 @@ class LongitudinalExporter:
                         run.add_picture(png, width=Inches(1.15))
                     except Exception:
                         pass
+
+            keep_table_rows_together(t)
 
             # Cleanup temp PNG files
             for pth in tmp_files:
@@ -1394,121 +1389,19 @@ class LongitudinalExporter:
     @staticmethod
     def _get_manufacturer_for_model(model_name: str) -> str:
         """Return the manufacturer string for a given electrode model name."""
-        if not model_name:
-            return ""
-        for manufacturer, models in (MANUFACTURERS or {}).items():
-            try:
-                if model_name in models:
-                    return str(manufacturer)
-            except Exception:
-                continue
-        return ""
+        return report_common.get_manufacturer_for_model(model_name)
 
+    @staticmethod
     def _render_electrode_png(
-        self,
         model_name: str,
         anode_text: str,
         cathode_text: str,
         target_size_px: tuple = (440, 900),
     ) -> str | None:
         """Render electrode configuration to a temporary PNG file."""
-        try:
-            from PySide6.QtGui import QColor as _QColor
-            from PySide6.QtGui import QPainter, QPixmap
-
-            from ..models import ElectrodeCanvas
-
-            model = ELECTRODE_MODELS.get(model_name)
-            if not model:
-                return None
-
-            canvas = ElectrodeCanvas()
-            canvas.set_model(model)
-            canvas.resize(*target_size_px)
-            try:
-                canvas.set_export_mode(True)
-            except Exception:
-                pass
-
-            # Apply contact states
-            canvas.contact_states.clear()
-            canvas.case_state = ContactState.OFF
-
-            def apply_tokens(text: str, state: int) -> None:
-                if not text:
-                    return
-                for token in str(text).split("_"):
-                    token = token.strip()
-                    if not token:
-                        continue
-                    if token == "case":
-                        canvas.case_state = state
-                        continue
-                    if token.startswith("E") and len(token) >= 2:
-                        try:
-                            if token[-1].isalpha():
-                                idx = int(token[1:-1])
-                                seg_map = {"a": 0, "b": 1, "c": 2}
-                                seg_char = token[-1].lower()
-                                if seg_char in seg_map:
-                                    canvas.contact_states[(idx, seg_map[seg_char])] = (
-                                        state
-                                    )
-                            else:
-                                idx = int(token[1:])
-                                if model.is_directional:
-                                    for seg in range(3):
-                                        canvas.contact_states[(idx, seg)] = state
-                                else:
-                                    canvas.contact_states[(idx, 0)] = state
-                        except Exception:
-                            continue
-
-            apply_tokens(anode_text, ContactState.ANODIC)
-            apply_tokens(cathode_text, ContactState.CATHODIC)
-            canvas.update()
-
-            # Render with white background
-            original_paint = canvas.paintEvent
-
-            def white_bg_paint(event):
-                painter = QPainter(canvas)
-                painter.fillRect(canvas.rect(), Qt.GlobalColor.white)
-                original_paint(event)
-
-            canvas.paintEvent = white_bg_paint  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
-
-            pixmap = QPixmap(canvas.size())
-            pixmap.fill(Qt.GlobalColor.white)
-            canvas.render(pixmap)
-
-            # Crop white borders
-            image = pixmap.toImage()
-            white_rgb = _QColor(Qt.GlobalColor.white).rgb()
-            left, top, right, bottom = image.width(), image.height(), 0, 0
-            for y in range(image.height()):
-                for x in range(image.width()):
-                    if image.pixel(x, y) != white_rgb:
-                        left = min(left, x)
-                        top = min(top, y)
-                        right = max(right, x)
-                        bottom = max(bottom, y)
-            if right > left and bottom > top:
-                margin = 20
-                left = max(0, left - margin)
-                top = max(0, top - margin)
-                right = min(image.width() - 1, right + margin)
-                bottom = min(image.height() - 1, bottom + margin)
-                cropped = pixmap.copy(left, top, right - left + 1, bottom - top + 1)
-            else:
-                cropped = pixmap
-
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            tmp.close()
-            cropped.save(tmp.name, "PNG")
-            return tmp.name
-        except Exception:
-            return None
+        return report_common.render_electrode_png(
+            model_name, anode_text, cathode_text, target_size_px
+        )
 
     @staticmethod
     def _pick_latest_row(df: pd.DataFrame):
@@ -1567,169 +1460,28 @@ class LongitudinalExporter:
         return f"longitudinal-report_{today}{ext}"
 
     def _highlight_cells(self, row_cells, intensity: str = "best") -> None:
-        color = "96D2A0" if intensity == "best" else "C8EBCD"
-        for cell in row_cells:
-            try:
-                shd = OxmlElement("w:shd")
-                shd.set(qn("w:fill"), color)
-                cell._tc.get_or_add_tcPr().append(shd)
-            except Exception:
-                pass
+        report_common.highlight_cells(row_cells, intensity=intensity)
 
     @staticmethod
     def _set_cell_border_top(cell, sz=12):
-        try:
-            tcPr = cell._tc.get_or_add_tcPr()  # noqa: N806
-            borders = OxmlElement("w:tcBorders")
-            top = OxmlElement("w:top")
-            top.set(qn("w:val"), "single")
-            top.set(qn("w:sz"), str(sz))
-            top.set(qn("w:space"), "0")
-            top.set(qn("w:color"), "000000")
-            borders.append(top)
-            tcPr.append(borders)
-        except Exception:
-            pass
+        report_common.set_cell_border_top(cell, sz=sz)
 
     def _add_table_legend(
         self, doc: DocumentType, best_ids: list, second_ids: list
     ) -> None:
-        if not best_ids and not second_ids:
-            return
-
-        doc.add_paragraph()
-
-        legend = doc.add_paragraph()
-        legend.add_run("Legend: ").bold = True
-        if best_ids:
-            r = legend.add_run("■ ")
-            r.font.color.rgb = RGBColor(0x96, 0xD2, 0xA0)
-            legend.add_run("Optimal entry    ")
-        if second_ids:
-            r = legend.add_run("■ ")
-            r.font.color.rgb = RGBColor(0xC8, 0xEB, 0xCD)
-            legend.add_run("Second-best entry")
-
-        if self.scale_optimization_prefs:
-            tp = doc.add_paragraph()
-            tp.add_run("Scale targets: ").bold = True
-            parts = []
-            for pref in self.scale_optimization_prefs:
-                if len(pref) >= 5:
-                    name, smin, smax, mode, cv = pref
-                    if mode == "ignore":
-                        continue
-                    elif mode == "min":
-                        parts.append(f"{name}: min")
-                    elif mode == "max":
-                        parts.append(f"{name}: max")
-                    elif mode == "custom":
-                        parts.append(f"{name}: {cv}")
-            if parts:
-                tp.add_run("; ".join(parts))
-                for run in tp.runs:
-                    run.font.size = Pt(9)
-
-        disc = doc.add_paragraph()
-        dr = disc.add_run(
-            "Note: The highlighted rows are derived exclusively from the recorded "
-            "session scale values and represent a computational ranking intended "
-            "solely as a reference. This color-coded indication does not constitute "
-            "clinical guidance."
+        report_common.add_table_legend(
+            doc,
+            best_ids,
+            second_ids,
+            self.scale_optimization_prefs,
+            entry_noun="entry",
         )
-        dr.font.size = Pt(9)
-        dr.font.italic = True
 
     def _show_transient_message(
         self, parent, title: str, text: str, msecs: int = 2000
     ) -> None:
-        msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle(title)
-        msg.setText(text)
-        msg.setStandardButtons(QMessageBox.StandardButton.NoButton)
-        msg.setWindowModality(Qt.WindowModality.NonModal)
-        msg.show()
-
-        timer = QTimer(msg)
-        timer.setSingleShot(True)
-
-        def _close():
-            try:
-                msg.accept()
-            except Exception:
-                pass
-
-        timer.timeout.connect(_close)
-        timer.start(max(0, int(msecs)))
+        report_common.show_transient_message(parent, title, text, msecs=msecs)
 
     def _convert_docx_to_pdf(self, docx_path: str, pdf_path: str) -> None:
         """Convert Word → PDF using the same strategy as SessionExporter."""
-        import shutil
-        import subprocess
-
-        errors = []
-
-        try:
-            from docx2pdf import convert as _convert
-
-            _convert(docx_path, pdf_path)
-            if os.path.exists(pdf_path):
-                return
-        except Exception as e:
-            errors.append(f"docx2pdf: {e}")
-
-        try:
-            abs_d = os.path.abspath(docx_path).replace("'", "''")
-            abs_p = os.path.abspath(pdf_path).replace("'", "''")
-            ps = (
-                "$w = New-Object -ComObject Word.Application; "
-                "$w.Visible = $false; "
-                f"$d = $w.Documents.Open('{abs_d}'); "
-                f"$d.SaveAs2('{abs_p}', 17); "
-                "$d.Close(); $w.Quit()"
-            )
-            subprocess.run(
-                ["powershell", "-NoProfile", "-Command", ps],
-                check=True,
-                capture_output=True,
-                timeout=60,
-            )
-            if os.path.exists(pdf_path):
-                return
-        except Exception as e:
-            errors.append(f"Word COM: {e}")
-
-        soffice = shutil.which("soffice")
-        if soffice:
-            try:
-                out_dir = os.path.dirname(os.path.abspath(pdf_path))
-                subprocess.run(
-                    [
-                        soffice,
-                        "--headless",
-                        "--convert-to",
-                        "pdf",
-                        "--outdir",
-                        out_dir,
-                        os.path.abspath(docx_path),
-                    ],
-                    check=True,
-                    capture_output=True,
-                    timeout=60,
-                )
-                lo_out = os.path.join(
-                    out_dir, os.path.splitext(os.path.basename(docx_path))[0] + ".pdf"
-                )
-                if lo_out != pdf_path and os.path.exists(lo_out):
-                    shutil.move(lo_out, pdf_path)
-                if os.path.exists(pdf_path):
-                    return
-            except Exception as e:
-                errors.append(f"LibreOffice: {e}")
-
-        raise RuntimeError(
-            "Could not convert to PDF:\n"
-            + "\n".join(errors)
-            + "\n\nPlease export to Word and convert manually."
-        )
+        report_common.convert_docx_to_pdf(docx_path, pdf_path)

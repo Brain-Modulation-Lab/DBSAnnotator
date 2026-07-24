@@ -179,3 +179,4 @@ cython_debug/
 # extra
 manuscript/
 archive/
+test_save_probe.png

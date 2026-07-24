@@ -1,8 +1,6 @@
 # DBS Annotator
 
 [CI](https://github.com/Brain-Modulation-Lab/DBSAnnotator/actions/workflows/ci.yml)
-[Docs Health](https://github.com/Brain-Modulation-Lab/DBSAnnotator/actions/workflows/docs-health.yml)
-[Release Drafter](https://github.com/Brain-Modulation-Lab/DBSAnnotator/actions/workflows/release-drafter.yml)
 
 A desktop application for annotating Deep Brain Stimulation (DBS) programming sessions. Built for clinicians and researchers working with DBS systems.
 

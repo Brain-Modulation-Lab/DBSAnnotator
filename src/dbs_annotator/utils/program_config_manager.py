@@ -8,10 +8,7 @@ reinstalls and upgrades.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
-from .user_data import user_config_file, user_data_dir
+from .user_data import read_json, resolve_config_file, write_json
 
 
 class ProgramConfigManager:
@@ -28,28 +25,17 @@ class ProgramConfigManager:
                 platform-appropriate per-user data directory (upgrade-safe).
                 Explicit paths are primarily for tests.
         """
-        if config_dir is None:
-            self.config_dir = user_data_dir()
-            self.config_file = user_config_file(self.CONFIG_FILENAME)
-        else:
-            self.config_dir = Path(config_dir)
-            self.config_dir.mkdir(parents=True, exist_ok=True)
-            self.config_file = self.config_dir / self.CONFIG_FILENAME
+        self.config_dir, self.config_file = resolve_config_file(
+            self.CONFIG_FILENAME, config_dir
+        )
 
         self._custom_programs: list[str] = []
         self._load_custom_programs()
 
     def _load_custom_programs(self) -> None:
         """Load custom program names from config file."""
-        if self.config_file.exists():
-            try:
-                with open(self.config_file, encoding="utf-8") as f:
-                    data = json.load(f)
-                    self._custom_programs = data.get("custom_programs", [])
-            except (OSError, json.JSONDecodeError):
-                self._custom_programs = []
-        else:
-            self._custom_programs = []
+        data = read_json(self.config_file)
+        self._custom_programs = data.get("custom_programs", []) if data else []
 
     def save_custom_programs(self, programs: list[str]) -> None:
         """Save custom program names to config file.
@@ -58,10 +44,8 @@ class ProgramConfigManager:
             programs: List of custom program names to save.
         """
         self._custom_programs = programs
-        data = {"custom_programs": programs}
         try:
-            with open(self.config_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            write_json(self.config_file, {"custom_programs": programs})
         except OSError:
             pass
 
