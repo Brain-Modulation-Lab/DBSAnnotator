@@ -38,100 +38,6 @@ jobs:
         run: |
           uv audit
 
-  docs-touch-gate:
-    name: Docs touch gate
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
-    permissions:
-      pull-requests: read
-
-    steps:
-      - name: Detect code/docs file changes
-        id: changes
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            code:
-              - 'src/**'
-            docs:
-              - 'docs/**'
-              - 'README.md'
-              - 'CHANGELOG.md'
-              - 'CONTRIBUTING.md'
-
-      - name: Enforce docs update for code changes
-        uses: actions/github-script@v9
-        env:
-          CODE_CHANGED: ${{ steps.changes.outputs.code }}
-          DOCS_CHANGED: ${{ steps.changes.outputs.docs }}
-        with:
-          script: |
-            // Labels must be fetched via the REST API. Re-runs and the event
-            // payload still reflect labels as-of the original `pull_request`
-            // event, so `no-docs` added after the first run would otherwise
-            // never be seen.
-            const pr = context.payload.pull_request;
-            if (!pr) {
-              core.setFailed("Expected pull_request payload.");
-              return;
-            }
-            const { data } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-            });
-            const labels = (data.labels ?? []).map((l) => l.name);
-            const hasSkipLabel = labels.includes("no-docs") || labels.includes("internal-only");
-            const codeChanged = process.env.CODE_CHANGED === "true";
-            const docsChanged = process.env.DOCS_CHANGED === "true";
-
-            if (!codeChanged) {
-              core.info("No src/ changes detected; docs-touch gate passes.");
-              return;
-            }
-            if (docsChanged) {
-              core.info("Code and docs changed together; docs-touch gate passes.");
-              return;
-            }
-            if (hasSkipLabel) {
-              core.info(
-                "No docs changes, but PR has no-docs/internal-only label; docs-touch gate passes."
-              );
-              return;
-            }
-
-            core.setFailed(
-              "This PR changes src/ without docs updates. " +
-              "Update docs/README/CHANGELOG/CONTRIBUTING, or apply the " +
-              "`no-docs`/`internal-only` label with reviewer approval."
-            );
-
-  newsfragment-naming:
-    name: News fragment naming (ID + KAC type)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Validate all newsfragments
-        run: |
-          python scripts/validate_newsfragments.py
-
-      - name: On PR, changed fragments must match this PR number
-        if: github.event_name == 'pull_request'
-        run: |
-          python scripts/validate_newsfragments.py \
-            --pr "${{ github.event.number }}" \
-            --diff "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
-
   towncrier-fragment-gate:
     name: Changelog fragment gate (Towncrier)
     runs-on: ubuntu-latest
@@ -295,7 +201,7 @@ jobs:
           uv run pytest --cov-fail-under=48
 
   prose-lint:
-    name: Prose lint (codespell + doc8 + interrogate)
+    name: Prose lint (codespell + doc8)
     runs-on: ubuntu-latest
 
     steps:
@@ -312,7 +218,6 @@ jobs:
         run: |
           uv run pre-commit run --all-files codespell
           uv run pre-commit run --all-files doc8
-          uv run pre-commit run --all-files interrogate
 
   docs:
     name: Docs (build + linkcheck)

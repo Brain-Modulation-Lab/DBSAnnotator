@@ -14,7 +14,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-06-22T14:48:53.5795396Z"
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -451,7 +451,7 @@ name = "dbs-annotator"
 source = { editable = "." }
 dependencies = [
     { name = "certifi" },
-    { name = "docx2pdf" },
+    { name = "docx2pdf", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "idna" },
     { name = "matplotlib" },
     { name = "packaging" },
@@ -491,7 +491,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "certifi", specifier = ">=2024.0.0" },
-    { name = "docx2pdf", specifier = ">=0.1.8" },
+    { name = "docx2pdf", marker = "sys_platform == 'darwin' or sys_platform == 'win32'", specifier = ">=0.1.8" },
     { name = "idna", specifier = ">=3.15" },
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "packaging", specifier = ">=26.2" },
@@ -564,7 +564,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appscript", marker = "sys_platform == 'darwin'" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "tqdm" },
+    { name = "tqdm", marker = "sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ab/5d/112531fff53cf60513e14fa1707755c874d47880ec4de7b2235302ad19a0/docx2pdf-0.1.8.tar.gz", hash = "sha256:6d2c20f9ad36eec75f4da017dc7a97622946954a6124ca0b11772875fa86fbed", size = 6483, upload-time = "2021-12-11T16:56:36.75Z" }
 wheels = [

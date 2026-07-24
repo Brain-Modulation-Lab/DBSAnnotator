@@ -19,6 +19,7 @@ and applied in ``__main__`` via ``QApplication``:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from PySide6.QtCore import QStandardPaths
@@ -48,3 +49,37 @@ def user_config_file(name: str) -> Path:
     path = user_data_dir() / name
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def resolve_config_file(
+    filename: str, config_dir: str | None = None
+) -> tuple[Path, Path]:
+    """Return ``(config_dir, config_file)`` for a per-user JSON config.
+
+    ``config_dir=None`` uses the upgrade-safe per-user data dir; an explicit
+    directory (primarily for tests) is created on demand.
+    """
+    if config_dir is None:
+        return user_data_dir(), user_config_file(filename)
+    base = Path(config_dir)
+    base.mkdir(parents=True, exist_ok=True)
+    return base, base / filename
+
+
+def read_json(path: Path) -> dict | None:
+    """Load a JSON object from *path*, or None if missing/unreadable/invalid."""
+    if not path.exists():
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def write_json(
+    path: Path, data, *, indent: int = 2, ensure_ascii: bool = False
+) -> None:
+    """Write *data* as JSON to *path* (raises on OSError)."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)

@@ -16,18 +16,6 @@ class ContactState:
 class StimulationRule:
     """Rules for valid stimulation configurations"""
 
-    _custom_validators = []
-
-    @staticmethod
-    def add_validator(validator_fn):
-        """Register a custom validator.
-
-        The callable must accept ``(contact_states, case_state)`` and return
-        either ``(is_valid, error_message)`` or ``None``.
-        """
-        if validator_fn not in StimulationRule._custom_validators:
-            StimulationRule._custom_validators.append(validator_fn)
-
     @staticmethod
     def validate_configuration(contact_states, case_state):
         """
@@ -75,16 +63,6 @@ class StimulationRule:
                 "At least one anodic contact (or CASE) required when using "
                 "cathodic contacts",
             )
-
-        for validator_fn in list(StimulationRule._custom_validators):
-            try:
-                result = validator_fn(contact_states, case_state)
-            except Exception:
-                result = None
-            if result:
-                is_valid, error_msg = result
-                if not is_valid:
-                    return False, error_msg
 
         return True, ""
 

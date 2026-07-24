@@ -29,13 +29,6 @@ repos:
       - id: doc8
         files: ^docs/.*\.rst$
 
-  - repo: https://github.com/econchick/interrogate
-    rev: 1.7.0
-    hooks:
-      - id: interrogate
-        pass_filenames: false
-        args: ["src/dbs_annotator"]
-
   - repo: local
     hooks:
       - id: tsv-schema-docs

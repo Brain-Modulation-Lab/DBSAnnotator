@@ -356,7 +356,7 @@ Our review process:
    - ``uv audit`` for dependency vulnerabilities.
    - ``ruff`` (lint + format) and ``ty`` (type check).
    - ``pytest`` on Ubuntu, Windows, and macOS with a coverage floor.
-   - Prose checks (codespell, doc8, interrogate) via pre-commit.
+   - Prose checks (codespell, doc8) via pre-commit.
    - Briefcase smoke test on Linux (``create`` + ``build`` without packaging).
    - Documentation build (Sphinx ``-W``), TSV schema doc drift check, and link check.
 

@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import copy
 import json
-from pathlib import Path
 from typing import cast
 
 from ..config import STIMULATION_LIMITS
 from .resources import resource_path
-from .user_data import user_config_file, user_data_dir
+from .user_data import read_json, resolve_config_file, write_json
 
 BUNDLED_PRESETS_PATH = "config/setting_presets.json"
 CONFIG_FILENAME = "setting_presets.json"
@@ -19,13 +18,9 @@ class SettingPresetsManager:
     """Load and save frequency, amplitude, and pulse-width preset lists."""
 
     def __init__(self, config_dir: str | None = None) -> None:
-        if config_dir is None:
-            self.config_dir = user_data_dir()
-            self.config_file = user_config_file(CONFIG_FILENAME)
-        else:
-            self.config_dir = Path(config_dir)
-            self.config_dir.mkdir(parents=True, exist_ok=True)
-            self.config_file = self.config_dir / CONFIG_FILENAME
+        self.config_dir, self.config_file = resolve_config_file(
+            CONFIG_FILENAME, config_dir
+        )
         self._data = self._load()
 
     def _load_bundled(self) -> dict[str, list]:
@@ -34,14 +29,9 @@ class SettingPresetsManager:
             return json.load(f)
 
     def _load(self) -> dict[str, list]:
-        if self.config_file.exists():
-            try:
-                with open(self.config_file, encoding="utf-8") as f:
-                    data = json.load(f)
-                if self._is_valid_data(data):
-                    return data
-            except (OSError, json.JSONDecodeError):
-                pass
+        data = read_json(self.config_file)
+        if data is not None and self._is_valid_data(data):
+            return data
         return copy.deepcopy(self._load_bundled())
 
     @staticmethod
@@ -82,8 +72,7 @@ class SettingPresetsManager:
             "pulse_widths": pws,
         }
         try:
-            with open(self.config_file, "w", encoding="utf-8") as f:
-                json.dump(self._data, f, indent=2, ensure_ascii=False)
+            write_json(self.config_file, self._data)
         except OSError:
             pass
 
