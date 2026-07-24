@@ -37,7 +37,7 @@ packaging==26.2
     #   matplotlib
 pandas==3.0.3
     # via dbs-annotator
-pillow==12.2.0
+pillow==12.3.0
     # via matplotlib
 pydantic==2.13.4
     # via dbs-annotator
