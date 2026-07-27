@@ -36,6 +36,11 @@ repos:
         entry: uv run python scripts/generate_tsv_schema_docs.py --check
         language: system
         pass_filenames: false
+      - id: schema-json-contract
+        name: schema json contract (tablet)
+        entry: uv run python scripts/generate_schema_json.py --check
+        language: system
+        pass_filenames: false
       - id: session-report-example-docs
         name: session report example docs
         entry: uv run python scripts/generate_session_report_example_docs.py --check

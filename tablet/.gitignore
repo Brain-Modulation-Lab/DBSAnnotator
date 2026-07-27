@@ -1,0 +1,9 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+# pubspec.lock is committed for app repos (reproducible builds)

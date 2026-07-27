@@ -1,0 +1,199 @@
+{
+  "schema_version": "0.4.0",
+  "buttons": [
+    "OCD",
+    "MDD",
+    "PD",
+    "ET",
+    "Dystonia",
+    "TS"
+  ],
+  "clinical": {
+    "OCD": [
+      "Y-BOCS",
+      "Y-BOCS-o",
+      "Y-BOCS-c",
+      "MADRS",
+      "OCI-R"
+    ],
+    "MDD": [
+      "MADRS",
+      "HAM-D",
+      "BDI-II"
+    ],
+    "PD": [
+      "MDS-UPDRS",
+      "UPDRS-III",
+      "PDQ-39",
+      "UDysRS"
+    ],
+    "ET": [
+      "FTM-TRS",
+      "TETRAS"
+    ],
+    "Dystonia": [
+      "BFMDRS",
+      "TWSTRS"
+    ],
+    "TS": [
+      "YGTSS",
+      "PUTS",
+      "TS-CGI",
+      "Y-BOCS"
+    ]
+  },
+  "session": {
+    "OCD": [
+      [
+        "Obsessions",
+        "0",
+        "10"
+      ],
+      [
+        "Compulsions",
+        "0",
+        "10"
+      ],
+      [
+        "Anxiety",
+        "0",
+        "10"
+      ],
+      [
+        "Mood",
+        "0",
+        "10"
+      ],
+      [
+        "Energy",
+        "0",
+        "10"
+      ]
+    ],
+    "MDD": [
+      [
+        "Rumination",
+        "0",
+        "10"
+      ],
+      [
+        "Anxiety",
+        "0",
+        "10"
+      ],
+      [
+        "Mood",
+        "0",
+        "10"
+      ],
+      [
+        "Energy",
+        "0",
+        "10"
+      ]
+    ],
+    "PD": [
+      [
+        "Tremor",
+        "0",
+        "10"
+      ],
+      [
+        "Rigidity",
+        "0",
+        "10"
+      ],
+      [
+        "Bradykinesia",
+        "0",
+        "10"
+      ],
+      [
+        "Dyskinesia",
+        "0",
+        "10"
+      ],
+      [
+        "Gait / balance",
+        "0",
+        "10"
+      ],
+      [
+        "Paresthesia",
+        "0",
+        "10"
+      ],
+      [
+        "Speech difficulty",
+        "0",
+        "10"
+      ]
+    ],
+    "ET": [
+      [
+        "Action tremor",
+        "0",
+        "10"
+      ],
+      [
+        "Resting tremor",
+        "0",
+        "10"
+      ],
+      [
+        "Paresthesia",
+        "0",
+        "10"
+      ],
+      [
+        "Speech difficulty",
+        "0",
+        "10"
+      ]
+    ],
+    "Dystonia": [
+      [
+        "Muscle contractions",
+        "0",
+        "10"
+      ],
+      [
+        "Abnormal posture",
+        "0",
+        "10"
+      ],
+      [
+        "Pain",
+        "0",
+        "10"
+      ]
+    ],
+    "TS": [
+      [
+        "Tic severity",
+        "0",
+        "10"
+      ],
+      [
+        "Premonitory urge",
+        "0",
+        "10"
+      ],
+      [
+        "Control over tics",
+        "0",
+        "10"
+      ],
+      [
+        "Anxiety",
+        "0",
+        "10"
+      ],
+      [
+        "Impulsivity",
+        "0",
+        "10"
+      ]
+    ]
+  }
+}
