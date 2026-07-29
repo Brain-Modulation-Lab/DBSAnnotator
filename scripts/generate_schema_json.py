@@ -35,6 +35,10 @@ from dbs_annotator.config import (  # noqa: E402
     STIMULATION_LIMITS,
     TSV_COLUMNS,
 )
+from dbs_annotator.config_electrode_models import (  # noqa: E402
+    ELECTRODE_MODELS,
+    MANUFACTURERS,
+)
 
 SCHEMA_DIR = Path("schema")
 
@@ -63,6 +67,31 @@ def _columns(names: list[str], meta: dict[str, tuple[str, str]]) -> list[dict]:
         {"name": name, "type": meta[name][0], "description": meta[name][1]}
         for name in names
     ]
+
+
+def _electrode_models() -> dict:
+    """Serialize the electrode catalog for the Dart port + parity test.
+
+    ``level_directional`` is precomputed per level so the Dart side can be
+    verified directly without re-deriving the default middle-levels rule.
+    """
+    models = {}
+    for name, m in ELECTRODE_MODELS.items():
+        models[name] = {
+            "name": m.name,
+            "num_contacts": m.num_contacts,
+            "contact_height": m.contact_height,
+            "contact_spacing": m.contact_spacing,
+            "lead_diameter": m.lead_diameter,
+            "is_directional": m.is_directional,
+            "tip_contact": m.tip_contact,
+            "segments_per_level": m.segments_per_level,
+            "directional_levels": m._directional_levels,
+            "level_directional": [
+                m.is_level_directional(i) for i in range(m.num_contacts)
+            ],
+        }
+    return models
 
 
 def build_contract() -> dict[str, dict]:
@@ -102,6 +131,11 @@ def build_contract() -> dict[str, dict]:
             "schema_version": APP_VERSION,
             "stimulation": STIMULATION_LIMITS,
             "session_scale": SESSION_SCALE_LIMITS,
+        },
+        "electrode_models.json": {
+            "schema_version": APP_VERSION,
+            "manufacturers": MANUFACTURERS,
+            "models": _electrode_models(),
         },
     }
 

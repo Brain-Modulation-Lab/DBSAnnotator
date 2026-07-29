@@ -30,6 +30,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      # Bundle the generated contract as app assets (repo-root schema/ is the
+      # single source of truth; not committed under tablet/).
+      - name: Copy schema contract into app assets
+        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -58,6 +62,9 @@ jobs:
       # Generate the android/ host project around the committed lib/pubspec.
       - name: Generate Android host project
         run: flutter create --platforms=android --org ch.wysscenter --project-name dbs_annotator_tablet .
+
+      - name: Copy schema contract into app assets
+        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
 
       - name: Decode signing keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
@@ -101,6 +108,9 @@ jobs:
 
       - name: Generate iOS host project
         run: flutter create --platforms=ios --org ch.wysscenter --project-name dbs_annotator_tablet .
+
+      - name: Copy schema contract into app assets
+        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
 
       # Dry-run build (no signing) — always runs so PRs verify iOS compiles.
       - name: Build iOS (no codesign)

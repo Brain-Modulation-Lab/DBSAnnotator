@@ -34,6 +34,8 @@ host projects (`android/`, `ios/`) are generated boilerplate — create them onc
 cd tablet
 # Generates android/ + ios/ around the existing lib/pubspec (does not touch lib/).
 flutter create --platforms=android,ios --org ch.wysscenter --project-name dbs_annotator_tablet .
+# Bundle the generated contract as assets (single source is repo-root schema/).
+mkdir -p assets/schema && cp ../schema/*.json assets/schema/
 flutter pub get
 ```
 
