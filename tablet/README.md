@@ -25,6 +25,13 @@ truth** for the schema and clinical rules; this app consumes that contract from
   `uv run python scripts/generate_schema_json.py` (already committed; the
   parity test reads `../schema/tsv_schema.json`).
 
+> **Keep the bundled assets in sync.** The app loads contracts from
+> `assets/schema/*.json` at runtime, but `flutter test` reads the repo-root
+> `../schema/*.json`. If those two drift (e.g. after regenerating the schema),
+> the app can show stale/missing data while tests still pass. Whenever
+> `schema/*.json` changes, re-copy it: `cp ../schema/*.json assets/schema/`
+> (the release CI does this automatically before every build).
+
 ## First-time setup
 
 The committed sources here are `pubspec.yaml`, `lib/`, and `test/`. The native

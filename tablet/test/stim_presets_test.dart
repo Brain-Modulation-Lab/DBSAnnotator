@@ -93,4 +93,20 @@ void main() {
     expect(presetLabel(1.5), '1.5');
     expect(presetLabel(120), '120');
   });
+
+  test('withPresets overrides only the given lists (F7 user overrides)', () {
+    final limits = loadLimits();
+    final over = limits.withPresets(frequencies: const [1, 2, 3]);
+    // Overridden list replaced; the others fall back to the contract; ranges
+    // and steps are carried through unchanged.
+    expect(over.frequencyPresets, [1, 2, 3]);
+    expect(over.amplitudePresets, limits.amplitudePresets);
+    expect(over.pulseWidthPresets, limits.pulseWidthPresets);
+    expect(over.frequency.max, limits.frequency.max);
+    expect(over.amplitudeStep, limits.amplitudeStep);
+    expect(over.sessionScaleOmittedTsv, limits.sessionScaleOmittedTsv);
+
+    // A null keeps the contract default (the merge is per-list).
+    expect(limits.withPresets().frequencyPresets, limits.frequencyPresets);
+  });
 }

@@ -38,16 +38,45 @@ void main() {
     expect(clinicalRows(p, 'MDD'), ['MADRS', 'HAM-D', 'BDI-II']);
   });
 
-  test('sessionRows returns the desktop (name, min, max) rows', () {
+  test('sessionRows returns the desktop (name, min, max, mode) rows', () {
     final p = loadPresets();
     final pd = sessionRows(p, 'PD');
-    expect(pd, contains((name: 'Tremor', min: '0', max: '10')));
-    expect(pd.first, (name: 'Tremor', min: '0', max: '10'));
+    expect(pd, contains((name: 'Tremor', min: '0', max: '10', mode: 'min')));
+    expect(pd.first, (name: 'Tremor', min: '0', max: '10', mode: 'min'));
     expect(pd.map((r) => r.name), contains('Bradykinesia'));
     for (final row in pd) {
       expect(row.min, '0');
       expect(row.max, '10');
+      expect(scaleOptimizationModes, contains(row.mode));
     }
+  });
+
+  test('a preset row without a mode cell falls back to the default', () {
+    // Contracts generated before optimization_mode existed carry 3 cells.
+    final p = ScalePresets.fromJson({
+      'buttons': ['X'],
+      'clinical': {'X': <String>[]},
+      'session': {
+        'X': [
+          ['Legacy', '0', '7'],
+        ],
+      },
+    });
+    expect(sessionRows(p, 'X').single,
+        (name: 'Legacy', min: '0', max: '7', mode: defaultScaleOptimizationMode));
+  });
+
+  test('an unrecognised mode cell falls back to the default', () {
+    final p = ScalePresets.fromJson({
+      'buttons': ['X'],
+      'clinical': {'X': <String>[]},
+      'session': {
+        'X': [
+          ['Odd', '0', '7', 'sideways'],
+        ],
+      },
+    });
+    expect(sessionRows(p, 'X').single.mode, defaultScaleOptimizationMode);
   });
 
   test('unknown presets return empty lists (never throw)', () {

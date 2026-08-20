@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:dbs_annotator_tablet/core/electrode/electrode_model.dart';
 import 'package:dbs_annotator_tablet/core/session/authoring.dart';
 import 'package:dbs_annotator_tablet/core/session/scale_presets.dart';
+import 'package:dbs_annotator_tablet/ui/electrode_view.dart';
+import 'package:dbs_annotator_tablet/ui/scale_slider.dart';
 import 'package:dbs_annotator_tablet/ui/session_screen.dart';
 import 'package:dbs_annotator_tablet/ui/stim_params_form.dart';
 import 'package:flutter/material.dart';
@@ -67,7 +69,7 @@ void main() {
     expect(find.text('Complete workflow'), findsOneWidget);
     expect(find.text('File'), findsOneWidget);
     expect(find.text('Initial configuration'), findsOneWidget);
-    expect(find.text('Session scales'), findsOneWidget);
+    expect(find.text('Session scales configuration'), findsOneWidget);
     expect(find.text('Recording'), findsOneWidget);
 
     // Step 0: patient/run plus New / Open actions; no stim UI yet.
@@ -78,24 +80,27 @@ void main() {
 
     // Step 1: L/R stim + electrode, clinical pills, Insert baseline.
     await tapNext(tester);
-    expect(find.text('Select an electrode model'), findsNWidgets(2));
+    // The default model (Medtronic SenSight B33005) is preselected, so both
+    // canvases render immediately instead of the "select a model" placeholder.
+    expect(find.byType(ElectrodeView), findsNWidgets(2));
+    expect(find.text('Select an electrode model'), findsNothing);
     expect(find.text('Frequency'), findsNWidgets(2));
     expect(find.text('Amplitude'), findsNWidgets(2));
     expect(find.text('Pulse width'), findsNWidgets(2));
     expect(find.text('Insert baseline'), findsOneWidget);
     for (final name in scalePresets.buttons) {
-      expect(find.widgetWithText(ActionChip, name), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, name), findsOneWidget);
     }
 
     // A clinical pill REPLACES the rows with that preset's scale names.
-    await tester.ensureVisible(find.widgetWithText(ActionChip, 'OCD'));
-    await tester.tap(find.widgetWithText(ActionChip, 'OCD'));
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'OCD'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'OCD'));
     await tester.pump();
     expect(find.widgetWithText(TextField, 'Y-BOCS'), findsOneWidget);
     expect(find.text('Score'),
         findsNWidgets(scalePresets.clinical['OCD']!.length));
-    await tester.ensureVisible(find.widgetWithText(ActionChip, 'MDD'));
-    await tester.tap(find.widgetWithText(ActionChip, 'MDD'));
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'MDD'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'MDD'));
     await tester.pump();
     expect(find.widgetWithText(TextField, 'Y-BOCS'), findsNothing);
     expect(find.text('Score'),
@@ -232,8 +237,8 @@ void main() {
 
     // The session pills define the (name, min, max) scale set; PD REPLACES
     // the rows with its preset.
-    await tester.ensureVisible(find.widgetWithText(ActionChip, 'PD'));
-    await tester.tap(find.widgetWithText(ActionChip, 'PD'));
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'PD'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'PD'));
     await tester.pump();
     final pdRows = scalePresets.session['PD']!;
     expect(find.widgetWithText(TextField, 'Tremor'), findsOneWidget);
@@ -241,15 +246,18 @@ void main() {
     expect(find.text('Max'), findsNWidgets(pdRows.length));
 
     // Step 3: one rating row per Step-2 scale, each with a slider and an
-    // omit ("not assessed") toggle.
-    await tapNext(tester); // Step 3.
-    expect(find.byType(Slider), findsNWidgets(pdRows.length));
-    expect(find.byType(Switch), findsNWidgets(pdRows.length));
-    expect(find.text('Omit'), findsNWidgets(pdRows.length));
+    // omit ("not assessed") toggle. Navigate via the step header (robust when
+    // the tall Step-2 content pushes the Next control under the Stepper's
+    // transition-animation layers).
+    await tester.ensureVisible(find.text('Recording'));
+    await tester.tap(find.text('Recording'));
+    await tester.pumpAndSettle();
+    // One custom ScaleSlider (bar + chevrons + X-omit) per Step-2 scale.
+    expect(find.byType(ScaleSlider), findsNWidgets(pdRows.length));
     expect(find.text('Tremor'), findsOneWidget);
 
-    // Omit the first scale (Tremor); the rest keep their slider values.
-    final omitTremor = find.byType(Switch).first;
+    // Omit the first scale (Tremor) via its X toggle; the rest keep values.
+    final omitTremor = find.byTooltip('Omit (not assessed)').first;
     await tester.ensureVisible(omitTremor);
     await tester.tap(omitTremor);
     await tester.pump();

@@ -243,8 +243,12 @@ def save_widget(
 
 
 def pd_session_scales_for_export_dialog() -> list[tuple[str, str, str]]:
-    """All PD session scales (name, observed min, observed max) for export dialogs."""
-    return list(PD_SESSION_SCALES)
+    """All PD session scales (name, observed min, observed max) for export dialogs.
+
+    PD_SESSION_SCALES rows carry a 4th optimization-mode cell; drop it here so
+    the export dialogs get the (name, min, max) triples they expect.
+    """
+    return [(row[0], row[1], row[2]) for row in PD_SESSION_SCALES]
 
 
 def configure_scale_optimization_dialog(

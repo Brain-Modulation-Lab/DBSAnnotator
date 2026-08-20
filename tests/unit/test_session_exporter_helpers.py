@@ -209,3 +209,84 @@ def test_export_longitudinal_report_controller_calls_exporter(monkeypatch):
     assert called.get("word")
     c.export_longitudinal_report([], [], "pdf")
     assert called.get("pdf")
+
+
+def _lateral_row(**overrides):
+    """One session TSV row with distinct left/right stimulation values."""
+    row = {
+        "date": "2026-08-20",
+        "time": "10:00:00",
+        "block_ID": "1",
+        "session_ID": "1",
+        "is_initial": "0",
+        "scale_name": "Tremor",
+        "scale_value": "3",
+        "electrode_model": "Medtronic 3389",
+        "program_ID": "A",
+        "left_stim_freq": "130",
+        "left_anode": "case",
+        "left_cathode": "E1",
+        "left_amplitude": "2.0",
+        "left_pulse_width": "60",
+        "right_stim_freq": "125",
+        "right_anode": "case",
+        "right_cathode": "E2",
+        "right_amplitude": "1.5",
+        "right_pulse_width": "90",
+        "notes": "ok",
+    }
+    row.update(overrides)
+    return row
+
+
+LATERAL_COLUMNS = ("frequency", "anode", "cathode", "amplitude", "pulse_width")
+
+
+def test_create_lateral_table_data_keeps_both_sides(exporter):
+    """Regression: the R row must carry every lateral parameter, not just
+    pulse_width.
+
+    Two separate loops used to split the left and right columns, and the second
+    reused a stale ``generic_col`` from the first. Every right-hand value
+    therefore overwrote ``pulse_width`` and the R row rendered blank frequency,
+    anode, cathode and amplitude in the report table.
+    """
+    ex, _ = exporter
+    out = ex._create_lateral_table_data(pd.DataFrame([_lateral_row()]))
+
+    assert list(out["laterality"]) == ["L", "R"]
+    left = out[out["laterality"] == "L"].iloc[0]
+    right = out[out["laterality"] == "R"].iloc[0]
+
+    for col in LATERAL_COLUMNS:
+        assert pd.notna(left[col]) and left[col] != "", f"L row lost {col}"
+        assert pd.notna(right[col]) and right[col] != "", f"R row lost {col}"
+
+    assert left["frequency"] == "130"
+    assert left["cathode"] == "E1"
+    assert left["amplitude"] == "2.0"
+    assert left["pulse_width"] == "60"
+
+    assert right["frequency"] == "125"
+    assert right["cathode"] == "E2"
+    assert right["amplitude"] == "1.5"
+    assert right["pulse_width"] == "90"
+
+
+def test_create_lateral_table_data_groups_scales_per_block(exporter):
+    """Two scales in one block collapse into newline-joined common cells, and
+    the block still yields exactly one L/R pair."""
+    ex, _ = exporter
+    df = pd.DataFrame(
+        [
+            _lateral_row(scale_name="Tremor", scale_value="3"),
+            _lateral_row(scale_name="Rigidity", scale_value="5"),
+        ]
+    )
+    out = ex._create_lateral_table_data(df)
+
+    assert len(out) == 2
+    assert list(out["laterality"]) == ["L", "R"]
+    for _, row in out.iterrows():
+        assert row["scale_name"] == "Tremor\nRigidity"
+        assert row["scale_value"] == "3\n5"

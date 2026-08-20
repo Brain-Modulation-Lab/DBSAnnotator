@@ -191,48 +191,115 @@ CLINICAL_SCALES_PRESETS: dict[str, list[str]] = {
     ],
 }
 
-SESSION_SCALES_PRESETS: dict[str, list[tuple[str, str, str]]] = {
+# Session scale presets: (name, min, max, optimization_mode).
+#
+# `optimization_mode` is the default direction the report's block ranking uses
+# for this scale, and is one of "min" (lower is better), "max" (higher is
+# better), "custom" (closest to a target value) or "ignore" (excluded).
+# It seeds the export dialog's radio buttons and is carried to the tablet app
+# through schema/scale_presets.json, so both apps rank blocks identically.
+#
+# Note that "custom" is only half-specifiable here: this table has no field for
+# the target value, so a "custom" default preselects the Custom button and still
+# needs the number typed in at export time. Prefer "min"/"max" for defaults.
+#
+# Every entry is "min" here, which is exactly what the export dialog defaulted
+# to before this field existed — adding it changes no behaviour.
+#
+# CLINICAL REVIEW NEEDED: several of these are almost certainly the wrong
+# direction. "Mood", "Energy" and "Control over tics" are worded so that a
+# HIGHER rating is a better outcome, and "Gait / balance" is ambiguous (it
+# depends on whether the rater scores impairment or ability). Ranking them as
+# "min" tells the report that lower mood is an improvement. Flip them to "max"
+# once the intended rating direction is confirmed.
+SESSION_SCALES_PRESETS: dict[str, list[tuple[str, str, str, str]]] = {
     "OCD": [
-        ("Obsessions", "0", "10"),
-        ("Compulsions", "0", "10"),
-        ("Anxiety", "0", "10"),
-        ("Mood", "0", "10"),
-        ("Energy", "0", "10"),
+        ("Obsessions", "0", "10", "min"),
+        ("Compulsions", "0", "10", "min"),
+        ("Anxiety", "0", "10", "min"),
+        ("Mood", "0", "10", "min"),  # review: likely "max"
+        ("Energy", "0", "10", "min"),  # review: likely "max"
     ],
     "MDD": [
-        ("Rumination", "0", "10"),
-        ("Anxiety", "0", "10"),
-        ("Mood", "0", "10"),
-        ("Energy", "0", "10"),
+        ("Rumination", "0", "10", "min"),
+        ("Anxiety", "0", "10", "min"),
+        ("Mood", "0", "10", "min"),  # review: likely "max"
+        ("Energy", "0", "10", "min"),  # review: likely "max"
     ],
     "PD": [
-        ("Tremor", "0", "10"),
-        ("Rigidity", "0", "10"),
-        ("Bradykinesia", "0", "10"),
-        ("Dyskinesia", "0", "10"),
-        ("Gait / balance", "0", "10"),
-        ("Paresthesia", "0", "10"),
-        ("Speech difficulty", "0", "10"),
+        ("Tremor", "0", "10", "min"),
+        ("Rigidity", "0", "10", "min"),
+        ("Bradykinesia", "0", "10", "min"),
+        ("Dyskinesia", "0", "10", "min"),
+        ("Gait / balance", "0", "10", "min"),  # review: ambiguous wording
+        ("Paresthesia", "0", "10", "min"),
+        ("Speech difficulty", "0", "10", "min"),
     ],
     "ET": [
-        ("Action tremor", "0", "10"),
-        ("Resting tremor", "0", "10"),
-        ("Paresthesia", "0", "10"),
-        ("Speech difficulty", "0", "10"),
+        ("Action tremor", "0", "10", "min"),
+        ("Resting tremor", "0", "10", "min"),
+        ("Paresthesia", "0", "10", "min"),
+        ("Speech difficulty", "0", "10", "min"),
     ],
     "Dystonia": [
-        ("Muscle contractions", "0", "10"),
-        ("Abnormal posture", "0", "10"),
-        ("Pain", "0", "10"),
+        ("Muscle contractions", "0", "10", "min"),
+        ("Abnormal posture", "0", "10", "min"),
+        ("Pain", "0", "10", "min"),
     ],
     "TS": [
-        ("Tic severity", "0", "10"),
-        ("Premonitory urge", "0", "10"),
-        ("Control over tics", "0", "10"),
-        ("Anxiety", "0", "10"),
-        ("Impulsivity", "0", "10"),
+        ("Tic severity", "0", "10", "min"),
+        ("Premonitory urge", "0", "10", "min"),
+        ("Control over tics", "0", "10", "min"),  # review: likely "max"
+        ("Anxiety", "0", "10", "min"),
+        ("Impulsivity", "0", "10", "min"),
     ],
 }
+
+# Fallback when a preset row predates the optimization_mode field.
+DEFAULT_SCALE_OPTIMIZATION_MODE = "min"
+
+SCALE_OPTIMIZATION_MODES = ("min", "max", "custom", "ignore")
+
+
+def normalize_session_scale_row(row) -> tuple[str, str, str, str]:
+    """Coerce a session-scale preset row to ``(name, min, max, mode)``.
+
+    Accepts the legacy 3-element ``(name, min, max)`` form — used by rows that
+    come from the Step-2 UI and by user preset files written before the mode
+    field existed — and fills in
+    :data:`DEFAULT_SCALE_OPTIMIZATION_MODE`. Unknown mode strings also fall back
+    to the default rather than propagating into the ranking.
+    """
+    cells = list(row)
+    name = str(cells[0]) if cells else ""
+    minimum = str(cells[1]) if len(cells) > 1 else "0"
+    maximum = str(cells[2]) if len(cells) > 2 else "10"
+    mode = str(cells[3]).strip().lower() if len(cells) > 3 else ""
+    if mode not in SCALE_OPTIMIZATION_MODES:
+        mode = DEFAULT_SCALE_OPTIMIZATION_MODE
+    return name, minimum, maximum, mode
+
+
+def session_scale_modes() -> dict[str, str]:
+    """Map lowercased scale name -> default optimization mode.
+
+    Flattened across every disease preset so the export dialog can seed a
+    scale's mode by name, without the mode having to survive a round trip
+    through the Step-2 widgets (which only carry name/min/max).
+
+    A name appearing in several presets keeps the first mode encountered; the
+    presets agree today, and a conflict would mean the same scale is meant to
+    be optimised in opposite directions, which needs a clinical decision rather
+    than a silent winner.
+    """
+    modes: dict[str, str] = {}
+    for rows in SESSION_SCALES_PRESETS.values():
+        for row in rows:
+            name, _, _, mode = normalize_session_scale_row(row)
+            modes.setdefault(name.strip().lower(), mode)
+    return modes
+
+
 PRESET_BUTTONS = ["OCD", "MDD", "PD", "ET", "Dystonia", "TS"]
 
 COLORS = {

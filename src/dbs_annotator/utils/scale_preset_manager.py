@@ -8,7 +8,11 @@ upgrades.
 
 from __future__ import annotations
 
-from ..config import CLINICAL_SCALES_PRESETS, SESSION_SCALES_PRESETS
+from ..config import (
+    CLINICAL_SCALES_PRESETS,
+    SESSION_SCALES_PRESETS,
+    normalize_session_scale_row,
+)
 from .user_data import read_json, resolve_config_file, write_json
 
 
@@ -40,16 +44,21 @@ class ScalePresetManager:
             return user_presets["clinical"]
         return CLINICAL_SCALES_PRESETS
 
-    def get_session_presets(self) -> dict[str, list[tuple[str, str, str]]]:
+    def get_session_presets(self) -> dict[str, list[tuple[str, str, str, str]]]:
         """Get session scale presets, loading user modifications if available.
 
         Returns:
             Dictionary of session scale presets (preset name -> list of
-            ``(name, min, max)`` tuples).
+            ``(name, min, max, optimization_mode)`` tuples). Rows saved by an
+            older build are only 3 elements on disk; they are normalized here so
+            callers always see the 4-element form.
         """
         user_presets = self._load_user_presets()
         if user_presets and "session" in user_presets:
-            return user_presets["session"]
+            return {
+                preset: [normalize_session_scale_row(row) for row in rows]
+                for preset, rows in user_presets["session"].items()
+            }
         return SESSION_SCALES_PRESETS
 
     def save_clinical_presets(self, presets: dict[str, list[str]]) -> None:
@@ -64,13 +73,13 @@ class ScalePresetManager:
         self._save_user_presets(user_presets)
 
     def save_session_presets(
-        self, presets: dict[str, list[tuple[str, str, str]]]
+        self, presets: dict[str, list[tuple[str, str, str, str]]]
     ) -> None:
         """Save session scale presets to user config file.
 
         Args:
             presets: Dictionary of session scale presets (preset name ->
-                list of ``(name, min, max)`` tuples).
+                list of ``(name, min, max, optimization_mode)`` tuples).
         """
         user_presets = self._load_user_presets() or {}
         user_presets["session"] = presets

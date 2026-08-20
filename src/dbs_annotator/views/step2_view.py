@@ -24,7 +24,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..config import PLACEHOLDERS, PRESET_BUTTONS
+from ..config import (
+    DEFAULT_SCALE_OPTIMIZATION_MODE,
+    PLACEHOLDERS,
+    PRESET_BUTTONS,
+    normalize_session_scale_row,
+)
 from ..ui.session_scales_settings_dialog import SessionScalesSettingsDialog
 from ..ui.widgets import (
     PRESET_BUTTON_ACTIVE_BORDER_PX,
@@ -184,9 +189,17 @@ class Step2View(BaseStepView):
         return self.findChild(QPushButton, f"preset2_{preset_name}")
 
     def _load_session_presets(self) -> dict[str, list[tuple[str, str, str]]]:
-        """Load session presets from ScalePresetManager."""
+        """Load session presets from ScalePresetManager.
+
+        The manager stores 4-tuples (name, min, max, mode); Step 2 and its
+        settings dialog edit only (name, min, max), so drop the optimization
+        mode here and re-apply the default on save.
+        """
         preset_manager = get_scale_preset_manager()
-        return preset_manager.get_session_presets()
+        return {
+            name: [(row[0], row[1], row[2]) for row in rows]
+            for name, rows in preset_manager.get_session_presets().items()
+        }
 
     def _open_session_scales_settings(self):
         """Open the session scales settings dialog."""
@@ -198,10 +211,20 @@ class Step2View(BaseStepView):
         """Handle presets change from settings dialog and persist to JSON."""
         self.session_presets = new_presets
 
-        # Save all presets using ScalePresetManager
+        # Save via ScalePresetManager, re-applying the default optimization mode
+        # dropped for the (name, min, max) editor so the stored 4-tuple stays
+        # consistent with the manager/config contract.
         try:
             preset_manager = get_scale_preset_manager()
-            preset_manager.save_session_presets(new_presets)
+            preset_manager.save_session_presets(
+                {
+                    name: [
+                        (n, mn, mx, DEFAULT_SCALE_OPTIMIZATION_MODE)
+                        for (n, mn, mx) in rows
+                    ]
+                    for name, rows in new_presets.items()
+                }
+            )
         except Exception:
             logger.exception("Failed to save session presets")
 
@@ -363,7 +386,10 @@ class Step2View(BaseStepView):
                 if item.widget():
                     item.widget().deleteLater()
 
-            for name, minval, maxval in scales:
+            for row in scales:
+                # Rows may carry a 4th optimization-mode cell, which Step 2
+                # does not display (it only edits name/min/max).
+                name, minval, maxval, _mode = normalize_session_scale_row(row)
                 self._add_session_scale_row(
                     name,
                     minval,
@@ -413,8 +439,10 @@ class Step2View(BaseStepView):
             elif item.widget():
                 item.widget().deleteLater()
 
-        # Add preset scales
-        for name, minval, maxval in preset_scales:
+        # Add preset scales (the optional 4th cell is the optimization mode,
+        # which Step 2 does not edit).
+        for row in preset_scales:
+            name, minval, maxval, _mode = normalize_session_scale_row(row)
             self._add_session_scale_row(
                 name, minval, maxval, with_minus=True, on_remove=on_remove_callback
             )

@@ -30,6 +30,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..config import (
+    DEFAULT_SCALE_OPTIMIZATION_MODE,
+    normalize_session_scale_row,
+    session_scale_modes,
+)
 from ..utils.theme_manager import get_theme_manager
 
 
@@ -101,8 +106,18 @@ class ScaleTargetValuesDialog(QDialog):
         session_header.setStyleSheet("padding: 4px;")
         self._rows_layout.addWidget(session_header)
 
-        for name, min_v, max_v in scales:
-            self._add_scale_row(name, min_v, max_v, target_list=self._rows)
+        # Rows arrive as (name, min, max) from the Step-2 widgets or as
+        # (name, min, max, mode) straight from the presets. In the former case
+        # the mode is recovered by name, since it is a property of the scale
+        # definition rather than of the recorded session.
+        default_modes = session_scale_modes()
+        for row in scales:
+            name, min_v, max_v, mode = normalize_session_scale_row(row)
+            if len(list(row)) < 4:
+                mode = default_modes.get(
+                    name.strip().lower(), DEFAULT_SCALE_OPTIMIZATION_MODE
+                )
+            self._add_scale_row(name, min_v, max_v, mode=mode, target_list=self._rows)
 
         # ── Clinical Scales section (optional) ──────────────────────
         if clinical_scales:
@@ -118,8 +133,15 @@ class ScaleTargetValuesDialog(QDialog):
             clinical_header.setStyleSheet("padding: 4px;")
             self._rows_layout.addWidget(clinical_header)
 
-            for name, min_v, max_v in clinical_scales:
-                self._add_scale_row(name, min_v, max_v, target_list=self._clinical_rows)
+            for row in clinical_scales:
+                name, min_v, max_v, mode = normalize_session_scale_row(row)
+                self._add_scale_row(
+                    name,
+                    min_v,
+                    max_v,
+                    mode=mode,
+                    target_list=self._clinical_rows,
+                )
 
         self._rows_layout.addStretch()
 
@@ -154,16 +176,22 @@ class ScaleTargetValuesDialog(QDialog):
         name: str,
         min_v: str,
         max_v: str,
+        mode: str = DEFAULT_SCALE_OPTIMIZATION_MODE,
         target_list: list | None = None,
     ) -> None:
-        """Add a single scale row with checkbox + Min / Max / Custom."""
+        """Add a single scale row with checkbox + Min / Max / Custom.
+
+        ``mode`` preselects the Min/Max/Custom button from the scale's
+        configured default (``config.SESSION_SCALES_PRESETS``); ``"ignore"``
+        starts the row unchecked so it is excluded from the ranking.
+        """
         if target_list is None:
             target_list = self._rows
         row_layout = QHBoxLayout()
 
-        # Checkbox (default: checked / enabled)
+        # Checkbox (checked unless the scale's configured mode is "ignore")
         checkbox = QCheckBox()
-        checkbox.setChecked(True)
+        checkbox.setChecked(mode != "ignore")
         checkbox.setToolTip("Include this scale in the calculation")
         row_layout.addWidget(checkbox)
 
@@ -187,7 +215,7 @@ class ScaleTargetValuesDialog(QDialog):
 
         btn_low = QPushButton("Min")
         btn_low.setCheckable(True)
-        btn_low.setChecked(True)
+        btn_low.setChecked(mode in ("min", "ignore"))
         btn_low.setMinimumWidth(55)
         btn_low.setProperty("class", "best-if-btn")
         btn_low.setToolTip("Lower values are better")
@@ -195,6 +223,7 @@ class ScaleTargetValuesDialog(QDialog):
 
         btn_high = QPushButton("Max")
         btn_high.setCheckable(True)
+        btn_high.setChecked(mode == "max")
         btn_high.setMinimumWidth(55)
         btn_high.setProperty("class", "best-if-btn")
         btn_high.setToolTip("Higher values are better")
@@ -202,6 +231,7 @@ class ScaleTargetValuesDialog(QDialog):
 
         btn_custom = QPushButton("Custom")
         btn_custom.setCheckable(True)
+        btn_custom.setChecked(mode == "custom")
         btn_custom.setMinimumWidth(65)
         btn_custom.setProperty("class", "best-if-btn")
         btn_custom.setToolTip("Specify target value")
@@ -211,7 +241,7 @@ class ScaleTargetValuesDialog(QDialog):
         custom_edit.setPlaceholderText("target")
         custom_edit.setMinimumWidth(55)
         custom_edit.setMaximumWidth(60)
-        custom_edit.setVisible(False)
+        custom_edit.setVisible(mode == "custom")
         custom_edit.setValidator(QDoubleValidator())
 
         def _on_mode_changed(button_id, ce=custom_edit):
@@ -248,6 +278,10 @@ class ScaleTargetValuesDialog(QDialog):
                     w.setStyleSheet("color: rgba(128,128,128,0.4);")  # disabled style
 
         checkbox.toggled.connect(_on_toggled)
+        # `toggled` does not fire for the initial state, so a scale configured
+        # as "ignore" needs its row greyed out explicitly.
+        if not checkbox.isChecked():
+            _on_toggled(False)
 
         target_list.append(
             (name, min_v, max_v, checkbox, group, custom_edit, toggleable)

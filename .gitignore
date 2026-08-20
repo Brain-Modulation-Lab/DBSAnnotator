@@ -17,8 +17,10 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Root-scoped: these are Python build artifacts. Without the leading slash they
+# also swallow tablet/lib/, i.e. the entire Flutter source tree.
+/lib/
+/lib64/
 parts/
 sdist/
 var/

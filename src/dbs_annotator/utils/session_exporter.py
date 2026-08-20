@@ -432,15 +432,16 @@ class SessionExporter:
                 "right_pulse_width": "pulse_width",
             }
 
-            # Left side parameters
-            for left_col, generic_col in lateral_mappings.items():
-                if left_col.startswith("left_"):
-                    left_row[generic_col] = first_row.get(left_col, "")
-
-            # Right side parameters
-            for right_col, _generic_cbuild_scales_chartol in lateral_mappings.items():
-                if right_col.startswith("right_"):
-                    right_row[generic_col] = first_row.get(right_col, "")
+            # Split the lateral columns onto the L and R rows. Single loop on
+            # purpose: two loops previously reused a stale `generic_col` from
+            # the first, so every right-side value landed on "pulse_width" and
+            # the R row rendered blank frequency/anode/cathode/amplitude.
+            # LongitudinalExporter._create_lateral_table does it this way too.
+            for col, generic_col in lateral_mappings.items():
+                if col.startswith("left_"):
+                    left_row[generic_col] = first_row.get(col, "")
+                else:
+                    right_row[generic_col] = first_row.get(col, "")
 
             # Add lateral indicator
             left_row["laterality"] = "L"
