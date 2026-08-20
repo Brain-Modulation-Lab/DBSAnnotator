@@ -1,0 +1,58 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dbs_annotator_tablet/core/session/scale_presets.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// Guards against Python<->Dart drift: the presets MUST parse the generated
+/// contract in schema/scale_presets.json (the desktop app is the source of
+/// truth). Run from the `tablet/` dir with `flutter test`.
+void main() {
+  ScalePresets loadPresets() {
+    final file = File('../schema/scale_presets.json');
+    expect(
+      file.existsSync(),
+      isTrue,
+      reason: 'Run `uv run python scripts/generate_schema_json.py` at repo root.',
+    );
+    final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+    return ScalePresets.fromJson(json);
+  }
+
+  test('button bar carries the six desktop disease presets, in order', () {
+    final p = loadPresets();
+    expect(p.buttons, ['OCD', 'MDD', 'PD', 'ET', 'Dystonia', 'TS']);
+
+    // Every button resolves in both tables (no dangling pill).
+    for (final name in p.buttons) {
+      expect(p.clinical, contains(name));
+      expect(p.session, contains(name));
+    }
+  });
+
+  test('clinicalRows returns the desktop Step-1 scale names', () {
+    final p = loadPresets();
+    final ocd = clinicalRows(p, 'OCD');
+    expect(ocd, contains('Y-BOCS'));
+    expect(ocd, ['Y-BOCS', 'Y-BOCS-o', 'Y-BOCS-c', 'MADRS', 'OCI-R']);
+    expect(clinicalRows(p, 'MDD'), ['MADRS', 'HAM-D', 'BDI-II']);
+  });
+
+  test('sessionRows returns the desktop (name, min, max) rows', () {
+    final p = loadPresets();
+    final pd = sessionRows(p, 'PD');
+    expect(pd, contains((name: 'Tremor', min: '0', max: '10')));
+    expect(pd.first, (name: 'Tremor', min: '0', max: '10'));
+    expect(pd.map((r) => r.name), contains('Bradykinesia'));
+    for (final row in pd) {
+      expect(row.min, '0');
+      expect(row.max, '10');
+    }
+  });
+
+  test('unknown presets return empty lists (never throw)', () {
+    final p = loadPresets();
+    expect(clinicalRows(p, 'nope'), isEmpty);
+    expect(sessionRows(p, 'nope'), isEmpty);
+  });
+}

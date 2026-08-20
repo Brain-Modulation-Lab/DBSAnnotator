@@ -25,6 +25,7 @@ from generate_tsv_schema_docs import (  # noqa: E402
     SESSION_META,
 )
 
+import dbs_annotator  # noqa: E402
 from dbs_annotator.config import (  # noqa: E402
     ANNOTATION_TSV_COLUMNS,
     APP_VERSION,
@@ -40,7 +41,24 @@ from dbs_annotator.config_electrode_models import (  # noqa: E402
     MANUFACTURERS,
 )
 
+# Mirrors dbs_annotator.models.clinical_scale.SESSION_SCALE_OMITTED_TSV. Inlined
+# (not imported) because importing dbs_annotator.models pulls in Qt via its
+# __init__; this sentinel is a stable literal.
+SESSION_SCALE_OMITTED_TSV = "NaN"
+
 SCHEMA_DIR = Path("schema")
+
+
+def _stimulation_presets() -> dict:
+    """Default freq/amplitude/pulse-width quick-pick lists.
+
+    These are the bundled defaults the desktop's SettingPresetsManager ships
+    (src/dbs_annotator/config/setting_presets.json); the tablet uses them as
+    the stimulation quick-picks.
+    """
+    path = Path(dbs_annotator.__file__).parent / "config" / "setting_presets.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
 
 # BIDS filename format, mirroring the construction in the Qt app (e.g.
 # views/annotation_only_view.py and views/step1_view.py):
@@ -130,7 +148,11 @@ def build_contract() -> dict[str, dict]:
         "limits.json": {
             "schema_version": APP_VERSION,
             "stimulation": STIMULATION_LIMITS,
-            "session_scale": SESSION_SCALE_LIMITS,
+            "session_scale": {
+                **SESSION_SCALE_LIMITS,
+                "omitted_tsv": SESSION_SCALE_OMITTED_TSV,
+            },
+            "stimulation_presets": _stimulation_presets(),
         },
         "electrode_models.json": {
             "schema_version": APP_VERSION,

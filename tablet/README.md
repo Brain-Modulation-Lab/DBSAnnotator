@@ -39,6 +39,19 @@ mkdir -p assets/schema && cp ../schema/*.json assets/schema/
 flutter pub get
 ```
 
+## Report fonts (Unicode PDF)
+
+The session report contains `µs` and verbatim clinical notes (arbitrary
+Unicode); dart_pdf's built-in Helvetica is ASCII-only. Drop **IBM Plex Sans**
+(OFL, redistributable) into `assets/fonts/` — the loader falls back to Helvetica
+if absent (tests pass either way; only Unicode glyphs need it):
+
+```bash
+cd tablet && mkdir -p assets/fonts
+curl -L -o assets/fonts/IBMPlexSans-Regular.ttf https://github.com/google/fonts/raw/main/ofl/ibmplexsans/IBMPlexSans-Regular.ttf
+curl -L -o assets/fonts/IBMPlexSans-Bold.ttf    https://github.com/google/fonts/raw/main/ofl/ibmplexsans/IBMPlexSans-Bold.ttf
+```
+
 ## Develop / test / run
 
 ```bash

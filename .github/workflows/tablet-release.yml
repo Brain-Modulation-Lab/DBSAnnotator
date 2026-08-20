@@ -122,8 +122,13 @@ jobs:
       # secrets are present (App Store Connect API key). Wire fastlane pilot /
       # xcrun altool here once the Apple Developer account (nonprofit fee
       # waiver) is set up.
-      - name: Upload to TestFlight
+      - name: Upload to TestFlight (fastlane)
         if: ${{ startsWith(github.ref, 'refs/tags/tablet-v') && env.APP_STORE_CONNECT_KEY_ID != '' }}
         run: |
-          echo "Configure fastlane pilot or xcrun altool here once Apple secrets exist."
-          echo "Placeholder step: signed IPA build + TestFlight upload."
+          if [ -f ios/fastlane/Fastfile ]; then
+            cd ios && fastlane beta
+          else
+            echo "Apple secrets are set but ios/fastlane/Fastfile is missing."
+            echo "See tablet/MOBILE_RELEASE.md section 3 to add it."
+            exit 1
+          fi

@@ -26,6 +26,29 @@
     "max": 10,
     "decimals": 2,
     "step1": 1,
-    "step2": 0.5
+    "step2": 0.5,
+    "omitted_tsv": "NaN"
+  },
+  "stimulation_presets": {
+    "frequencies": [
+      25,
+      55,
+      100,
+      125
+    ],
+    "amplitudes": [
+      0.0,
+      1.5,
+      3.0,
+      5.0,
+      7.0,
+      10.0
+    ],
+    "pulse_widths": [
+      40,
+      60,
+      90,
+      120
+    ]
   }
 }
