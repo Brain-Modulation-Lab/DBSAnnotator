@@ -1,0 +1,12 @@
+Keeps this directory in git.
+
+pubspec.yaml declares `assets/fonts/` as an asset directory, and Flutter fails the
+build when a declared directory does not exist. Git does not track empty
+directories, so without this file a fresh checkout (CI included) has no
+assets/fonts/ and the build breaks.
+
+The directory is otherwise optional: drop IBMPlexSans-Regular.ttf and
+IBMPlexSans-Bold.ttf here to give the PDF reports full Unicode coverage. When
+they are absent, lib/report/report_fonts.dart returns no theme and dart_pdf
+falls back to the built-in Helvetica, which covers Latin-1 (including the `µ` of
+`µs`) but not arbitrary clinical notes. See app/README.md.

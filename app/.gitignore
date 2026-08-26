@@ -1,0 +1,27 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+# pubspec.lock is committed for app repos (reproducible builds)
+
+# Generated: schema contract is copied from repo-root schema/ at build time.
+# The directory itself must be tracked (via .gitkeep) or a fresh clone cannot
+# build — Flutter fails on a declared-but-missing asset directory.
+assets/schema/*
+!assets/schema/.gitkeep
+
+# Local report/preview artifacts from throwaway rasterisation tests.
+preview/
+
+# Signing secrets — NEVER commit (see MOBILE_RELEASE.md).
+android/key.properties
+*.jks
+*.keystore
+ios/fastlane/report.xml
+ios/fastlane/Preview.html
+ios/fastlane/*.mobileprovision
+**/*.p8

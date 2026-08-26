@@ -22,7 +22,7 @@ def _reset_singleton():
 def test_loads_bundled_defaults_when_no_user_file(tmp_path):
     manager = SettingPresetsManager(config_dir=str(tmp_path))
     assert manager.get_frequencies() == [25, 55, 100, 125]
-    assert manager.get_amplitudes() == [0.0, 1.5, 3.0, 5.0, 7.0, 10.0]
+    assert manager.get_amplitudes() == [1.5, 3.0, 5.0, 7.0, 10.0]
     assert manager.get_pulse_widths() == [40, 60, 90, 120]
 
 

@@ -1,0 +1,15 @@
+This directory is GENERATED, but must exist in a fresh checkout.
+
+`pubspec.yaml` declares `assets/schema/` as an asset directory, and Flutter
+fails the build when a declared directory is missing. The JSON contract inside
+it is copied from the repo-root `schema/` (the single source of truth, which IS
+tracked) and is gitignored here so the bundled copy can never drift:
+
+    cd app && cp ../schema/*.json assets/schema/
+
+CI does exactly that before every build (see .github/workflows/app-release.yml).
+Without this placeholder, `flutter build` fails on a clean clone until someone
+happens to run the copy step — which is a confusing first-run experience for a
+problem that a single tracked file prevents.
+
+The same reasoning applies to `assets/fonts/.gitkeep`.

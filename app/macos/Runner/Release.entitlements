@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- Required for the report/TSV Save-As dialog to actually write where the
+	     user chose. Under App Sandbox an NSSavePanel only grants write access
+	     with this entitlement; without it file.copy() to the chosen path fails,
+	     the export silently falls back to the sandbox container, and the app
+	     reports success. See lib/ui/share_util.dart. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>
