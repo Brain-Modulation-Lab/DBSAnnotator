@@ -1,17 +1,22 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
 import '../core/bids.dart';
 import '../core/session/longitudinal.dart';
+import '../core/session/tsv_kind.dart';
 import '../core/session/session_file.dart';
 import '../core/session/session_row.dart';
+import '../report/longitudinal_data.dart';
 import '../report/longitudinal_pdf.dart';
+import '../report/session_docx.dart' show DocxPageSize;
+import '../report/report_data.dart'
+    show ScalesChartSpec, buildScalesChartSpec;
+import 'scales_chart_painter.dart';
 import 'share_util.dart';
 import 'theme.dart';
 
@@ -49,27 +54,6 @@ Map<String, Map<int, double>> combinedScaleTimeline(
 // Categorical series palette (validated 8-slot order, light/dark steps).
 // Fixed assignment order, never cycled: past 8 scales the chart shows the
 // first 8 and the PDF table carries the rest.
-const _seriesLight = [
-  Color(0xFF2A78D6),
-  Color(0xFF008300),
-  Color(0xFFE87BA4),
-  Color(0xFFEDA100),
-  Color(0xFF1BAF7A),
-  Color(0xFFEB6834),
-  Color(0xFF4A3AA7),
-  Color(0xFFE34948),
-];
-const _seriesDark = [
-  Color(0xFF3987E5),
-  Color(0xFF008300),
-  Color(0xFFD55181),
-  Color(0xFFC98500),
-  Color(0xFF199E70),
-  Color(0xFFD95926),
-  Color(0xFF9085E9),
-  Color(0xFFE66767),
-];
-
 /// Longitudinal review: import several programming-session TSVs, chart the
 /// session scales across blocks, and export a PDF report — the tablet
 /// counterpart of the desktop's longitudinal report view.
@@ -105,11 +89,22 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
     if (result == null) return;
     final added = <ImportedSessionFile>[];
     final failed = <String>[];
+    final wrongKind = <String>[];
     for (final picked in result.files) {
       try {
         final content = picked.bytes != null
             ? utf8.decode(picked.bytes!)
             : await File(picked.path!).readAsString();
+        // Check the kind BEFORE parsing. `SessionRow.fromMap` is total: every
+        // column it cannot find becomes '', so a notes TSV parsed as a session
+        // yields one all-empty row per line and imported "successfully" — this
+        // screen then showed a review with no data in it and no explanation.
+        final kind = sniffTsvKind(content);
+        if (kind != TsvKind.programming) {
+          wrongKind
+              .add(tsvKindMismatch(picked.name, kind, TsvKind.programming));
+          continue;
+        }
         added.add(ImportedSessionFile(
           name: picked.name,
           rows: parseSessionTsv(content),
@@ -121,38 +116,77 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
     if (!mounted) return;
     setState(() => _files.addAll(added));
     if (failed.isNotEmpty) _snack('Could not read: ${failed.join(', ')}');
+    if (wrongKind.isNotEmpty) _snack(wrongKind.join(' '));
   }
 
-  Future<void> _exportPdf() async {
-    final timeline = _timeline;
-    if (timeline.isEmpty) {
-      _snack('Import at least one session with scale values first.');
+  /// The report content, computed once so both formats and both figures come
+  /// from the same numbers.
+  LongitudinalReportData _reportData() => buildLongitudinalReportData(
+        files: {for (final f in _files) f.name: f.rows},
+      );
+
+  Future<void> _exportReport({required bool docx}) async {
+    if (_files.isEmpty) {
+      _snack('Import at least one session first.');
       return;
     }
-    // Resolve context-derived values before the first await.
-    final messenger = ScaffoldMessenger.of(context);
-    final screen = MediaQuery.sizeOf(context);
-    final origin = shareOriginFrom(_exportKey.currentContext);
-    final filenames = _files.map((f) => f.name).toList();
-    final id = filenames
-        .map(extractPatientId)
-        .firstWhere((s) => s.isNotEmpty, orElse: () => 'unknown');
-    final name =
-        'sub-${id}_longitudinal-report_${BidsName.sessionStamp(DateTime.now())}.pdf';
+    final data = _reportData();
+    if (data.isEmpty) {
+      _snack('The imported files contain no visits to report.');
+      return;
+    }
+    // BIDS-canonical, like every other export this app writes.
+    final name = 'sub-${BidsName.label(data.patientId)}'
+        '_ses-${BidsName.sessionStamp(DateTime.now())}'
+        '_task-longitudinal_report.${docx ? 'docx' : 'pdf'}';
+
+    await exportFile(
+      context,
+      filename: name,
+      anchor: _exportKey,
+      failureLabel: 'Report export failed',
+      build: () async {
+        // Both figures, rasterised by the shared painter so screen and print
+        // cannot disagree. Best-effort: a report without a picture beats no
+        // report, and the builders already say so in words when one is absent.
+        final clinical = await _chartPng(data.clinicalChart);
+        final session = await _chartPng(data.sessionChart);
+        if (docx) {
+          return (
+            bytes: buildLongitudinalDocx(
+              data: data,
+              clinicalChartPng: clinical,
+              sessionChartPng: session,
+              pageSize: DocxPageSize.a4,
+            ),
+            warning: null,
+          );
+        }
+        final report = await buildLongitudinalPdf(
+          data: data,
+          clinicalChartPng: clinical,
+          sessionChartPng: session,
+        );
+        return (
+          bytes: report.bytes,
+          warning: report.lostCharacters
+              ? 'Some characters could not be rendered in the PDF and were '
+                  'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
+                  'for full Unicode, or export to Word instead.'
+              : null,
+        );
+      },
+    );
+  }
+
+  /// Rasterise one figure, degrading to null rather than failing the export.
+  Future<Uint8List?> _chartPng(ScalesChartSpec spec) async {
+    if (spec.isEmpty) return null;
     try {
-      final bytes = await buildLongitudinalPdf(
-        filenames: filenames,
-        timeline: timeline,
-      );
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$name');
-      await file.writeAsBytes(bytes);
-      await shareOrSaveFile(messenger, file, name,
-          origin: origin, screen: screen);
+      return await renderScalesChartPng(spec);
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Report export failed: $e')),
-      );
+      debugPrint('Longitudinal figure could not be rendered: $e');
+      return null;
     }
   }
 
@@ -168,11 +202,27 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
             tooltip: 'Import session TSVs',
             onPressed: _import,
           ),
-          IconButton(
-            key: _exportKey,
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Export PDF',
-            onPressed: _exportPdf,
+          // One Export menu, as the session and annotations screens have.
+          MenuAnchor(
+            builder: (context, controller, child) => IconButton(
+              key: _exportKey,
+              icon: const Icon(Icons.ios_share),
+              tooltip: 'Export report',
+              onPressed: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+            ),
+            menuChildren: [
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.picture_as_pdf_outlined),
+                onPressed: () => _exportReport(docx: false),
+                child: const Text('Report (PDF)'),
+              ),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.description_outlined),
+                onPressed: () => _exportReport(docx: true),
+                child: const Text('Report (Word)'),
+              ),
+            ],
           ),
           const TextSizeButtons(),
           const HelpButton(),
@@ -213,7 +263,7 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
                               'No session scale values in the imported files.',
                             ),
                           )
-                        : _TimelineChart(timeline: timeline),
+                        : _timelineChart(context, timeline),
                   ),
                 ],
               ),
@@ -301,102 +351,32 @@ class _FileList extends StatelessWidget {
   }
 }
 
-class _TimelineChart extends StatelessWidget {
-  const _TimelineChart({required this.timeline});
-
-  final Map<String, Map<int, double>> timeline;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = theme.brightness == Brightness.dark
-        ? _seriesDark
-        : _seriesLight;
-    final scales = timeline.keys.toList()..sort();
-    final shown = scales.take(palette.length).toList();
-    final labelStyle = theme.textTheme.bodySmall;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: LineChart(
-            LineChartData(
-              lineBarsData: [
-                for (var i = 0; i < shown.length; i++)
-                  LineChartBarData(
-                    spots: (timeline[shown[i]]!.entries.toList()
-                          ..sort((a, b) => a.key.compareTo(b.key)))
-                        .map((e) => FlSpot(e.key.toDouble(), e.value))
-                        .toList(),
-                    color: palette[i],
-                    barWidth: 2,
-                    isCurved: false,
-                    dotData: const FlDotData(show: true),
-                  ),
-              ],
-              gridData: const FlGridData(drawVerticalLine: false),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                topTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 40,
-                    getTitlesWidget: (v, meta) =>
-                        Text(meta.formattedValue, style: labelStyle),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  axisNameWidget: Text('Block', style: labelStyle),
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 28,
-                    getTitlesWidget: (v, meta) => v == v.roundToDouble()
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text('${v.toInt()}', style: labelStyle),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 16,
-          runSpacing: 4,
-          children: [
-            for (var i = 0; i < shown.length; i++)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: palette[i],
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(shown[i], style: labelStyle),
-                ],
-              ),
-            if (scales.length > shown.length)
-              Text(
-                'Showing first ${shown.length} of ${scales.length} scales '
-                '(all are in the PDF).',
-                style: labelStyle,
-              ),
-          ],
-        ),
-      ],
-    );
-  }
+/// The on-screen scales timeline, drawn by the **same painter the report
+/// embeds** ([ScalesChartPainter]) so the screen and the PDF cannot disagree.
+///
+/// This replaced an `fl_chart` `LineChart` that could only show 8 scales — it
+/// carried two hand-maintained 8-colour palettes and apologised in the UI for
+/// the ones it dropped. The shared painter cycles 8 colours x 5 dash patterns
+/// and shrink-fits its legend, so the limit and the apology both disappear, and
+/// `fl_chart` leaves the dependency list.
+///
+/// NOTE: the x axis is still the concatenated block index. Group 3 replaces it
+/// with real session dates, which is what makes it interpretable across visits.
+Widget _timelineChart(
+    BuildContext context, Map<String, Map<int, double>> timeline) {
+  final theme = Theme.of(context);
+  return CustomPaint(
+    painter: ScalesChartPainter(
+      spec: buildScalesChartSpec(
+        timeline: timeline,
+        prefs: const [],
+        title: '',
+        xLabel: 'Block',
+        yLabel: 'Scale value',
+      ),
+      background: theme.colorScheme.surface,
+      ink: theme.colorScheme.onSurface,
+    ),
+    child: const SizedBox.expand(),
+  );
 }

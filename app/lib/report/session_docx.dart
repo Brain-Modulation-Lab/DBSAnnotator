@@ -14,105 +14,34 @@
 /// system fonts, so any character renders correctly without sanitising.
 library;
 
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
 
-import '../core/session/session_row.dart';
-import '../core/session/scale_scoring.dart' show ScalePref;
+import '../app_info.dart' show appVersion;
+import 'docx_ooxml.dart';
 import 'report_data.dart';
-import 'session_pdf.dart' show ElectrodeReportImages;
+import 'report_sections.dart';
+import 'session_pdf.dart' show ElectrodeReportImages, kElectrodeCellGapPt;
 
-/// XML-escape text content (&, <, > and, for safety, quotes).
-String _esc(String s) => s
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-
-/// A run of text (size in half-points), with embedded newlines turned into
-/// `<w:br/>` so multi-line table cells / notes wrap inside one paragraph.
-String _run(String text, {bool bold = false, int size = 20}) {
-  final rPr = '<w:rPr>${bold ? '<w:b/>' : ''}'
-      '<w:sz w:val="$size"/><w:szCs w:val="$size"/></w:rPr>';
-  final lines = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
-  final parts = <String>[];
-  for (var i = 0; i < lines.length; i++) {
-    if (i > 0) parts.add('<w:br/>');
-    parts.add('<w:t xml:space="preserve">${_esc(lines[i])}</w:t>');
-  }
-  return '<w:r>$rPr${parts.join()}</w:r>';
-}
-
-/// A body paragraph.
-String _para(String text, {bool bold = false, int size = 20}) =>
-    '<w:p>${_run(text, bold: bold, size: size)}</w:p>';
-
-/// A section heading (14pt bold, with spacing above).
-String _heading(String text) =>
-    '<w:p><w:pPr><w:spacing w:before="240" w:after="60"/></w:pPr>'
-    '${_run(text, bold: true, size: 28)}</w:p>';
-
-/// One table cell (8pt to match the PDF), optionally bold / shaded / ruled.
-String _cell(String text,
-    {bool bold = false, String? fill, bool topRule = false}) {
-  final shd = fill == null
-      ? ''
-      : '<w:shd w:val="clear" w:color="auto" w:fill="$fill"/>';
-  // 3 pt (sz=24) top border, the desktop's block separator.
-  final borders = topRule
-      ? '<w:tcBorders><w:top w:val="single" w:sz="24" w:space="0" '
-          'w:color="auto"/></w:tcBorders>'
-      : '';
-  return '<w:tc><w:tcPr>$shd$borders</w:tcPr>'
-      '<w:p>${_run(text, bold: bold, size: 16)}</w:p></w:tc>';
-}
-
-/// One table row. [fill] shades every cell (the green best/second-best
-/// highlight); [topRule] draws the 3 pt rule the desktop uses to separate
-/// blocks.
-String _tr(List<String> cells,
-        {bool header = false, String? fill, bool topRule = false}) =>
-    '<w:tr>${cells.map((c) => _cell(
-          c,
-          bold: header,
-          fill: header ? 'D9D9D9' : fill,
-          topRule: topRule,
-        )).join()}</w:tr>';
-
-/// A bordered table with a shaded header row. [rowFills] and [rowRules] are
-/// keyed by data-row index.
-String _table(
-  List<String> headers,
-  List<List<String>> rows, {
-  Map<int, String> rowFills = const {},
-  Set<int> rowRules = const {},
-}) {
-  final b = StringBuffer('<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>'
-      '<w:tblBorders>');
-  for (final side in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) {
-    b.write('<w:$side w:val="single" w:sz="4" w:space="0" w:color="auto"/>');
-  }
-  b.write('</w:tblBorders></w:tblPr>');
-  b.write(_tr(headers, header: true));
-  for (var i = 0; i < rows.length; i++) {
-    b.write(_tr(rows[i], fill: rowFills[i], topRule: rowRules.contains(i)));
-  }
-  b.write('</w:tbl>');
-  return b.toString();
-}
+// Callers ask this library for the page size and the PNG reader, so keep them
+// reachable here rather than making every call site learn where they moved.
+export 'docx_ooxml.dart' show DocxPageSize, pngSize;
 
 /// A borderless table, used for the electrode-image grid so the images sit in a
 /// clean 4-column layout with no visible cell edges (the desktop does the same
 /// with explicit `w:val="none"` borders).
-String _borderlessTable(List<String> rowsXml) {
-  final b = StringBuffer('<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>'
+String _borderlessTable(List<String> rowsXml, {required int contentTwips}) {
+  // Four equal columns, explicitly quartered: with no grid, Word sized the
+  // electrode cells from their captions and the four leads came out unequal.
+  final widths = docxGridWidths(const [1, 1, 1, 1], contentTwips);
+  final b = StringBuffer(
+      '<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
       '<w:tblBorders>');
   for (final side in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) {
     b.write('<w:$side w:val="none" w:sz="0" w:space="0" w:color="auto"/>');
   }
-  b.write('</w:tblBorders></w:tblPr>');
+  b.write('</w:tblBorders>');
+  b.write(docxTblGrid(widths));
   b.writeAll(rowsXml);
   b.write('</w:tbl>');
   return b.toString();
@@ -120,353 +49,346 @@ String _borderlessTable(List<String> rowsXml) {
 
 /// A centred cell holding arbitrary run XML, optionally spanning [span]
 /// columns.
-String _xmlCell(String runsXml, {int span = 1}) {
+String _xmlCell(String runsXml, {int span = 1, int? widthTwips}) {
   final grid = span > 1 ? '<w:gridSpan w:val="$span"/>' : '';
-  return '<w:tc><w:tcPr>$grid</w:tcPr>'
+  // A spanning cell's width is the sum of the columns it covers.
+  final w = widthTwips == null
+      ? ''
+      : '<w:tcW w:w="${widthTwips * span}" w:type="dxa"/>';
+  return '<w:tc><w:tcPr>$w$grid</w:tcPr>'
       '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>$runsXml</w:p></w:tc>';
 }
 
 /// A centred text cell for the electrode grid's caption rows.
-String _captionCell(String text, {bool bold = false, int span = 1}) =>
-    _xmlCell(_run(text, bold: bold, size: 16), span: span);
+String _captionCell(String text,
+        {bool bold = false, int span = 1, int? widthTwips}) =>
+    _xmlCell(docxRun(text, bold: bold, size: 16),
+        span: span, widthTwips: widthTwips);
 
-/// "Anode: case / Cathode: E2b" under an electrode image, matching the
-/// desktop's per-lead caption.
-String _tokenCaption(String? anode, String? cathode) =>
-    'Anode: ${anode ?? ''}\nCathode: ${cathode ?? ''}';
+/// Per-lead caption under an electrode image: "+ case" / "- 2b(3.3) 2c(2.2)".
+///
+/// Renders through the shared vendor-nomenclature helper rather than printing
+/// the raw tokens. `E2b_E2c` is an internal identifier and an underscore-joined
+/// current read as a dose is a misreading hazard — which is why it was retired
+/// from the PDF. This caption kept printing it, so the two formats described
+/// the same lead in two different notations.
+String _tokenCaption(LateralTokens? tokens, {required bool left}) =>
+    tokens == null ? '' : lateralText(tokens, left: left);
 
 /// ARGB int -> the RRGGBB hex Word expects in `w:fill`.
 String _hex(int argb) =>
     (argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
 
+/// One decimal unless the value is whole. Twin of the PDF's, so a delta reads
+/// identically in both documents.
+String _num(double v) {
+  if (v == v.roundToDouble()) return v.toStringAsFixed(0);
+  var out = v.toStringAsFixed(2);
+  while (out.endsWith('0')) {
+    out = out.substring(0, out.length - 1);
+  }
+  return out;
+}
+/// Twin of the PDF's rated-per-block note, so both documents say it.
+String? _ratedNote(SessionReportData data) {
+  final counts = data.scalesRated.values.toSet();
+  if (counts.isEmpty) return null;
+  if (counts.length == 1) {
+    return 'Scales rated per block: ${counts.first} throughout.';
+  }
+  final lo = counts.reduce((a, b) => a < b ? a : b);
+  final hi = counts.reduce((a, b) => a > b ? a : b);
+  return 'Scales rated per block: $lo-$hi. The index averages only the scales '
+      'rated at each block, so blocks with different rated sets are not '
+      'directly comparable.';
+}
+/// A signed delta: "-5", "+0.25", or "0" for no change — never "+0".
+String _delta(double v) => v == 0 ? '0' : '${v > 0 ? '+' : ''}${_num(v)}';
+
 /// Legend + scale targets + disclaimer under the session-data table, mirroring
 /// `report_common.add_table_legend`. Returns '' when nothing was ranked.
 String _legendBlock(SessionReportData data) {
-  if (data.bestBlocks.isEmpty && data.secondBlocks.isEmpty) return _para('');
+  // No targets, no ranking, and the document says so.
+  if (!data.hasTargets) return docxPara(data.targetsText, size: 18);
+  if (data.bestBlocks.isEmpty && data.secondBlocks.isEmpty) return docxPara('');
   // A coloured square run, standing in for the desktop's coloured "■" glyph.
   String swatch(int argb) =>
       '<w:r><w:rPr><w:sz w:val="18"/><w:shd w:val="clear" w:color="auto" '
       'w:fill="${_hex(argb)}"/></w:rPr><w:t xml:space="preserve">    </w:t></w:r>';
   final b = StringBuffer()
     ..write('<w:p>')
-    ..write(_run('Legend: ', bold: true, size: 18))
+    ..write(docxRun('Legend: ', bold: true, size: 18))
     ..write(swatch(kBestFill))
-    ..write(_run(' Optimal configuration    ', size: 18))
+    ..write(docxRun(' Highest aggregate index (rank 1)    ', size: 18))
     ..write(swatch(kSecondFill))
-    ..write(_run(' Second-best configuration', size: 18))
+    ..write(docxRun(' Second highest (rank 2)', size: 18))
     ..write('</w:p>');
   if (data.targetsText.isNotEmpty) {
-    b.write(_para('Scale targets: ${data.targetsText}', size: 18));
+    b.write(docxPara('Scale targets: ${data.targetsText}', size: 18));
   }
-  b.write(_para(kRankingDisclaimer, size: 18));
+  b.write(docxPara(kRankingDisclaimer, size: 18));
   return b.toString();
-}
-
-const _contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-    '<Default Extension="xml" ContentType="application/xml"/>'
-    '<Default Extension="png" ContentType="image/png"/>'
-    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-    '</Types>';
-
-const _rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
-    '</Relationships>';
-
-/// English Metric Units per pixel at 96 dpi — the unit every OOXML drawing
-/// extent is expressed in (1 inch = 914 400 EMU).
-const int _emuPerPx = 9525;
-
-/// Page size for the Word report, in twentieths of a point (twips), with the
-/// desktop's margins (0.5 in sides, 0.75 in top/bottom).
-enum DocxPageSize {
-  a4(11906, 16838),
-  letter(12240, 15840);
-
-  const DocxPageSize(this.widthTwips, this.heightTwips);
-
-  final int widthTwips, heightTwips;
-
-  static const _sideMarginTwips = 720; // 0.5 in
-  static const _endMarginTwips = 1080; // 0.75 in
-
-  /// Usable width in px at 96 dpi, for sizing embedded images.
-  double get contentWidthPx =>
-      (widthTwips - 2 * _sideMarginTwips) / 1440.0 * 96.0;
-
-  String get sectPr => '<w:sectPr>'
-      '<w:pgSz w:w="$widthTwips" w:h="$heightTwips"/>'
-      '<w:pgMar w:top="$_endMarginTwips" w:right="$_sideMarginTwips" '
-      'w:bottom="$_endMarginTwips" w:left="$_sideMarginTwips" '
-      'w:header="708" w:footer="708" w:gutter="0"/>'
-      '</w:sectPr>';
-}
-
-/// Collects the images a document embeds and emits the OOXML they need: the
-/// `word/media/*` parts, the `word/_rels/document.xml.rels` entries, and the
-/// `<w:drawing>` run for each placement.
-///
-/// Word is strict about this: an image needs a media part, a relationship, a
-/// `png` content-type default, the `r`/`wp`/`a`/`pic` namespaces on
-/// `<w:document>`, and matching `cx`/`cy` extents in both `wp:extent` and
-/// `a:ext`. Getting any of it wrong yields a repair prompt rather than a
-/// diagnostic, which is why this is centralised in one place.
-class _MediaBag {
-  final _bytes = <String, Uint8List>{};
-  int _next = 1;
-
-  final _relTargets = <String, String>{};
-
-  bool get isEmpty => _bytes.isEmpty;
-
-  /// An inline image run, drawn [widthPx] wide with the PNG's own aspect ratio
-  /// preserved (read from its IHDR, so nothing is stretched).
-  String drawing(Uint8List png, {required double widthPx}) {
-    final n = _next++;
-    final id = 'rId$n';
-    _bytes['image$n.png'] = png;
-    _relTargets[id] = 'media/image$n.png';
-
-    final size = pngSize(png);
-    final aspect = size == null ? 1.0 : size.$2 / size.$1;
-    final cx = (widthPx * _emuPerPx).round();
-    final cy = (widthPx * aspect * _emuPerPx).round();
-    final docPrId = n;
-    return '<w:r><w:drawing>'
-        '<wp:inline distT="0" distB="0" distL="0" distR="0">'
-        '<wp:extent cx="$cx" cy="$cy"/>'
-        '<wp:docPr id="$docPrId" name="Picture $docPrId"/>'
-        '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
-        '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-        '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-        '<pic:nvPicPr>'
-        '<pic:cNvPr id="$docPrId" name="Picture $docPrId"/>'
-        '<pic:cNvPicPr/>'
-        '</pic:nvPicPr>'
-        '<pic:blipFill>'
-        '<a:blip r:embed="$id"/>'
-        '<a:stretch><a:fillRect/></a:stretch>'
-        '</pic:blipFill>'
-        '<pic:spPr>'
-        '<a:xfrm><a:off x="0" y="0"/><a:ext cx="$cx" cy="$cy"/></a:xfrm>'
-        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
-        '</pic:spPr>'
-        '</pic:pic>'
-        '</a:graphicData>'
-        '</a:graphic>'
-        '</wp:inline>'
-        '</w:drawing></w:r>';
-  }
-
-  /// `word/_rels/document.xml.rels`, or null when no image was embedded.
-  String? get relsXml {
-    if (_relTargets.isEmpty) return null;
-    final b = StringBuffer('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
-    for (final e in _relTargets.entries) {
-      b.write('<Relationship Id="${e.key}" '
-          'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
-          'Target="${e.value}"/>');
-    }
-    b.write('</Relationships>');
-    return b.toString();
-  }
-
-  Map<String, Uint8List> get media => _bytes;
-}
-
-/// Read a PNG's pixel dimensions from its IHDR chunk, so an embedded image
-/// keeps its aspect ratio instead of being stretched to a guessed box.
-///
-/// PNG layout: 8-byte signature, then the IHDR chunk whose data starts at byte
-/// 16 with big-endian width and height.
-(int, int)? pngSize(Uint8List bytes) {
-  if (bytes.length < 24) return null;
-  // Signature check, so a non-PNG can't be silently mis-sized.
-  const sig = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-  for (var i = 0; i < sig.length; i++) {
-    if (bytes[i] != sig[i]) return null;
-  }
-  int be32(int o) =>
-      (bytes[o] << 24) | (bytes[o + 1] << 16) | (bytes[o + 2] << 8) | bytes[o + 3];
-  final w = be32(16);
-  final h = be32(20);
-  if (w <= 0 || h <= 0) return null;
-  return (w, h);
 }
 
 /// Build the session-report .docx and return its bytes.
 ///
-/// [rows] are the programming-session rows; [subjectId] is the BIDS subject
-/// label (without the "sub-" prefix). Mirrors the PDF section order.
+/// [subjectId] is the BIDS subject label (without the "sub-" prefix). Mirrors
+/// the PDF section order, and honours the same [sections] selection so the two
+/// formats of one export can never contain different sections.
 Uint8List buildSessionDocx({
-  required List<SessionRow> rows,
+  required SessionReportData data,
   required String subjectId,
-  DateTime? generatedAt,
   ElectrodeReportImages? electrodeImages,
   Uint8List? chartPng,
-  List<ScalePref>? scalePrefs,
   DocxPageSize pageSize = DocxPageSize.a4,
+  Set<ReportSection> sections = kAllReportSections,
 }) {
-  final data = buildSessionReportData(
-    rows: rows,
-    generatedAt: generatedAt,
-    scalePrefs: scalePrefs,
-  );
-  final media = _MediaBag();
+  final media = DocxMediaBag();
   final body = StringBuffer();
 
   // (a) Title + patient + generated-on.
-  body.write(_para('DBS Annotator - Session report', bold: true, size: 40));
-  body.write(_para('Patient: sub-$subjectId    Session: ${data.date}'));
-  body.write(_para('Generated on: ${data.date}'));
-
-  // (b) Initial clinical notes.
-  body.write(_heading('Initial clinical notes'));
-  if (!data.hasInitial) {
-    body.write(_para('No baseline (is_initial = 1) rows recorded.'));
-  } else {
-    for (final pair in data.initScales) {
-      body.write(_para('• ${pair.name}: ${pair.value}'));
-    }
-    if (data.initNotes.isNotEmpty) {
-      body.write(_para('Initial notes: ${data.initNotes}'));
-    }
-    if (data.initScales.isEmpty && data.initNotes.isEmpty) {
-      body.write(_para('(no baseline scales or notes)'));
+  body.write(docxPara('DBS Annotator - Session report', bold: true, size: 40));
+  body.write(
+      docxPara('Patient: sub-$subjectId    Session: ${data.sessionStamp}'));
+  body.write(docxPara(
+      'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion'
+      '${data.sourceFile.isEmpty ? '' : '  |  Source: ${data.sourceFile} '
+          '(${data.rowCount} rows)'}',
+      size: 18));
+  if (data.lastConfig.isNotEmpty) {
+    // Same page-1 summary as the PDF, in the same words: arrived on beside
+    // left on, then what moved.
+    body.write(docxTable(
+      const ['At start of session', 'Last recorded configuration'],
+      [
+        [
+          data.firstConfig.entries.map((e) => '${e.key}: ${e.value}').join('\n'),
+          data.lastConfig.entries.map((e) => '${e.key}: ${e.value}').join('\n'),
+        ],
+      ],
+      weights: const [1, 1],
+      contentTwips: pageSize.contentWidthTwips,
+    ));
+    for (final line in data.configChanges) {
+      body.write(docxPara('Changed: $line', size: 18));
     }
   }
 
-  // (c) Session data: the scales-timeline chart, then the lateral table.
-  body.write(_heading('Session data'));
-  if (chartPng != null) {
-    body.write('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
-        '${media.drawing(chartPng, widthPx: pageSize.contentWidthPx)}</w:p>');
-  }
-  if (!data.hasRecording) {
-    body.write(_para('No recording blocks in this session.'));
-  } else {
-    // Green shading for the best / second-best blocks, and a 3 pt rule on the
-    // first row of each block (tableData is two rows — L then R — per block).
-    final fills = <int, String>{};
-    final rules = <int>{};
-    var previousBlock = '';
-    for (var i = 0; i < data.tableData.length; i++) {
-      final label = data.tableData[i].first;
-      if (label != previousBlock) {
-        if (i > 0) rules.add(i);
-        previousBlock = label;
+  // (b) Baseline assessment. The heading, and every label below, must match
+  // the PDF word for word: two documents of one session that word things
+  // differently is a discovery problem, not a cosmetic one.
+  if (sections.contains(ReportSection.baseline)) {
+    body.write(docxHeading('Baseline assessment (pre-session)'));
+    if (!data.hasInitial) {
+      body.write(docxPara('No baseline (is_initial = 1) rows recorded.'));
+    } else {
+      if (data.initScales.isNotEmpty) {
+        // A two-column table, not bullets: Y-BOCS alongside its own two
+        // subscales reads as three separate findings when all three are
+        // bulleted alike.
+        body.write(docxTable(
+          const ['Scale', 'Score'],
+          [
+            for (final pair in data.initScales) [pair.name, pair.value],
+          ],
+          weights: const [4, 1],
+          contentTwips: pageSize.contentWidthTwips ~/ 2,
+        ));
       }
-      final block = int.tryParse(label);
-      if (block == null) continue;
-      if (data.bestBlocks.contains(block)) {
-        fills[i] = _hex(kBestFill);
-      } else if (data.secondBlocks.contains(block)) {
-        fills[i] = _hex(kSecondFill);
+      if (data.initNotes.isNotEmpty) {
+        body.write(docxPara('Notes: ${data.initNotes}'));
+      }
+      if (data.initScales.isEmpty && data.initNotes.isEmpty) {
+        body.write(docxPara('(no baseline scales or notes)'));
       }
     }
-    body.write(_table(sessionTableHeaders, data.tableData,
-        rowFills: fills, rowRules: rules));
-    body.write(_legendBlock(data));
+  }
+
+  // (c) Session data: the scales-timeline chart, then the lateral table. Graph
+  // and table are independent sections, so the heading appears only when at
+  // least one of them does.
+  final wantsChart = sections.contains(ReportSection.chart);
+  final wantsTable = sections.contains(ReportSection.table);
+  if (wantsChart || wantsTable) {
+    body.write(docxHeading('Session data'));
+    if (wantsChart && chartPng != null) {
+      body.write('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
+          '${media.drawing(chartPng, widthPx: pageSize.contentWidthPx, description: data.figureCaption)}</w:p>');
+      // Same caption as the PDF, word for word.
+      body.write(docxPara(data.figureCaption, size: 16));
+    }
+    if (wantsTable && !data.hasRecording) {
+      body.write(docxPara('No recording blocks in this session.'));
+    } else if (wantsTable) {
+      // Green shading for the best / second-best blocks, and a 3 pt rule on the
+      // first row of each block (tableData is two rows — L then R — per block).
+      final fills = <int, String>{};
+      final rules = <int>{};
+      var previousBlock = '';
+      for (var i = 0; i < data.tableData.length; i++) {
+        final label = data.tableData[i].first;
+        if (label != previousBlock) {
+          if (i > 0) rules.add(i);
+          previousBlock = label;
+        }
+        final block = int.tryParse(label);
+        if (block == null) continue;
+        if (data.bestBlocks.contains(block)) {
+          fills[i] = _hex(kBestFill);
+        } else if (data.secondBlocks.contains(block)) {
+          fills[i] = _hex(kSecondFill);
+        }
+      }
+      body.write(docxTable(sessionTableHeaders, data.tableData,
+          rowFills: fills,
+          rowRules: rules,
+          // Scales and Notes: one tall cell per block, not one per side.
+          mergeDownColumns: {
+            sessionTableHeaders.indexOf('Scales'),
+            sessionTableHeaders.indexOf('Notes'),
+          },
+          weights: sessionTableColumnWeights,
+          contentTwips: pageSize.contentWidthTwips));
+      body.write(_legendBlock(data));
+      final rated = _ratedNote(data);
+      if (rated != null) body.write(docxPara(rated, size: 16));
+      if (data.bestSettingText.isNotEmpty) {
+        body.write(docxPara(data.bestSettingText, size: 16));
+      }
+      final resolution = data.rankingResolutionNote;
+      if (resolution != null) body.write(docxPara(resolution, size: 16));
+    }
   }
 
   // (d) Electrode configuration: the four rendered leads in a borderless grid
   // when the caller supplied them (desktop `_add_electrode_config_section`),
   // else anode/cathode token text.
-  body.write(_heading('Electrode configuration'));
-  final ei = electrodeImages;
-  final hasImages = ei != null &&
-      (ei.initLeft != null ||
-          ei.initRight != null ||
-          ei.finalLeft != null ||
-          ei.finalRight != null);
-  if (!data.hasElectrodeConfig) {
-    body.write(_para('No electrode configuration recorded.'));
-  } else {
-    if (data.electrodeModel.isNotEmpty) {
-      body.write(_para('Electrode model: ${data.electrodeModel}'));
-    }
-    final it = data.initialTokens;
-    final ft = data.finalTokens;
-    if (hasImages) {
-      // One quarter of the content width per lead, less a little breathing room.
-      final cellPx = pageSize.contentWidthPx / 4 - 6;
-      String img(Uint8List? png) =>
-          png == null ? '' : media.drawing(png, widthPx: cellPx);
-      body.write(_borderlessTable([
-        '<w:tr>${_captionCell('Initial settings', bold: true, span: 2)}'
-            '${_captionCell('Final settings', bold: true, span: 2)}</w:tr>',
-        '<w:tr>${_captionCell('Left')}${_captionCell('Right')}'
-            '${_captionCell('Left')}${_captionCell('Right')}</w:tr>',
-        '<w:tr>'
-            '${_captionCell(_tokenCaption(it?.leftAnode, it?.leftCathode))}'
-            '${_captionCell(_tokenCaption(it?.rightAnode, it?.rightCathode))}'
-            '${_captionCell(_tokenCaption(ft?.leftAnode, ft?.leftCathode))}'
-            '${_captionCell(_tokenCaption(ft?.rightAnode, ft?.rightCathode))}'
-            '</w:tr>',
-        '<w:tr>${_xmlCell(img(ei.initLeft))}${_xmlCell(img(ei.initRight))}'
-            '${_xmlCell(img(ei.finalLeft))}${_xmlCell(img(ei.finalRight))}</w:tr>',
-      ]));
-      body.write(_para(''));
+  if (sections.contains(ReportSection.electrodes)) {
+    body.write(docxHeading('Electrode configuration'));
+    final ei = electrodeImages;
+    final hasImages = ei != null &&
+        (ei.initLeft != null ||
+            ei.initRight != null ||
+            ei.finalLeft != null ||
+            ei.finalRight != null);
+    if (!data.hasElectrodeConfig) {
+      body.write(docxPara('No electrode configuration recorded.'));
     } else {
-      if (it != null) {
-        body.write(_para('Initial settings', bold: true));
-        body.write(_para(
-            '  Left:  anode ${it.leftAnode}  |  cathode ${it.leftCathode}'));
-        body.write(_para(
-            '  Right: anode ${it.rightAnode}  |  cathode ${it.rightCathode}'));
+      if (data.electrodeModel.isNotEmpty) {
+        body.write(docxPara('Electrode model: ${data.electrodeModel}'));
       }
-      if (ft != null) {
-        body.write(_para('Final settings', bold: true));
-        body.write(_para(
-            '  Left:  anode ${ft.leftAnode}  |  cathode ${ft.leftCathode}'));
-        body.write(_para(
-            '  Right: anode ${ft.rightAnode}  |  cathode ${ft.rightCathode}'));
+      final it = data.initialTokens;
+      final ft = data.finalTokens;
+      if (hasImages) {
+        // One quarter of the content width per lead, less the same gap the PDF
+        // leaves — expressed in points there, so convert 72 dpi -> 96 dpi.
+        final cellPx =
+            pageSize.contentWidthPx / 4 - kElectrodeCellGapPt * 96 / 72;
+        String img(Uint8List? png) =>
+            png == null ? '' : media.drawing(png, widthPx: cellPx);
+        final quarter = pageSize.contentWidthTwips ~/ 4;
+        String cap(String text, {bool bold = false, int span = 1}) =>
+            _captionCell(text,
+                bold: bold, span: span, widthTwips: quarter);
+        String cell(Uint8List? png) =>
+            _xmlCell(img(png), widthTwips: quarter);
+        body.write(_borderlessTable(contentTwips: pageSize.contentWidthTwips, [
+          '<w:tr>${cap('Initial settings', bold: true, span: 2)}'
+              '${cap('Final settings', bold: true, span: 2)}</w:tr>',
+          '<w:tr>${cap('Left')}${cap('Right')}${cap('Left')}${cap('Right')}'
+              '</w:tr>',
+          '<w:tr>'
+              '${cap(_tokenCaption(it, left: true))}'
+              '${cap(_tokenCaption(it, left: false))}'
+              '${cap(_tokenCaption(ft, left: true))}'
+              '${cap(_tokenCaption(ft, left: false))}'
+              '</w:tr>',
+          '<w:tr>${cell(ei.initLeft)}${cell(ei.initRight)}'
+              '${cell(ei.finalLeft)}${cell(ei.finalRight)}</w:tr>',
+        ]));
+        // Same key as the PDF: the drawing encodes polarity by COLOUR alone,
+        // which is useless on a mono printer or to a colour-blind reader.
+        body.write(docxPara(
+            'Red = anode (+)   Blue = cathode (-)   Grey = inactive.   '
+            "A percentage is that contact's share of the total current.",
+            size: 14));
+        body.write(docxPara(''));
+      } else {
+        // Vendor nomenclature here too, through the SAME helper the PDF's
+        // fallback uses. This branch was still printing the raw `E2b_E2c`
+        // tokens long after they were retired from every other surface, which
+        // is precisely what report_parity_test exists to catch.
+        for (final pair in [
+          ('Initial settings', it),
+          ('Last recorded settings', ft),
+        ]) {
+          final tokens = pair.$2;
+          if (tokens == null) continue;
+          body.write(docxPara(pair.$1, bold: true));
+          body.write(
+              docxPara('  Left:   ${lateralText(tokens, left: true)}'));
+          body.write(
+              docxPara('  Right:  ${lateralText(tokens, left: false)}'));
+        }
       }
     }
   }
 
   // (e) Programming summary.
-  body.write(_heading('Programming summary'));
-  if (!data.hasRows) {
-    body.write(_para('No session data available.'));
-  } else {
-    body.write(_para('Session duration: ${data.duration}'));
-    body.write(_para('Configurations tested: ${data.numConfigs}'));
-    body.write(_para('Amplitude range:  L: ${data.ampL}  |  R: ${data.ampR}'));
-    body.write(_para('Frequency range:  L: ${data.freqL}  |  R: ${data.freqR}'));
-    body.write(_para('Pulse width range:  L: ${data.pwL}  |  R: ${data.pwR}'));
-  }
+  if (sections.contains(ReportSection.summary)) {
+    body.write(docxHeading('Programming summary'));
+    if (!data.hasRows) {
+      body.write(docxPara('No session data available.'));
+    } else {
+      body.write(
+          docxPara('Annotation span (first to last entry): ${data.span}'));
+      body.write(docxPara('Configurations tested: ${configCountText(data)}'));
+      body.write(docxPara('Amplitude:  L: ${data.ampL}  |  R: ${data.ampR}'));
+      body.write(docxPara('Frequency:  L: ${data.freqL}  |  R: ${data.freqR}'));
+      body.write(docxPara('Pulse width:  L: ${data.pwL}  |  R: ${data.pwR}'));
 
-  // The drawing namespaces must be declared even when no image is embedded is
-  // harmless, but Word requires them the moment one is — declare them always so
-  // the two code paths can't diverge.
-  final document = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-      '<w:document '
-      'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
-      'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
-      'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
-      'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
-      'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-      '<w:body>$body${pageSize.sectPr}</w:body></w:document>';
-
-  final archive = Archive()
-    ..addFile(
-        ArchiveFile.bytes('[Content_Types].xml', utf8.encode(_contentTypes)))
-    ..addFile(ArchiveFile.bytes('_rels/.rels', utf8.encode(_rels)))
-    ..addFile(ArchiveFile.bytes('word/document.xml', utf8.encode(document)));
-
-  // Image parts and their relationships, only when something was embedded.
-  final rels = media.relsXml;
-  if (rels != null) {
-    archive.addFile(
-        ArchiveFile.bytes('word/_rels/document.xml.rels', utf8.encode(rels)));
-    for (final e in media.media.entries) {
-      archive.addFile(ArchiveFile.bytes('word/media/${e.key}', e.value));
+      // Same two subsections as the PDF, in the same order and the same words.
+      if (data.response.isNotEmpty) {
+        body.write(docxHeading2('Response (first to last rated block)'));
+        for (final r in data.response) {
+          body.write(docxPara('  ${r.name}: ${_num(r.first)} -> ${_num(r.last)} '
+              '(${_delta(r.last - r.first)})'));
+        }
+      }
+      body.write(docxPara(data.instrumentNote, size: 16));
+      if (data.anomalies.isNotEmpty) {
+        body.write(docxHeading2('Data notes'));
+        for (final line in data.anomalies) {
+          body.write(docxPara('  • $line', size: 18));
+        }
+      }
+      if (data.observations.isNotEmpty) {
+        body.write(docxHeading2('Recorded observations'));
+        for (final line in data.observations) {
+          body.write(docxPara('  • $line', size: 18));
+        }
+      }
     }
   }
 
-  return Uint8List.fromList(ZipEncoder().encode(archive));
+  // Attestation. The document otherwise asserts that a machine produced it and
+  // that no human stands behind it. Underscores rather than a border, so the
+  // rules survive a copy-paste into another document.
+  body.write(docxHeading2('Attestation'));
+  body.write(docxPara('Recorded by: ${'_' * 26}    '
+      'Reviewed by: ${'_' * 26}    Date: ${'_' * 14}'));
+
+  // Packaging is shared with the annotations report: a missing content-type or
+  // an unresolved relationship makes Word offer to repair the file rather than
+  // say what is wrong, so there is one implementation of it.
+  return packDocx(
+    body: body.toString(),
+    pageSize: pageSize,
+    media: media,
+    title: 'DBS session report - sub-$subjectId - ${data.sessionDate}',
+    subject: 'Deep brain stimulation programming session',
+    createdDate: data.generatedOn,
+    footerPrefix: 'sub-$subjectId  |  ${data.sessionStamp}  |  '
+        'DBS Annotator v$appVersion  |  Page ',
+  );
 }

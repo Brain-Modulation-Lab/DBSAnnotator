@@ -12,6 +12,8 @@ import 'package:dbs_annotator/ui/scales_chart_painter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'report_ranking_prefs.dart';
+
 /// The committed export the desktop docs are built from — real clinical shape
 /// (7 blocks, 5 session scales, clinical baseline), so the scoring is checked
 /// against data we can compare with the reference figure in
@@ -29,8 +31,8 @@ void main() {
     late SessionReportData data;
 
     setUp(() {
-      data = buildSessionReportData(
-          rows: _exampleRows(), generatedAt: DateTime(2026, 6, 26));
+      data = rankedReportData(_exampleRows(),
+          generatedAt: DateTime(2026, 6, 26));
     });
 
     test('plots the session scales over the recording blocks', () {
@@ -47,15 +49,29 @@ void main() {
       expect(data.chart.yMax, 10);
     });
 
-    test('computes the aggregate index and ranks blocks 7 then 6', () {
-      // Matches the reference figure: the dark green band sits on block 7 and
-      // the light one on block 6.
+    test('ranks SETTINGS, so an identical pair is one configuration', () {
       expect(data.chart.aggregateIndex, hasLength(7));
-      expect(data.chart.bestX, 7);
-      expect(data.chart.secondX, 6);
+      // Blocks 6 and 7 are byte-identical in all ten stimulation columns and
+      // were rated 9 s apart. They are ONE setting, so both are banded as the
+      // best and the second band goes to a genuinely different configuration.
+      // The desktop (and this port until now) banded 7 as "optimal" and 6 as
+      // "second-best" - a rank order over a repeat rating.
+      expect(data.chart.bestXs, [6, 7]);
+      expect(data.chart.secondXs, [2]);
       for (final v in data.chart.aggregateIndex.values) {
         expect(v, inInclusiveRange(0.0, 1.0));
       }
+    });
+
+    test('the replicate spread is reported as the ranking resolution', () {
+      // The only estimate the session offers of how much the index moves when
+      // nothing changes: 0.075 between blocks 6 and 7. That is 7.5x the 0.010
+      // separating blocks 2, 3 and 4, so a third-decimal margin is not a
+      // finding and the document must say so.
+      expect(data.replicateSpread, closeTo(0.075, 5e-4));
+      expect(data.rankingResolutionNote, contains('0.075'));
+      expect(data.rankingResolutionNote, contains('not distinguishable'));
+      expect(data.bestSettingText, contains('blocks 6, 7'));
     });
 
     test('table shading uses the separate raw-sum ranking', () {
@@ -91,17 +107,34 @@ void main() {
       expect(flipped.chart.bestX, isNot(7));
     });
 
-    test('a single scale suppresses the index, as the desktop does', () {
+    test('a single scale is still ranked (the desktop suppresses it)', () {
+      // Deliberate divergence: the desktop draws no index below two scales, so
+      // a one-scale session got no green bands at all. The user asked for the
+      // ranking to work "no matter how many scales there are", and a single
+      // scale against its own target ranks the blocks perfectly well.
+      // Different amplitudes, so these are two SETTINGS and not one rated
+      // twice. (With no stimulation columns at all they would group together,
+      // which is right - the grouping keys on the stimulation - but is not a
+      // shape a real session produces.)
       const rows = [
         SessionRow(blockId: '1', isInitial: '0', scaleName: 'Tremor',
-            scaleValue: '3'),
+            scaleValue: '3', leftAmplitude: '2.0'),
         SessionRow(blockId: '2', isInitial: '0', scaleName: 'Tremor',
-            scaleValue: '1'),
+            scaleValue: '1', leftAmplitude: '3.0'),
       ];
-      final one = buildSessionReportData(rows: rows);
+      final one = rankedReportData(rows);
       expect(one.chart.series, hasLength(1));
-      expect(one.chart.aggregateIndex, isEmpty);
-      expect(one.chart.bestX, isNull);
+      expect(one.chart.aggregateIndex, hasLength(2));
+      // Two different settings here, so one block each. Default mode is min,
+      // so the lower score wins.
+      expect(one.chart.bestXs, [2]);
+      expect(one.chart.secondXs, [1]);
+      // And the table shades the SAME blocks, from the same ranking.
+      expect(one.bestBlocks, [2]);
+      expect(one.secondBlocks, [1]);
+      // Nothing was rated twice, so the session offers no resolution estimate.
+      expect(one.replicateSpread, isNull);
+      expect(one.rankingResolutionNote, isNull);
     });
 
     test('no session scales -> an empty chart the builders can skip', () {
@@ -140,7 +173,10 @@ void main() {
         size: const Size(150, 320),
         pixelRatio: 2,
       );
-      expect(pngSize(png), (300, 640));
+      // Nullable so a rasterisation failure degrades to the text fallback
+      // rather than aborting the export.
+      expect(png, isNotNull);
+      expect(pngSize(png!), (300, 640));
     });
   });
 }

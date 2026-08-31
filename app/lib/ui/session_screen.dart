@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart' show PdfPageFormat;
@@ -14,10 +14,16 @@ import '../core/electrode/electrode_model.dart';
 import '../core/electrode/stimulation_rule.dart';
 import '../core/electrode/tokens.dart';
 import '../core/prefs/user_prefs.dart';
+import '../core/safe_file.dart';
 import '../core/session/authoring.dart';
 import '../core/session/scale_presets.dart';
+import '../core/session/tsv_kind.dart';
+import '../core/session/scale_scoring.dart'
+    show ScaleMode, ScalePref, scaleModeFromString;
 import '../core/session/session_row.dart';
+import '../report/entry_charts.dart';
 import '../report/report_data.dart';
+import '../report/report_sections.dart';
 import '../report/session_docx.dart';
 import '../report/session_pdf.dart';
 import '../app_info.dart';
@@ -25,8 +31,11 @@ import 'amplitude_split.dart';
 import 'electrode_view.dart';
 import 'list_editor_dialog.dart';
 import 'report_images.dart';
-import 'scales_chart_painter.dart';
+import 'report_sections_dialog.dart';
+import 'session/entries_table.dart';
+import 'session/entry_charts_view.dart';
 import 'scale_presets_dialog.dart';
+import 'scale_targets_dialog.dart';
 import 'save_target.dart';
 import 'scale_slider.dart';
 import 'share_util.dart';
@@ -100,6 +109,7 @@ class _SessionScaleEdit {
     required double min,
     required double max,
     String name = '',
+    this.mode = ScaleMode.min,
   }) : value = min {
     this.name.text = name;
     minCtrl.text = _fmtValue(min);
@@ -111,6 +121,12 @@ class _SessionScaleEdit {
   final maxCtrl = TextEditingController();
   double value;
   bool omitted = false;
+
+  /// How this scale is scored when ranking configurations (the desktop export
+  /// dialog's Min / Max / Custom radio). Seeded from the preset's contract cell
+  /// and editable via [showScaleTargetsDialog].
+  ScaleMode mode;
+  double? custom;
 
   double minOr(double fallback) =>
       double.tryParse(minCtrl.text.trim()) ?? fallback;
@@ -157,6 +173,11 @@ class _SessionScreenState extends State<SessionScreen> {
   // user keeps refining them); recording notes clear after each block.
   final _notesInitCtrl = TextEditingController();
   final _notesRecCtrl = TextEditingController();
+
+  /// Side effects observed at the configuration being rated. Folded into the
+  /// `notes` cell on insert (see [_recordingNotes]) so no new TSV column is
+  /// needed.
+  final _sideEffectsCtrl = TextEditingController();
   // Electrode/param state is INDEPENDENT per step: editing the recording config
   // must not change what the initial config shows. The recording pair is seeded
   // once from the initial pair on first entry to the Recording step.
@@ -172,11 +193,15 @@ class _SessionScreenState extends State<SessionScreen> {
   final _removedClinical = <_ClinicalScaleEdit>[];
   final _removedSession = <_SessionScaleEdit>[];
 
+  // Serialised, atomic autosave to the user's chosen file. See [SafeFileWriter].
+  final _writer = SafeFileWriter();
+
   // Anchor the iPadOS share popover to whichever export button was tapped.
   // See [shareOriginFrom].
-  final _exportTsvKey = GlobalKey();
-  final _exportReportKey = GlobalKey();
-  final _exportDocxKey = GlobalKey();
+  /// Share-popover anchor. ONE key, on the Export button: a menu item is
+  /// already unmounted by the time the iPad share sheet asks for its rect, so
+  /// three per-item keys could only ever resolve to null.
+  final _exportKey = GlobalKey();
 
   int _currentStep = 0;
   String? _modelName;
@@ -203,6 +228,81 @@ class _SessionScreenState extends State<SessionScreen> {
     });
   }
 
+
+  // Chart data is derived from every inserted row, so it is cached and rebuilt
+  // only when the rows actually change. Without this it would be recomputed on
+  // every setState -- i.e. on every slider tick in this step -- and, because
+  // EntryChartData holds maps with no value equality, every panel would repaint
+  // too.
+  EntryChartData? _entryChartsCache;
+  List<ScalePref>? _entryChartsPrefs;
+
+  EntryChartData _entryCharts() {
+    final prefs = _scalePrefs();
+    // Also rebuild when the TARGETS change, not only the rows: the bounds set
+    // the scales panel's y axis and the modes decide which block is banded, so
+    // caching on rows alone left the figure stale after editing either.
+    if (_entryChartsCache == null ||
+        !listEquals(_entryChartsPrefs, prefs)) {
+      _entryChartsPrefs = prefs;
+      _entryChartsCache = buildEntryChartData(_authoring.rows, scalePrefs: prefs);
+    }
+    return _entryChartsCache!;
+  }
+
+  /// Call wherever [_authoring] is mutated, or the figure goes stale.
+  void _invalidateEntryCharts() => _entryChartsCache = null;
+
+  /// The optimisation targets for every named session scale — the single input
+  /// to both the on-screen ranking and the report's, so the green bands on the
+  /// charts and in the document can never point at different blocks.
+  List<ScalePref> _scalePrefs() => [
+        for (final s in _sessionScales)
+          if (s.name.text.trim().isNotEmpty)
+            (
+              name: s.name.text.trim(),
+              min: s.minOr(0),
+              max: s.maxOr(10),
+              mode: s.mode,
+              custom: s.custom,
+            ),
+      ];
+
+  /// Edit the targets, then push them back onto the Step-2 rows so Step 2, the
+  /// figure and the report all stay in agreement.
+  Future<void> _editScaleTargets() async {
+    final updated = await showScaleTargetsDialog(context, _scalePrefs());
+    if (updated == null || !mounted) return;
+    final byName = {for (final p in updated) p.name: p};
+    setState(() {
+      for (final s in _sessionScales) {
+        final p = byName[s.name.text.trim()];
+        if (p == null) continue;
+        s.minCtrl.text = _fmtValue(p.min);
+        s.maxCtrl.text = _fmtValue(p.max);
+        s.mode = p.mode;
+        s.custom = p.custom;
+      }
+    });
+  }
+
+  /// The report content, computed ONCE per export and shared by the graphics
+  /// step and both builders — so the two formats cannot disagree, and
+  /// `DateTime.now()` is read a single time.
+  ///
+  /// Passes the Step-2 scale bounds and optimisation modes through as
+  /// [ScalePref]s. The app never did this, so the report silently fell back to a
+  /// 0-10 default: the chart's y-axis clamp and the whole best/second-best
+  /// ranking ignored what the user actually typed.
+  SessionReportData _reportData() => buildSessionReportData(
+        rows: _authoring.rows,
+        scalePrefs: _scalePrefs(),
+        // Provenance: the report prints which file it came from, so it can be
+        // tied back to one run among several of the same session.
+        sourceFile: _savePath == null
+            ? ''
+            : _savePath!.replaceAll(r'', '/').split('/').last,
+      );
 
   /// Report paper size from the user preference, applied to BOTH formats so the
   /// PDF and the Word document always agree.
@@ -232,6 +332,7 @@ class _SessionScreenState extends State<SessionScreen> {
     _runCtrl.dispose();
     _notesInitCtrl.dispose();
     _notesRecCtrl.dispose();
+    _sideEffectsCtrl.dispose();
     _leftInit.dispose();
     _rightInit.dispose();
     _leftRec.dispose();
@@ -346,6 +447,7 @@ class _SessionScreenState extends State<SessionScreen> {
   /// scores, mirroring the desktop write_clinical_scales.
   void _insertBaseline(ElectrodeCatalog catalog, StimLimits limits) {
     if (!_stimInRange(limits, _leftInit, _rightInit)) return;
+    _invalidateEntryCharts();
     final inserted = _authoring.addInsert(
       isInitial: true,
       stim: _stimCells(catalog, _leftInit, _rightInit),
@@ -369,6 +471,7 @@ class _SessionScreenState extends State<SessionScreen> {
   /// desktop formatting.
   void _insertRecording(ElectrodeCatalog catalog, StimLimits limits) {
     if (!_stimInRange(limits, _leftRec, _rightRec)) return;
+    _invalidateEntryCharts();
     final inserted = _authoring.addInsert(
       isInitial: false,
       stim: _stimCells(catalog, _leftRec, _rightRec),
@@ -383,9 +486,12 @@ class _SessionScreenState extends State<SessionScreen> {
       ],
       programId: _selectedProgram ?? '',
       electrodeModel: _modelName ?? '',
-      notes: _notesRecCtrl.text.trim(),
+      notes: _recordingNotes(),
     );
-    setState(_notesRecCtrl.clear);
+    setState(() {
+      _notesRecCtrl.clear();
+      _sideEffectsCtrl.clear();
+    });
     _autosave();
     _snack('Inserted recording block ${inserted.first.blockId} '
         '(${inserted.length} row${inserted.length == 1 ? '' : 's'}).');
@@ -393,11 +499,15 @@ class _SessionScreenState extends State<SessionScreen> {
 
   /// If a save path was chosen (New/Open), rewrite the TSV to it after each
   /// insert (desktop autosaves every entry). No-op when there is no path.
+  ///
+  /// Goes through [SafeFileWriter], so overlapping inserts cannot interleave and
+  /// a crash mid-write cannot leave the clinician's only copy truncated — the
+  /// previous version stayed intact with a plain `writeAsString` only by luck.
   Future<void> _autosave() async {
     final path = _savePath;
     if (path == null) return;
     try {
-      await File(path).writeAsString(_authoring.serialize());
+      await _writer.write(path, _authoring.serialize());
     } catch (e) {
       if (mounted) _snack('Autosave failed: $e');
     }
@@ -479,8 +589,31 @@ class _SessionScreenState extends State<SessionScreen> {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }
+    // Refuse the wrong workflow's file rather than loading it into nothing.
+    // `SessionRow.fromMap` is total, so a notes TSV parses into all-empty rows
+    // and would open "successfully" with no blocks and no explanation.
+    final kind = sniffTsvKind(content);
+    if (kind != TsvKind.programming) {
+      if (mounted) {
+        _snack(tsvKindMismatch(picked.name, kind, TsvKind.programming));
+      }
+      return;
+    }
+
+    _invalidateEntryCharts();
     _authoring.loadExisting(content);
     final bids = BidsName.parse(picked.name);
+
+    // The file names its own electrode model, and this screen used to ignore
+    // the column entirely — so opening a TSV rendered the lead diagrams, and
+    // the report's, for whatever the dropdown happened to say. A mismatch there
+    // is not cosmetic: it labels one lead's contacts with another lead's
+    // geometry.
+    final catalog = (await _contracts).$1;
+    final named = electrodeModelIn(_authoring.rows);
+    final unknownModel =
+        named.isNotEmpty && !catalog.models.containsKey(named);
+
     if (!mounted) return;
     setState(() {
       // Autosave future inserts back to the opened file (when a real path).
@@ -490,10 +623,55 @@ class _SessionScreenState extends State<SessionScreen> {
         _subjectCtrl.text = bids.subject;
         _runCtrl.text = bids.run;
       }
+      if (named.isNotEmpty && !unknownModel) _modelName = named;
     });
     final opened = 'Opened ${picked.name} (${_authoring.rows.length} rows, '
         'next block ${_authoring.blockId}, session ${_authoring.sessionId}).';
     _snack(_savePathIsSandboxCopy ? '$opened $sandboxCopyNotice' : opened);
+    if (unknownModel) {
+      _snack('This file names electrode model "$named", which is not in the '
+          'catalogue. The diagrams show ${_modelName ?? 'the selected model'} '
+          'instead.');
+    }
+  }
+
+  /// BIDS labels for a filename: sanitised, because these fields are free text
+  /// and become a path component.
+  ({String subject, String run}) get _labels {
+    final subject = BidsName.label(_subjectCtrl.text.trim());
+    final run = BidsName.label(_runCtrl.text.trim());
+    return (
+      subject: subject.isEmpty ? 'unknown' : subject,
+      run: run.isEmpty ? '01' : run,
+    );
+  }
+
+  /// Report sections the user last chose (all of them, by default).
+  Set<ReportSection> get _sections {
+    final saved = _prefs.reportSections;
+    if (saved == null) return kAllReportSections;
+    final on = {
+      for (final s in ReportSection.values)
+        if (saved.contains(s.name)) s,
+    };
+    // An empty saved list would silently produce a title page and nothing else.
+    return on.isEmpty ? kAllReportSections : on;
+  }
+
+  /// Ask which sections to include, and offer the scale targets alongside —
+  /// they are what the ranking inside two of those sections is measured
+  /// against. Returns null if the user cancelled the export.
+  Future<Set<ReportSection>?> _askSections() async {
+    final chosen = await showReportSectionsDialog(
+      context,
+      _sections,
+      onEditTargets: _editScaleTargets,
+    );
+    if (chosen == null) return null;
+    setState(() =>
+        _prefs.reportSections = [for (final s in chosen) s.name]);
+    saveUserPrefs(_prefs);
+    return chosen;
   }
 
   Future<void> _export() async {
@@ -501,142 +679,139 @@ class _SessionScreenState extends State<SessionScreen> {
       _snack('Insert at least one block before exporting.');
       return;
     }
-    // Context-derived values resolved before the first await.
-    final messenger = ScaffoldMessenger.of(context);
-    final screen = MediaQuery.sizeOf(context);
-    final origin = shareOriginFrom(_exportTsvKey.currentContext);
-    final subject = _subjectCtrl.text.trim().isEmpty
-        ? 'unknown'
-        : _subjectCtrl.text.trim();
-    final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
+    final l = _labels;
     final name = BidsName(
-      subject: subject,
+      subject: l.subject,
       session: BidsName.sessionStamp(DateTime.now()),
       task: 'programming',
-      run: run,
+      run: l.run,
     );
-    try {
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/${name.filename}');
-      await file.writeAsString(_authoring.serialize());
-      await shareOrSaveFile(messenger, file, name.filename,
-          origin: origin, screen: screen);
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
-    }
+    await exportFile(
+      context,
+      filename: name.filename,
+      anchor: _exportKey,
+      build: () async =>
+          (bytes: utf8.encode(_authoring.serialize()), warning: null),
+    );
   }
 
-  /// Build the session-report PDF from the authored rows and share it (mobile)
-  /// or save it (desktop). Any failure — e.g. a font that can't render a note
-  /// glyph — is surfaced via a snackbar instead of a silent console error.
-  Future<void> _exportReport(ElectrodeModel? model) async {
+  /// Build the session report in [format] and share it (mobile) or save it
+  /// (desktop). Both formats are built from ONE [SessionReportData] and one
+  /// section selection, so they cannot disagree about content.
+  Future<void> _exportReport(ElectrodeModel? model, {required bool docx}) async {
     if (_authoring.rows.isEmpty) {
       _snack('Insert at least one block before exporting a report.');
       return;
     }
-    // Context-derived values resolved before the first await.
-    final messenger = ScaffoldMessenger.of(context);
-    final screen = MediaQuery.sizeOf(context);
-    final origin = shareOriginFrom(_exportReportKey.currentContext);
-    final subject = _subjectCtrl.text.trim().isEmpty
-        ? 'unknown'
-        : _subjectCtrl.text.trim();
-    final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
+    final sections = await _askSections();
+    if (sections == null || !mounted) return;
+
+    final l = _labels;
     // Same BIDS-friendly report name as the desktop's
     // _generate_bids_report_filename.
     final stamp = BidsName.sessionStamp(DateTime.now());
-    final filename =
-        'sub-${subject}_ses-${stamp}_task-programming_run-${run}_report.pdf';
-    try {
-      final data = buildSessionReportData(rows: _authoring.rows);
-      final gfx = await _reportGraphics(data, model);
-      final bytes = await buildSessionPdf(
-        rows: _authoring.rows,
-        subjectId: subject,
-        electrodeImages: gfx.electrodes,
-        chartPng: gfx.chart,
-        pageFormat: _reportLetter ? PdfPageFormat.letter : PdfPageFormat.a4,
-      );
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(bytes);
-      await shareOrSaveFile(messenger, file, filename,
-          origin: origin, screen: screen);
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Report export failed: $e')),
-      );
-    }
-  }
+    final ext = docx ? 'docx' : 'pdf';
+    final filename = 'sub-${l.subject}_ses-$stamp'
+        '_task-programming_run-${l.run}_report.$ext';
 
-  Future<void> _exportReportDocx(ElectrodeModel? model) async {
-    if (_authoring.rows.isEmpty) {
-      _snack('Insert at least one block before exporting a report.');
-      return;
-    }
-    // Context-derived values resolved before the first await.
-    final messenger = ScaffoldMessenger.of(context);
-    final screen = MediaQuery.sizeOf(context);
-    final origin = shareOriginFrom(_exportDocxKey.currentContext);
-    final subject = _subjectCtrl.text.trim().isEmpty
-        ? 'unknown'
-        : _subjectCtrl.text.trim();
-    final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
-    final stamp = BidsName.sessionStamp(DateTime.now());
-    final filename =
-        'sub-${subject}_ses-${stamp}_task-programming_run-${run}_report.docx';
-    try {
-      final data = buildSessionReportData(rows: _authoring.rows);
-      final gfx = await _reportGraphics(data, model);
-      final bytes = buildSessionDocx(
-        rows: _authoring.rows,
-        subjectId: subject,
-        electrodeImages: gfx.electrodes,
-        chartPng: gfx.chart,
-        pageSize: _reportLetter ? DocxPageSize.letter : DocxPageSize.a4,
-      );
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(bytes);
-      await shareOrSaveFile(messenger, file, filename,
-          origin: origin, screen: screen);
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Report export failed: $e')),
-      );
-    }
-  }
-
-  /// The graphics both report formats embed, rasterised once so the PDF and the
-  /// Word document are guaranteed to show identical images.
-  Future<({ElectrodeReportImages? electrodes, Uint8List? chart})> _reportGraphics(
-      SessionReportData data, ElectrodeModel? model) async {
-    final chart = await renderScalesChartPng(data.chart);
-    if (model == null) return (electrodes: null, chart: chart);
-
-    // Take the rows report_data itself resolved (highest session, then highest
-    // block, numerically coerced). Re-deriving them here with a simpler rule
-    // used to let the images show one configuration while the text beside them
-    // described another — e.g. for a TSV writing `is_initial` as "1.0".
-    Future<Uint8List?> png(SessionRow? row, bool left) async {
-      if (row == null) return null;
-      return renderElectrodePng(
-        model,
-        left ? row.leftAnode : row.rightAnode,
-        left ? row.leftCathode : row.rightCathode,
-      );
-    }
-
-    return (
-      electrodes: (
-        initLeft: await png(data.initialRow, true),
-        initRight: await png(data.initialRow, false),
-        finalLeft: await png(data.finalRow, true),
-        finalRight: await png(data.finalRow, false),
-      ),
-      chart: chart,
+    await exportFile(
+      context,
+      filename: filename,
+      anchor: _exportKey,
+      failureLabel: 'Report export failed',
+      build: () async {
+        final data = _reportData();
+        // Only rasterise what the chosen sections will actually embed.
+        final gfx = await renderReportGraphics(data, model, sections);
+        if (docx) {
+          return (
+            bytes: buildSessionDocx(
+              data: data,
+              subjectId: l.subject,
+              electrodeImages: gfx.electrodes,
+              chartPng: gfx.chart,
+              pageSize: _reportLetter ? DocxPageSize.letter : DocxPageSize.a4,
+              sections: sections,
+            ),
+            warning: null,
+          );
+        }
+        final report = await buildSessionPdf(
+          data: data,
+          subjectId: l.subject,
+          electrodeImages: gfx.electrodes,
+          chartPng: gfx.chart,
+          pageFormat: _reportLetter ? PdfPageFormat.letter : PdfPageFormat.a4,
+          sections: sections,
+        );
+        return (
+          bytes: report.bytes,
+          // Silently altering a clinical note is worse than saying so.
+          warning: report.lostCharacters
+              ? 'Some characters could not be rendered in the PDF and were '
+                  'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
+                  'for full Unicode, or export to Word instead.'
+              : null,
+        );
+      },
     );
   }
+
+
+
+  /// One `Export` menu instead of four separate controls.
+  ///
+  /// Replaces three buttons and a paper-size toggle: the choice is always
+  /// "export WHAT, as WHICH format, on WHICH paper", which is a menu, not a row
+  /// of buttons that grows every time a format is added.
+  Widget _exportMenu(ElectrodeModel? model) => MenuAnchor(
+        builder: (context, controller, child) => FilledButton.icon(
+          key: _exportKey,
+          onPressed: () =>
+              controller.isOpen ? controller.close() : controller.open(),
+          icon: const Icon(Icons.ios_share),
+          label: const Text('Export'),
+        ),
+        menuChildren: [
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.picture_as_pdf),
+            onPressed: () => _exportReport(model, docx: false),
+            child: const Text('Export report (PDF)'),
+          ),
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.description_outlined),
+            onPressed: () => _exportReport(model, docx: true),
+            child: const Text('Export report (Word)'),
+          ),
+          const Divider(height: 8),
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.table_chart_outlined),
+            onPressed: _export,
+            child: const Text('Export TSV'),
+          ),
+          const Divider(height: 8),
+          SubmenuButton(
+            leadingIcon: const Icon(Icons.description),
+            menuChildren: [
+              for (final size in kReportPageSizes)
+                MenuItemButton(
+                  leadingIcon: Icon((_prefs.reportPageSize ??
+                              kDefaultReportPageSize) ==
+                          size
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked),
+                  onPressed: () {
+                    setState(() => _prefs.reportPageSize = size);
+                    saveUserPrefs(_prefs);
+                  },
+                  child: Text(size == 'letter' ? 'US Letter' : 'A4'),
+                ),
+            ],
+            child: Text('Paper size: '
+                '${(_prefs.reportPageSize ?? kDefaultReportPageSize) == 'letter' ? 'US Letter' : 'A4'}'),
+          ),
+        ],
+      );
 
   // ---- Shared UI pieces ----
 
@@ -664,46 +839,88 @@ class _SessionScreenState extends State<SessionScreen> {
     return items;
   }
 
-  /// Desktop three-column org: Params | Electrodes | (scales card + Notes).
-  /// Wide/landscape → a Row of the three columns with the Notes field expanding
-  /// to fill the remaining height down to the bottom; portrait/narrow → a single
-  /// stacked Column with the Notes field at its clamped height.
+  /// Two rows: **what was delivered** on top, **what was observed** below.
+  ///
+  /// Row 1 — stimulation parameters and the electrode canvases: the
+  /// configuration being set up, side by side, because a contact selection and
+  /// the amplitude that drives it are one decision.
+  ///
+  /// Row 2 — the scales, the notes, and (recording only) side effects: what the
+  /// patient reported at that configuration.
+  ///
+  /// The old layout was three columns — params | electrodes | (scales + notes) —
+  /// which gave the electrode canvas a third of the width on a tablet and
+  /// squeezed the scale sliders and the notes into the same narrow column. Two
+  /// rows give each half the full width, and the split matches the order the
+  /// work is actually done in: set the configuration, then rate it.
+  ///
+  /// Portrait/narrow keeps the single stacked column; the rows only appear once
+  /// there is width to split.
   Widget _stepBody(Widget params, Widget electrodes, Widget scalesCard,
-      TextEditingController notesCtrl) {
+      TextEditingController notesCtrl,
+      {TextEditingController? sideEffectsCtrl}) {
     return LayoutBuilder(
       builder: (context, c) {
-        final notesColumn = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            scalesCard,
-            const SizedBox(height: 12),
-            _notesField(notesCtrl),
-          ],
-        );
-        // Wide/landscape → three top-aligned columns; portrait/narrow → stacked.
-        // Columns take their natural height (the Stepper scrolls), so nothing
-        // overflows on short windows; Notes gets a generous viewport-relative
-        // height (see _notesField) rather than a fragile fill-to-bottom.
+        // The free-text half of row 2, built once and placed by either branch.
+        final freeText = <Widget>[
+          if (sideEffectsCtrl != null) _sideEffectsField(sideEffectsCtrl),
+          _notesField(notesCtrl),
+        ];
+
         if (c.maxWidth >= 900) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: params),
-              const SizedBox(width: 12),
-              Expanded(child: electrodes),
-              const SizedBox(width: 12),
-              Expanded(child: notesColumn),
+              // Row 1: the configuration.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: params),
+                  const SizedBox(width: 12),
+                  Expanded(child: electrodes),
+                ],
+              ),
+              const Divider(height: 28, thickness: 1.2),
+              // Row 2: the observations. Scales on the left, the free text on
+              // the right, so a long scale list and a long note grow
+              // independently instead of pushing each other down.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: scalesCard),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final w in freeText) ...[
+                          w,
+                          if (w != freeText.last) const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           );
         }
+        // Portrait: one column, in the same order.
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             params,
             const SizedBox(height: 12),
             electrodes,
-            const SizedBox(height: 12),
-            notesColumn,
+            const Divider(height: 28, thickness: 1.2),
+            scalesCard,
+            // Portrait: no neighbouring column to line up with, so the notes
+            // field starts modest and grows with the text instead of filling a
+            // height borrowed from the scales card.
+            for (final w in [
+              if (sideEffectsCtrl != null) _sideEffectsField(sideEffectsCtrl),
+              _notesField(notesCtrl),
+            ]) ...[const SizedBox(height: 12), w],
           ],
         );
       },
@@ -997,6 +1214,45 @@ class _SessionScreenState extends State<SessionScreen> {
         ],
       ),
     );
+  }
+
+  /// Side effects for the configuration being rated (recording step only).
+  ///
+  /// A separate box because a side effect is not a note: it is the adverse-event
+  /// record for that configuration, and the clinical review found that typing it
+  /// into a general Notes field buries the only tolerability data the session
+  /// captures. Giving it its own labelled field also means the report can lift
+  /// it out.
+  ///
+  /// It is written into the `notes` COLUMN with a `Side effects:` prefix rather
+  /// than a new TSV column, so the file stays readable by the desktop app
+  /// unchanged. A dedicated column (with side, amplitude at onset, severity and
+  /// whether it resolved) is the proper fix and needs a schema round.
+  Widget _sideEffectsField(TextEditingController ctrl) {
+    return TextField(
+      controller: ctrl,
+      maxLines: 3,
+      minLines: 2,
+      decoration: const InputDecoration(
+        labelText: 'Side effects (if any)',
+        hintText: 'e.g. paraesthesia left hand, resolved at 3.0 mA',
+        border: OutlineInputBorder(),
+        alignLabelWithHint: true,
+        prefixIcon: Icon(Icons.warning_amber_outlined, size: 20),
+      ),
+    );
+  }
+
+  /// The `notes` cell for a recording insert: the side effects first, then the
+  /// free notes, so the tolerability line is never lost at the end of a long
+  /// paragraph. Either half may be empty.
+  String _recordingNotes() {
+    final effects = _sideEffectsCtrl.text.trim();
+    final notes = _notesRecCtrl.text.trim();
+    return [
+      if (effects.isNotEmpty) 'Side effects: $effects',
+      if (notes.isNotEmpty) notes,
+    ].join('\n');
   }
 
   /// The Notes field, given a generous viewport-relative height so it has real
@@ -1297,6 +1553,7 @@ class _SessionScreenState extends State<SessionScreen> {
         min: double.tryParse(row.min) ?? fallback.min,
         max: double.tryParse(row.max) ?? fallback.max,
         name: row.name,
+        mode: scaleModeFromString(row.mode),
       ));
     }
   }
@@ -1477,58 +1734,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
   /// Review table of every inserted TSV row (one row per scale), so the user
   /// can check what has been recorded instead of only the transient snackbars.
-  Widget _blocksList() {
-    final rows = _authoring.rows;
-    if (rows.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: Text('No entries inserted yet.')),
-      );
-    }
-    String triple(String f, String a, String pw) =>
-        [f, a, pw].map((s) => s.trim().isEmpty ? '–' : s.trim()).join(' / ');
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowHeight: 36,
-        dataRowMinHeight: 30,
-        dataRowMaxHeight: 72,
-        columnSpacing: 18,
-        columns: const [
-          DataColumn(label: Text('Blk')),
-          DataColumn(label: Text('Type')),
-          DataColumn(label: Text('Time')),
-          DataColumn(label: Text('Prog')),
-          DataColumn(label: Text('Scale')),
-          DataColumn(label: Text('Value')),
-          DataColumn(label: Text('L  Hz/mA/µs')),
-          DataColumn(label: Text('R  Hz/mA/µs')),
-          DataColumn(label: Text('Notes')),
-        ],
-        rows: [
-          for (final r in rows)
-            DataRow(cells: [
-              DataCell(Text(r.blockId)),
-              DataCell(Text(r.isInitial == '1' ? 'Initial' : 'Rec')),
-              DataCell(Text('${r.date} ${r.time}')),
-              DataCell(Text(r.programId)),
-              DataCell(Text(r.scaleName)),
-              DataCell(Text(r.scaleValue)),
-              DataCell(Text(
-                  triple(r.leftStimFreq, r.leftAmplitude, r.leftPulseWidth))),
-              DataCell(Text(triple(
-                  r.rightStimFreq, r.rightAmplitude, r.rightPulseWidth))),
-              DataCell(ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 240),
-                child: Text(r.notes,
-                    maxLines: 3, overflow: TextOverflow.ellipsis),
-              )),
-            ]),
-        ],
-      ),
-    );
-  }
-
   Widget _recordingStep(
     ElectrodeCatalog catalog,
     StimLimits limits,
@@ -1543,6 +1748,7 @@ class _SessionScreenState extends State<SessionScreen> {
           _electrodesColumn(model, _leftRec, _rightRec),
           _ratingsCard(limits),
           _notesRecCtrl,
+          sideEffectsCtrl: _sideEffectsCtrl,
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
@@ -1559,53 +1765,63 @@ class _SessionScreenState extends State<SessionScreen> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
+        _exportMenu(model),
+        const Divider(height: 32),
+        Row(
           children: [
-            OutlinedButton.icon(
-              key: _exportTsvKey,
-              onPressed: _export,
-              icon: const Icon(Icons.ios_share),
-              label: const Text('Export TSV'),
+            Expanded(
+              child: Text('Inserted entries (session ${_authoring.sessionId})',
+                  style: Theme.of(context).textTheme.titleMedium),
             ),
             OutlinedButton.icon(
-              key: _exportReportKey,
-              onPressed: () => _exportReport(model),
-              icon: const Icon(Icons.picture_as_pdf),
-              label: const Text('Export report (PDF)'),
-            ),
-            OutlinedButton.icon(
-              key: _exportDocxKey,
-              onPressed: () => _exportReportDocx(model),
-              icon: const Icon(Icons.description_outlined),
-              label: const Text('Export report (Word)'),
-            ),
-            // Paper size for both report formats, persisted per user.
-            Tooltip(
-              message: 'Paper size for exported reports',
-              child: SegmentedButton<String>(
-                showSelectedIcon: false,
-                style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                ),
-                segments: const [
-                  ButtonSegment(value: 'a4', label: Text('A4')),
-                  ButtonSegment(value: 'letter', label: Text('Letter')),
-                ],
-                selected: {_prefs.reportPageSize ?? kDefaultReportPageSize},
-                onSelectionChanged: (sel) {
-                  setState(() => _prefs.reportPageSize = sel.first);
-                  saveUserPrefs(_prefs);
-                },
-              ),
+              onPressed: _editScaleTargets,
+              icon: const Icon(Icons.adjust, size: 18),
+              label: const Text('Scale targets'),
             ),
           ],
         ),
-        const Divider(height: 32),
-        Text('Inserted entries (session ${_authoring.sessionId})',
-            style: Theme.of(context).textTheme.titleMedium),
-        _blocksList(),
+        const SizedBox(height: 8),
+        // Charts are always visible and the table collapses beneath them: a
+        // toggle would hide one view and make the user remember which mode they
+        // are in, and the panels ARE the table's numeric columns plotted.
+        EntryChartsView(
+          data: _entryCharts(),
+          order: _prefs.entryPanelOrder,
+          onOrderChanged: (ids) {
+            setState(() => _prefs.entryPanelOrder = ids);
+            saveUserPrefs(_prefs);
+          },
+          visibleConfigs:
+              _prefs.entryVisibleConfigs ?? kDefaultVisibleConfigs,
+          onVisibleConfigsChanged: (n) {
+            setState(() => _prefs.entryVisibleConfigs = n);
+            saveUserPrefs(_prefs);
+          },
+          bestX: _entryCharts().bestX,
+          secondX: _entryCharts().secondX,
+        ),
+        Theme(
+          // Drop the ExpansionTile's default divider lines so it reads as part
+          // of the figure above rather than a separate card.
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            // Expanded by default: the table is what the user had before the
+            // charts were added, so hiding it would be a silent removal. The
+            // choice is persisted, so collapsing it sticks.
+            initiallyExpanded: _prefs.entryTableExpanded ?? true,
+            onExpansionChanged: (open) {
+              _prefs.entryTableExpanded = open;
+              saveUserPrefs(_prefs);
+            },
+            title: Text(
+                'Table of all entries '
+                '(${blockCount(_authoring.rows)} blocks)',
+                style: Theme.of(context).textTheme.bodyMedium),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            children: [SessionEntriesTable(rows: _authoring.rows)],
+          ),
+        ),
       ],
     );
   }

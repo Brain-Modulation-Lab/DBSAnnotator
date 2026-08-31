@@ -53,11 +53,33 @@ Unicode); dart_pdf's built-in Helvetica is ASCII-only. Drop **IBM Plex Sans**
 (OFL, redistributable) into `assets/fonts/` — the loader falls back to Helvetica
 if absent (tests pass either way; only Unicode glyphs need it):
 
-```bash
-cd app && mkdir -p assets/fonts
-curl -L -o assets/fonts/IBMPlexSans-Regular.ttf https://github.com/google/fonts/raw/main/ofl/ibmplexsans/IBMPlexSans-Regular.ttf
-curl -L -o assets/fonts/IBMPlexSans-Bold.ttf    https://github.com/google/fonts/raw/main/ofl/ibmplexsans/IBMPlexSans-Bold.ttf
+The loader needs exactly these two names:
+
 ```
+app/assets/fonts/IBMPlexSans-Regular.ttf
+app/assets/fonts/IBMPlexSans-Bold.ttf
+```
+
+Get the **static** TTFs from <https://fonts.google.com/specimen/IBM+Plex+Sans>
+("Get font" -> download the zip -> the `static/` folder) or from
+<https://github.com/IBM/plex/releases>. Do NOT hot-link a `raw.githubusercontent`
+path: google/fonts has moved IBM Plex Sans to a variable font, so the old static
+path 404s -- and a 404 still writes a file, because GitHub's error page is ~300 KB
+of HTML that a "is the file big enough?" check happily accepts.
+
+**Verify what you actually downloaded** (PowerShell). A TrueType font starts with
+the bytes `00 01 00 00`; HTML starts with newlines or `<`:
+
+```powershell
+Get-ChildItem app/assets/fonts/*.ttf | ForEach-Object {
+  $b = [System.IO.File]::ReadAllBytes($_.FullName)[0..3]
+  "{0}: {1}" -f $_.Name, (($b | ForEach-Object { $_.ToString('x2') }) -join ' ')
+}
+```
+
+`00 01 00 00` (or `4f 54 54 4f` for an OpenType/CFF build) is a font. Anything
+else -- `0a 0a 0a 0a`, `3c 21 44 4f` -- is not, and the loader will correctly
+ignore it and fall back to Helvetica.
 
 ## Develop / test / run
 

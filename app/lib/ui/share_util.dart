@@ -98,6 +98,51 @@ Future<void> shareOrSaveFile(
   );
 }
 
+/// What an export produced: the file's bytes, and an optional warning to show
+/// after it has been delivered (e.g. the PDF sanitiser replaced a character).
+typedef ExportPayload = ({List<int> bytes, String? warning});
+
+/// Build a file and deliver it, reporting every failure.
+///
+/// One home for the sequence five call sites each had their own copy of:
+/// capture the messenger / screen / share anchor **before** the first await,
+/// build the bytes, write a temp file, share-or-save, and turn any throw into a
+/// snackbar. Capturing up front is not a style point — a menu item is unmounted
+/// by the time the iPad share sheet needs its anchor, and using a `BuildContext`
+/// across an await is exactly the bug `use_build_context_synchronously` warns
+/// about.
+///
+/// [anchor] is the key on the widget the share popover should point at; pass the
+/// enclosing button, not a menu item that is about to disappear.
+Future<void> exportFile(
+  BuildContext context, {
+  required String filename,
+  required Future<ExportPayload> Function() build,
+  GlobalKey? anchor,
+  String failureLabel = 'Export failed',
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final screen = MediaQuery.sizeOf(context);
+  final origin = shareOriginFrom(anchor?.currentContext);
+  try {
+    final payload = await build();
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$filename');
+    await file.writeAsBytes(payload.bytes);
+    await shareOrSaveFile(messenger, file, filename,
+        origin: origin, screen: screen);
+    final warning = payload.warning;
+    if (warning != null) {
+      messenger.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Text(warning),
+      ));
+    }
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('$failureLabel: $e')));
+  }
+}
+
 /// Save [file] to a user-visible location: a native Save-As dialog first, then
 /// the first writable well-known directory. Returns the destination path, or
 /// null if every option failed. Never throws.

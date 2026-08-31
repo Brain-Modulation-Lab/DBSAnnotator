@@ -155,6 +155,26 @@ class _ElectrodeViewState extends State<ElectrodeView> {
     }
   }
 
+  // Cached layout, keyed on the only two things it depends on. Recomputing it
+  // every build returned a NEW ElectrodeLayout each time, and since that class
+  // has no value equality, `shouldRepaint`'s `oldDelegate.layout != layout` was
+  // always true — so every setState in the host screen fully repainted this
+  // canvas (shared cylinder shader, per-contact gradients, a TextPainter per
+  // label), including on every slider tick. Caching fixes the repaint AND skips
+  // the geometry recompute.
+  ElectrodeLayout? _layout;
+  String? _layoutModel;
+  Size? _layoutSize;
+
+  ElectrodeLayout _layoutFor(ElectrodeModel model, Size size) {
+    if (_layout != null && _layoutModel == model.name && _layoutSize == size) {
+      return _layout!;
+    }
+    _layoutModel = model.name;
+    _layoutSize = size;
+    return _layout = computeLayout(model, size);
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = ElectrodePalette.of(Theme.of(context).brightness);
@@ -164,7 +184,7 @@ class _ElectrodeViewState extends State<ElectrodeView> {
           constraints.hasBoundedWidth ? constraints.maxWidth : 320.0,
           constraints.hasBoundedHeight ? constraints.maxHeight : 480.0,
         );
-        final layout = computeLayout(widget.model, size);
+        final layout = _layoutFor(widget.model, size);
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTapDown: (details) => _handleTapDown(layout, details),

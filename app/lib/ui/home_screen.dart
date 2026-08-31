@@ -4,6 +4,7 @@ import '../app_info.dart';
 import 'annotations_screen.dart';
 import 'longitudinal_screen.dart';
 import 'session_screen.dart';
+import 'single_session_report_screen.dart';
 import 'theme.dart';
 
 /// Launcher mirroring the desktop Step 0 mode selection, touch-first.
@@ -14,7 +15,13 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DBS Annotator'),
+        // The mark, mirroring the desktop app's titled header.
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 12),
+          child: AppLogo(size: 30),
+        ),
+        leadingWidth: 54,
+        title: const Text(appName),
         actions: const [
           TextSizeButtons(),
           HelpButton(),
@@ -28,32 +35,52 @@ class HomeScreen extends StatelessWidget {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: [
+              // Two labelled sections, because the four entries answer two
+              // different questions. The first pair RECORD a session as it
+              // happens; the second pair READ a file that already exists. They
+              // were a flat list of three, which put "review last year's
+              // visits" next to "start seeing a patient now".
+              const _SectionHeading('Record'),
               _WorkflowCard(
-                icon: Icons.medical_services_outlined,
+                // Both recording entries carry the annotate icon: they differ
+                // by how much they capture, not by what kind of act they are.
+                icon: Icons.edit_note,
                 title: 'Complete workflow',
-                subtitle: 'Stimulation params + scales + notes → reports',
+                subtitle: 'Stimulation, electrodes, scales and notes',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const SessionScreen(),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _WorkflowCard(
                 icon: Icons.edit_note,
                 title: 'Annotations only',
-                subtitle: 'Notes → report',
+                subtitle: 'Timestamped notes, nothing else',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const AnnotationsScreen(),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              const _SectionHeading('Reports'),
+              _WorkflowCard(
+                icon: Icons.description_outlined,
+                title: 'Single session report',
+                subtitle: 'Open one TSV → PDF or Word report',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SingleSessionReportScreen(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               _WorkflowCard(
                 icon: Icons.timeline,
                 title: 'Longitudinal review',
-                subtitle: 'TSV reports → PDF report',
+                subtitle: 'Several sessions → change over visits',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const LongitudinalScreen(),
@@ -93,6 +120,29 @@ class _WorkflowCard extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+/// A section label above a group of cards.
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        text.toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.primary,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

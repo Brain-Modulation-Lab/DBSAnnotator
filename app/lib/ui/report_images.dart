@@ -9,6 +9,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../core/session/session_row.dart';
+import '../report/report_data.dart' show SessionReportData;
+import '../report/report_sections.dart';
+import '../report/session_pdf.dart' show ElectrodeReportImages;
+import 'scales_chart_painter.dart';
+
 import '../core/electrode/electrode_model.dart';
 import '../core/electrode/geometry.dart';
 import '../core/electrode/tokens.dart';
@@ -17,7 +23,7 @@ import 'theme.dart';
 
 /// Render one electrode configuration (from anode/cathode token strings) to a
 /// white-background PNG, mirroring the desktop's `render_electrode_png`.
-Future<Uint8List> renderElectrodePng(
+Future<Uint8List?> renderElectrodePng(
   ElectrodeModel model,
   String anode,
   String cathode, {
@@ -52,5 +58,76 @@ Future<Uint8List> renderElectrodePng(
       );
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
-  return data!.buffer.asUint8List();
+  // Null rather than `data!`: an export must never be lost because one lead
+  // failed to rasterise. Both report builders already fall back to anode/cathode
+  // token text when an image is absent — that path was unreachable while this
+  // threw.
+  return data?.buffer.asUint8List();
+}
+
+/// The graphics both report formats embed, rasterised once so the PDF and the
+/// Word document are guaranteed to show identical images.
+///
+/// Shared by the authoring screen and the from-a-file report screen. The second
+/// one had its own copy for about ten minutes, which is how long it took to
+/// notice it was a worse copy: no section gating, four sequential awaits instead
+/// of concurrent, and its own idea of which rows to draw.
+///
+/// Only what [sections] will actually embed is rendered: PNG encoding costs
+/// a few hundred ms on the UI isolate, so rasterising four leads for a report
+/// that omits the electrode section is pure latency.
+Future<({ElectrodeReportImages? electrodes, Uint8List? chart})>
+    renderReportGraphics(SessionReportData data, ElectrodeModel? model,
+        Set<ReportSection> sections) async {
+  // Every rasterisation is best-effort. Both builders already degrade to
+  // anode/cathode token text when an image is missing, but that fallback was
+  // unreachable: a single failure here aborted the whole export and the user
+  // got no report at all. A report without a picture beats no report.
+  Uint8List? chart;
+  if (sections.contains(ReportSection.chart)) {
+    try {
+      chart = await renderScalesChartPng(data.chart);
+    } catch (e, st) {
+      debugPrint('Scales chart could not be rendered: $e\n$st');
+    }
+  }
+  if (model == null || !sections.contains(ReportSection.electrodes)) {
+    return (electrodes: null, chart: chart);
+  }
+
+  // Take the rows report_data itself resolved (highest session, then highest
+  // block, numerically coerced). Re-deriving them here with a simpler rule
+  // used to let the images show one configuration while the text beside them
+  // described another — e.g. for a TSV writing `is_initial` as "1.0".
+  Future<Uint8List?> png(SessionRow? row, bool left) async {
+    if (row == null) return null;
+    try {
+      return await renderElectrodePng(
+        model,
+        left ? row.leftAnode : row.rightAnode,
+        left ? row.leftCathode : row.rightCathode,
+      );
+    } catch (e) {
+      debugPrint('Electrode image could not be rendered: $e');
+      return null;
+    }
+  }
+
+  // Rasterise the four leads concurrently rather than one after another.
+  final leads = await Future.wait([
+    png(data.initialRow, true),
+    png(data.initialRow, false),
+    png(data.finalRow, true),
+    png(data.finalRow, false),
+  ]);
+
+  return (
+    electrodes: (
+      initLeft: leads[0],
+      initRight: leads[1],
+      finalLeft: leads[2],
+      finalRight: leads[3],
+    ),
+    chart: chart,
+  );
 }

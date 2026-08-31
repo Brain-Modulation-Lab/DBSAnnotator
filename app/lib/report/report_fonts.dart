@@ -24,14 +24,29 @@ Future<pw.ThemeData?> loadReportTheme() async {
     final bold = pw.Font.ttf(
       await rootBundle.load('assets/fonts/IBMPlexSans-Bold.ttf'),
     );
+    // Force the parse HERE, inside the guard.
+    //
+    // `pw.Font.ttf` is lazy: it stores the bytes and parses on first use. So a
+    // file that is named .ttf but is not a font — most easily, the 300 KB HTML
+    // error page GitHub serves for a dead raw URL — sailed through this
+    // function, which then returned a non-null theme. That is strictly worse
+    // than having no font at all: the sanitiser switched OFF because a theme
+    // existed, and the parse then threw `Unable to find the hmtx table` in the
+    // middle of building the document, so EVERY export failed instead of
+    // degrading to Helvetica. Reading `fontName` parses the table directory, so
+    // a bad file fails now, here, where the catch can do its job.
+    // `fontName` builds a TtfParser over the bytes, which is what actually
+    // reads the table directory.
+    if (base.fontName.isEmpty || bold.fontName.isEmpty) return null;
     return pw.ThemeData.withFont(
       base: base,
       bold: bold,
       fontFallback: [base],
     );
   } catch (_) {
-    // Missing asset (or no asset bundle at all in pure Dart tests): fall
-    // back to the built-in Helvetica by returning no theme.
+    // Missing asset, no asset bundle at all (pure Dart tests), or a file that
+    // is not a usable font: fall back to the built-in Helvetica by returning no
+    // theme. Callers then enable the sanitiser and warn if a glyph was lost.
     return null;
   }
 }

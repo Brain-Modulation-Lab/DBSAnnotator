@@ -1,0 +1,38 @@
+[Desktop Entry]
+Type=Application
+Name=DBS Annotator
+GenericName=DBS Session Annotator
+Comment=Record and analyse deep brain stimulation programming sessions
+Categories=Science;MedicalSoftware;
+Keywords=DBS;neuromodulation;stimulation;annotation;clinical;
+Terminal=false
+# Both are filled in by the packaging step (see the note below).
+Exec=dbs_annotator
+Icon=dbs-annotator
+StartupWMClass=dbs_annotator
+
+# ---------------------------------------------------------------------------
+# NOT installed by `flutter build linux` — Flutter produces only a bundle
+# directory. This is the template a packaging step (.deb, AppImage, Flatpak)
+# should install, because a Linux app needs a .desktop entry to get a name and
+# an icon in the launcher, dock and Alt+Tab list.
+#
+# The in-window icon is set at runtime from the bundled Flutter asset
+# (see runner/my_application.cc). This file covers the *desktop shell*, which
+# reads the icon from the hicolor theme rather than from the running process.
+#
+# To install:
+#   install -Dm644 linux/dbs-annotator.desktop \
+#       "$PKGROOT/usr/share/applications/dbs-annotator.desktop"
+#   for px in 16 32 48 64 128 256 512; do
+#     install -Dm644 "../icons/logosimple/logosimple-$px.png" \
+#       "$PKGROOT/usr/share/icons/hicolor/${px}x${px}/apps/dbs-annotator.png"
+#   done
+#   sed -i "s|^Exec=.*|Exec=/opt/dbs-annotator/dbs_annotator %f|" \
+#       "$PKGROOT/usr/share/applications/dbs-annotator.desktop"
+#
+# `Icon=` must be the theme NAME (dbs-annotator), not a path, so the shell can
+# pick the size it needs. StartupWMClass must match the GTK application id so
+# the launcher associates the running window with this entry — otherwise the
+# taskbar shows a second, unnamed iconless entry.
+# ---------------------------------------------------------------------------

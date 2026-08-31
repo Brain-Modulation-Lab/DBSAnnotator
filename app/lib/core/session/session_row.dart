@@ -79,6 +79,22 @@ class SessionRow {
         notes: m['notes'] ?? '',
       );
 
+  /// The row's `date` + `time` as a local [DateTime], or null when either cell
+  /// is missing or unparsable.
+  ///
+  /// Rows written by this app are `yyyy-MM-dd` + `HH:mm:ss`
+  /// (`session_file.dart`), which `DateTime.tryParse` accepts as
+  /// ISO-8601-with-a-space. An externally-authored TSV can carry anything, hence
+  /// the nullable result — callers skip rows they cannot place in time rather
+  /// than guessing. The separate `timezone` cell is deliberately not folded in:
+  /// every timestamp in one file is local to the same session.
+  DateTime? get timestamp {
+    final d = date.trim();
+    final t = time.trim();
+    if (d.isEmpty || t.isEmpty) return null;
+    return DateTime.tryParse('$d $t');
+  }
+
   /// Convert to a TSV record keyed by the exact column names.
   Map<String, String> toMap() => {
         'date': date,
@@ -103,4 +119,19 @@ class SessionRow {
         'right_pulse_width': rightPulseWidth,
         'notes': notes,
       };
+}
+
+/// The electrode model named by [rows], or '' when none of them say.
+///
+/// `electrode_model` is a TSV column and `ElectrodeCatalog.models` is keyed by
+/// exactly that name, but nothing used to read it back: opening a file rendered
+/// the lead diagrams for whatever the model dropdown happened to hold. A
+/// mismatch there is not cosmetic — it labels one lead's contacts with
+/// another lead's geometry.
+String electrodeModelIn(Iterable<SessionRow> rows) {
+  for (final row in rows) {
+    final name = row.electrodeModel.trim();
+    if (name.isNotEmpty) return name;
+  }
+  return '';
 }

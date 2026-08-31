@@ -65,6 +65,21 @@ def _letterbox_rgba(src: Image.Image) -> Image.Image:
     return canvas
 
 
+def _ico_frame_sizes(path: Path) -> list[int]:
+    """Widths actually present in an .ico, read from its ICONDIR.
+
+    Verifying the file rather than trusting the writer: the previous bug
+    reported five sizes while writing one.
+    """
+    data = path.read_bytes()
+    count = int.from_bytes(data[4:6], "little")
+    sizes = []
+    for i in range(count):
+        width = data[6 + i * 16]
+        sizes.append(256 if width == 0 else width)
+    return sorted(sizes)
+
+
 def build_icons(
     source: Path,
     out_dir: Path,
@@ -93,20 +108,29 @@ def build_icons(
         master.save(master_path, format="PNG", optimize=True)
         print(f"Wrote {master_path}", file=sys.stderr)
 
-    # Windows .ico (one file, multiple embedded sizes)
-    ico_images: list[Image.Image] = []
-    for px in WIN_ICO_SIZES:
-        ico_img = src_sq.copy()
-        ico_img = ico_img.resize((px, px), Image.Resampling.LANCZOS)
-        ico_images.append(ico_img)
+    # Windows .ico (one file, multiple embedded sizes).
+    #
+    # Pillow's ICO writer generates every entry in ``sizes`` by downscaling the
+    # image it is called on, and it SILENTLY DROPS any requested size larger
+    # than that image. So the base must be the largest size -- an earlier
+    # version saved from ``ico_images[0]``, i.e. the 16 px frame, which produced
+    # a single-frame 16x16 .ico while still printing "sizes=[16, 32, 48, 64,
+    # 256]". Windows then upscaled 16 px for the taskbar, the desktop shortcut
+    # and the MSI. (``append_images`` is not used by the ICO plugin at all.)
     ico_path = out_dir / f"{name}.ico"
-    ico_images[0].save(
+    largest = max(WIN_ICO_SIZES)
+    ico_base = src_sq.resize((largest, largest), Image.Resampling.LANCZOS)
+    ico_base.save(
         ico_path,
         format="ICO",
-        sizes=[(i.width, i.height) for i in ico_images],
-        append_images=ico_images[1:],
+        sizes=[(px, px) for px in WIN_ICO_SIZES],
     )
-    print(f"Wrote {ico_path} sizes={list(WIN_ICO_SIZES)}", file=sys.stderr)
+    written = _ico_frame_sizes(ico_path)
+    if written != sorted(WIN_ICO_SIZES):
+        raise SystemExit(
+            f"{ico_path}: expected frames {sorted(WIN_ICO_SIZES)}, wrote {written}"
+        )
+    print(f"Wrote {ico_path} sizes={written}", file=sys.stderr)
 
     # Linux AppImage PNGs
     for px in LINUX_PNG_SIZES:

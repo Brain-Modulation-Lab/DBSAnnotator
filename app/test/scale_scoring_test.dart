@@ -1,5 +1,4 @@
 import 'package:dbs_annotator/core/session/scale_scoring.dart';
-import 'package:dbs_annotator/core/session/session_row.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Pins the Dart port against the desktop implementation. Every expected number
@@ -12,18 +11,6 @@ void main() {
   ScalePref pref(String name, double lo, double hi, ScaleMode mode,
           [double? custom]) =>
       (name: name, min: lo, max: hi, mode: mode, custom: custom);
-
-  /// One block's worth of rows: one row per (scale, value), as the tablet writes.
-  List<SessionRow> rowsFor(Map<int, List<(String, String)>> blocks) => [
-        for (final entry in blocks.entries)
-          for (final pair in entry.value)
-            SessionRow(
-              blockId: '${entry.key}',
-              isInitial: '0',
-              scaleName: pair.$1,
-              scaleValue: pair.$2,
-            ),
-      ];
 
   Map<int, double> indexOf(
     Map<String, Map<int, double>> data,
@@ -210,146 +197,5 @@ void main() {
       expect(findBestAndSecond(const {}), (null, null));
       expect(findBestAndSecond(const {7: 0.3}), (7, null));
     });
-  });
-
-  group('findBestAndSecondBlocks', () {
-    test('lower summed score wins, and max flips the sign', () {
-      // Python scores: {1: -50.0, 2: -90.0} -> best [2], second [1]
-      final r = findBestAndSecondBlocks(
-        rowsFor({
-          1: [('Tremor', '0'), ('Big', '50')],
-          2: [('Tremor', '10'), ('Big', '100')],
-        }),
-        [
-          pref('Tremor', 0, 10, ScaleMode.min),
-          pref('Big', 0, 100, ScaleMode.max),
-        ],
-      );
-      expect(r.best, [2]);
-      expect(r.second, [1]);
-    });
-
-    test('ties return every block at that score', () {
-      // Python scores: {1: 3.0, 2: 3.0, 3: 7.0} -> best [1, 2], second [3]
-      final r = findBestAndSecondBlocks(
-        rowsFor({1: [('A', '3')], 2: [('A', '3')], 3: [('A', '7')]}),
-        [pref('A', 0, 10, ScaleMode.min)],
-      );
-      expect(r.best, [1, 2]);
-      expect(r.second, [3]);
-    });
-
-    test('an ignored scale excludes a block with nothing else scored', () {
-      // Python scores: {1: 3.0} -> best [1], second []
-      final r = findBestAndSecondBlocks(
-        rowsFor({1: [('A', '3')], 2: [('Skipped', '9')]}),
-        [
-          pref('A', 0, 10, ScaleMode.min),
-          pref('Skipped', 0, 10, ScaleMode.ignore),
-        ],
-      );
-      expect(r.best, [1]);
-      expect(r.second, isEmpty);
-    });
-
-    test('custom scores by absolute distance to the target', () {
-      // Python scores: {1: 0.0, 2: 5.0, 3: 4.0} -> best [1], second [3]
-      final r = findBestAndSecondBlocks(
-        rowsFor({1: [('S', '5')], 2: [('S', '0')], 3: [('S', '9')]}),
-        [pref('S', 0, 10, ScaleMode.custom, 5)],
-      );
-      expect(r.best, [1]);
-      expect(r.second, [3]);
-    });
-
-    test('an unlisted scale defaults to min, matching the desktop lookup', () {
-      final r = findBestAndSecondBlocks(
-        rowsFor({1: [('Nobody', '2')], 2: [('Nobody', '8')]}),
-        const [],
-      );
-      expect(r.best, [1]);
-      expect(r.second, [2]);
-    });
-
-    test('omitted and non-numeric values are skipped', () {
-      final r = findBestAndSecondBlocks(
-        rowsFor({
-          1: [('A', '1'), ('A2', 'NaN')],
-          2: [('A', 'oops')],
-        }),
-        [pref('A', 0, 10, ScaleMode.min)],
-      );
-      // Block 2 has no parseable value, so it is not ranked at all.
-      expect(r.best, [1]);
-      expect(r.second, isEmpty);
-    });
-
-    test('duplicate (name, value) pairs in a block are counted once', () {
-      final r = findBestAndSecondBlocks(
-        rowsFor({
-          1: [('A', '4'), ('A', '4')], // deduplicated -> 4, not 8
-          2: [('A', '6')],
-        }),
-        [pref('A', 0, 10, ScaleMode.min)],
-      );
-      expect(r.best, [1]);
-    });
-
-    test('no usable rows returns two empty lists', () {
-      expect(findBestAndSecondBlocks(const [], const []).best, isEmpty);
-      expect(findBestAndSecondBlocks(const [], const []).second, isEmpty);
-    });
-  });
-
-  group('defaultScalePrefsFor', () {
-    test('every scale gets mode min, bounds from the map or the fallback', () {
-      final prefs = defaultScalePrefsFor(
-        rowsFor({1: [('Tremor', '3'), ('Custom', '5')]}),
-        bounds: {'Custom': (1.0, 4.0)},
-        fallback: (0.0, 10.0),
-      );
-      expect(prefs.map((p) => p.name), ['Tremor', 'Custom']);
-      expect(prefs.every((p) => p.mode == ScaleMode.min), isTrue);
-      expect(prefs.firstWhere((p) => p.name == 'Tremor').max, 10.0);
-      expect(prefs.firstWhere((p) => p.name == 'Custom').min, 1.0);
-      expect(prefs.firstWhere((p) => p.name == 'Custom').max, 4.0);
-    });
-
-    test('scales are deduplicated and omitted values ignored', () {
-      final prefs = defaultScalePrefsFor(rowsFor({
-        1: [('Tremor', '3'), ('Gone', 'NaN')],
-        2: [('Tremor', '5')],
-      }));
-      expect(prefs.map((p) => p.name), ['Tremor']);
-    });
-  });
-
-  // PARITY: the chart bands and the table shading come from two different
-  // desktop algorithms and are allowed to disagree. Verified against Python:
-  // compute_aggregate_index gives {1: 0.75, 2: 0.5} so the chart bands block 1,
-  // while the raw sums are {1: -50.0, 2: -90.0} so the table shades block 2.
-  // If this test starts failing because the two now agree, someone has
-  // "unified" them and broken parity with the desktop.
-  test('the chart ranking and the table ranking may disagree (desktop parity)',
-      () {
-    final prefs = [
-      pref('Tremor', 0, 10, ScaleMode.min),
-      pref('Big', 0, 100, ScaleMode.max),
-    ];
-    final chart = findBestAndSecond(indexOf({
-      'Tremor': {1: 0.0, 2: 10.0},
-      'Big': {1: 50.0, 2: 100.0},
-    }, prefs));
-    final table = findBestAndSecondBlocks(
-      rowsFor({
-        1: [('Tremor', '0'), ('Big', '50')],
-        2: [('Tremor', '10'), ('Big', '100')],
-      }),
-      prefs,
-    );
-
-    expect(chart.$1, 1, reason: 'chart normalises, so block 1 wins');
-    expect(table.best, [2], reason: 'table sums raw values, so block 2 wins');
-    expect(chart.$1, isNot(table.best.first));
   });
 }

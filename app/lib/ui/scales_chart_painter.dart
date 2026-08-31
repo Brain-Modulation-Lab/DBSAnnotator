@@ -26,34 +26,51 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../report/report_data.dart';
-
-/// matplotlib's `Dark2` qualitative colormap, the desktop's series palette.
-const _dark2 = <Color>[
-  Color(0xFF1B9E77),
-  Color(0xFFD95F02),
-  Color(0xFF7570B3),
-  Color(0xFFE7298A),
-  Color(0xFF66A61E),
-  Color(0xFFE6AB02),
-  Color(0xFFA6761D),
-  Color(0xFF666666),
-];
-
-/// Dash patterns cycling independently of colour (matplotlib `_LINE_STYLES`):
-/// solid, dashed, dotted, dash-dot, dash-dot-dot. `null` means solid.
-const _dashes = <List<double>?>[
-  null,
-  [6, 3],
-  [1.5, 3],
-  [6, 3, 1.5, 3],
-  [6, 3, 1.5, 3, 1.5, 3],
-];
+import 'chart_primitives.dart';
 
 /// Layout constants, in logical px at the painter's nominal size.
-const _padTop = 46.0; // legend strip
+///
+/// There is deliberately NO `_padTop` constant. The top band holds a title and
+/// a legend of unknown height, and hard-coding it is exactly what put the
+/// legend's opaque box over the bottom third of every title glyph: the title
+/// occupied y 20..38 and the legend box y 30..50. The band is measured in
+/// [ChartTopBand] instead, so title, legend and plot each reserve their own space.
 const _padBottom = 52.0; // x tick labels + axis label
 const _padLeft = 62.0; // y tick labels + axis label
-const _padRight = 74.0; // right axis for the aggregate index
+
+/// Title font size; the band reserves its measured height.
+const _titleSize = 15.0;
+
+/// Space between a legend entry's sample line and its label.
+const _legendGapAfterSample = 5.0;
+
+/// Vertical gap between stacked panels, in logical px.
+const _panelGap = 14.0;
+
+/// One stacked panel of the figure.
+class _PanelSpec {
+  const _PanelSpec({
+    required this.weight,
+    required this.yMin,
+    required this.yMax,
+    required this.label,
+    required this.series,
+    required this.ticks,
+    this.mono = false,
+  });
+
+  /// Share of the available height, relative to the other panels.
+  final double weight;
+  final double yMin, yMax;
+  final String label;
+  final Map<String, Map<int, double>> series;
+
+  /// Horizontal guides and y ticks to draw (0 and max inclusive).
+  final int ticks;
+
+  /// Draw as one heavy black line with diamond markers (the aggregate index).
+  final bool mono;
+}
 
 class ScalesChartPainter extends CustomPainter {
   const ScalesChartPainter({
@@ -73,13 +90,14 @@ class ScalesChartPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, Paint()..color = background);
     if (spec.isEmpty) return;
 
-    final plot = Rect.fromLTRB(
+    final band = ChartTopBand.measure(this, size);
+    final area = Rect.fromLTRB(
       _padLeft,
-      _padTop,
-      size.width - (_hasIndex ? _padRight : 20),
+      band.padTop,
+      size.width - 20,
       size.height - _padBottom,
     );
-    if (plot.width <= 10 || plot.height <= 10) return;
+    if (area.width <= 10 || area.height <= 40) return;
 
     // Half a step of margin at each end (the desktop's
     // `set_xlim(min-0.5, max+0.5)`): it keeps the first/last markers and the
@@ -87,18 +105,188 @@ class ScalesChartPainter extends CustomPainter {
     // instead of dividing by zero.
     final xLo = spec.xs.first.toDouble() - 0.5;
     final xHi = spec.xs.last.toDouble() + 0.5;
-    double xPos(num x) => plot.left +
-        (xHi == xLo ? 0.5 : (x - xLo) / (xHi - xLo)) * plot.width;
-    double yPos(double v) => plot.bottom -
-        ((v - spec.yMin) / math.max(spec.yMax - spec.yMin, 1e-9)) * plot.height;
-    double yIndex(double v) => plot.bottom - v.clamp(0.0, 1.0) * plot.height;
+    double xPos(num x) => area.left +
+        (xHi == xLo ? 0.5 : (x - xLo) / (xHi - xLo)) * area.width;
 
-    _paintBands(canvas, plot, xPos);
-    _paintGrid(canvas, plot, xPos);
-    _paintSeries(canvas, plot, xPos, yPos);
-    if (_hasIndex) _paintIndex(canvas, xPos, yIndex);
-    _paintAxes(canvas, plot, size, xPos);
-    _paintLegend(canvas, size);
+    // Panels, top to bottom, sharing that x mapping. The scales panel keeps the
+    // lion's share; the index and dose strips only need enough height to show a
+    // shape. Each has its OWN y axis, which is the point: the index used to sit
+    // on a second axis inside the scales plot, so 0.43 was drawn at the height
+    // of 4.3 on a 0-10 rating scale.
+    final panels = <_PanelSpec>[
+      _PanelSpec(
+        weight: 3.0,
+        yMin: spec.yMin,
+        yMax: spec.yMax,
+        label: spec.yLabel,
+        series: spec.series,
+        ticks: 4,
+      ),
+      if (_hasIndex)
+        _PanelSpec(
+          weight: 1.0,
+          yMin: 0,
+          yMax: 1,
+          label: 'Aggregate index',
+          series: {'Aggregate Index': spec.aggregateIndex},
+          ticks: 2,
+          mono: true,
+        ),
+      if (spec.amplitude.values.any((m) => m.isNotEmpty))
+        _PanelSpec(
+          weight: 1.0,
+          // Dose is a magnitude: a non-zero-based axis makes 5.5 -> 4.5 mA look
+          // like a collapse.
+          yMin: 0,
+          yMax: _niceMax(spec.amplitude),
+          label: 'Amplitude (mA)',
+          series: spec.amplitude,
+          ticks: 2,
+        ),
+    ];
+
+    final totalWeight = panels.fold<double>(0, (a, p) => a + p.weight);
+    final gaps = _panelGap * (panels.length - 1);
+    final usable = area.height - gaps;
+    var top = area.top;
+    final rects = <Rect>[];
+    for (final p in panels) {
+      final h = usable * p.weight / totalWeight;
+      rects.add(Rect.fromLTRB(area.left, top, area.right, top + h));
+      top += h + _panelGap;
+    }
+
+    // Title and legend first: their fills are opaque, and painting them last is
+    // how the legend used to erase the title. They now occupy reserved space, so
+    // the order is belt and braces.
+    if (band.titleHeight > 0) {
+      drawChartText(canvas, spec.title, Offset(area.center.dx, band.titleTop),
+          align: TextAlign.center, size: _titleSize, color: ink);
+    }
+    _paintLegend(canvas, size, band);
+
+    // One band spanning every panel: the reader compares a scale dip against
+    // the dose that caused it, so the marker has to cross both.
+    _paintBands(canvas, Rect.fromLTRB(area.left, rects.first.top, area.right,
+        rects.last.bottom), xPos);
+
+    for (var i = 0; i < panels.length; i++) {
+      _paintPanel(canvas, rects[i], panels[i], xPos);
+    }
+    // The x axis belongs to the bottom panel only.
+    _paintXAxis(canvas, rects.last, size, xPos);
+  }
+
+  /// A round number at or above the largest value, so the dose axis has a
+  /// legible top tick instead of "7.43".
+  static double _niceMax(Map<String, Map<int, double>> series) {
+    var hi = 0.0;
+    for (final m in series.values) {
+      for (final v in m.values) {
+        if (v > hi) hi = v;
+      }
+    }
+    if (hi <= 0) return 1;
+    for (final step in [0.5, 1.0, 2.0, 2.5, 5.0]) {
+      final top = (hi / step).ceil() * step;
+      if (top / step <= 8) return top;
+    }
+    return (hi / 5).ceil() * 5;
+  }
+
+  /// One panel: grid, its own y axis with ticks and label, then its series.
+  void _paintPanel(Canvas canvas, Rect plot, _PanelSpec panel,
+      double Function(num) xPos) {
+    if (plot.height <= 6) return;
+    final span = math.max(panel.yMax - panel.yMin, 1e-9);
+    double yPos(double v) =>
+        plot.bottom - ((v - panel.yMin) / span) * plot.height;
+
+    final grid = Paint()
+      ..color = ink.withValues(alpha: 0.3)
+      ..strokeWidth = 0.6;
+    for (var i = 0; i <= panel.ticks; i++) {
+      final y = plot.bottom - plot.height * i / panel.ticks;
+      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
+    }
+    for (final x in spec.xs) {
+      final px = xPos(x);
+      canvas.drawLine(Offset(px, plot.top), Offset(px, plot.bottom), grid);
+    }
+
+    _paintPanelSeries(canvas, plot, panel, xPos, yPos);
+
+    // Frame: left and bottom, heavier than the grid.
+    final axis = Paint()
+      ..color = ink
+      ..strokeWidth = 1.2;
+    canvas
+      ..drawLine(plot.bottomLeft, plot.bottomRight, axis)
+      ..drawLine(plot.topLeft, plot.bottomLeft, axis);
+    for (var i = 0; i <= panel.ticks; i++) {
+      final v = panel.yMin + span * i / panel.ticks;
+      final y = plot.bottom - plot.height * i / panel.ticks;
+      canvas.drawLine(Offset(plot.left - 4, y), Offset(plot.left, y), axis);
+      drawChartText(canvas, tickLabel(v), Offset(plot.left - 7, y),
+          align: TextAlign.right, anchorY: 0.5, size: 10, color: ink);
+    }
+    drawRotatedChartText(canvas, panel.label, Offset(16, plot.center.dy),
+        size: 11, color: ink);
+  }
+
+  /// A panel's series. [_PanelSpec.mono] draws one heavy black line with
+  /// diamond markers (the index); otherwise the Dark2 colour + dash cycle.
+  void _paintPanelSeries(Canvas canvas, Rect plot, _PanelSpec panel,
+      double Function(num) xPos, double Function(double) yPos) {
+    var i = 0;
+    for (final entry in panel.series.entries) {
+      final color = panel.mono ? ink : seriesColor(i);
+      final dash = panel.mono ? null : seriesDash(i);
+      i++;
+      drawSeriesRuns(
+        canvas,
+        seriesRuns(spec.xs, entry.value, xPos, yPos),
+        color: color,
+        dash: dash,
+        strokeWidth: panel.mono ? 3 : 2,
+        markerRadius: panel.mono ? 0 : 3,
+      );
+      if (!panel.mono) continue;
+      for (final x in spec.xs) {
+        final v = entry.value[x];
+        if (v == null) continue;
+        canvas.drawPath(
+            diamondPath(Offset(xPos(x), yPos(v)), 4.5), Paint()..color = color);
+      }
+    }
+  }
+
+  /// The shared x axis, under the bottom panel.
+  void _paintXAxis(
+      Canvas canvas, Rect plot, Size size, double Function(num) xPos) {
+    final axis = Paint()
+      ..color = ink
+      ..strokeWidth = 1.2;
+    // Long labels (the longitudinal figures' `20260626_01`) are drawn rotated,
+    // because horizontally they would overlap after three visits.
+    final labelled = spec.xTickLabels.isNotEmpty;
+    final rotate = labelled &&
+        spec.xTickLabels.values.any((l) => l.length > 4);
+    for (final x in spec.xs) {
+      final px = xPos(x);
+      canvas.drawLine(
+          Offset(px, plot.bottom), Offset(px, plot.bottom + 4), axis);
+      final label = spec.xTickLabels[x] ?? '$x';
+      if (rotate) {
+        drawRotatedChartText(canvas, label, Offset(px, plot.bottom + 8),
+            size: 8, color: ink, clockwise: true, anchorTop: true);
+      } else {
+        drawChartText(canvas, label, Offset(px, plot.bottom + 7),
+            align: TextAlign.center, size: 10, color: ink);
+      }
+    }
+    drawChartText(canvas, spec.xLabel, Offset(plot.center.dx, size.height - 22),
+        align: TextAlign.center, size: 12, color: ink);
   }
 
   /// Green vertical bands behind everything, marking the best and second-best
@@ -109,187 +297,64 @@ class ScalesChartPainter extends CustomPainter {
       ..save()
       ..clipRect(plot);
 
-    void band(int? x, int argb) {
-      if (x == null) return;
-      canvas.drawRect(
-        Rect.fromLTRB(xPos(x - 0.35), plot.top, xPos(x + 0.35), plot.bottom),
-        Paint()..color = Color(argb).withValues(alpha: 0.62),
-      );
+    // Contiguous blocks of one setting are drawn as ONE band, not one per
+    // block: the unit being marked is the configuration, and two rectangles
+    // with a white gap between them says "two things" when the whole point is
+    // that they are the same thing rated twice.
+    void bands(List<int> xs, int argb) {
+      if (xs.isEmpty) return;
+      final paint = Paint()..color = Color(argb).withValues(alpha: 0.62);
+      final hatch = Paint()
+        ..color = ink.withValues(alpha: 0.16)
+        ..strokeWidth = 0.9;
+      // Denser for rank 1, so the order reads without colour at all.
+      final step = argb == kBestFill ? 7.0 : 14.0;
+      final sorted = xs.toList()..sort();
+      var from = sorted.first;
+      var to = sorted.first;
+      void flush() {
+        final r = Rect.fromLTRB(
+            xPos(from - 0.35), plot.top, xPos(to + 0.35), plot.bottom);
+        canvas
+          ..drawRect(r, paint)
+          ..save()
+          ..clipRect(r);
+        for (var hx = r.left - r.height; hx < r.right + r.height; hx += step) {
+          canvas.drawLine(
+              Offset(hx, r.bottom), Offset(hx + r.height, r.top), hatch);
+        }
+        canvas.restore();
+      }
+      for (final x in sorted.skip(1)) {
+        if (x == to + 1) {
+          to = x;
+          continue;
+        }
+        flush();
+        from = x;
+        to = x;
+      }
+      flush();
     }
 
     // Second first, so a shared edge lets the stronger best colour win.
-    if (spec.secondX != spec.bestX) band(spec.secondX, kSecondFill);
-    band(spec.bestX, kBestFill);
+    bands(spec.secondXs, kSecondFill);
+    bands(spec.bestXs, kBestFill);
     canvas.restore();
   }
 
-  void _paintGrid(Canvas canvas, Rect plot, double Function(num) xPos) {
-    final grid = Paint()
-      ..color = ink.withValues(alpha: 0.3)
-      ..strokeWidth = 0.6;
-    for (var i = 0; i <= 4; i++) {
-      final y = plot.bottom - plot.height * i / 4;
-      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
-    }
-    for (final x in spec.xs) {
-      final px = xPos(x);
-      canvas.drawLine(Offset(px, plot.top), Offset(px, plot.bottom), grid);
-    }
-  }
-
-  void _paintSeries(Canvas canvas, Rect plot, double Function(num) xPos,
-      double Function(double) yPos) {
-    var i = 0;
-    for (final entry in spec.series.entries) {
-      final color = _dark2[i % _dark2.length];
-      final dash = _dashes[i % _dashes.length];
-      i++;
-
-      // Consecutive runs of present values; a gap breaks the line.
-      final runs = <List<Offset>>[];
-      var run = <Offset>[];
-      for (final x in spec.xs) {
-        final v = entry.value[x];
-        if (v == null) {
-          if (run.isNotEmpty) runs.add(run);
-          run = <Offset>[];
-          continue;
-        }
-        run.add(Offset(xPos(x), yPos(v)));
-      }
-      if (run.isNotEmpty) runs.add(run);
-
-      final stroke = Paint()
-        ..color = color
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-      for (final r in runs) {
-        if (r.length < 2) continue;
-        final path = Path()..moveTo(r.first.dx, r.first.dy);
-        for (final p in r.skip(1)) {
-          path.lineTo(p.dx, p.dy);
-        }
-        canvas.drawPath(dash == null ? path : _dashPath(path, dash), stroke);
-      }
-      // Circle markers, drawn over the line.
-      final fill = Paint()..color = color;
-      for (final r in runs) {
-        for (final p in r) {
-          canvas.drawCircle(p, 3, fill);
-        }
-      }
-    }
-  }
-
-  /// The aggregate index: black, thicker, diamond markers, on the right axis.
-  void _paintIndex(
-      Canvas canvas, double Function(num) xPos, double Function(double) yIndex) {
-    final pts = [
-      for (final x in spec.xs)
-        if (spec.aggregateIndex.containsKey(x))
-          Offset(xPos(x), yIndex(spec.aggregateIndex[x]!)),
-    ];
-    if (pts.isEmpty) return;
-    if (pts.length > 1) {
-      final path = Path()..moveTo(pts.first.dx, pts.first.dy);
-      for (final p in pts.skip(1)) {
-        path.lineTo(p.dx, p.dy);
-      }
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = ink
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke,
-      );
-    }
-    for (final p in pts) {
-      canvas.drawPath(_diamond(p, 4.5), Paint()..color = ink);
-    }
-  }
-
-  void _paintAxes(Canvas canvas, Rect plot, Size size,
-      double Function(num) xPos) {
-    final axis = Paint()
-      ..color = ink
-      ..strokeWidth = 1.2;
-    canvas.drawLine(plot.bottomLeft, plot.bottomRight, axis);
-    canvas.drawLine(plot.topLeft, plot.bottomLeft, axis);
-
-    // Left ticks + labels.
-    for (var i = 0; i <= 4; i++) {
-      final v = spec.yMin + (spec.yMax - spec.yMin) * i / 4;
-      final y = plot.bottom - plot.height * i / 4;
-      canvas.drawLine(Offset(plot.left - 4, y), Offset(plot.left, y), axis);
-      _text(canvas, _num(v), Offset(plot.left - 7, y),
-          align: TextAlign.right, anchorY: 0.5, size: 10);
-    }
-    // X ticks + labels (integers only, like the desktop's MaxNLocator).
-    for (final x in spec.xs) {
-      final px = xPos(x);
-      canvas.drawLine(
-          Offset(px, plot.bottom), Offset(px, plot.bottom + 4), axis);
-      _text(canvas, '$x', Offset(px, plot.bottom + 7),
-          align: TextAlign.center, size: 10);
-    }
-    _text(canvas, spec.xLabel, Offset(plot.center.dx, size.height - 22),
-        align: TextAlign.center, size: 12);
-    _rotatedText(canvas, spec.yLabel, Offset(16, plot.center.dy), size: 12);
-    if (spec.title.isNotEmpty) {
-      _text(canvas, spec.title, Offset(plot.center.dx, 20),
-          align: TextAlign.center, size: 15);
-    }
-
-    if (!_hasIndex) return;
-    // Right axis for the index: fixed 0..1, bold label (desktop emphasises it).
-    canvas.drawLine(plot.topRight, plot.bottomRight,
-        Paint()..color = ink..strokeWidth = 2);
-    for (var i = 0; i <= 5; i++) {
-      final y = plot.bottom - plot.height * i / 5;
-      canvas.drawLine(Offset(plot.right, y), Offset(plot.right + 4, y), axis);
-      _text(canvas, (i / 5).toStringAsFixed(1), Offset(plot.right + 7, y),
-          align: TextAlign.left, anchorY: 0.5, size: 10, bold: true);
-    }
-    _rotatedText(canvas, 'Aggregate Index Score (best = 1.0)',
-        Offset(size.width - 12, plot.center.dy),
-        size: 11, bold: true, clockwise: true);
-  }
-
-  /// Single-row legend centred above the plot, boxed — the desktop's
-  /// `fig.legend(loc="upper center", ncol=len(handles), frameon=True)`.
-  void _paintLegend(Canvas canvas, Size size) {
-    final entries = <(String, Color, List<double>?, bool)>[
-      for (final (i, name) in spec.series.keys.indexed)
-        (name, _dark2[i % _dark2.length], _dashes[i % _dashes.length], false),
-      if (_hasIndex) ('Aggregate Index', ink, null, true),
-    ];
-    if (entries.isEmpty) return;
-
-    // Shrink to fit rather than overflow: a lead with many session scales would
-    // otherwise push the legend off the canvas.
-    const gapAfterSample = 5.0;
-    var font = 9.0;
-    var sample = 22.0;
-    var gapBetween = 14.0;
-    List<TextPainter> painters;
-    double total;
-    while (true) {
-      painters = [for (final e in entries) _layout(e.$1, font, false)];
-      total = painters.fold<double>(
-              0, (sum, p) => sum + sample + gapAfterSample + p.width) +
-          gapBetween * (entries.length - 1);
-      if (total <= size.width - 20 || font <= 6) break;
-      font -= 0.5;
-      sample = math.max(12, sample - 1);
-      gapBetween = math.max(6, gapBetween - 1);
-    }
+  /// Single-row legend, boxed and centred in the space [band] reserved for it —
+  /// the desktop's `fig.legend(loc="upper center", ncol=len(handles),
+  /// frameon=True)`.
+  void _paintLegend(Canvas canvas, Size size, ChartTopBand band) {
+    final legend = band.legend;
+    if (legend == null) return;
 
     final box = Rect.fromLTWH(
-      math.max(2, (size.width - total) / 2 - 8),
-      30,
-      math.min(total + 16, size.width - 4),
-      20,
+      math.max(2, (size.width - legend.total) / 2 - 8),
+      band.legendTop,
+      math.min(legend.total + 16, size.width - 4),
+      legend.height,
     );
     canvas
       ..drawRect(box, Paint()..color = background)
@@ -299,108 +364,190 @@ class ScalesChartPainter extends CustomPainter {
           ..color = ink.withValues(alpha: 0.4)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.8,
-      );
+      )
+      // Clip the contents: shrink-to-fit stops at a 6 pt floor, so a session
+      // with very many scales can still exceed the box, and a sample line
+      // spilling out of the frame looks like a rendering fault.
+      ..save()
+      ..clipRect(box);
 
     var x = box.left + 8;
     final y = box.center.dy;
-    for (var i = 0; i < entries.length; i++) {
-      final (_, color, dash, isIndex) = entries[i];
-      final line = Path()
-        ..moveTo(x, y)
-        ..lineTo(x + sample, y);
-      canvas.drawPath(
-        dash == null ? line : _dashPath(line, dash),
-        Paint()
-          ..color = color
-          ..strokeWidth = isIndex ? 3 : 2
-          ..style = PaintingStyle.stroke,
-      );
-      if (isIndex) {
-        canvas.drawPath(
-            _diamond(Offset(x + sample / 2, y), 4), Paint()..color = color);
+    for (var i = 0; i < legend.entries.length; i++) {
+      final (_, color, dash, kind) = legend.entries[i];
+      if (kind == ChartLegendKind.band) {
+        // A swatch, hatched: the two greens differ in lightness only, so in
+        // greyscale or on a mono printer the hatch is what tells them apart.
+        final swatch =
+            Rect.fromLTWH(x, y - 5, legend.sample, 10);
+        canvas
+          ..drawRect(swatch, Paint()..color = color)
+          ..drawRect(
+              swatch,
+              Paint()
+                ..color = ink.withValues(alpha: 0.55)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 0.8)
+          ..save()
+          ..clipRect(swatch);
+        final hatch = Paint()
+          ..color = ink.withValues(alpha: 0.45)
+          ..strokeWidth = 0.8;
+        // Rank 1 gets a denser hatch than rank 2, so the ORDER survives too.
+        final step = color.toARGB32() == kBestFill ? 4.0 : 8.0;
+        for (var hx = swatch.left - 10; hx < swatch.right + 10; hx += step) {
+          canvas.drawLine(
+              Offset(hx, swatch.bottom), Offset(hx + 10, swatch.top), hatch);
+        }
+        canvas.restore();
       } else {
-        canvas.drawCircle(
-            Offset(x + sample / 2, y), 2.6, Paint()..color = color);
+        final line = Path()
+          ..moveTo(x, y)
+          ..lineTo(x + legend.sample, y);
+        canvas.drawPath(
+          dash == null ? line : dashPath(line, dash),
+          Paint()
+            ..color = color
+            ..strokeWidth = kind == ChartLegendKind.aggregate ? 3 : 2
+            ..style = PaintingStyle.stroke,
+        );
+        final markerX = x + legend.sample / 2;
+        if (kind == ChartLegendKind.aggregate) {
+          canvas.drawPath(
+              diamondPath(Offset(markerX, y), 4), Paint()..color = color);
+        } else {
+          canvas.drawCircle(Offset(markerX, y), 2.6, Paint()..color = color);
+        }
       }
-      x += sample + gapAfterSample;
-      painters[i].paint(canvas, Offset(x, y - painters[i].height / 2));
-      x += painters[i].width + gapBetween;
+      x += legend.sample + _legendGapAfterSample;
+      final p = legend.painters[i];
+      p.paint(canvas, Offset(x, y - p.height / 2));
+      x += p.width + legend.gapBetween;
     }
-  }
-
-  // --- primitives ----------------------------------------------------------
-
-  static Path _diamond(Offset c, double r) => Path()
-    ..moveTo(c.dx, c.dy - r)
-    ..lineTo(c.dx + r, c.dy)
-    ..lineTo(c.dx, c.dy + r)
-    ..lineTo(c.dx - r, c.dy)
-    ..close();
-
-  /// Flutter has no dashed stroke, so walk the path and emit segments.
-  static Path _dashPath(Path source, List<double> pattern) {
-    final out = Path();
-    for (final metric in source.computeMetrics()) {
-      var distance = 0.0;
-      var i = 0;
-      var draw = true;
-      while (distance < metric.length) {
-        final len = pattern[i % pattern.length];
-        final next = math.min(distance + len, metric.length);
-        if (draw) out.addPath(metric.extractPath(distance, next), Offset.zero);
-        distance = next;
-        draw = !draw;
-        i++;
-      }
-    }
-    return out;
-  }
-
-  /// Trim a tick value the way matplotlib does: integers lose the ".0".
-  static String _num(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1);
-
-  TextPainter _layout(String text, double size, bool bold) => TextPainter(
-        text: TextSpan(
-          text: text,
-          style: TextStyle(
-            color: ink,
-            fontSize: size,
-            fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-            height: 1,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-  void _text(Canvas canvas, String text, Offset at,
-      {TextAlign align = TextAlign.left,
-      double anchorY = 0,
-      double size = 10,
-      bool bold = false}) {
-    final p = _layout(text, size, bold);
-    final dx = switch (align) {
-      TextAlign.center => at.dx - p.width / 2,
-      TextAlign.right => at.dx - p.width,
-      _ => at.dx,
-    };
-    p.paint(canvas, Offset(dx, at.dy - p.height * anchorY));
-  }
-
-  void _rotatedText(Canvas canvas, String text, Offset at,
-      {double size = 12, bool bold = false, bool clockwise = false}) {
-    final p = _layout(text, size, bold);
-    canvas
-      ..save()
-      ..translate(at.dx, at.dy)
-      ..rotate(clockwise ? math.pi / 2 : -math.pi / 2);
-    p.paint(canvas, Offset(-p.width / 2, -p.height / 2));
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(ScalesChartPainter old) =>
       old.spec != spec || old.background != background || old.ink != ink;
+}
+
+/// What kind of sample a legend entry draws.
+enum ChartLegendKind {
+  /// A dashed/solid line with a round marker: one session scale.
+  series,
+
+  /// A heavy line with a diamond: the aggregate index. Not named `index` —
+  /// every Dart enum already has an `index` property.
+  aggregate,
+
+  /// A filled, hatched swatch: a green ranking band.
+  band,
+}
+
+/// The legend's shrink-to-fit result: what to draw and how wide it came out.
+typedef ChartLegend = ({
+  List<(String, Color, List<double>?, ChartLegendKind)> entries,
+  List<TextPainter> painters,
+  double sample,
+  double gapBetween,
+  double total,
+  double height,
+});
+
+/// The measured top band — title, then legend, then the plot.
+///
+/// Replaces three hard-coded y values (title 20, legend box 30..50, `_padTop`
+/// 46) that overlapped each other by 5 px and overran the plot by 4 px. Each
+/// element now reserves its own height, so a two-line title or a legend that
+/// shrank to fit cannot collide with anything.
+///
+/// Public only so `scales_chart_layout_test.dart` can assert those
+/// non-overlap invariants directly, rather than by inspecting pixels.
+class ChartTopBand {
+  const ChartTopBand({
+    required this.titleTop,
+    required this.titleHeight,
+    required this.legendTop,
+    required this.padTop,
+    required this.legend,
+  });
+
+  final double titleTop;
+  final double titleHeight;
+  final double legendTop;
+
+  /// Where the plot may start.
+  final double padTop;
+
+  /// Null when there is nothing to put in a legend.
+  final ChartLegend? legend;
+
+  static const _outerPad = 6.0;
+  static const _gap = 6.0;
+
+  static ChartTopBand measure(ScalesChartPainter p, Size size) {
+    final titleHeight = p.spec.title.isEmpty
+        ? 0.0
+        : chartTextPainter(p.spec.title, color: p.ink, size: _titleSize).height;
+    final legend = _measureLegend(p, size);
+    final legendTop =
+        _outerPad + (titleHeight > 0 ? titleHeight + _gap : 0.0);
+    return ChartTopBand(
+      titleTop: _outerPad,
+      titleHeight: titleHeight,
+      legendTop: legendTop,
+      padTop: legendTop +
+          (legend == null ? _gap : legend.height + _gap + 2),
+      legend: legend,
+    );
+  }
+
+  /// Shrink to fit rather than overflow: a session with many scales would
+  /// otherwise push the legend off the canvas.
+  static ChartLegend? _measureLegend(ScalesChartPainter p, Size size) {
+    final entries = <(String, Color, List<double>?, ChartLegendKind)>[
+      for (final (i, name) in p.spec.series.keys.indexed)
+        (name, seriesColor(i), seriesDash(i), ChartLegendKind.series),
+      if (p.spec.aggregateIndex.isNotEmpty)
+        ('Aggregate Index', p.ink, null, ChartLegendKind.aggregate),
+      // The bands are part of the figure, so they belong in its key.
+      if (p.spec.bestXs.isNotEmpty)
+        ('Rank 1', const Color(kBestFill), null, ChartLegendKind.band),
+      if (p.spec.secondXs.isNotEmpty)
+        ('Rank 2', const Color(kSecondFill), null, ChartLegendKind.band),
+    ];
+    if (entries.isEmpty) return null;
+
+    var font = 9.0;
+    var sample = 22.0;
+    var gapBetween = 14.0;
+    List<TextPainter> painters;
+    double total;
+    while (true) {
+      painters = [
+        for (final e in entries) chartTextPainter(e.$1, color: p.ink, size: font),
+      ];
+      total = painters.fold<double>(
+              0, (sum, t) => sum + sample + _legendGapAfterSample + t.width) +
+          gapBetween * (entries.length - 1);
+      if (total <= size.width - 20 || font <= 6) break;
+      font -= 0.5;
+      sample = math.max(12, sample - 1);
+      gapBetween = math.max(6, gapBetween - 1);
+    }
+    // Box height from the tallest label, so a larger font is never clipped.
+    final textHeight =
+        painters.fold<double>(0, (m, t) => math.max(m, t.height));
+    return (
+      entries: entries,
+      painters: painters,
+      sample: sample,
+      gapBetween: gapBetween,
+      total: total,
+      height: math.max(18.0, textHeight + 8),
+    );
+  }
 }
 
 /// Rasterise the scales chart to PNG bytes for embedding in a report.

@@ -8,6 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import '../app_info.dart';
 import '../core/annotation.dart';
 import '../core/bids.dart';
+import '../core/safe_file.dart';
+import '../report/annotations_report.dart';
+import '../report/session_docx.dart' show DocxPageSize;
 import 'share_util.dart';
 import 'theme.dart';
 
@@ -24,6 +27,9 @@ class AnnotationsScreen extends StatefulWidget {
 }
 
 class _AnnotationsScreenState extends State<AnnotationsScreen> {
+  // Serialised, atomic autosave to the user's file. See [SafeFileWriter].
+  final _writer = SafeFileWriter();
+
   final _subjectCtrl = TextEditingController();
   final _runCtrl = TextEditingController(text: '01');
   final _noteCtrl = TextEditingController();
@@ -208,13 +214,15 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
 
   /// Rewrite the TSV after each insert when a save path was chosen (desktop
   /// autosaves every entry). No-op when there is no path.
+  ///
+  /// Goes through [SafeFileWriter] so overlapping inserts cannot interleave and
+  /// a crash mid-write cannot truncate the user's notes file.
   Future<void> _autosave() async {
     final path = _savePath;
     if (path == null) return;
     try {
       // File is oldest-first; the UI list is newest-first.
-      await File(path)
-          .writeAsString(writeAnnotations(_entries.reversed.toList()));
+      await _writer.write(path, writeAnnotations(_entries.reversed.toList()));
     } catch (e) {
       if (mounted) _snack('Autosave failed: $e');
     }
@@ -236,21 +244,66 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       run: run,
     );
 
-    // Oldest-first in the file (UI shows newest-first).
-    final tsv = writeAnnotations(_entries.reversed.toList());
-    // Resolve context-derived values before the first await.
-    final messenger = ScaffoldMessenger.of(context);
-    final screen = MediaQuery.sizeOf(context);
-    final origin = shareOriginFrom(_exportKey.currentContext);
-    try {
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/${name.filename}');
-      await file.writeAsString(tsv);
-      await shareOrSaveFile(messenger, file, name.filename,
-          origin: origin, screen: screen);
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    await exportFile(
+      context,
+      filename: name.filename,
+      anchor: _exportKey,
+      // Oldest-first in the file (the UI shows newest-first).
+      build: () async => (
+        bytes: utf8.encode(writeAnnotations(_entries.reversed.toList())),
+        warning: null,
+      ),
+    );
+  }
+
+  /// Export the notes as a report. Until now this screen could only write a
+  /// TSV, while the home card promised "Notes -> report".
+  Future<void> _exportReport({required bool docx}) async {
+    if (_entries.isEmpty) {
+      _snack('Add at least one note before exporting a report.');
+      return;
     }
+    final subject = BidsName.label(_subjectCtrl.text.trim()).isEmpty
+        ? 'unknown'
+        : BidsName.label(_subjectCtrl.text.trim());
+    final run = BidsName.label(_runCtrl.text.trim()).isEmpty
+        ? '01'
+        : BidsName.label(_runCtrl.text.trim());
+    final stamp = BidsName.sessionStamp(DateTime.now());
+    final filename = 'sub-${subject}_ses-${stamp}_task-notes_run-${run}_report'
+        '.${docx ? 'docx' : 'pdf'}';
+
+    await exportFile(
+      context,
+      filename: filename,
+      anchor: _exportKey,
+      failureLabel: 'Report export failed',
+      build: () async {
+        // Oldest first is the builder's job; it sorts what it is given.
+        final data = buildAnnotationsReportData(
+          entries: _entries,
+          subjectId: subject,
+          sourceFile: _savePath == null
+              ? ''
+              : _savePath!.replaceAll(r'', '/').split('/').last,
+        );
+        if (docx) {
+          return (
+            bytes: buildAnnotationsDocx(data, pageSize: DocxPageSize.a4),
+            warning: null,
+          );
+        }
+        final report = await buildAnnotationsPdf(data);
+        return (
+          bytes: report.bytes,
+          warning: report.lostCharacters
+              ? 'Some characters could not be rendered in the PDF and were '
+                  'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
+                  'for full Unicode, or export to Word instead.'
+              : null,
+        );
+      },
+    );
   }
 
   Widget _notesStep() {
@@ -274,11 +327,31 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
           label: const Text('Insert timestamped note'),
         ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          key: _exportKey,
-          onPressed: _export,
-          icon: const Icon(Icons.ios_share),
-          label: const Text('Export TSV'),
+        MenuAnchor(
+          builder: (context, controller, child) => OutlinedButton.icon(
+            key: _exportKey,
+            onPressed: () =>
+                controller.isOpen ? controller.close() : controller.open(),
+            icon: const Icon(Icons.ios_share),
+            label: const Text('Export'),
+          ),
+          menuChildren: [
+            MenuItemButton(
+              leadingIcon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () => _exportReport(docx: false),
+              child: const Text('Report (PDF)'),
+            ),
+            MenuItemButton(
+              leadingIcon: const Icon(Icons.description_outlined),
+              onPressed: () => _exportReport(docx: true),
+              child: const Text('Report (Word)'),
+            ),
+            MenuItemButton(
+              leadingIcon: const Icon(Icons.table_chart_outlined),
+              onPressed: _export,
+              child: const Text('Data (TSV)'),
+            ),
+          ],
         ),
         const Divider(height: 32),
         Text('Inserted notes (${_entries.length})',

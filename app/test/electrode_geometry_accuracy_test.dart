@@ -220,4 +220,63 @@ void main() {
       }
     }
   });
+
+  group('case height and crowding width', () {
+    test('the case is a fixed height, whatever the lead or the pane', () {
+      // It used to be 1.75x the drawn lead width, which on a 300x600 pane was
+      // 137 px - 23 % of the canvas - and grew with the lead, so a wide lead
+      // stole the height the contacts needed.
+      final heights = <double>{};
+      for (final model in _catalog().models.values) {
+        for (final size in const [
+          Size(300, 600),
+          Size(220, 420),
+          Size(180, 900),
+        ]) {
+          heights.add(computeLayout(model, size).caseRect.height);
+        }
+      }
+      expect(heights, hasLength(1), reason: 'one height everywhere: $heights');
+      expect(heights.single, lessThan(40),
+          reason: 'and a modest one: ${heights.single}');
+    });
+
+    test('shortening the case gave the contacts the room', () {
+      // The point of the change: more vertical budget for the stack, so labels
+      // stay legible. A SenSight on a small tablet pane used to get 36 px
+      // contacts at a 10.9 px font.
+      final layout = computeLayout(
+          _catalog().models['Medtronic SenSight B33005']!, const Size(220, 420));
+      final contact = layout.levels.first.contactRects.values.first;
+      expect(contact.height, greaterThan(45));
+      expect(layout.scale, greaterThan(30));
+    });
+
+    test('a crowded lead is drawn wider than a four-level one', () {
+      // Levels share a fixed pane height, so each contact gets shorter as their
+      // number grows and a short contact cannot hold a readable label. Height
+      // cannot grow, so width does.
+      const pane = Size(220, 420);
+      final catalog = _catalog();
+      final four = computeLayout(catalog.models['Medtronic 3389']!, pane)
+          .leadRect
+          .width;
+      for (final name in [
+        'Boston Scientific Vercise Cartesia HX', // 6 levels
+        'Boston Scientific Vercise', // 8 rings
+      ]) {
+        final wide = computeLayout(catalog.models[name]!, pane).leadRect.width;
+        expect(wide, greaterThan(four), reason: name);
+      }
+    });
+
+    test('but a crowded lead still reads as a slender probe', () {
+      // The ramp is deliberately mild: a paddle would be worse than small text.
+      for (final size in const [Size(300, 600), Size(220, 420)]) {
+        final l = computeLayout(
+            _catalog().models['Boston Scientific Vercise']!, size);
+        expect(l.leadRect.width, lessThan(l.leadRect.height * 0.6));
+      }
+    });
+  });
 }

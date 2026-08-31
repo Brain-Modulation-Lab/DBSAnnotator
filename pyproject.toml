@@ -125,7 +125,8 @@ select = [
 "src/dbs_annotator/views/wizard_window.py" = ["E501"]
 
 [tool.codespell]
-ignore-words-list = "vas"
+# "bloc": report_data.dart comments quote the broken wrap "Bloc k" on purpose.
+ignore-words-list = "vas,bloc"
 skip = "uv.lock,.venv,build,dist,htmlcov,docs/_build,*.svg,*.ico,*.png,*.pdf,*.log,*.min.js"
 
 [tool.doc8]

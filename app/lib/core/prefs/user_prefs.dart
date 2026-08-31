@@ -21,6 +21,10 @@ class UserPrefs {
     this.clinical,
     this.session,
     this.reportPageSize,
+    this.entryPanelOrder,
+    this.entryVisibleConfigs,
+    this.entryTableExpanded,
+    this.reportSections,
   });
 
   /// Stimulation quick-pick lists (override `limits.json` stimulation_presets).
@@ -41,6 +45,22 @@ class UserPrefs {
   /// Applies to both the PDF and the Word document, so the two always match.
   String? reportPageSize;
 
+  /// Top-to-bottom order of the entry-review chart panels, by panel id.
+  /// Persisted so a clinician's arrangement survives closing the app — an order
+  /// that resets every visit is worse than none.
+  List<String>? entryPanelOrder;
+
+  /// How many configurations fill the entry-review chart viewport (the zoom).
+  int? entryVisibleConfigs;
+
+  /// Whether the inserted-entries table below the charts is expanded.
+  bool? entryTableExpanded;
+
+  /// Report sections to include, by [ReportSection.name]. Persisted so a
+  /// clinician who always drops one section does not re-uncheck it every export.
+  /// Null -> every section.
+  List<String>? reportSections;
+
   factory UserPrefs.fromJson(Map<String, dynamic> j) {
     List<num>? nums(String k) =>
         (j[k] as List?)?.map((e) => e as num).toList();
@@ -57,6 +77,12 @@ class UserPrefs {
               .map((r) => (r as List).map((e) => e as String).toList())
               .toList())),
       reportPageSize: j['report_page_size'] as String?,
+      entryPanelOrder:
+          (j['entry_panel_order'] as List?)?.map((e) => e as String).toList(),
+      entryVisibleConfigs: (j['entry_visible_configs'] as num?)?.toInt(),
+      entryTableExpanded: j['entry_table_expanded'] as bool?,
+      reportSections:
+          (j['report_sections'] as List?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -68,6 +94,12 @@ class UserPrefs {
         if (clinical != null) 'clinical': clinical,
         if (session != null) 'session': session,
         if (reportPageSize != null) 'report_page_size': reportPageSize,
+        if (entryPanelOrder != null) 'entry_panel_order': entryPanelOrder,
+        if (entryVisibleConfigs != null)
+          'entry_visible_configs': entryVisibleConfigs,
+        if (entryTableExpanded != null)
+          'entry_table_expanded': entryTableExpanded,
+        if (reportSections != null) 'report_sections': reportSections,
       };
 }
 

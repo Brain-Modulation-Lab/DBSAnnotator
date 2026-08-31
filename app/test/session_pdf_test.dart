@@ -5,6 +5,7 @@ import 'package:dbs_annotator/core/electrode/electrode_model.dart';
 import 'package:dbs_annotator/core/session/session_file.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
 import 'package:dbs_annotator/report/report_data.dart';
+import 'package:dbs_annotator/report/report_sections.dart';
 import 'package:dbs_annotator/ui/report_images.dart';
 import 'package:dbs_annotator/ui/scales_chart_painter.dart';
 import 'package:pdf/pdf.dart';
@@ -82,11 +83,12 @@ void main() {
       ),
     ];
 
-    final bytes = await buildSessionPdf(
-      rows: rows,
+    final report = await buildSessionPdf(
+      data: buildSessionReportData(
+          rows: rows, generatedAt: DateTime(2026, 7, 29)),
       subjectId: '01',
-      generatedAt: DateTime(2026, 7, 29),
     );
+    final bytes = report.bytes;
 
     expect(bytes, isNotEmpty);
     // PDF magic: "%PDF" = 0x25 0x50 0x44 0x46.
@@ -94,11 +96,12 @@ void main() {
   });
 
   test('empty rows still yield a valid PDF', () async {
-    final bytes = await buildSessionPdf(
-      rows: const [],
+    final report = await buildSessionPdf(
+      data: buildSessionReportData(
+          rows: const [], generatedAt: DateTime(2026, 7, 29)),
       subjectId: 'unknown',
-      generatedAt: DateTime(2026, 7, 29),
     );
+    final bytes = report.bytes;
     expect(bytes, isNotEmpty);
     expect(bytes.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
   });
@@ -124,12 +127,10 @@ void main() {
     final lead = await renderElectrodePng(
         catalog.models['Medtronic SenSight B33005']!, 'case', 'E2b');
 
-    final bare = await buildSessionPdf(
-        rows: rows, subjectId: '01', generatedAt: DateTime(2026, 6, 26));
-    final rich = await buildSessionPdf(
-      rows: rows,
+    final bare = (await buildSessionPdf(data: data, subjectId: '01')).bytes;
+    final rich = (await buildSessionPdf(
+      data: data,
       subjectId: '01',
-      generatedAt: DateTime(2026, 6, 26),
       chartPng: chart,
       electrodeImages: (
         initLeft: lead,
@@ -137,19 +138,40 @@ void main() {
         finalLeft: lead,
         finalRight: lead,
       ),
-    );
+    ))
+        .bytes;
     expect(rich.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
     // Images really landed, rather than being silently dropped.
     expect(rich.length, greaterThan(bare.length + 100000));
   });
 
   test('renders on Letter as well as A4', () async {
-    final bytes = await buildSessionPdf(
-      rows: const [SessionRow(blockId: '1', isInitial: '0')],
+    final report = await buildSessionPdf(
+      data: buildSessionReportData(
+        rows: const [SessionRow(blockId: '1', isInitial: '0')],
+        generatedAt: DateTime(2026, 6, 26),
+      ),
       subjectId: '01',
-      generatedAt: DateTime(2026, 6, 26),
       pageFormat: PdfPageFormat.letter,
     );
-    expect(bytes.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
+    expect(report.bytes.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
+  });
+
+  test('a narrowed section selection produces a smaller document', () async {
+    // Smoke-level on purpose: this file asserts %PDF magic and byte deltas
+    // rather than extracting text (see the note at the top). The .docx test
+    // does the content assertions, and both formats read the same enum.
+    final data = buildSessionReportData(
+      rows: parseSessionTsv(File('../docs/_static/session_report_example/'
+              'sub-01_ses-20260626_task-programming_run-01_events.tsv')
+          .readAsStringSync()),
+      generatedAt: DateTime(2026, 6, 26),
+    );
+    final all = await buildSessionPdf(data: data, subjectId: '01');
+    final summaryOnly = await buildSessionPdf(
+        data: data, subjectId: '01', sections: {ReportSection.summary});
+    expect(summaryOnly.bytes.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
+    expect(summaryOnly.bytes.length, lessThan(all.bytes.length),
+        reason: 'dropping the table and baseline must shrink the PDF');
   });
 }

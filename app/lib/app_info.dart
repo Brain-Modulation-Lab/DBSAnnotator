@@ -12,6 +12,30 @@ const String copyrightHolders =
     'Wyss Center for Bio and Neuroengineering, Massachusetts General Hospital, '
     'and Charité Universitätsmedizin Berlin';
 
+/// The app mark, bundled from `icons/logosimple/`. Declared in pubspec assets.
+const String appIconAsset = 'assets/icon/app_icon.png';
+
+/// The app mark as a widget, for AppBars and dialogs.
+///
+/// [size] is the logical height; the mark is square. Falls back to a Material
+/// glyph if the asset is somehow missing, so a packaging slip degrades to an
+/// icon rather than a red error box in the AppBar.
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 32});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        appIconAsset,
+        width: size,
+        height: size,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) =>
+            Icon(Icons.psychology_outlined, size: size),
+      );
+}
+
 /// Desktop-style Help/About dialog: name + version, workflow overview,
 /// copyright/license, and the repository / issues / contact URLs as
 /// SelectableText (copy to open — avoids a url_launcher dependency).
@@ -20,6 +44,7 @@ void showAppAbout(BuildContext context) {
     context: context,
     applicationName: appName,
     applicationVersion: 'v$appVersion',
+    applicationIcon: const AppLogo(size: 48),
     children: const [
       SizedBox(height: 8),
       Text('Annotate DBS programming sessions: file setup → initial '

@@ -127,9 +127,16 @@ void main() {
     expect(find.text('MADRS'), findsWidgets);
     expect(find.text('No entries inserted yet.'), findsNothing);
     expect(find.text('Insert recording block'), findsOneWidget);
-    expect(find.text('Export TSV'), findsOneWidget);
+    // Four separate controls collapsed into one Export menu; the formats are
+    // now menu items, so they only exist once it is opened.
+    expect(find.text('Export'), findsOneWidget);
+    expect(find.text('Export report (PDF)'), findsNothing);
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
     expect(find.text('Export report (PDF)'), findsOneWidget);
     expect(find.text('Export report (Word)'), findsOneWidget);
+    expect(find.text('Export TSV'), findsOneWidget);
+    expect(find.text('Paper size: A4'), findsOneWidget);
   });
 
   testWidgets('stim - / + steppers move by step1 and the clear X empties '

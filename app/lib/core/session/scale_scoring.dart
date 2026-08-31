@@ -10,18 +10,18 @@
 ///   `src/dbs_annotator/utils/session_exporter.py` — this drives the green
 ///   ROW SHADING in the session data table.
 ///
-/// PARITY: the two are deliberately *different* algorithms and can disagree.
-/// The chart normalises each scale into its declared [lower, upper] and
-/// averages (higher = better); the table sums raw values with a sign per mode
-/// (lower = better). A block can therefore be banded on the chart without being
-/// shaded in the table. This mirrors the desktop exactly — do not "fix" it, and
-/// see `scale_scoring_test.dart` for the test that pins it.
+/// ONE ranking, deliberately diverging from the desktop. The desktop runs a
+/// second algorithm for the table's row shading (`_find_best_and_second_best_
+/// blocks`, signed raw sums) and its own comment admits the two can disagree —
+/// so a desktop report can band one block on the chart and shade a different
+/// one in the table. Two green markers pointing at different blocks in one
+/// clinical document is indefensible, so the raw-sum twin is not ported:
+/// [computeAggregateIndex] + [findBestAndSecond] drive both.
 ///
 /// Pure Dart: no Flutter imports, so it is testable with no asset bundle.
 library;
 
-import 'longitudinal.dart'
-    show ScalePair, isScaleValueOmitted, splitScalePairs;
+import 'longitudinal.dart' show isScaleValueOmitted, splitScalePairs;
 import 'session_row.dart';
 
 /// How a scale should be optimised. Mirrors the desktop's `mode` string in the
@@ -58,17 +58,6 @@ typedef ScaleTarget = ({
   double lower,
   double upper,
 });
-
-/// Coerce a TSV cell to an int the way `pd.to_numeric(errors="coerce")
-/// .fillna(0)` does: unparsable cells become 0.
-///
-/// Twin of the private helper in `longitudinal.dart` and `report/session_pdf.dart`;
-/// they collapse into one when the report builder is extracted.
-int _coerceInt(String raw) {
-  final v = double.tryParse(raw.trim());
-  if (v == null || !v.isFinite) return 0;
-  return v.truncate();
-}
 
 double _clip01(double v) => v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);
 
@@ -249,84 +238,6 @@ Map<int, double> computeAggregateIndex(
   final best = keys[ranked[0]];
   final second = ranked.length > 1 ? keys[ranked[1]] : null;
   return (best, second);
-}
-
-/// Block IDs with the best and second-best raw scores, for the table's green
-/// row shading.
-///
-/// Port of `_find_best_and_second_best_blocks`. Per block, every non-omitted
-/// numeric scale value contributes to a running total by its mode: `min` adds
-/// the value, `max` subtracts it, `custom` adds the absolute distance to the
-/// target. **Lower total wins.** [ScaleMode.ignore] scales are skipped, and a
-/// scale with no matching pref defaults to [ScaleMode.min] — the same default
-/// the desktop applies via `pref_lookup.get(scale_name, ("min", ""))`.
-///
-/// Blocks with no usable value are excluded. Ties return every block at that
-/// score, in block-encounter order.
-///
-/// The desktop reads its derived lateral table and filters to `laterality == "L"`
-/// to avoid double-counting; the tablet has no laterality column, and each
-/// lateral row pair shares one scale set, so the equivalent is the per-block
-/// deduplicated (name, value) set built here.
-({List<int> best, List<int> second}) findBestAndSecondBlocks(
-  List<SessionRow> rows,
-  List<ScalePref> prefs,
-) {
-  final lookup = <String, ScalePref>{
-    for (final p in prefs) p.name.trim().toLowerCase(): p,
-  };
-
-  // Per block, the deduplicated non-omitted (name, value) pairs, in encounter
-  // order — mirroring `_create_lateral_table_data`'s seen-set grouping.
-  final blockPairs = <int, List<ScalePair>>{};
-  final blockSeen = <int, Set<String>>{};
-  for (final row in rows) {
-    final blockId = _coerceInt(row.blockId);
-    final pairs = blockPairs[blockId] ??= <ScalePair>[];
-    final seen = blockSeen[blockId] ??= <String>{};
-    for (final pair in splitScalePairs(row.scaleName, row.scaleValue)) {
-      if (pair.name.isEmpty || isScaleValueOmitted(pair.value)) continue;
-      if (seen.add('${pair.name}\u0000${pair.value}')) pairs.add(pair);
-    }
-  }
-
-  final scores = <int, double>{};
-  for (final entry in blockPairs.entries) {
-    var total = 0.0;
-    var hasValue = false;
-    for (final pair in entry.value) {
-      final value = double.tryParse(pair.value.trim());
-      if (value == null || value.isNaN) continue;
-
-      final pref = lookup[pair.name.trim().toLowerCase()];
-      final mode = pref?.mode ?? ScaleMode.min;
-      if (mode == ScaleMode.ignore) continue;
-      hasValue = true;
-
-      switch (mode) {
-        case ScaleMode.min:
-          total += value;
-        case ScaleMode.max:
-          total -= value;
-        case ScaleMode.custom:
-          total += (value - (pref?.custom ?? 0.0)).abs();
-        case ScaleMode.ignore:
-          break;
-      }
-    }
-    if (hasValue) scores[entry.key] = total;
-  }
-
-  if (scores.isEmpty) return (best: const [], second: const []);
-
-  final unique = scores.values.toSet().toList()..sort();
-  List<int> at(double score) =>
-      [for (final e in scores.entries) if (e.value == score) e.key];
-
-  return (
-    best: at(unique.first),
-    second: unique.length > 1 ? at(unique[1]) : const [],
-  );
 }
 
 /// Default preferences for every scale present in [rows]: mode

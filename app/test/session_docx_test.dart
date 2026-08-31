@@ -3,8 +3,17 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
+import 'package:dbs_annotator/report/report_data.dart';
+import 'package:dbs_annotator/report/report_sections.dart';
 import 'package:dbs_annotator/report/session_docx.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'report_ranking_prefs.dart';
+
+/// A 2x1 red PNG, so `pngSize` can read a real IHDR.
+Uint8List _tinyPng() => base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
+    'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC');
 
 /// Read a part's UTF-8 text from the docx (zip) bytes.
 String _part(List<int> bytes, String name) {
@@ -79,9 +88,9 @@ void main() {
 
   test('buildSessionDocx returns a valid PK zip with the OOXML parts', () {
     final bytes = buildSessionDocx(
-      rows: rows,
+      data: buildSessionReportData(
+          rows: rows, generatedAt: DateTime(2026, 7, 29)),
       subjectId: '01',
-      generatedAt: DateTime(2026, 7, 29),
     );
     expect(bytes, isNotEmpty);
     // ZIP local-file-header magic: "PK\x03\x04".
@@ -97,15 +106,15 @@ void main() {
 
   test('document.xml carries the report sections and escapes XML', () {
     final bytes = buildSessionDocx(
-      rows: rows,
+      data: buildSessionReportData(
+          rows: rows, generatedAt: DateTime(2026, 7, 29)),
       subjectId: '01',
-      generatedAt: DateTime(2026, 7, 29),
     );
     final doc = _part(bytes, 'word/document.xml');
 
     // Section headings + data made it into the document.
     expect(doc, contains('Session report'));
-    expect(doc, contains('Initial clinical notes'));
+    expect(doc, contains('Baseline assessment (pre-session)'));
     expect(doc, contains('UPDRS-III'));
     expect(doc, contains('Session data'));
     expect(doc, contains('Programming summary'));
@@ -118,9 +127,9 @@ void main() {
 
   test('empty rows still yield a valid docx', () {
     final bytes = buildSessionDocx(
-      rows: const [],
+      data: buildSessionReportData(
+          rows: const [], generatedAt: DateTime(2026, 7, 29)),
       subjectId: 'unknown',
-      generatedAt: DateTime(2026, 7, 29),
     );
     expect(bytes.sublist(0, 4), [0x50, 0x4B, 0x03, 0x04]);
     final doc = _part(bytes, 'word/document.xml');
@@ -128,15 +137,11 @@ void main() {
   });
 
   group('embedded graphics (OOXML drawing parts)', () {
-    // A 2x1 red PNG, so pngSize can read a real IHDR.
-    final tinyPng = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
-        'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC');
+    final tinyPng = _tinyPng();
 
     Uint8List build() => buildSessionDocx(
-          rows: rows,
+          data: rankedReportData(rows, generatedAt: DateTime(2026, 7, 29)),
           subjectId: '01',
-          generatedAt: DateTime(2026, 7, 29),
           chartPng: tinyPng,
           electrodeImages: (
             initLeft: tinyPng,
@@ -207,9 +212,34 @@ void main() {
       expect(doc, contains('w:fill="96D2A0"'), reason: 'best-block shading');
       expect(doc, contains('w:fill="C8EBCD"'), reason: 'second-best shading');
       expect(doc, contains('w:sz="24"'), reason: '3pt block separator rule');
-      expect(doc, contains('Optimal configuration'));
+      expect(doc, contains('Highest aggregate index (rank 1)'));
+      expect(doc, contains('Second highest (rank 2)'));
+      expect(doc, isNot(contains('Optimal')),
+          reason: 'a clinical superlative for a rank statistic');
       expect(doc, contains('Scale targets: Tremor: min'));
       expect(doc, contains('does not constitute'), reason: 'disclaimer');
+    });
+
+    test('carries docProps and an attestation block', () {
+      final bytes = build();
+      final names =
+          ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+      // Without docProps the title, author and dates are blank in Word's info
+      // pane and in anything that indexes the file.
+      expect(names, contains('docProps/core.xml'));
+      expect(_part(bytes, '_rels/.rels'), contains('docProps/core.xml'));
+      expect(_part(bytes, '[Content_Types].xml'),
+          contains('core-properties+xml'));
+      final core = _part(bytes, 'docProps/core.xml');
+      expect(core, contains('DBS session report - sub-01'));
+      expect(core, contains('DBS Annotator v'));
+
+      // Nothing in the document was signed; a machine-produced clinical record
+      // that nobody stands behind is what a documentation committee objects to.
+      final doc = _part(bytes, 'word/document.xml');
+      expect(doc, contains('Attestation'));
+      expect(doc, contains('Recorded by'));
+      expect(doc, contains('Reviewed by'));
     });
 
     test('emits a page size and margins', () {
@@ -218,20 +248,59 @@ void main() {
       expect(a4, contains('w:left="720"'));
       final letter = _part(
         buildSessionDocx(
-            rows: rows, subjectId: '01', pageSize: DocxPageSize.letter),
+            data: buildSessionReportData(rows: rows),
+            subjectId: '01',
+            pageSize: DocxPageSize.letter),
         'word/document.xml',
       );
       expect(letter, contains('<w:pgSz w:w="12240" w:h="15840"/>'));
     });
 
-    test('without images there is no rels part and no drawing', () {
+    test('without images there is no media and no drawing', () {
       final bytes =
-          buildSessionDocx(rows: rows, subjectId: '01');
+          buildSessionDocx(
+              data: buildSessionReportData(rows: rows), subjectId: '01');
       final names =
           ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
-      expect(names, isNot(contains('word/_rels/document.xml.rels')));
       expect(names.where((n) => n.startsWith('word/media/')), isEmpty);
       expect(_part(bytes, 'word/document.xml'), isNot(contains('<w:drawing>')));
+      // The rels part IS still present: the footer registers a relationship
+      // whether or not anything was embedded.
+      expect(names, contains('word/_rels/document.xml.rels'));
+      expect(_part(bytes, 'word/_rels/document.xml.rels'),
+          isNot(contains('/relationships/image')));
+    });
+
+    test('every page is attributable: a real footer part, referenced', () {
+      // A continuation page that escapes the staple must still name the
+      // patient, the encounter and the tool. The .docx had no footer at all.
+      final bytes = buildSessionDocx(
+          data: buildSessionReportData(
+              rows: rows, generatedAt: DateTime(2026, 6, 26)),
+          subjectId: '01');
+      final names =
+          ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+      expect(names, contains('word/footer1.xml'));
+
+      final footer = _part(bytes, 'word/footer1.xml');
+      expect(footer, contains('sub-01'));
+      expect(footer, contains('DBS Annotator v'));
+      // Field codes, not baked-in numbers, so they survive a reflow.
+      expect(footer, contains('PAGE'));
+      expect(footer, contains('NUMPAGES'));
+
+      // Declared in [Content_Types], related from the document, and referenced
+      // by the section — miss any one and Word shows a repair prompt or an
+      // inert footer.
+      expect(_part(bytes, '[Content_Types].xml'),
+          contains('wordprocessingml.footer+xml'));
+      final rels = _part(bytes, 'word/_rels/document.xml.rels');
+      final match =
+          RegExp(r'Id="(rId\d+)"[^>]*/relationships/footer"').firstMatch(rels);
+      expect(match, isNotNull, reason: 'the footer needs a relationship');
+      expect(_part(bytes, 'word/document.xml'),
+          contains('<w:footerReference w:type="default" '
+              'r:id="${match!.group(1)}"/>'));
     });
   });
 
@@ -242,5 +311,164 @@ void main() {
     expect(pngSize(tiny), (2, 1));
     expect(pngSize(Uint8List.fromList([1, 2, 3])), isNull);
     expect(pngSize(Uint8List.fromList(List.filled(40, 0))), isNull);
+  });
+
+  test('drops XML-illegal control characters instead of corrupting the file',
+      () {
+    // U+000B and U+0000 have NO legal XML 1.0 representation. Emitting one
+    // makes Word reject the whole document as unreadable, losing the entire
+    // report - and such characters arrive easily from pasted PDF or hospital
+    // system text. Tab / newline / CR are legal and must survive.
+    //
+    // Built with fromCharCode so no raw control byte lives in this source file.
+    final vt = String.fromCharCode(0x0B);
+    final nul = String.fromCharCode(0x00);
+    final tab = String.fromCharCode(0x09);
+    final rows = [
+      SessionRow(
+        blockId: '1',
+        isInitial: '0',
+        notes: 'before${vt}after${nul}end${tab}kept',
+      ),
+    ];
+    final bytes = buildSessionDocx(
+        data: buildSessionReportData(
+            rows: rows, generatedAt: DateTime(2026, 7, 29)),
+        subjectId: '01');
+    final doc = _part(bytes, 'word/document.xml');
+
+    // The illegal codepoints are gone; surrounding text and the tab remain.
+    expect(doc.contains(vt), isFalse, reason: 'U+000B leaked into XML');
+    expect(doc.contains(nul), isFalse, reason: 'U+0000 leaked into XML');
+    expect(doc, contains('beforeafterend${tab}kept'));
+
+    // And the part is still well-formed enough to re-read.
+    expect(doc, startsWith('<?xml version="1.0"'));
+  });
+
+  group('sections gate the document', () {
+    final data =
+        buildSessionReportData(rows: rows, generatedAt: DateTime(2026, 7, 29));
+    // Two named headings per section, so a section's absence is greppable.
+    const headings = {
+      ReportSection.baseline: 'Baseline assessment (pre-session)',
+      ReportSection.chart: 'Session data',
+      ReportSection.electrodes: 'Electrode configuration',
+      ReportSection.summary: 'Programming summary',
+    };
+
+    String docFor(Set<ReportSection> sections) => _part(
+        buildSessionDocx(data: data, subjectId: '01', sections: sections),
+        'word/document.xml');
+
+    test('everything on by default', () {
+      final doc = docFor(kAllReportSections);
+      for (final h in headings.values) {
+        expect(doc, contains(h));
+      }
+    });
+
+    test('dropping one section drops exactly its heading', () {
+      for (final entry in headings.entries) {
+        // 'Session data' covers chart AND table, so drop both for that one.
+        final off = entry.key == ReportSection.chart
+            ? {ReportSection.chart, ReportSection.table}
+            : {entry.key};
+        final doc = docFor(kAllReportSections.difference(off));
+        expect(doc, isNot(contains(entry.value)),
+            reason: '${entry.key.name} was excluded but its heading remains');
+        for (final other in headings.entries) {
+          if (other.key == entry.key) continue;
+          expect(doc, contains(other.value),
+              reason: 'excluding ${entry.key.name} also removed '
+                  '${other.key.name}');
+        }
+      }
+    });
+
+    test('the patient header survives every selection', () {
+      // A report with no attribution is worse than a report with no sections.
+      final doc = docFor({ReportSection.summary});
+      expect(doc, contains('Patient: sub-01'));
+      expect(doc, contains('DBS Annotator - Session report'));
+    });
+
+    test('the table can be dropped while keeping the figure heading', () {
+      final doc = docFor(kAllReportSections.difference({ReportSection.table}));
+      expect(doc, contains('Session data'), reason: 'the chart is still on');
+      // The table's own header row is what should be gone.
+      expect(doc, isNot(contains('Freq (Hz)')));
+    });
+  });
+
+  group('tables are fixed-layout and fill the page', () {
+    // With no width hints Word auto-fits from content, and since most of these
+    // cells hold 1-4 characters the ten columns collapsed to a fraction of the
+    // page while the PDF's filled it. This is the fix for that.
+    List<List<int>> gridsIn(String doc) => RegExp(r'<w:tblGrid>(.*?)</w:tblGrid>')
+        .allMatches(doc)
+        .map((m) => RegExp(r'w:w="(\d+)"')
+            .allMatches(m.group(1)!)
+            .map((g) => int.parse(g.group(1)!))
+            .toList())
+        .toList();
+
+    for (final size in DocxPageSize.values) {
+      test('${size.name}: every grid sums to the content width', () {
+        final doc = _part(
+            buildSessionDocx(
+              data: buildSessionReportData(
+                  rows: rows, generatedAt: DateTime(2026, 7, 29)),
+              subjectId: '01',
+              chartPng: _tinyPng(),
+              electrodeImages: (
+                initLeft: _tinyPng(),
+                initRight: _tinyPng(),
+                finalLeft: _tinyPng(),
+                finalRight: _tinyPng(),
+              ),
+              pageSize: size,
+            ),
+            'word/document.xml');
+
+        // The invariant Word actually cares about: each table's grid sums to
+        // that table's OWN declared `tblW`, or Word rescales the whole table.
+        // NOT to the page width, and NOT a fixed table count - the document
+        // grew a page-1 configuration box and a baseline scale table since this
+        // was written, and a census is not the property under test.
+        final declared = RegExp(r'<w:tblW w:w="(\d+)" w:type="dxa"/>')
+            .allMatches(doc)
+            .map((m) => int.parse(m.group(1)!))
+            .toList();
+        final grids = gridsIn(doc);
+        expect(grids, isNotEmpty);
+        expect(declared, hasLength(grids.length));
+        for (var i = 0; i < grids.length; i++) {
+          expect(grids[i].fold(0, (a, b) => a + b), declared[i],
+              reason: 'grid $i must sum to its own declared width');
+        }
+
+        // The session data table, found by its column count rather than its
+        // position, is full width and has one grid column per header.
+        final dataIdx =
+            grids.indexWhere((g) => g.length == sessionTableHeaders.length);
+        expect(dataIdx, greaterThanOrEqualTo(0),
+            reason: 'the session data table must be present');
+        expect(declared[dataIdx], size.contentWidthTwips);
+
+        // The electrode grid: four evenly quartered columns.
+        final leadIdx = grids.indexWhere(
+            (g) => g.length == 4 && g.toSet().length <= 2);
+        expect(leadIdx, greaterThanOrEqualTo(0));
+        expect(declared[leadIdx], size.contentWidthTwips);
+
+        // Fixed layout on every table, and a width on every cell - the grid
+        // alone is only a hint, so a row without per-cell widths auto-fits.
+        expect(RegExp('w:tblLayout w:type="fixed"').allMatches(doc).length,
+            grids.length);
+        expect(RegExp('<w:tcW ').allMatches(doc), isNotEmpty);
+        expect(doc, isNot(contains('w:tblW w:w="0" w:type="auto"')));
+      });
+    }
   });
 }

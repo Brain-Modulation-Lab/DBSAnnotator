@@ -58,6 +58,28 @@ static void my_application_activate(GApplication* application) {
   // display for the moments before that correction lands.
   gtk_window_set_default_size(window, 1280, 800);
 
+  // Window / dock / Alt+Tab icon. Flutter's Linux template sets NO icon at all,
+  // and flutter_launcher_icons has no Linux support, so this is done by hand
+  // from the bundled Flutter asset. The asset sits beside the executable in
+  // both a release bundle and a `flutter run` build tree, so resolving relative
+  // to /proc/self/exe works for both and does not depend on the CWD.
+  // Failing silently is correct: a missing icon must never stop the app.
+  {
+    g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
+    if (exe != nullptr) {
+      g_autofree gchar* exe_dir = g_path_get_dirname(exe);
+      g_autofree gchar* icon_path = g_build_filename(
+          exe_dir, "data", "flutter_assets", "assets", "icon", "app_icon.png",
+          nullptr);
+      if (g_file_test(icon_path, G_FILE_TEST_EXISTS)) {
+        // Also set it as the process-wide default, so any other window (and
+        // some desktop shells reading the WM hint) picks it up too.
+        gtk_window_set_default_icon_from_file(icon_path, nullptr);
+        gtk_window_set_icon_from_file(window, icon_path, nullptr);
+      }
+    }
+  }
+
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
       project, self->dart_entrypoint_arguments);

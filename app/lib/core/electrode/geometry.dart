@@ -65,9 +65,18 @@ const double _labelGutter = 46.0;
 /// (`electrode_viewer.py:101-103`).
 const double _initialOffsetMm = 2.0;
 
-/// The CASE (IPG can) is schematic, so it is sized off the drawn lead width
-/// rather than in millimetres — see the budget in [computeLayout].
-const double _caseHeightOfWidth = 1.75;
+/// The CASE (IPG can) is a schematic marker for "stimulate against the can",
+/// not a scale drawing of a 50 mm generator, so it gets a **fixed** height.
+///
+/// It used to be `1.75 x` the drawn lead width, which on a 300x600 pane made it
+/// **137 px — 23 % of the canvas** — and, worse, grew with the lead: a wide
+/// lead pushed the case taller, which stole the height the contacts needed. On a
+/// six-level Cartesia that left 36 px contacts carrying 11 px labels.
+///
+/// Fixed height means the vertical budget no longer depends on the horizontal
+/// one, so the contacts get the room instead. The WIDTH still tracks the lead,
+/// so the can still reads as attached to it.
+const double _caseHeight = 34.0;
 const double _caseWidthOfLead = 0.95;
 
 /// Smallest drawn gap (px) between two metal bands, so a tightly-spaced lead
@@ -228,11 +237,28 @@ double _leadWidthFor(
   final target = (size.width * _widthOfPane).clamp(_minLeadWidth, _maxLeadWidth);
   final diameterRatio = model.leadDiameter / _referenceDiameterMm;
   final ceiling = math.min(maxWidth, stackHeight * _maxWidthOfLength);
-  // Directional segments must stay tappable; that floor outranks the
-  // proportional ceiling, since an untappable segment is useless.
-  final floor = model.isDirectional
-      ? math.min(_minDirectionalWidth, maxWidth)
-      : 0.0;
+
+  // Two floors, both about legibility rather than proportion.
+  //
+  // Directional segments must stay tappable; an untappable segment is useless,
+  // so that floor outranks the proportional ceiling.
+  //
+  // And a lead with many levels must be WIDER. The levels share a fixed pane
+  // height, so each contact gets shorter as their number grows, and a short
+  // contact cannot hold its label at a readable size. Height cannot grow, so
+  // width does: the contact stays roughly as legible on a six-level Cartesia as
+  // on a four-level SenSight. This is deliberately a mild ramp — the lead must
+  // still read as a slender probe, not a paddle.
+  final crowding =
+      ((model.numContacts - _widthRampFrom) * _widthPerExtraLevel)
+          .clamp(0.0, _maxCrowdingWidth);
+  final floor = math.min(
+    maxWidth,
+    math.max(
+      model.isDirectional ? _minDirectionalWidth : 0.0,
+      crowding > 0 ? _minLeadWidth + crowding : 0.0,
+    ),
+  );
   return math.max(math.min(target * diameterRatio, ceiling), floor);
 }
 
@@ -247,6 +273,18 @@ const double _referenceDiameterMm = 1.27;
 /// Lead width may not exceed this fraction of the contact stack's drawn length,
 /// so the lead always reads as a slender probe.
 const double _maxWidthOfLength = 0.55;
+
+/// Contact count at which the crowding width bonus starts. Four levels is the
+/// common case (Medtronic, Abbott, ALEVA) and needs no help.
+const int _widthRampFrom = 4;
+
+/// Extra width per level beyond [_widthRampFrom], and the cap on that bonus.
+///
+/// A six-level Cartesia gains 2 x 9 = 18 px and a Vercise (8 rings) the full
+/// 30 px, which is what keeps a 10 px label inside a contact that the vertical
+/// budget has squeezed.
+const double _widthPerExtraLevel = 9.0;
+const double _maxCrowdingWidth = 30.0;
 
 const double _segGap = 2.0;
 
@@ -283,10 +321,8 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
   final gaps = n - 1;
   final bandsMm = _initialOffsetMm + n * model.contactHeight;
 
-  final fixedPx = _topPad +
-      provisionalWidth * _caseHeightOfWidth +
-      _caseGapPx +
-      provisionalWidth / 2;
+  final fixedPx =
+      _topPad + _caseHeight + _caseGapPx + provisionalWidth / 2;
   final availH = math.max(1.0, size.height - fixedPx - 2);
 
   // Fit true millimetres first. If that would squeeze a gap below
@@ -334,7 +370,7 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
       .clamp(0.0, contactHeight * _maxSegmentTakeover);
 
   // --- Vertical placement, centred -----------------------------------------
-  final caseHeight = leadWidth * _caseHeightOfWidth;
+  const caseHeight = _caseHeight;
   final drawnHeight =
       fixedPx + _initialOffsetMm * scale + stackHeight;
   final top = _topPad + math.max(0.0, (size.height - drawnHeight) / 2);
