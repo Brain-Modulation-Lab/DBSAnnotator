@@ -20,6 +20,13 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    # The Python project is app_qt/. `uv` walks UP for a pyproject.toml, so every
+    # step needs its CWD inside the project. Affects `run:` steps ONLY — `uses:`
+    # inputs like `path:` stay workspace-relative and are prefixed by hand.
+    working-directory: app_qt
+
 jobs:
   # ---------------------------------------------------------------------------
   # Pre-flight gates. These run on every invocation and block all build jobs
@@ -130,7 +137,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: python-dist
-          path: dist/*
+          path: app_qt/dist/*
           if-no-files-found: error
 
   publish-docs:
@@ -276,7 +283,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: briefcase-msi
-          path: dist/*
+          path: app_qt/dist/*
           if-no-files-found: error
 
   build-briefcase-macos-arm:
@@ -388,7 +395,8 @@ jobs:
             exit 1
           fi
           parent=$(dirname "$app_path")
-          out="${GITHUB_WORKSPACE}/dist/DBSAnnotator-${v}-macos-arm64-raw.tar.gz"
+          mkdir -p dist
+          out="$(pwd)/dist/DBSAnnotator-${v}-macos-arm64-raw.tar.gz"
           (cd "$parent" && tar -czf "$out" "DBSAnnotator.app")
           echo "macOS raw: dist/DBSAnnotator-${v}-macos-arm64-raw.tar.gz"
 
@@ -396,7 +404,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: briefcase-macos-arm64
-          path: dist/*
+          path: app_qt/dist/*
           if-no-files-found: error
 
   build-briefcase-linux-x86:
@@ -485,7 +493,8 @@ jobs:
             echo "::error::Selected package root lacks non-empty usr/lib/dbs_annotator/app payload: ${pkg_root}" >&2
             exit 1
           fi
-          out="${GITHUB_WORKSPACE}/dist/dbs-annotator_${v}_linux_x86_64-raw.tar.gz"
+          mkdir -p dist
+          out="$(pwd)/dist/dbs-annotator_${v}_linux_x86_64-raw.tar.gz"
           (cd "${pkg_root}" && tar -czf "${out}" usr)
           echo "Linux raw: dist/dbs-annotator_${v}_linux_x86_64-raw.tar.gz"
           echo "Included launcher files:"
@@ -495,7 +504,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: briefcase-linux-x86_64
-          path: dist/*
+          path: app_qt/dist/*
           if-no-files-found: error
 
   release:

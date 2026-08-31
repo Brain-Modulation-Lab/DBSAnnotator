@@ -1,3 +1,11 @@
+# Pre-commit must live at the git root, but the Python project is now in app_qt/.
+# `uv` walks UP for a pyproject.toml and never down, so a bare `uv run` at the
+# root finds nothing. `uv run --directory app_qt` changes the CWD as well as the
+# project, which is what lets the five generator scripts keep their cwd-relative
+# paths (`Path("schema")`, `Path("docs/_generated/...")`) with no edits at all.
+#
+# And the Flutter app is now at the repo root, so every Python linter has to be
+# scoped or it walks the Dart tree.
 repos:
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
@@ -8,52 +16,70 @@ repos:
     rev: 0.11.6
     hooks:
       - id: uv-lock
+        args: ["--project", "app_qt"]
       
   # ruff-pre-commit rev pins `ruff==<same semver>`; keep in sync with PyPI and uv.lock.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.10
     hooks:
+      # ruff finds app_qt/pyproject.toml by walking up from each file, so
+      # per-file-ignores and extend-exclude resolve correctly. Scoped so it
+      # never walks the Flutter app.
       - id: ruff-format
+        files: ^app_qt/.*\.py$
       - id: ruff-check
         args: ["--fix"]
+        files: ^app_qt/.*\.py$
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
     hooks:
       - id: codespell
         additional_dependencies: ["tomli"]
+        # [tool.codespell] (the skip list and ignore-words-list) lives in the
+        # moved pyproject; without this it silently reverts to defaults and
+        # starts scanning uv.lock and docs/_build.
+        args: ["--toml", "app_qt/pyproject.toml"]
 
   - repo: https://github.com/PyCQA/doc8
     rev: v1.1.2
     hooks:
       - id: doc8
-        files: ^docs/.*\.rst$
+        files: ^app_qt/docs/.*\.rst$
+        # `_templates/` holds Jinja templates for autosummary, not valid RST.
+        # [tool.doc8].ignore-path lists them, but doc8 runs with CWD at the repo
+        # root while that value is written relative to the project — so the
+        # exclusion has to live here, where the invocation context is known.
+        exclude: ^app_qt/docs/_templates/
+        # max-line-length = 100 DOES come through from the moved pyproject;
+        # without --config doc8 silently reverts to the 79-char default.
+        args: ["--config", "app_qt/pyproject.toml"]
 
   - repo: local
     hooks:
       - id: tsv-schema-docs
         name: tsv schema docs
-        entry: uv run python scripts/generate_tsv_schema_docs.py --check
+        entry: uv run --directory app_qt python scripts/generate_tsv_schema_docs.py --check
         language: system
         pass_filenames: false
       - id: schema-json-contract
-        name: schema json contract (tablet)
-        entry: uv run python scripts/generate_schema_json.py --check
+        name: schema json contract (frozen Qt vs the live contract)
+        entry: uv run --directory app_qt python scripts/generate_schema_json.py --check
         language: system
         pass_filenames: false
       - id: session-report-example-docs
         name: session report example docs
-        entry: uv run python scripts/generate_session_report_example_docs.py --check
+        entry: uv run --directory app_qt python scripts/generate_session_report_example_docs.py --check
         language: system
         pass_filenames: false
       - id: docs-favicon
         name: docs favicon assets
-        entry: uv run python scripts/generate_docs_favicon.py
+        entry: uv run --directory app_qt python scripts/generate_docs_favicon.py
         language: system
         pass_filenames: false
-        files: ^(icons/logosimple/|scripts/generate_docs_favicon\.py)
+        files: ^app_qt/(icons/logosimple/|scripts/generate_docs_favicon\.py)
       - id: ty-check
         name: ty check
-        entry: uv run ty check .
+        entry: uv run --directory app_qt ty check .
         language: system
         pass_filenames: false

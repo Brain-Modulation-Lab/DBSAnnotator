@@ -1,0 +1,14 @@
+# Documentation build dependencies.
+#
+# Deliberately a plain requirements file rather than a dependency group in a
+# pyproject: the app this documents is written in Dart, so there is no Python
+# project at the repository root and inventing one purely to feed Read the Docs
+# would re-couple the published docs to the frozen Qt app's tooling.
+#
+# Versions are pinned to a compatible range rather than left open, because
+# .readthedocs.yaml sets fail_on_warning — an unpinned Sphinx minor release that
+# introduces a new warning would silently stop the docs publishing.
+sphinx>=8.1,<10
+sphinx-rtd-theme>=3.0
+sphinx-copybutton>=0.5.2
+myst-parser>=4.0

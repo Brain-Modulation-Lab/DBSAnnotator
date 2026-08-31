@@ -1,15 +1,28 @@
 name: App CI/CD
 
-# Independent of the desktop Python CI. On PRs touching app/** it runs
-# tests + a build check; on `app-v*` tags it ships Android (APK -> GitHub
-# Release) and iOS (-> TestFlight, when Apple secrets are configured).
+# The Flutter app's CI/CD. The app lives at the repo root, so every `run:`
+# step executes there with no working-directory. Independent of the frozen Qt
+# app's Python CI in ci.yml (which is scoped to app_qt/).
+#
+# On PRs touching the Dart tree it runs tests + a build check; on `app-v*` tags
+# it ships Android (APK -> GitHub Release) and iOS (-> TestFlight, when the
+# Apple secrets are configured).
 on:
   push:
     tags:
       - "app-v*"
   pull_request:
     paths:
-      - "app/**"
+      # The Flutter app IS the repo root now, so the filter is what it is NOT.
+      - "lib/**"
+      - "test/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "android/**"
+      - "ios/**"
+      - "linux/**"
+      - "macos/**"
+      - "windows/**"
       - "schema/**"
       - ".github/workflows/app-release.yml"
   workflow_dispatch:
@@ -17,9 +30,6 @@ on:
 permissions:
   contents: write
 
-defaults:
-  run:
-    working-directory: app
 
 jobs:
   test:
@@ -30,10 +40,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      # Bundle the generated contract as app assets (repo-root schema/ is the
-      # single source of truth; not committed under app/).
-      - name: Copy schema contract into app assets
-        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -54,15 +60,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev
-      - name: Copy schema contract into app assets
-        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
       - run: flutter config --enable-linux-desktop
       - run: flutter pub get
       - run: flutter build linux --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux-bundle
-          path: app/build/linux/x64/release/bundle
+          path: build/linux/x64/release/bundle
           if-no-files-found: error
 
   windows:
@@ -74,18 +78,13 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Copy schema contract into app assets
-        run: |
-          New-Item -ItemType Directory -Force assets/schema | Out-Null
-          Copy-Item ../schema/*.json assets/schema/
-        shell: pwsh
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release
       - uses: actions/upload-artifact@v4
         with:
           name: windows-bundle
-          path: app/build/windows/x64/runner/Release
+          path: build/windows/x64/runner/Release
           if-no-files-found: error
 
   macos:
@@ -97,8 +96,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Copy schema contract into app assets
-        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
       # Unsigned: proves it compiles and links. Signing/notarisation is a
@@ -126,8 +123,6 @@ jobs:
         with:
           channel: stable
 
-      - name: Copy schema contract into app assets
-        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
 
       - name: Decode signing keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
@@ -144,15 +139,15 @@ jobs:
         with:
           name: android-artifacts
           path: |
-            app/build/app/outputs/flutter-apk/app-release.apk
-            app/build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
       - name: Attach APK to GitHub Release
         if: startsWith(github.ref, 'refs/tags/app-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/app/outputs/flutter-apk/app-release.apk
+          files: build/app/outputs/flutter-apk/app-release.apk
           fail_on_unmatched_files: true
 
   ios:
@@ -169,8 +164,6 @@ jobs:
         with:
           channel: stable
 
-      - name: Copy schema contract into app assets
-        run: mkdir -p assets/schema && cp ../schema/*.json assets/schema/
 
       # Dry-run build (no signing) — always runs so PRs verify iOS compiles.
       - name: Build iOS (no codesign)
@@ -189,6 +182,6 @@ jobs:
             cd ios && fastlane beta
           else
             echo "Apple secrets are set but ios/fastlane/Fastfile is missing."
-            echo "See app/MOBILE_RELEASE.md section 3 to add it."
+            echo "See MOBILE_RELEASE.md section 3 to add it."
             exit 1
           fi

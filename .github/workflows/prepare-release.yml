@@ -20,6 +20,13 @@ permissions:
   contents: write
   pull-requests: write
 
+defaults:
+  run:
+    # The Python project is app_qt/. `uv` walks UP for a pyproject.toml, so every
+    # step needs its CWD inside the project. Affects `run:` steps ONLY — `uses:`
+    # inputs like `path:` stay workspace-relative and are prefixed by hand.
+    working-directory: app_qt
+
 jobs:
   open-pr:
     runs-on: ubuntu-latest

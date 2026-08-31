@@ -1,2 +1,8 @@
-# Shell installers must be LF: piping to sh on Linux breaks on CRLF.
-scripts/*.sh text eol=lf
+# Shell scripts must be LF: piping to sh on Linux breaks on CRLF, and the
+# installer is fetched with `curl … | sh`.
+#
+# UNANCHORED on purpose. This used to read `scripts/*.sh`, which contains a
+# slash and is therefore anchored to this file's directory — so moving the
+# scripts into app_qt/ would have silently stopped matching them, and the
+# installer would have started shipping CRLF with no error anywhere.
+*.sh text eol=lf

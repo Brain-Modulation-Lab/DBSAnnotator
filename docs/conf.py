@@ -1,65 +1,78 @@
+"""Sphinx configuration for the DBS Annotator documentation.
+
+The application is written in Dart, so — unlike the frozen Qt app's docs, which
+this replaced — nothing here imports the software. Two consequences:
+
+* Read the Docs installs only ``docs/requirements.txt``. No Python project, no
+  ``uv``, and no Qt system libraries (the old config pulled in ``libegl1`` and
+  friends purely because autosummary imported PySide6 transitively).
+* ``autodoc``, ``autosummary``, ``napoleon`` and ``viewcode`` are gone. They had
+  no target. A Dart API reference via ``dartdoc`` is a separate decision.
+"""
+
 from __future__ import annotations
 
-import os
+import re
 from datetime import datetime
-from importlib import metadata
+from pathlib import Path
 
-# Force a non-interactive matplotlib backend before any autodoc import. Several
-# modules (e.g. dbs_annotator.utils.report_chart_utils) import pyplot at module
-# level; on headless CI / RTD runners the default backend would try to open a
-# display and either fail or emit warnings that break `-W` builds.
-os.environ.setdefault("MPLBACKEND", "Agg")
+_HERE = Path(__file__).resolve().parent
+_ROOT = _HERE.parent
 
-# Ensure any Qt import during autodoc uses the offscreen platform plugin.
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
-_DIST_NAME = "dbs-annotator"
-
-from dbs_annotator.config import (
-    APP_LEAD_AUTHOR,
-    COPYRIGHT_HOLDERS,
-    UPDATE_FEEDBACK_EMAIL,
-)
-
+# -- Identity ----------------------------------------------------------------
+# Literals on purpose. The upstream values live in lib/app_info.dart, and
+# regex-scraping three strings that change approximately never out of Dart
+# source is more machinery than one duplicated line. Only the VERSION is
+# derived, because only the version changes every release.
 project = "DBS Annotator"
-author = APP_LEAD_AUTHOR
-release = metadata.version(_DIST_NAME)
+author = "Lucia Poma"
+_HOLDERS = (
+    "Wyss Center for Bio and Neuroengineering, Massachusetts General Hospital, "
+    "and Charité Universitätsmedizin Berlin"
+)
+copyright = f"2025-{datetime.now().year}, {_HOLDERS}"  # noqa: A001
+html_context = {"contact_email": "lucia.poma@wysscenter.ch"}
+
+
+def _flutter_version() -> str:
+    """``version: 0.1.0+1`` in pubspec.yaml -> ``0.1.0``.
+
+    A regex rather than a YAML parser, because PyYAML is not in the standard
+    library and this is the only field needed — a pubspec ``version`` is always
+    a top-level scalar.
+
+    Raises rather than defaulting: a silent ``0.0.0`` in the footer of a
+    clinical tool's documentation is worse than a red build.
+    """
+    text = (_ROOT / "pubspec.yaml").read_text(encoding="utf-8")
+    match = re.search(r"^version:\s*([0-9][^\s+#]*)", text, re.MULTILINE)
+    if match is None:
+        raise RuntimeError("no `version:` found in pubspec.yaml")
+    return match.group(1)
+
+
+release = _flutter_version()
 version = ".".join(release.split(".")[:2])
-copyright = f"2025-{datetime.now().year}, {COPYRIGHT_HOLDERS}"
 
-html_context = {
-    "contact_email": UPDATE_FEEDBACK_EMAIL,
-}
-
+# -- General -----------------------------------------------------------------
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.intersphinx",
     "sphinx_copybutton",
     "myst_parser",
 ]
 
-templates_path = ["_templates"]
-# Do not list ``_autosummary`` here: those ``.rst`` stubs are generated under
-# ``docs/_autosummary/`` during the same build and must be parsed. (Ignore the
-# directory in git via ``.gitignore``, not in Sphinx ``exclude_patterns``.)
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+# `intersphinx` is deliberately absent. With fail_on_warning enabled, a
+# transient failure fetching a remote objects.inv emits a warning and therefore
+# breaks publishing. Re-add it only when something actually cross-references
+# another project's API.
 
-# Known, non-actionable warnings that would otherwise fail `-W` builds.
-# `image.not_readable` covers screenshots under docs/_static/ that are
-# regenerated from the running app and not committed to git (tracked in
-# the documentation strategy, P3: screenshot pipeline).
-suppress_warnings = [
-    "image.not_readable",
-]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "requirements.txt"]
 
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
+
+# -- HTML --------------------------------------------------------------------
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-# Browser tab icon — opaque white background (regenerate:
-# scripts/generate_docs_favicon.py). Prefer PNG over ICO for consistent rendering.
 html_favicon = "_static/favicon-32.png"
 
 html_theme_options = {
@@ -71,52 +84,16 @@ html_theme_options = {
     "navigation_depth": 3,
 }
 
-# Autosummary / autodoc behaviour. The project re-exports a handful of classes
-# from `dbs_annotator/__init__.py` and each submodule's `__init__.py`. With
-# ``members: True`` at module level, the same class is documented on the
-# package page *and* on the leaf-module page, triggering "duplicate object"
-# warnings. A custom ``_templates/autosummary/module.rst`` keeps the module
-# pages as navigation indexes only (no inline members); classes and functions
-# still receive full pages via the recursive stub generation.
-autosummary_generate = True
-autosummary_imported_members = False
+# No `suppress_warnings`. The old config silenced `image.not_readable` because
+# screenshots were regenerated from a running Qt app and could legitimately be
+# missing mid-build. Here every screenshot is committed, so a missing image is a
+# real error and should fail the build.
 
-autodoc_default_options = {
-    # `members` is intentionally False so that `.. automodule::` directives
-    # in module stubs do NOT inline every class/function (which would
-    # duplicate the dedicated class/function pages generated by the
-    # recursive autosummary). Class and function templates explicitly opt
-    # back into members / inherited-members.
-    "members": False,
-    "undoc-members": False,
-    "show-inheritance": True,
-    "inherited-members": False,
-}
-autodoc_typehints = "description"
-autodoc_typehints_description_target = "documented_params"
-
-# MyST: allow Markdown source alongside reStructuredText. ``linkify`` is
-# intentionally NOT enabled because it requires the optional ``linkify-it-py``
-# dependency; add explicit links instead of relying on autolinking.
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
-myst_enable_extensions = [
-    "colon_fence",
-    "deflist",
-    "smartquotes",
-]
+# -- MyST --------------------------------------------------------------------
+myst_enable_extensions = ["colon_fence", "deflist", "smartquotes"]
 myst_heading_anchors = 3
 
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-    "pandas": ("https://pandas.pydata.org/docs", None),
-}
-
-# `linkcheck` tuning: aggressive timeout, retry transient failures, and ignore
-# anchor-only link failures on sites that rewrite fragments (common on GitHub).
+# -- linkcheck ---------------------------------------------------------------
 linkcheck_timeout = 15
 linkcheck_retries = 2
 linkcheck_anchors = False
-linkcheck_ignore: list[str] = []

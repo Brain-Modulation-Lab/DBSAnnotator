@@ -8,6 +8,15 @@ on:
     branches:
       - "**"
 
+defaults:
+  run:
+    # The Python project moved to app_qt/ when the Qt app was frozen. `uv` walks
+    # UP for a pyproject.toml and never down, so every step below needs its CWD
+    # inside the project. NOTE: this affects `run:` steps ONLY — `uses:` inputs
+    # such as `path:` and `filters:` stay workspace-relative and are prefixed
+    # by hand.
+    working-directory: app_qt
+
 jobs:
   workflow-lint:
     name: Workflow lint (actionlint)
@@ -52,18 +61,18 @@ jobs:
         with:
           filters: |
             code:
-              - 'src/**'
+              - 'app_qt/src/**'
               - '.github/workflows/**'
-              - 'pyproject.toml'
+              - 'app_qt/pyproject.toml'
             fragment:
-              - 'newsfragments/*.added.md'
-              - 'newsfragments/*.changed.md'
-              - 'newsfragments/*.deprecated.md'
-              - 'newsfragments/*.removed.md'
-              - 'newsfragments/*.fixed.md'
-              - 'newsfragments/*.security.md'
+              - 'app_qt/newsfragments/*.added.md'
+              - 'app_qt/newsfragments/*.changed.md'
+              - 'app_qt/newsfragments/*.deprecated.md'
+              - 'app_qt/newsfragments/*.removed.md'
+              - 'app_qt/newsfragments/*.fixed.md'
+              - 'app_qt/newsfragments/*.security.md'
             changelog:
-              - 'CHANGELOG.md'
+              - 'app_qt/CHANGELOG.md'
 
       - name: Enforce changelog fragment for code changes
         uses: actions/github-script@v9
@@ -272,7 +281,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: docs-html-${{ github.sha }}
-          path: docs/_build/html
+          path: app_qt/docs/_build/html
           if-no-files-found: error
 
       - name: Upload linkcheck report
@@ -280,7 +289,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: docs-linkcheck-${{ github.sha }}
-          path: docs/_build/linkcheck
+          path: app_qt/docs/_build/linkcheck
           if-no-files-found: warn
 
   # Briefcase smoke test. Intentionally runs on Ubuntu (not Windows) and

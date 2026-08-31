@@ -3,6 +3,13 @@ name: Docs Screenshots
 on:
   workflow_dispatch:
 
+defaults:
+  run:
+    # The Python project is app_qt/. `uv` walks UP for a pyproject.toml, so every
+    # step needs its CWD inside the project. Affects `run:` steps ONLY — `uses:`
+    # inputs like `path:` stay workspace-relative and are prefixed by hand.
+    working-directory: app_qt
+
 jobs:
   generate-doc-screenshots:
     name: Generate docs UI screenshots
@@ -46,5 +53,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: docs-screenshots-${{ github.sha }}
-          path: docs/_build/screenshots
+          path: app_qt/docs/_static
           if-no-files-found: error

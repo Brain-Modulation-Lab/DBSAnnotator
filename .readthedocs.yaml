@@ -1,31 +1,28 @@
+# Read the Docs builds the documentation for the Flutter app at the repo root.
+#
+# This got dramatically simpler when the Qt app was frozen into app_qt/. The old
+# config had to install a Python project with uv (plus a pip/uv bootstrap in
+# pre_install), and needed apt_packages for libegl1/libgl1/libxkbcommon0/
+# libdbus-1-3 because Sphinx autosummary imported PySide6 transitively while
+# documenting the Qt modules.
+#
+# The app documented here is written in Dart and nothing in docs/conf.py imports
+# it, so the build needs four Sphinx wheels and nothing else. Flutter is never
+# installed: screenshots are generated from widget tests and committed, because
+# RTD cannot run a ~1 GB SDK inside its build limits.
 version: 2
 
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
   tools:
     python: "3.12"
-  # autosummary imports PySide6 transitively when documenting modules that
-  # depend on the Qt stack (e.g. utils.theme_manager). PySide6 wheels link
-  # libEGL / libGL / libxkbcommon / libdbus even under the offscreen platform
-  # plugin, and the RTD build image does not ship these by default.
-  apt_packages:
-    - libegl1
-    - libgl1
-    - libxkbcommon0
-    - libdbus-1-3
-  jobs:
-    pre_install:
-      - python -m pip install --upgrade pip
-      - python -m pip install uv
-    install:
-      # Install the project plus the "docs" dependency group (pyproject.toml
-      # -> [dependency-groups].docs) into the RTD-managed virtualenv, honoring
-      # uv.lock for reproducibility. No dev/build groups are needed to render docs.
-      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --locked --group docs --no-dev
-      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv run python scripts/generate_docs_favicon.py
+
+python:
+  install:
+    - requirements: docs/requirements.txt
 
 sphinx:
   configuration: docs/conf.py
-  # Treat Sphinx warnings as errors. Known harmless warnings are suppressed
-  # via `suppress_warnings` in docs/conf.py rather than relaxed here.
+  # Warnings are errors. There is no `suppress_warnings` in conf.py to relax
+  # this: every screenshot is committed, so a missing image is a real fault.
   fail_on_warning: true

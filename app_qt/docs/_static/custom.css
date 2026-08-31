@@ -1,0 +1,111 @@
+/*
+ * DBS Annotator Read the Docs overrides (sphinx-rtd-theme).
+ * Keep standard RTD colours (dark sidebar, light content, blue links/headings);
+ * widen the prose column; cap screenshots at 65%.
+ */
+:root {
+  /* sphinx-rtd-theme .wy-nav-side */
+  --dbs-docs-sidebar: #343131;
+  /* sphinx-rtd-theme .wy-nav-content-wrap / content area */
+  --dbs-docs-content-bg: #fcfcfc;
+  --dbs-docs-screenshot-max: 75%;
+}
+
+/* Outer area — same dark grey as the left navigation column (standard RTD). */
+html,
+body.wy-body-for-nav,
+.wy-body-for-nav,
+.wy-grid-for-nav,
+section.wy-nav-content-wrap,
+.wy-nav-content-wrap {
+  background: var(--dbs-docs-sidebar) !important;
+  background-color: var(--dbs-docs-sidebar) !important;
+}
+
+/* Main prose column — standard RTD light panel (not app dark theme). */
+.wy-nav-content {
+  max-width: none !important;
+  background: var(--dbs-docs-content-bg) !important;
+  background-color: var(--dbs-docs-content-bg) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  margin-inline: clamp(0px, 2.5vw, 40px);
+  min-height: 100%;
+}
+
+.wy-nav-content-wrap {
+  max-width: 100%;
+}
+
+/*
+ * Prose on the light panel — pin body colour so it does not inherit from the
+ * dark outer wrap (tables/list-tables were unreadable when text stayed pale).
+ */
+.wy-nav-content .rst-content {
+  color: #404040;
+}
+
+.wy-nav-content .rst-content table.docutils,
+.wy-nav-content .wy-table-responsive table {
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils th,
+.wy-nav-content .wy-table-responsive table thead th {
+  background-color: #f3f6f6;
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils td,
+.wy-nav-content .wy-table-responsive table td {
+  background-color: #ffffff;
+  color: #404040;
+  border-color: #e1e4e5;
+}
+
+.wy-nav-content .rst-content table.docutils tr:nth-child(2n) td,
+.wy-nav-content .wy-table-responsive table tr:nth-child(2n) td {
+  background-color: #f3f6f6;
+}
+
+/* Breadcrumbs sit on the dark canvas, outside the light panel. */
+.wy-nav-content-wrap .wy-breadcrumbs li,
+.wy-nav-content-wrap .wy-breadcrumbs li a {
+  color: #b3b3b3;
+}
+
+.wy-nav-content-wrap .wy-breadcrumbs li a:hover {
+  color: #ffffff;
+}
+
+.wy-nav-content-wrap footer,
+.wy-nav-content-wrap footer span,
+.wy-nav-content-wrap .rst-footer-buttons {
+  color: #b3b3b3;
+}
+
+/* ---- Screenshots & figures (max 65% width, centered) ---- */
+.rst-content img.screenshot-full,
+.rst-content img.screenshot-native,
+.rst-content img.screenshot-medium,
+.rst-content .figure img,
+.wy-nav-content img.screenshot-full,
+.wy-nav-content img.screenshot-native,
+.wy-nav-content img.screenshot-medium,
+.wy-nav-content .figure img {
+  display: block;
+  width: auto !important;
+  max-width: var(--dbs-docs-screenshot-max);
+  height: auto;
+  margin-inline: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Home-page logo keeps its explicit :width: from RST. */
+.rst-content img[src*="logo.png"],
+.wy-nav-content img[src*="logo.png"] {
+  max-width: none;
+  box-shadow: none;
+}

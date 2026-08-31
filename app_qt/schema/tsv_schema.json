@@ -1,0 +1,149 @@
+{
+  "schema_version": "0.4.0",
+  "session_tsv": {
+    "columns": [
+      {
+        "name": "date",
+        "type": "string",
+        "description": "Date of the entry (``YYYY-MM-DD``)."
+      },
+      {
+        "name": "time",
+        "type": "string",
+        "description": "Time of the entry (``HH:MM:SS``)."
+      },
+      {
+        "name": "timezone",
+        "type": "string",
+        "description": "Timezone abbreviation/offset at capture time."
+      },
+      {
+        "name": "block_ID",
+        "type": "integer",
+        "description": "Index of the stimulation block within a session."
+      },
+      {
+        "name": "session_ID",
+        "type": "integer",
+        "description": "Internal session counter."
+      },
+      {
+        "name": "is_initial",
+        "type": "integer",
+        "description": "``1`` for baseline Step 1 entries; ``0`` for Step 3 session entries."
+      },
+      {
+        "name": "scale_name",
+        "type": "string",
+        "description": "Clinical scale name (or newline-separated names)."
+      },
+      {
+        "name": "scale_value",
+        "type": "string/float",
+        "description": "Scale value (``NaN`` when not assessed)."
+      },
+      {
+        "name": "electrode_model",
+        "type": "string",
+        "description": "Selected electrode model name."
+      },
+      {
+        "name": "program_ID",
+        "type": "string",
+        "description": "Stimulation program label (e.g., ``A``, ``B``)."
+      },
+      {
+        "name": "left_stim_freq",
+        "type": "float",
+        "description": "Left stimulation frequency (Hz)."
+      },
+      {
+        "name": "left_anode",
+        "type": "string",
+        "description": "Left anode contact(s)."
+      },
+      {
+        "name": "left_cathode",
+        "type": "string",
+        "description": "Left cathode contact(s)."
+      },
+      {
+        "name": "left_amplitude",
+        "type": "float",
+        "description": "Left total amplitude (mA)."
+      },
+      {
+        "name": "left_pulse_width",
+        "type": "float",
+        "description": "Left pulse width (µs)."
+      },
+      {
+        "name": "right_stim_freq",
+        "type": "float",
+        "description": "Right stimulation frequency (Hz)."
+      },
+      {
+        "name": "right_anode",
+        "type": "string",
+        "description": "Right anode contact(s)."
+      },
+      {
+        "name": "right_cathode",
+        "type": "string",
+        "description": "Right cathode contact(s)."
+      },
+      {
+        "name": "right_amplitude",
+        "type": "float",
+        "description": "Right total amplitude (mA)."
+      },
+      {
+        "name": "right_pulse_width",
+        "type": "float",
+        "description": "Right pulse width (µs)."
+      },
+      {
+        "name": "notes",
+        "type": "string",
+        "description": "Free-text note for this entry."
+      }
+    ]
+  },
+  "annotation_tsv": {
+    "columns": [
+      {
+        "name": "date",
+        "type": "string",
+        "description": "Date of the entry (``YYYY-MM-DD``)."
+      },
+      {
+        "name": "time",
+        "type": "string",
+        "description": "Time of the entry (``HH:MM:SS``)."
+      },
+      {
+        "name": "timezone",
+        "type": "string",
+        "description": "Timezone abbreviation/offset at capture time."
+      },
+      {
+        "name": "notes",
+        "type": "string",
+        "description": "Free-text note for this entry."
+      }
+    ]
+  },
+  "bids": {
+    "filename_template": "sub-{subject}_ses-{session}_task-{task}_run-{run}_events.tsv",
+    "session_task": "programming",
+    "annotation_task": "notes",
+    "session_format": "%Y%m%d",
+    "default_run": "01",
+    "entities": {
+      "subject": "sub-([^_]+)",
+      "session": "ses-([^_]+)",
+      "task": "task-([^_]+)",
+      "run": "run-([0-9]+)"
+    }
+  }
+}

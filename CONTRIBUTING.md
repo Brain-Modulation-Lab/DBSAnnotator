@@ -1,46 +1,77 @@
 # Contributing to DBS Annotator
 
-We welcome contributions to DBS Annotator! This document provides guidelines for contributors who want to help improve this open-source software for deep brain stimulation research.
+Contributions are welcome. This is research software for deep brain stimulation
+programming, so correctness and honesty about what the data supports matter more
+here than most places — see *Clinical care* below.
 
-For detailed guidelines, please see the [Contributing Guide](docs/contributing.rst).
+## Which app you are changing
 
-**Releases (maintainers):** use the PR-based process and manual `v*` tag described in [docs/releasing.rst](docs/releasing.rst) (Sphinx: *Developer guide → Releasing*). The helper is `scripts/release_prepare.py`; GitHub Actions workflow **CD - Prepare release PR** runs the same steps.
+This repository holds two implementations:
 
-## Quick Start
+- **The Flutter app, at the repository root** (`lib/`, `test/`) — this is the
+  software under active development. Almost all contributions belong here.
+- **`app_qt/`** — the original PySide6/Qt desktop app, **frozen**. It is kept
+  working and buildable, but takes no new features. Change it only to fix a
+  break, and see [`app_qt/docs/contributing.rst`](app_qt/docs/contributing.rst)
+  for its Python-specific conventions.
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature-name`
-3. Install pre-commit hooks: `uv run pre-commit install`
-4. Make your changes following our coding standards
-5. Add tests for new functionality
-6. Submit a pull request
+The two share one TSV format, enforced by a parity test. If you change the
+format, both sides and `schema/*.json` must move together.
 
-## Key Requirements
+## Quick start (Flutter app)
 
-- Follow PEP 8 style guidelines
-- Include tests for new features
-- Update documentation when needed
-- Ensure all tests pass before submitting
-- If you change build-time dependencies in `pyproject.toml` (including the **`build`** group used by Briefcase), run **`uv lock`** and commit the updated **`uv.lock`**
+Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
+(Dart 3.4+). From the repository root:
 
-## Changelog Fragments (Towncrier)
+```bash
+flutter pub get
+flutter test
+flutter analyze
+```
 
-We use Towncrier for changelog automation.
+Then:
 
-- Add one fragment per PR in `newsfragments/` (types from [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)):
-  - `newsfragments/<PR>.added.md` — new features
-  - `newsfragments/<PR>.changed.md` — changes in existing functionality (including doc updates)
-  - `newsfragments/<PR>.deprecated.md` — soon-to-be removed
-  - `newsfragments/<PR>.removed.md` — removed features
-  - `newsfragments/<PR>.fixed.md` — bug fixes
-  - `newsfragments/<PR>.security.md` — vulnerability fixes
-- Use one short sentence suitable for changelog bullet points.
-- PRs without a fragment may fail CI unless explicitly labeled `skip-changelog` or `internal-only`.
+1. Fork the repository and branch: `git switch -c feature/your-feature-name`
+2. Make your change, with tests
+3. `flutter analyze && flutter test` must both be clean
+4. Open a pull request
 
-## Getting Help
+## What we look for
 
-- Check existing issues and discussions
-- Read the [documentation](docs/)
-- Ask questions in GitHub Discussions
+- **Tests that would have caught the bug.** A test asserting only that a
+  function runs is worth little; one pinning the value it produces is worth a
+  lot. Several tests in this repo exist because a reviewer computed the expected
+  numbers independently and they disagreed with the code.
+- **Comments that explain *why*.** The codebase deliberately diverges from the
+  Qt original in a number of places, and each divergence carries a comment
+  saying what was wrong with the original. Preserve that reasoning.
+- **`flutter analyze` clean.** No new warnings, no `// ignore:` without a reason.
 
-Thank you for contributing!
+## Clinical care
+
+This app produces documents that go into a patient record. Two rules follow from
+that, and both have already caused real changes here:
+
+- **Never assert what the data does not support.** The reports say "last recorded
+  configuration", not "final settings", because nothing in the TSV records that a
+  clinician confirmed a choice. The block ranking refuses to run at all when no
+  scale targets have been set, rather than inventing them.
+- **Never lose data silently.** If a character cannot be rendered, the export
+  says so. If a file cannot be written, the write is atomic and the old file
+  survives. A silent partial success is worse than a loud failure.
+
+## Documentation
+
+Documentation lives in `docs/` (Sphinx, reStructuredText) and is published to
+Read the Docs. Screenshots are generated from Flutter widget tests — do not edit
+them by hand.
+
+## Getting help
+
+Open an issue, or start a discussion. For anything that looks like a clinical
+safety concern, please say so explicitly in the issue title.
+
+## License
+
+By contributing you agree that your contribution is licensed under the MIT
+license, as in [LICENSE](LICENSE).
