@@ -1,5 +1,5 @@
 /// Canonical TSV column orders, kept byte-for-byte in sync with the desktop
-/// app (src/dbs_annotator/config.py) via schema/tsv_schema.json.
+/// app (dbs_annotator/config.py) via schema/tsv_schema.json.
 ///
 /// test/schema_parity_test.dart loads the generated JSON contract and fails if
 /// these lists ever drift from the Python source of truth. Regenerate the JSON

@@ -1,6 +1,6 @@
 /// Session (Complete-Workflow) PDF report, tablet counterpart of the
 /// desktop's DOCX/PDF session exporter
-/// (src/dbs_annotator/utils/session_exporter.py, `_export_to_word_path`).
+/// (dbs_annotator/utils/session_exporter.py, `_export_to_word_path`).
 /// Pure function over already-parsed [SessionRow]s so it is testable
 /// headless (no widgets, no platform channels beyond the optional font
 /// asset, which falls back to Helvetica when absent).

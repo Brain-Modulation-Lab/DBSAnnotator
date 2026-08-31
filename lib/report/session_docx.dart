@@ -1,5 +1,5 @@
 /// Session (Complete-Workflow) Word (.docx) report — the tablet counterpart of
-/// the desktop's DOCX exporter (src/dbs_annotator/utils/session_exporter.py).
+/// the desktop's DOCX exporter (dbs_annotator/utils/session_exporter.py).
 ///
 /// A .docx is a zip of OOXML parts, built here by hand with the `archive`
 /// package, so this stays a PURE function over already-parsed [SessionRow]s (no

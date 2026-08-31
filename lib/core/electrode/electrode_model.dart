@@ -5,7 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 /// Immutable description of a DBS electrode model.
 ///
 /// Ports the Python `ElectrodeModel` class from
-/// `src/dbs_annotator/config_electrode_models.py`. Instances are normally
+/// `dbs_annotator/config_electrode_models.py`. Instances are normally
 /// loaded from the generated contract `schema/electrode_models.json` (the
 /// desktop app is the source of truth) rather than hard-coded.
 class ElectrodeModel {

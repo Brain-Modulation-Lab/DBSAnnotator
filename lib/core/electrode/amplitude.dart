@@ -1,7 +1,7 @@
 /// Split-amplitude serialization shared with the desktop app's TSV files.
 ///
 /// Ports `get_amplitude_text` and `set_amplitude_from_split` from
-/// `src/dbs_annotator/ui/amplitude_split_widget.py`.
+/// `dbs_annotator/ui/amplitude_split_widget.py`.
 ///
 /// Format: a single total (e.g. `"2.5"`) when there is at most one cathode,
 /// or per-contact mA values joined with `_` (e.g. `"1.5_1"`) when the total

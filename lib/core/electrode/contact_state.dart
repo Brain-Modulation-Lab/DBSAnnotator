@@ -1,7 +1,7 @@
 /// Possible states for an electrode contact or the stimulator case.
 ///
 /// The integer values mirror the Python `ContactState` constants in
-/// `src/dbs_annotator/config_electrode_models.py` (OFF=0, ANODIC=1,
+/// `dbs_annotator/config_electrode_models.py` (OFF=0, ANODIC=1,
 /// CATHODIC=2) so serialized values stay interchangeable with the desktop app.
 enum ContactState {
   off(0),

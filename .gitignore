@@ -40,3 +40,7 @@ Thumbs.db
 # ---- Stale local scratch ----
 archive/
 test_save_probe.png
+
+# Sphinx build output: docs/_generated/ is rendered from schema/tsv_schema.json
+# by docs/_ext/generated_includes.py on every build, so it is never committed.
+docs/_generated/

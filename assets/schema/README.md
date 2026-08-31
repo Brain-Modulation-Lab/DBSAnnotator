@@ -16,6 +16,6 @@ meant a clone built fine and then threw at runtime the first time `rootBundle.lo
 cp schema/*.json assets/schema/     # from the repo root
 ```
 
-`app_qt/scripts/generate_schema_json.py --check` verifies that the frozen Qt app still agrees with the
-canonical copy. If you change the contract, change the root `schema/` files, run the copy above, and
-commit both.
+If you change the contract, change the root `schema/` files, run the copy above, and commit both.
+The two must never diverge: runtime reads the bundled copy while several tests read the root one, so
+a mismatch shows up as "works in tests, wrong in the app".

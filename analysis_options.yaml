@@ -1,11 +1,7 @@
 # The Flutter app is the repo root, so the analyzer's scope is the whole
-# repository — hence the exclusions below cover the frozen Qt app and the
-# platform runners as well as build output.
+# repository — hence the exclusions cover the platform runners and build output.
 analyzer:
   exclude:
-    # The frozen Qt/Python app. No Dart inside, but excluding it keeps the
-    # analyzer from walking ~190 files and a 1 GB virtualenv on every run.
-    - app_qt/**
     - build/**
     - android/**
     - ios/**

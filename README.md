@@ -35,17 +35,7 @@ schema/              the machine-readable domain contract (TSV columns,
                      BIDS naming, stimulation limits, electrode models)
 docs/                documentation source (Read the Docs)
 paper/               JOSS paper
-app_qt/              the original PySide6/Qt desktop app — FROZEN
 ```
-
-`app_qt/` is the implementation this app was ported from. It still works and is
-kept buildable, but it receives no further feature work. It has its own
-`pyproject.toml` and is entirely self-contained: see
-[`app_qt/README.md`](app_qt/README.md).
-
-The two implementations read and write the **same TSV format**, and a parity test
-in this repo fails if they diverge — which is what makes data recorded on either
-one interchangeable.
 
 ## Getting started
 
@@ -120,7 +110,7 @@ is not, and the loader will correctly ignore it.
 ## Releases
 
 Tag `app-vX.Y.Z` to trigger
-[the pipeline](.github/workflows/app-release.yml). Android ships a signed APK on
+[the pipeline](.github/workflows/ci.yml). Android ships a signed APK on
 the GitHub Release; iPadOS goes to TestFlight (Apple has no sideload path);
 Linux, Windows and macOS bundles are built as workflow artifacts. Per-OS app
 store distribution is planned.

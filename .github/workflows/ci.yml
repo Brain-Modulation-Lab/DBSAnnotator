@@ -1,349 +1,186 @@
-name: CI
+name: App CI/CD
 
+# The Flutter app's CI/CD, and the only workflow in this repository. The app
+# lives at the repo root, so every step runs there with no working-directory.
+#
+# On PRs touching the Dart tree it runs tests + a build check; on `app-v*` tags
+# it ships Android (APK -> GitHub Release) and iOS (-> TestFlight, when the
+# Apple secrets are configured).
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "app-v*"
   pull_request:
-    branches:
-      - "**"
+    paths:
+      # The Flutter app IS the repo root now, so the filter is what it is NOT.
+      - "lib/**"
+      - "test/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "android/**"
+      - "ios/**"
+      - "linux/**"
+      - "macos/**"
+      - "windows/**"
+      - "schema/**"
+      - ".github/workflows/app-release.yml"
+  workflow_dispatch:
 
-defaults:
-  run:
-    # The Python project moved to app_qt/ when the Qt app was frozen. `uv` walks
-    # UP for a pyproject.toml and never down, so every step below needs its CWD
-    # inside the project. NOTE: this affects `run:` steps ONLY — `uses:` inputs
-    # such as `path:` and `filters:` stay workspace-relative and are prefixed
-    # by hand.
-    working-directory: app_qt
+permissions:
+  contents: write
+
 
 jobs:
-  workflow-lint:
-    name: Workflow lint (actionlint)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Lint GitHub workflow files
-        uses: rhysd/actionlint@v1.7.12
-
-  dependency-audit:
-    name: Dependency audit (uv audit)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
-        with:
-          python-version: "3.12"
-          enable-cache: true
-
-      - name: Audit dependencies for vulnerabilities
-        run: |
-          uv audit
-
-  towncrier-fragment-gate:
-    name: Changelog fragment gate (Towncrier)
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
-    permissions:
-      pull-requests: read
-
-    steps:
-      - name: Detect source and fragment changes
-        id: changes
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            code:
-              - 'app_qt/src/**'
-              - '.github/workflows/**'
-              - 'app_qt/pyproject.toml'
-            fragment:
-              - 'app_qt/newsfragments/*.added.md'
-              - 'app_qt/newsfragments/*.changed.md'
-              - 'app_qt/newsfragments/*.deprecated.md'
-              - 'app_qt/newsfragments/*.removed.md'
-              - 'app_qt/newsfragments/*.fixed.md'
-              - 'app_qt/newsfragments/*.security.md'
-            changelog:
-              - 'app_qt/CHANGELOG.md'
-
-      - name: Enforce changelog fragment for code changes
-        uses: actions/github-script@v9
-        env:
-          CODE_CHANGED: ${{ steps.changes.outputs.code }}
-          FRAGMENT_CHANGED: ${{ steps.changes.outputs.fragment }}
-          CHANGELOG_CHANGED: ${{ steps.changes.outputs.changelog }}
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            if (!pr) {
-              core.setFailed("Expected pull_request payload.");
-              return;
-            }
-            const { data } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-            });
-            const labels = (data.labels ?? []).map((l) => l.name);
-            const hasSkipLabel = labels.includes("skip-changelog") || labels.includes("internal-only");
-            const codeChanged = process.env.CODE_CHANGED === "true";
-            const fragmentChanged = process.env.FRAGMENT_CHANGED === "true";
-            const changelogChanged = process.env.CHANGELOG_CHANGED === "true";
-
-            if (!codeChanged) {
-              core.info("No relevant code/workflow changes; fragment gate passes.");
-              return;
-            }
-            if (fragmentChanged || changelogChanged) {
-              core.info("Fragment/changelog update detected; fragment gate passes.");
-              return;
-            }
-            if (hasSkipLabel) {
-              core.info(
-                "No changelog fragment, but PR has skip-changelog/internal-only label; gate passes."
-              );
-              return;
-            }
-
-            core.setFailed(
-              "This PR changes code/workflows without a changelog fragment. " +
-              "Add newsfragments/<PR>.(added|changed|deprecated|removed|fixed|security).md, update CHANGELOG.md, " +
-              "or apply `skip-changelog`/`internal-only` with reviewer approval."
-            );
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
-        with:
-          python-version: "3.12"
-          enable-cache: true
-
-      - name: Sync dependencies
-        run: |
-          uv sync --locked --dev
-
-      - name: Lint
-        run: |
-          uv run ruff check .
-
-      - name: Format
-        run: |
-          uv run ruff format --check .
-
-  type-check:
-    name: Type Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
-        with:
-          python-version: "3.12"
-          enable-cache: true
-
-      - name: Sync dependencies
-        run: |
-          uv sync --locked --dev
-
-      - name: Type check
-        run: |
-          uv run ty check .
-
   test:
-    name: Tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-          - os: windows-latest
-          - os: macos-latest
-
+    name: Analyze & test
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          python-version: "3.12"
-          enable-cache: true
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
 
-      - name: Sync dependencies
-        run: |
-          uv sync --locked --dev
-
-      # PySide6 links libEGL even for offscreen; ubuntu-latest images omit it by default.
-      - name: Install Qt EGL/XCB dependencies (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest'
+  # Desktop builds. These are compile-level proof that the report/export path
+  # builds on every target we ship; the delivery step (share sheet vs Save-As)
+  # still needs a manual smoke test per OS.
+  linux:
+    name: Linux
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install Linux desktop toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libegl1 \
-            libgl1 \
-            libxkbcommon0 \
-            libdbus-1-3
-
-      - name: Run pytest
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: |
-          uv run pytest --cov-fail-under=48
-
-  prose-lint:
-    name: Prose lint (codespell + doc8)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+          sudo apt-get install -y ninja-build libgtk-3-dev
+      - run: flutter config --enable-linux-desktop
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - uses: actions/upload-artifact@v4
         with:
-          python-version: "3.12"
-          enable-cache: true
-
-      - name: Run pre-commit (prose hooks)
-        run: |
-          uv run pre-commit run --all-files codespell
-          uv run pre-commit run --all-files doc8
-
-  docs:
-    name: Docs (build + linkcheck)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
-        with:
-          python-version: "3.12"
-          enable-cache: true
-
-      # autosummary imports dbs_annotator modules that transitively touch
-      # PySide6; ubuntu-latest images omit the EGL/XCB libs that PySide6 needs
-      # even under QT_QPA_PLATFORM=offscreen.
-      - name: Install Qt EGL/XCB dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libegl1 \
-            libgl1 \
-            libxkbcommon0 \
-            libdbus-1-3
-
-      - name: Sync docs dependency group
-        run: |
-          uv sync --locked --group docs --no-dev
-
-      - name: Verify generated TSV schema docs are up to date
-        run: |
-          uv run python scripts/generate_tsv_schema_docs.py --check
-
-      - name: Build HTML docs (warnings are errors)
-        env:
-          QT_QPA_PLATFORM: offscreen
-          MPLBACKEND: Agg
-        run: |
-          uv run sphinx-build -b html -W --keep-going docs docs/_build/html
-
-      - name: Link check (non-blocking)
-        continue-on-error: true
-        env:
-          QT_QPA_PLATFORM: offscreen
-          MPLBACKEND: Agg
-        run: |
-          uv run sphinx-build -b linkcheck docs docs/_build/linkcheck
-
-      - name: Upload rendered HTML artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: docs-html-${{ github.sha }}
-          path: app_qt/docs/_build/html
+          name: linux-bundle
+          path: build/linux/x64/release/bundle
           if-no-files-found: error
 
-      - name: Upload linkcheck report
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: docs-linkcheck-${{ github.sha }}
-          path: app_qt/docs/_build/linkcheck
-          if-no-files-found: warn
-
-  # Briefcase smoke test. Intentionally runs on Ubuntu (not Windows) and
-  # skips `briefcase package`, because:
-  #   - ~80% of Briefcase regressions (bad [tool.briefcase] config, missing
-  #     runtime deps, stale icon/stub paths, undeclared resources) are
-  #     platform-agnostic and caught by `create` + `build`.
-  #   - Packaging is the slowest step and rarely fails when build succeeds.
-  #   - The tagged-release workflow (release.yml) fully exercises
-  #     `create + build + package` for Windows MSI, macOS DMG, and Linux
-  #     system packages, so platform-specific packaging regressions cannot
-  #     reach a release without being caught there.
-  # The result is a PR-gated smoke test that runs in ~1-2 min instead of
-  # ~3-4 min on a Windows runner.
-  briefcase-smoke:
-    name: Briefcase smoke test (Linux)
-    runs-on: ubuntu-latest
-
+  windows:
+    name: Windows
+    needs: test
+    runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          python-version: "3.12"
-          enable-cache: true
+          channel: stable
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: build/windows/x64/runner/Release
+          if-no-files-found: error
 
-      # PySide6 links libEGL even for offscreen; ubuntu-latest images omit it by default.
-      - name: Install Qt EGL/XCB dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libegl1 \
-            libgl1 \
-            libxkbcommon0 \
-            libdbus-1-3
+  macos:
+    name: macOS
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      # Unsigned: proves it compiles and links. Signing/notarisation is a
+      # release concern, not a CI-correctness one.
+      - run: flutter build macos --release
 
-      - name: Sync dependencies (incl. build / Briefcase)
-        run: |
-          uv sync --locked --dev --group build
+  android:
+    name: Android (APK + AAB)
+    needs: test
+    runs-on: ubuntu-latest
+    # Job-level env so step `if:` conditions can read it (step-level env is not
+    # visible to that step's own `if:`).
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
 
-      # Mirror release.yml so Briefcase installs from the same lock-derived
-      # constraints the real release build uses.
-      - name: Export lock-derived constraints for Briefcase
-        run: |
-          uv export --locked --format requirements.txt --no-dev --no-hashes --no-emit-project --no-emit-workspace --output-file constraints-briefcase.txt
 
-      - name: Briefcase create + build (linux system)
-        env:
-          QT_QPA_PLATFORM: offscreen
-          PIP_INDEX_URL: https://pypi.org/simple
-          PIP_EXTRA_INDEX_URL: ""
-          PIP_NO_CACHE_DIR: "1"
+      - name: Decode signing keystore
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Build APK + AAB
         run: |
-          uv run briefcase create linux system --no-input
-          uv run briefcase build  linux system --no-input
+          flutter pub get
+          flutter build apk --release
+          flutter build appbundle --release
+
+      - name: Upload artifacts to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Attach APK to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          fail_on_unmatched_files: true
+
+  ios:
+    name: iOS (TestFlight)
+    needs: test
+    runs-on: macos-latest
+    env:
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+
+      # Dry-run build (no signing) — always runs so PRs verify iOS compiles.
+      - name: Build iOS (no codesign)
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+
+      # Signed IPA + TestFlight upload only on a tag and only when Apple
+      # secrets are present (App Store Connect API key). Wire fastlane pilot /
+      # xcrun altool here once the Apple Developer account (nonprofit fee
+      # waiver) is set up.
+      - name: Upload to TestFlight (fastlane)
+        if: ${{ startsWith(github.ref, 'refs/tags/app-v') && env.APP_STORE_CONNECT_KEY_ID != '' }}
+        run: |
+          if [ -f ios/fastlane/Fastfile ]; then
+            cd ios && fastlane beta
+          else
+            echo "Apple secrets are set but ios/fastlane/Fastfile is missing."
+            echo "See MOBILE_RELEASE.md section 3 to add it."
+            exit 1
+          fi

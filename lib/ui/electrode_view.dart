@@ -20,7 +20,7 @@ typedef ElectrodeChanged = void Function(
 typedef ElectrodeValidation = void Function(bool valid, String error);
 
 /// Interactive electrode viewer, a port of the desktop `ElectrodeCanvas`
-/// (`src/dbs_annotator/models/electrode_viewer.py`).
+/// (`dbs_annotator/models/electrode_viewer.py`).
 ///
 /// Tap behaviour matches the desktop:
 /// - contact tap cycles OFF -> ANODIC -> CATHODIC -> OFF (key removed on OFF);

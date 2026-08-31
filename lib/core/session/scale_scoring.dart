@@ -4,10 +4,10 @@
 /// Ports, verbatim in behaviour:
 /// - `parse_scale_targets`, `compute_aggregate_index`,
 ///   `get_declared_scale_range`, `find_best_and_second` from
-///   `src/dbs_annotator/utils/report_chart_utils.py` — these drive the green
+///   `dbs_annotator/utils/report_chart_utils.py` — these drive the green
 ///   best / second-best BANDS on the scales chart;
 /// - `_find_best_and_second_best_blocks` from
-///   `src/dbs_annotator/utils/session_exporter.py` — this drives the green
+///   `dbs_annotator/utils/session_exporter.py` — this drives the green
 ///   ROW SHADING in the session data table.
 ///
 /// ONE ranking, deliberately diverging from the desktop. The desktop runs a

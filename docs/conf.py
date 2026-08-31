@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+import sys
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
+sys.path.insert(0, str(_HERE / "_ext"))
 
 # -- Identity ----------------------------------------------------------------
 # Literals on purpose. The upstream values live in lib/app_info.dart, and
@@ -58,6 +60,9 @@ version = ".".join(release.split(".")[:2])
 extensions = [
     "sphinx_copybutton",
     "myst_parser",
+    # Local: renders docs/_generated/*.inc.rst from schema/tsv_schema.json at
+    # build time. See docs/_ext/generated_includes.py.
+    "generated_includes",
 ]
 
 # `intersphinx` is deliberately absent. With fail_on_warning enabled, a
@@ -65,7 +70,16 @@ extensions = [
 # breaks publishing. Re-add it only when something actually cross-references
 # another project's API.
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "requirements.txt"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "requirements.txt",
+    # Fragments pulled in with `.. include::`. Excluding them stops Sphinx
+    # treating each as a standalone page (which then warns about not being in
+    # any toctree); `include` still reads them as raw text.
+    "_generated/*.inc.rst",
+]
 
 source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 

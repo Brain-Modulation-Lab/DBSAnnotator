@@ -1,6 +1,6 @@
 /// Programming-session TSV parsing, appending, and serialization.
 ///
-/// Mirrors src/dbs_annotator/models/session_data.py:
+/// Mirrors dbs_annotator/models/session_data.py:
 /// - `buildInsertRows` = the row-shaping half of `write_session_scales`
 ///   (Step 3: one row per valid scale, or one scale-less row).
 /// - `nextBlockId` / `nextSessionId` = the max-scan half of

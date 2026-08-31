@@ -4,21 +4,19 @@ Contributions are welcome. This is research software for deep brain stimulation
 programming, so correctness and honesty about what the data supports matter more
 here than most places — see *Clinical care* below.
 
-## Which app you are changing
+## Scope
 
-This repository holds two implementations:
+Everything here is the Flutter app: `lib/` for source, `test/` for tests.
 
-- **The Flutter app, at the repository root** (`lib/`, `test/`) — this is the
-  software under active development. Almost all contributions belong here.
-- **`app_qt/`** — the original PySide6/Qt desktop app, **frozen**. It is kept
-  working and buildable, but takes no new features. Change it only to fix a
-  break, and see [`app_qt/docs/contributing.rst`](app_qt/docs/contributing.rst)
-  for its Python-specific conventions.
+If you change the TSV format, change `schema/*.json` and `assets/schema/*.json`
+together — both are committed so that a clone builds with nothing generated.
 
-The two share one TSV format, enforced by a parity test. If you change the
-format, both sides and `schema/*.json` must move together.
+Some doc comments in `lib/` cite a Python module as `dbs_annotator/<module>.py`.
+Those name the reference implementation each algorithm was checked against; the
+code is on the `qt-legacy` branch. Several of those comments record a
+*deliberate* divergence, so keep them when editing nearby.
 
-## Quick start (Flutter app)
+## Quick start
 
 Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
 (Dart 3.4+). From the repository root:

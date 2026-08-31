@@ -469,7 +469,7 @@ const kRankingDisclaimer =
 /// so the PDF and Word renderers share one source of truth.
 ///
 /// Mirrors the desktop `build_scales_chart` inputs
-/// (`src/dbs_annotator/utils/report_chart_utils.py:216`).
+/// (`dbs_annotator/utils/report_chart_utils.py:216`).
 class ScalesChartSpec {
   const ScalesChartSpec({
     required this.series,

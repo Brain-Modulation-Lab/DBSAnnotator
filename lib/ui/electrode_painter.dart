@@ -11,7 +11,7 @@
 /// one lit cylinder rather than a stack of separately-lit parts.
 ///
 /// That is the substantive difference from the desktop canvas
-/// (`src/dbs_annotator/models/electrode_viewer.py`), which gives every contact
+/// (`dbs_annotator/models/electrode_viewer.py`), which gives every contact
 /// its own `QRadialGradient` centred in its own bounding box (`:483-489`,
 /// `:646-652`) — each contact lit by a private light, which is why they read as
 /// detached glossy buttons. Here a directional level's `a|b|c` inherits the

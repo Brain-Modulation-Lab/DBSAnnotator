@@ -1,6 +1,6 @@
 /// Pure layout math for the interactive electrode viewer.
 ///
-/// Mirrors the desktop canvas in `src/dbs_annotator/models/electrode_viewer.py`
+/// Mirrors the desktop canvas in `dbs_annotator/models/electrode_viewer.py`
 /// (`calculate_scale` + `paintEvent`) and, like it, is **mm-accurate**: every
 /// vertical dimension derives from the model's real `contactHeight` /
 /// `contactSpacing` / `leadDiameter` in millimetres times a single `scale`

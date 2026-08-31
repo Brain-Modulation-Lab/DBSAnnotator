@@ -1,0 +1,111 @@
+"""Render the TSV column tables from the committed schema contract at build time.
+
+The tables in :doc:`output_format` describe 21 session columns and 4 annotation
+columns. Hand-maintaining that in reStructuredText guarantees it drifts from the
+code, so it is generated instead — from ``schema/tsv_schema.json``, which is the
+same file the application loads at runtime and several tests assert against.
+
+Generated at build time rather than committed, which makes staleness
+structurally impossible: there is no second copy to fall behind. The input is
+committed, so Read the Docs has everything it needs and no extra install step.
+
+Standard library only, so ``docs/requirements.txt`` stays four Sphinx wheels.
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent
+_DOCS = _HERE.parent
+_ROOT = _DOCS.parent
+_OUT = _DOCS / "_generated"
+
+#: The fixture shown as a worked example, copied into ``_generated`` so the
+#: ``:download:`` link stays inside Sphinx's source dir.
+_FIXTURE = _ROOT / "test" / "fixtures" / (
+    "sub-01_ses-20260626_task-programming_run-01_events.tsv"
+)
+
+
+def _rst_table(columns: list[dict], title: str) -> str:
+    """A list-table of ``name / type / description``.
+
+    ``list-table`` rather than a grid table because the descriptions contain
+    inline RST markup (``\`\`YYYY-MM-DD\`\```) and would need re-wrapping by
+    hand in any character-aligned table format.
+    """
+    lines = [
+        f".. list-table:: {title}",
+        "   :header-rows: 1",
+        "   :widths: 22 12 66",
+        "",
+        "   * - Column",
+        "     - Type",
+        "     - Description",
+    ]
+    for col in columns:
+        lines += [
+            f"   * - ``{col['name']}``",
+            f"     - {col.get('type', 'string')}",
+            f"     - {col.get('description', '').strip() or '—'}",
+        ]
+    return "\n".join(lines) + "\n"
+
+
+def _example_table(path: Path, max_rows: int = 6) -> str:
+    """The first few rows of the worked example, as a literal block.
+
+    Only a handful of columns are shown: all 21 in one table is unreadable at
+    any page width, and the point here is the *row shape* — that one block
+    contributes one row per scale, repeating its stimulation values.
+    """
+    show = [
+        "block_ID", "is_initial", "time", "scale_name", "scale_value",
+        "left_amplitude", "left_cathode",
+    ]
+    with path.open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh, delimiter="\t"))[:max_rows]
+
+    widths = [max(len(c), *(len(r.get(c, "")) for r in rows)) for c in show]
+    def fmt(cells: list[str]) -> str:
+        return "   " + "  ".join(c.ljust(w) for c, w in zip(cells, widths)).rstrip()
+
+    out = ["::", ""]
+    out.append(fmt(show))
+    out.append(fmt(["-" * w for w in widths]))
+    for r in rows:
+        out.append(fmt([r.get(c, "") for c in show]))
+    return "\n".join(out) + "\n"
+
+
+def _write(app, *_args) -> None:  # noqa: ANN001 - Sphinx passes its app
+    contract = json.loads(
+        (_ROOT / "schema" / "tsv_schema.json").read_text(encoding="utf-8")
+    )
+    _OUT.mkdir(parents=True, exist_ok=True)
+
+    (_OUT / "session_columns.inc.rst").write_text(
+        _rst_table(contract["session_tsv"]["columns"], "Programming session columns"),
+        encoding="utf-8",
+    )
+    (_OUT / "annotation_columns.inc.rst").write_text(
+        _rst_table(contract["annotation_tsv"]["columns"], "Annotations columns"),
+        encoding="utf-8",
+    )
+
+    if _FIXTURE.exists():
+        (_OUT / "example_rows.inc.rst").write_text(
+            _example_table(_FIXTURE), encoding="utf-8"
+        )
+        # Inside srcdir, so `:download:` needs no traversal above it.
+        (_OUT / _FIXTURE.name).write_bytes(_FIXTURE.read_bytes())
+    else:  # pragma: no cover - a missing fixture should be loud
+        raise FileNotFoundError(f"example fixture not found: {_FIXTURE}")
+
+
+def setup(app):  # noqa: ANN001, ANN201
+    app.connect("builder-inited", _write)
+    return {"version": "1", "parallel_read_safe": True}

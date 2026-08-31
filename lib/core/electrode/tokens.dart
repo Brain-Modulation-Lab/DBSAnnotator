@@ -5,7 +5,7 @@ import 'stimulation_rule.dart';
 /// Anode/cathode token grammar shared with the desktop app's TSV files.
 ///
 /// Ports `_get_anode_cathode_texts` and `_apply_contact_text_to_canvas` from
-/// `src/dbs_annotator/views/step3_view.py`.
+/// `dbs_annotator/views/step3_view.py`.
 ///
 /// Grammar (tokens joined with `_`):
 /// - `case`          — the stimulator case carries this polarity.

@@ -1,6 +1,6 @@
 /// Longitudinal-review aggregation over programming-session rows.
 ///
-/// Mirrors src/dbs_annotator/utils/longitudinal_exporter.py
+/// Mirrors dbs_annotator/utils/longitudinal_exporter.py
 /// (_collect_session_scale_data and the newline-splitting used by the
 /// merged views) and the patient-ID checks in
 /// views/longitudinal_report_view.py.

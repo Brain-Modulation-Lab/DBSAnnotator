@@ -1,7 +1,7 @@
 /// The scales-timeline chart, drawn once and embedded in BOTH reports.
 ///
 /// Port of the desktop's matplotlib chart
-/// (`src/dbs_annotator/utils/report_chart_utils.py::build_scales_chart`), which
+/// (`dbs_annotator/utils/report_chart_utils.py::build_scales_chart`), which
 /// the Qt app renders to a PNG and inserts into its DOCX (and therefore into its
 /// PDF, which is that DOCX converted). Doing the same here — one painter,
 /// rasterised once, embedded in both formats — is why the PDF and Word reports

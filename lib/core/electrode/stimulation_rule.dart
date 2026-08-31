@@ -26,7 +26,7 @@ class ContactKey {
 
 /// Validates a stimulation configuration according to the clinical rules in
 /// the Python `StimulationRule.validate_configuration`
-/// (`src/dbs_annotator/config_electrode_models.py`).
+/// (`dbs_annotator/config_electrode_models.py`).
 ///
 /// IMPORTANT representation invariant (matching Python): OFF contacts are
 /// represented by the ABSENCE of the key in [contactStates] — an OFF state is

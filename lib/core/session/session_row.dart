@@ -1,7 +1,7 @@
 /// One row of a programming-session (`task-programming`) TSV.
 ///
 /// Mirrors the desktop writer in
-/// src/dbs_annotator/models/session_data.py (write_clinical_scales /
+/// dbs_annotator/models/session_data.py (write_clinical_scales /
 /// write_session_scales). Every field is kept as the raw TSV string so a
 /// parse -> serialize round trip is lossless (the desktop may write block
 /// IDs as "3" or "3.0", amplitudes as split strings like "1.5_1", and
