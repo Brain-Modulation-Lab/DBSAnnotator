@@ -89,11 +89,31 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
+            // DO NOT "tidy up" CompanyName or ProductName. They look like stale
+            // Flutter template defaults, and they are, but on Windows
+            // path_provider derives getApplicationSupportDirectory() from them:
+            // %APPDATA%\{CompanyName}\{ProductName}
+            // (path_provider_windows/lib/src/path_provider_windows_real.dart).
+            // So these two strings are the ADDRESS of every user's settings file,
+            // %APPDATA%\ch.wysscenter\dbs_annotator\dbs_user_prefs.json - their
+            // stim/clinical/session presets, program names, paper size, report
+            // sections and panel order. Rename either and the app looks in a
+            // folder that does not exist; loadUserPrefs() swallows the miss and
+            // returns empty prefs, so the app silently opens with factory
+            // defaults and the user's settings appear to have vanished.
+            // Nothing user-facing is gained: the Store listing name comes from
+            // Partner Center and the Start-menu entry from the MSIX manifest
+            // DisplayName ("DBS Annotator"). ProductName shows only in the
+            // file's Properties dialog.
+            // Changing them is possible, but it is a migration task, not an
+            // edit: copy the old file across on first read.
             VALUE "CompanyName", "ch.wysscenter" "\0"
-            VALUE "FileDescription", "dbs_annotator" "\0"
+            // Safe to change - not read by path_provider. Shown in Task Manager.
+            VALUE "FileDescription", "DBS Annotator" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "dbs_annotator" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 ch.wysscenter. All rights reserved." "\0"
+            // Safe to change - not read by path_provider.
+            VALUE "LegalCopyright", "Copyright (C) 2026 Wyss Center for Bio and Neuroengineering, Massachusetts General Hospital, and Charite Universitatsmedizin Berlin. MIT License." "\0"
             VALUE "OriginalFilename", "dbs_annotator.exe" "\0"
             VALUE "ProductName", "dbs_annotator" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

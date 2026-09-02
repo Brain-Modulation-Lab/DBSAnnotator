@@ -31,10 +31,12 @@ import 'dart:typed_data' show ByteData;
 import 'dart:ui' as ui;
 
 import 'package:dbs_annotator/core/electrode/electrode_model.dart';
+import 'package:dbs_annotator/core/session/authoring.dart';
 import 'package:dbs_annotator/core/session/scale_presets.dart';
 import 'package:dbs_annotator/ui/annotations_screen.dart';
 import 'package:dbs_annotator/ui/home_screen.dart';
 import 'package:dbs_annotator/ui/longitudinal_screen.dart';
+import 'package:dbs_annotator/ui/painter_font.dart';
 import 'package:dbs_annotator/ui/session_screen.dart';
 import 'package:dbs_annotator/ui/stim_params_form.dart';
 import 'package:dbs_annotator/ui/theme.dart';
@@ -117,7 +119,14 @@ Future<String?> _loadTextFont() async {
   // (2) A host font. Regular and bold are loaded into one family so bold text
   // is really bold rather than synthesised.
   const candidates = <List<String>>[
-    ['C:/Windows/Fonts/segoeui.ttf', 'C:/Windows/Fonts/segoeuib.ttf'],
+    // seguisym carries the symbol glyphs (the validity tick is a literal U+2713,
+    // which real Windows finds through the OS fallback chain but the test
+    // binding does not).
+    [
+      'C:/Windows/Fonts/segoeui.ttf',
+      'C:/Windows/Fonts/segoeuib.ttf',
+      'C:/Windows/Fonts/seguisym.ttf',
+    ],
     ['C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arialbd.ttf'],
     ['/System/Library/Fonts/Supplemental/Arial.ttf',
      '/System/Library/Fonts/Supplemental/Arial Bold.ttf'],
@@ -222,6 +231,10 @@ void main() {
   setUpAll(() async {
     await _loadFonts();
     _textFont = await _loadTextFont();
+    // CustomPainters never see the theme, so the electrode labels, the "Ring"
+    // caps, the slider values and the chart ticks need this separately or they
+    // render as filled boxes in the app's most recognisable artwork.
+    debugPainterFontFamily = _textFont;
     if (_textFont == null) {
       // Failing here beats emitting five files full of black rectangles that
       // look like a rendering bug in the app.
@@ -250,6 +263,59 @@ void main() {
       size: const Size(1280, 480),
     );
     await _shoot(tester, 'session_file_setup');
+  });
+
+  testWidgets('session: recording', (tester) async {
+    final (catalog, limits, presets) = await _contracts();
+
+    // Seeded with the committed example session, so the charts and the entries
+    // table have real content instead of empty-state placeholders.
+    final authoring = SessionAuthoring()
+      ..loadExisting(File('test/fixtures/'
+              'sub-01_ses-20260626_task-programming_run-01_events.tsv')
+          .readAsStringSync());
+
+    // Drive the wizard on a tall surface: the Stepper scrolls, and only the
+    // active step renders a Next button, so each tap is unambiguous.
+    await _pump(
+      tester,
+      SessionScreen(
+        catalog: catalog,
+        limits: limits,
+        scalePresets: presets,
+        authoring: authoring,
+      ),
+      size: const Size(1500, 2400),
+    );
+
+    Future<void> next() async {
+      final button = find.text('Next');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+    }
+
+    await next(); // -> Initial configuration
+    await next(); // -> Session scales configuration
+
+    // A disease preset so the recording step has scales to rate; without it the
+    // ratings column is empty and the screenshot shows nothing useful.
+    final preset = find.widgetWithText(ChoiceChip, 'OCD');
+    if (preset.evaluate().isNotEmpty) {
+      await tester.ensureVisible(preset);
+      await tester.tap(preset);
+      await tester.pumpAndSettle();
+    }
+
+    await next(); // -> Recording
+
+    // Shrink to the entry area before capturing. The full step is ~4800 px tall
+    // once the review charts and the 40-row table are laid out below it, which
+    // is unusable in a document; the parameters/electrodes/ratings rows are the
+    // part the page is describing. The review widgets get their own capture.
+    await tester.binding.setSurfaceSize(const Size(1500, 1180));
+    await tester.pumpAndSettle();
+    await _shoot(tester, 'session_recording');
   });
 
   testWidgets('annotations', (tester) async {

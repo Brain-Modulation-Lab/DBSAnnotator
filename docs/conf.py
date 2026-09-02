@@ -1,13 +1,13 @@
 """Sphinx configuration for the DBS Annotator documentation.
 
-The application is written in Dart, so — unlike the frozen Qt app's docs, which
-this replaced — nothing here imports the software. Two consequences:
+The application is written in Dart, so nothing here imports the software. Two
+consequences:
 
-* Read the Docs installs only ``docs/requirements.txt``. No Python project, no
-  ``uv``, and no Qt system libraries (the old config pulled in ``libegl1`` and
-  friends purely because autosummary imported PySide6 transitively).
-* ``autodoc``, ``autosummary``, ``napoleon`` and ``viewcode`` are gone. They had
-  no target. A Dart API reference via ``dartdoc`` is a separate decision.
+* Read the Docs installs only ``docs/requirements.txt`` — no project install and
+  no system libraries.
+* ``autodoc``, ``autosummary``, ``napoleon`` and ``viewcode`` are absent because
+  they would have no target. A Dart API reference via ``dartdoc`` is a separate
+  decision.
 """
 
 from __future__ import annotations
@@ -32,12 +32,15 @@ _HOLDERS = (
     "Wyss Center for Bio and Neuroengineering, Massachusetts General Hospital, "
     "and Charité Universitätsmedizin Berlin"
 )
-copyright = f"2025-{datetime.now().year}, {_HOLDERS}"  # noqa: A001
+_FIRST_YEAR = 2026  # matches lib/app_info.dart's About-dialog notice
+_YEAR = datetime.now().year
+_SPAN = str(_FIRST_YEAR) if _YEAR <= _FIRST_YEAR else f"{_FIRST_YEAR}-{_YEAR}"
+copyright = f"{_SPAN}, {_HOLDERS}"  # noqa: A001
 html_context = {"contact_email": "lucia.poma@wysscenter.ch"}
 
 
 def _flutter_version() -> str:
-    """``version: 0.1.0+1`` in pubspec.yaml -> ``0.1.0``.
+    """``version: 0.5.0+1`` in pubspec.yaml -> ``0.5.0``.
 
     A regex rather than a YAML parser, because PyYAML is not in the standard
     library and this is the only field needed — a pubspec ``version`` is always
@@ -98,10 +101,9 @@ html_theme_options = {
     "navigation_depth": 3,
 }
 
-# No `suppress_warnings`. The old config silenced `image.not_readable` because
-# screenshots were regenerated from a running Qt app and could legitimately be
-# missing mid-build. Here every screenshot is committed, so a missing image is a
-# real error and should fail the build.
+# No `suppress_warnings`. Every screenshot is committed, so a missing image is a
+# real error and should fail the build rather than publish a page with a broken
+# figure.
 
 # -- MyST --------------------------------------------------------------------
 myst_enable_extensions = ["colon_fence", "deflist", "smartquotes"]

@@ -31,6 +31,7 @@ import '../core/electrode/contact_state.dart';
 import '../core/electrode/geometry.dart';
 import '../core/electrode/stimulation_rule.dart';
 import 'theme.dart';
+import 'painter_font.dart';
 
 /// Fraction of the lead width where the specular highlight sits (light from
 /// the upper-left).
@@ -292,6 +293,7 @@ class ElectrodePainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
+          fontFamily: debugPainterFontFamily,
           color: color,
           fontSize: fontSize,
           fontWeight: FontWeight.bold,
@@ -327,6 +329,7 @@ class ElectrodePainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
+          fontFamily: debugPainterFontFamily,
           color: polarity == ContactState.off
               ? labelColor
               : _border(polarity),

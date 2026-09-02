@@ -1,9 +1,10 @@
-/// Canonical TSV column orders, kept byte-for-byte in sync with the desktop
-/// app (dbs_annotator/config.py) via schema/tsv_schema.json.
+/// Canonical TSV column orders.
 ///
-/// test/schema_parity_test.dart loads the generated JSON contract and fails if
-/// these lists ever drift from the Python source of truth. Regenerate the JSON
-/// with `uv run python scripts/generate_schema_json.py` when the schema changes.
+/// These lists and `schema/tsv_schema.json` describe the same contract, and
+/// test/schema_parity_test.dart fails if they disagree — so a column added here
+/// without updating the JSON (or the reverse) is caught rather than shipped.
+/// The JSON is committed, not generated: edit `schema/*.json` and the bundled
+/// copy under `assets/schema/` together.
 library;
 
 /// Annotations-only TSV (`task-notes`).

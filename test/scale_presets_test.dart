@@ -4,16 +4,16 @@ import 'dart:io';
 import 'package:dbs_annotator/core/session/scale_presets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards against Python<->Dart drift: the presets MUST parse the generated
-/// contract in schema/scale_presets.json (the desktop app is the source of
-/// truth). Run from the `app/` dir with `flutter test`.
+/// Guards the presets against the contract: they MUST parse
+/// assets/schema/scale_presets.json, the committed source of truth for the
+/// bundled scale sets. Run `flutter test` from the repo root.
 void main() {
   ScalePresets loadPresets() {
     final file = File('assets/schema/scale_presets.json');
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'Run `uv run python scripts/generate_schema_json.py` at repo root.',
+      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     return ScalePresets.fromJson(json);

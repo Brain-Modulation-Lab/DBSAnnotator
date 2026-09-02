@@ -7,12 +7,12 @@ import 'package:dbs_annotator/core/electrode/geometry.dart';
 import 'package:dbs_annotator/core/electrode/stimulation_rule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Headless tests for the pure electrode layout math. Uses the generated
-/// contract in schema/electrode_models.json (run from the `app/` dir).
+/// Headless tests for the pure electrode layout math. Uses the committed
+/// contract in assets/schema/electrode_models.json.
 void main() {
   // NOTE: runs at group-declaration time, so no expect() here — a missing
-  // contract file fails loudly via the StateError below. If it is missing,
-  // run `uv run python scripts/generate_schema_json.py` at the repo root.
+  // contract file fails loudly via the StateError below. The file is committed,
+  // so if it is missing, restore it from git.
   ElectrodeModel loadModel(String name) {
     final file = File('assets/schema/electrode_models.json');
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;

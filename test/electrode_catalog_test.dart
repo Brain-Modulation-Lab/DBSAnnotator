@@ -4,16 +4,16 @@ import 'dart:io';
 import 'package:dbs_annotator/core/electrode/electrode_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards against Python<->Dart drift: the catalog MUST parse the generated
-/// contract in schema/electrode_models.json (the desktop app is the source of
-/// truth). Run from the `app/` dir with `flutter test`.
+/// Guards the catalog against the contract: it MUST parse
+/// assets/schema/electrode_models.json, the committed source of truth for lead
+/// geometry. Run `flutter test` from the repo root.
 void main() {
   ElectrodeCatalog loadCatalog() {
     final file = File('assets/schema/electrode_models.json');
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'Run `uv run python scripts/generate_schema_json.py` at repo root.',
+      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     return ElectrodeCatalog.fromJson(json);

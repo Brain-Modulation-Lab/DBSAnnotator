@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'theme.dart';
+import 'painter_font.dart';
 
 /// Tablet port of the desktop `ScaleProgressWidget` (ui/widgets.py): a
 /// green-gradient progress bar with the value drawn on it at **0.25**
@@ -153,6 +154,7 @@ class _BarPainter extends CustomPainter {
         text: TextSpan(
           text: label,
           style: TextStyle(
+          fontFamily: debugPainterFontFamily,
             color: dark ? Colors.white : const Color(0xFF0F172A),
             fontWeight: FontWeight.bold,
             fontSize: 12,

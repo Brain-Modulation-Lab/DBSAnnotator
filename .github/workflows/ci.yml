@@ -23,7 +23,7 @@ on:
       - "macos/**"
       - "windows/**"
       - "schema/**"
-      - ".github/workflows/app-release.yml"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 permissions:
@@ -72,6 +72,11 @@ jobs:
     name: Windows
     needs: test
     runs-on: windows-latest
+    # Job-level env so step `if:` conditions can read it (a step-level env is
+    # not visible to that step's own `if:`) - same reason as the android job.
+    env:
+      WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+      WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -85,6 +90,77 @@ jobs:
           name: windows-bundle
           path: build/windows/x64/runner/Release
           if-no-files-found: error
+
+      # ---- MSIX, on tags only -------------------------------------------
+      # PRs keep costing just a compile. `windows-latest` already ships the
+      # Windows SDK, so MakeAppx/SignTool need no install step.
+      #
+      # The version comes from the TAG, not the pubspec: a tag is what actually
+      # identifies a release, and MSIX needs a fourth component the pubspec
+      # grammar has no room for. `app-v0.5.0` -> `0.5.0.0`.
+      - name: Derive the MSIX version from the tag
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        shell: bash
+        run: |
+          v="${GITHUB_REF_NAME#app-v}"
+          # Tolerate a `-rc` suffix on dry-run tags; MSIX takes digits only.
+          v="${v%%-*}"
+          echo "MSIX_VERSION=${v}.0" >> "$GITHUB_ENV"
+
+      - name: Decode signing certificate
+        if: startsWith(github.ref, 'refs/tags/app-v') && env.WINDOWS_CERT_BASE64 != ''
+        shell: bash
+        run: echo "$WINDOWS_CERT_BASE64" | base64 -d > signing.pfx
+
+      # Signed when a certificate secret exists (installable by anyone who
+      # trusts it), otherwise the Store-mode package: unsigned on purpose,
+      # because Microsoft re-signs MSIX submissions itself after certification.
+      #
+      # `--store` needs the Partner Center identity, which is deliberately not
+      # in the repo. `publisher` is unset in pubspec.yaml, so a store build
+      # FAILS HERE with a message naming the exact dashboard page to copy it
+      # from - which is the behaviour we want: better a red tag build than a
+      # package rejected at upload. Set the three repo variables below once the
+      # app name is reserved.
+      - name: Build MSIX
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        shell: bash
+        run: |
+          args=(--version "$MSIX_VERSION")
+          if [ -n "$WINDOWS_CERT_BASE64" ]; then
+            args+=(--certificate-path signing.pfx
+                   --certificate-password "$WINDOWS_CERT_PASSWORD"
+                   --install-certificate false)
+          else
+            args+=(--store)
+          fi
+          if [ -n "${{ vars.MSIX_IDENTITY_NAME }}" ]; then
+            args+=(--identity-name "${{ vars.MSIX_IDENTITY_NAME }}"
+                   --publisher "${{ vars.MSIX_PUBLISHER }}"
+                   --publisher-display-name "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}")
+          fi
+          dart run msix:create "${args[@]}"
+
+      - name: Shred the certificate
+        # `always()` so a failed MSIX build cannot leave a private key on disk
+        # for later steps or a cached workspace.
+        if: always() && startsWith(github.ref, 'refs/tags/app-v')
+        shell: bash
+        run: rm -f signing.pfx
+
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        with:
+          name: windows-msix
+          path: build/windows/msix/*.msix
+          if-no-files-found: error
+
+      - name: Attach MSIX to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/windows/msix/*.msix
+          fail_on_unmatched_files: true
 
   macos:
     name: macOS

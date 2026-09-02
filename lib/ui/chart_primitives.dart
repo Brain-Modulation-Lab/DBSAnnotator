@@ -13,6 +13,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'painter_font.dart';
 
 /// matplotlib's `Dark2` qualitative colormap — the desktop's series palette, so
 /// a scale keeps its colour between the app and the report.
@@ -147,6 +148,7 @@ TextPainter chartTextPainter(String text,
       text: TextSpan(
         text: text,
         style: TextStyle(
+          fontFamily: debugPainterFontFamily,
           color: color,
           fontSize: size,
           fontWeight: bold ? FontWeight.bold : FontWeight.normal,

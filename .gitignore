@@ -1,11 +1,9 @@
-# Repo-root ignores: the Flutter app (which lives here) plus what is shared.
+# Repo-root ignores for the Flutter app, which lives here.
 #
-# The Python rules that used to be here moved to app_qt/.gitignore when the Qt
-# app was frozen into that folder. One of them was actively dangerous: `/lib/`
-# existed only to stop the unanchored Python `lib/` rule from swallowing the
-# Flutter source when it lived at app/lib/. With the Dart source now at lib/,
-# that anchored rule matched the ENTIRE source tree. Deleting it is why this
-# file is a rewrite rather than an edit.
+# Be careful adding anything that could match `lib/`: the Dart source is at
+# lib/, and an ignore rule covering it fails silently — already-tracked files
+# stay tracked, and only NEW files vanish from `git status`.
+# `git check-ignore -v lib/main.dart` must print nothing.
 
 # ---- Flutter / Dart ----
 .dart_tool/
@@ -27,6 +25,13 @@ ios/fastlane/report.xml
 ios/fastlane/Preview.html
 ios/fastlane/*.mobileprovision
 **/*.p8
+# Windows code-signing. `dart run msix:create` generates a self-signed test
+# certificate next to the project when none is configured; it is a private key
+# like any other. No CA certificate is ever needed here — the Microsoft Store
+# re-signs MSIX packages itself.
+*.pfx
+*.cer
+*.p12
 
 # ---- Docs (Sphinx, built by Read the Docs from docs/) ----
 docs/_build/

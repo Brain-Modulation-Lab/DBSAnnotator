@@ -1,0 +1,86 @@
+Privacy
+=======
+
+DBS Annotator collects nothing, transmits nothing, and requires no account.
+
+This page is the privacy statement for the published app, and it is written to be
+checkable rather than reassuring: everything below is a property of the software
+that you can verify from the source, not a promise about how data is handled on a
+server. There is no server.
+
+What leaves the device
+----------------------
+
+Nothing. The application makes **no network connection of any kind** — there is no
+telemetry, no crash reporting, no analytics, no licence check, and no update check.
+It contains no HTTP client and opens no sockets. The repository URL and contact
+address shown in the *About* dialog are rendered as selectable text specifically so
+that the app has no reason to open a browser.
+
+The practical consequence: the app works in a room with no network, and there is no
+data-processing agreement to sign, because no data is processed anywhere but on
+your own device.
+
+What is stored, and where
+-------------------------
+
+Two things, both local.
+
+**Your session data**, in the files you create. Session and notes files are written
+only where you choose to save them, through the operating system's own file picker
+or share sheet. The app keeps no hidden database and no second copy. If you delete
+the file, the data is gone.
+
+**Your preferences**, in a single small JSON file: the scale and stimulation presets
+you have customised, your program names, the report page size and section
+selection, and the order of the panels in the entry chart. No patient data is
+stored in it. It lives in the per-user application-support directory for the
+platform:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Platform
+     - Location
+   * - Windows
+     - ``%APPDATA%\ch.wysscenter\dbs_annotator\dbs_user_prefs.json`` — or, for the
+       Microsoft Store build, the package's own private application-data folder
+       under ``%LOCALAPPDATA%\Packages\``
+   * - macOS
+     - ``~/Library/Application Support/``
+   * - Linux
+     - ``~/.local/share/``
+   * - iPadOS, Android
+     - the app's private sandbox, removed when the app is uninstalled
+
+Patient data
+------------
+
+The app records clinical information — stimulation parameters, scale ratings, side
+effects, free-text notes, and whatever subject identifier you type. **You choose
+what identifier to use, and the app never requires a real one.** Use a study code
+rather than a name or a hospital number wherever your protocol allows; the BIDS
+naming the app follows is designed for exactly that.
+
+Because the data never leaves the device, the responsibility for it is the same as
+for any file on that device: your institution's rules on encryption, backup,
+retention and disposal apply, and the app neither helps nor hinders them. Full-disk
+encryption is worth having on any device used at the bedside.
+
+If you report a bug
+-------------------
+
+Please do not attach a real session file, screenshot or report to a public issue.
+The repository includes a de-identified example session for exactly this purpose —
+see ``test/fixtures/`` — and it reproduces most format questions. This is also
+stated in the project's
+`code of conduct <https://github.com/Brain-Modulation-Lab/DBSAnnotator/blob/main/CODE_OF_CONDUCT.md>`_.
+
+Changes
+-------
+
+This statement is versioned with the software. Its history is the file's history in
+the repository, so any change to it is visible in the commit log.
+
+Questions: lucia.poma@wysscenter.ch

@@ -1112,12 +1112,29 @@ class _SessionScreenState extends State<SessionScreen> {
               border: Border.all(color: DbsColors.invalid, width: 2),
               borderRadius: BorderRadius.circular(4),
             ),
-      child: Text(
-        ok ? '✓ Configuration valid' : 'Invalid: ${side.validationError}',
-        style: TextStyle(
-          color: ok ? DbsColors.valid : DbsColors.invalid,
-          fontSize: 12,
-        ),
+      // An Icon, not a literal U+2713 in the string. A bare tick renders only
+      // if the active font happens to carry that codepoint; on the platforms
+      // this app targets it is often supplied by an OS fallback font, so it can
+      // come out as an empty box. The icon font is bundled with the app.
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            ok ? Icons.check_circle_outline : Icons.error_outline,
+            size: 14,
+            color: ok ? DbsColors.valid : DbsColors.invalid,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              ok ? 'Configuration valid' : 'Invalid: ${side.validationError}',
+              style: TextStyle(
+                color: ok ? DbsColors.valid : DbsColors.invalid,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1261,7 +1278,7 @@ class _SessionScreenState extends State<SessionScreen> {
   /// box the SizedBox provides).
   Widget _notesField(TextEditingController notesCtrl) {
     return SizedBox(
-      height: (MediaQuery.sizeOf(context).height * 0.4).clamp(180.0, 600.0),
+      height: (MediaQuery.sizeOf(context).height * 0.3).clamp(180.0, 600.0),
       child: TextField(
         controller: notesCtrl,
         maxLines: null,

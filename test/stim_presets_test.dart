@@ -4,27 +4,29 @@ import 'dart:io';
 import 'package:dbs_annotator/ui/stim_params_form.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards against Python<->Dart drift: StimLimits MUST expose the
-/// `stimulation_presets` quick-picks from the generated schema/limits.json
-/// (the desktop's preset combos). Run from the `app/` dir.
+/// Guards the quick-picks against the contract: StimLimits MUST expose the
+/// `stimulation_presets` values from assets/schema/limits.json. Run
+/// `flutter test` from the repo root.
 void main() {
   StimLimits loadLimits() {
     final file = File('assets/schema/limits.json');
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'Run `uv run python scripts/generate_schema_json.py` at repo root.',
+      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     return StimLimits.fromJson(json);
   }
 
-  test('stimulation quick-picks match the desktop preset combos', () {
+  test('stimulation quick-picks match the curated preset list', () {
     final limits = loadLimits();
-    expect(limits.frequencyPresets, [25, 55, 100, 125]);
-    expect(limits.amplitudePresets, contains(1.5));
-    expect(limits.amplitudePresets, [1.5, 3.0, 5.0, 7.0, 10.0]);
-    expect(limits.pulseWidthPresets, [40, 60, 90, 120]);
+    // Curated down from the desktop's original combos: 25 Hz, 1.5 and 10.0 mA
+    // and 120 us were dropped. Values, not just counts, because a quick-pick is
+    // a one-tap dose - a wrong number here is delivered, not merely displayed.
+    expect(limits.frequencyPresets, [55, 100, 125]);
+    expect(limits.amplitudePresets, [3.0, 5.0, 7.0]);
+    expect(limits.pulseWidthPresets, [40, 60, 90]);
 
     // Every quick-pick is inside its own field's allowed range.
     for (final v in limits.frequencyPresets) {

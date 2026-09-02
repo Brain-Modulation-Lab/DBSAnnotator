@@ -28,7 +28,7 @@ timestamps intact.
 
 ```
 lib/                 the Flutter application (Dart)
-test/                352 tests
+test/                357 tests
 assets/              bundled schema contract, fonts, app icon
 android/ ios/ linux/ macos/ windows/
 schema/              the machine-readable domain contract (TSV columns,
@@ -44,7 +44,7 @@ Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
 
 ```bash
 flutter pub get
-flutter test        # 352 tests, no device needed
+flutter test        # 357 tests, no device needed
 flutter analyze
 flutter run         # on a connected tablet, emulator, or desktop
 ```
@@ -110,10 +110,15 @@ is not, and the loader will correctly ignore it.
 ## Releases
 
 Tag `app-vX.Y.Z` to trigger
-[the pipeline](.github/workflows/ci.yml). Android ships a signed APK on
-the GitHub Release; iPadOS goes to TestFlight (Apple has no sideload path);
-Linux, Windows and macOS bundles are built as workflow artifacts. Per-OS app
-store distribution is planned.
+[the pipeline](.github/workflows/ci.yml). Android attaches an APK to the GitHub
+Release — signed with the project key once the signing secrets are set, and with
+the debug key until then, which is runnable but not distributable
+([MOBILE_RELEASE.md](MOBILE_RELEASE.md)). iPadOS goes to TestFlight (Apple has no
+sideload path); Linux, Windows and macOS bundles are built as workflow artifacts.
+Per-OS app store distribution is planned.
+
+To put a build on a machine or tablet today, with no developer account, see
+[Installing a build you made yourself](https://dbsannotator.readthedocs.io/en/latest/installation.html).
 
 ## Contributing
 

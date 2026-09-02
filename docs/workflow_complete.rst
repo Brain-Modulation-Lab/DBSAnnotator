@@ -71,6 +71,12 @@ Step 3 — Recording
 
 The loop, repeated once per configuration tried.
 
+.. image:: _static/screenshots/session_recording.png
+   :alt: The Recording step: parameters and electrode diagrams on the upper row,
+         scale ratings, side effects and notes below
+   :width: 100%
+
+
 Set the parameters and contacts as in step 1, then rate each scale. A scale that
 was not assessed can be marked omitted, which writes ``NaN`` rather than a made-up
 number.

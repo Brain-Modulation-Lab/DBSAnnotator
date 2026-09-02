@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 /// App identity + Help/About, mirroring the desktop `config.py` values and the
-/// wizard's Help dialog. Keep [appVersion] in sync with pubspec.
+/// wizard's Help dialog.
 const String appName = 'DBS Annotator';
-const String appVersion = '0.1.0';
+
+/// Restates `version:` from pubspec.yaml, which is the source of truth.
+///
+/// Dart cannot read the pubspec at runtime without a native plugin, so this is
+/// a literal — but `test/version_parity_test.dart` fails if it drifts. It
+/// reaches every report footer, the PDF `/Info` dictionary and the docx
+/// `docProps`, so a stale value here is filed in a patient record.
+const String appVersion = '0.5.0';
 const String repoUrl = 'https://github.com/Brain-Modulation-Lab/DBSAnnotator';
 const String issuesUrl = '$repoUrl/issues';
 const String contactEmail = 'lucia.poma@wysscenter.ch';
@@ -58,7 +65,7 @@ void showAppAbout(BuildContext context) {
       SelectableText('Issues: $issuesUrl'),
       SelectableText('Contact: $contactEmail'),
       SizedBox(height: 12),
-      Text('© 2025 $copyrightHolders'),
+      Text('© 2026 $copyrightHolders'),
       Text('MIT License. Publisher: $publisher.'),
     ],
   );

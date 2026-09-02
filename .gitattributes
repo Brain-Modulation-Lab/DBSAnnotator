@@ -1,8 +1,7 @@
-# Shell scripts must be LF: piping to sh on Linux breaks on CRLF, and the
-# installer is fetched with `curl … | sh`.
+# Shell scripts must be LF, whatever they are for: a CRLF script piped to `sh`
+# fails on its first line, and nothing in the toolchain warns first.
 #
-# UNANCHORED on purpose. This used to read `scripts/*.sh`, which contains a
-# slash and is therefore anchored to this file's directory — so moving the
-# scripts into app_qt/ would have silently stopped matching them, and the
-# installer would have started shipping CRLF with no error anywhere.
+# UNANCHORED on purpose. A pattern containing a slash anywhere but at the end is
+# anchored to this file's directory, so `scripts/*.sh` would silently stop
+# matching the day a script moved.
 *.sh text eol=lf

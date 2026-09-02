@@ -1,9 +1,22 @@
 name: dbs_annotator
-description: "DBS Annotator companion app (offline, TSV-compatible with the desktop app)."
+# Shown in the Microsoft Store listing and on the app's tile - it becomes the
+# MSIX manifest Description - so this is user-facing copy, not a dev note.
+description: "Record deep brain stimulation programming sessions at the bedside and get analysis-ready BIDS TSV, PDF and Word reports. Fully offline."
 publish_to: "none"
 
-# Mirrors the desktop SemVer; the +N build number is bumped per release.
-version: 0.1.0+1
+# THE source of truth for the version. Android versionCode/versionName, the
+# iOS/macOS FLUTTER_BUILD_NAME, the Windows FILEVERSION and the docs footer are
+# all derived from this line — do not edit those by hand.
+#
+# Three literals cannot read it and so restate it: `appVersion` in
+# lib/app_info.dart, `version:` in CITATION.cff, and `msix_version` below (which
+# needs a fourth component the pubspec grammar has no room for).
+# test/version_parity_test.dart fails if any of them disagrees with this.
+#
+# 0.5.x continues the product's own line: the Qt implementation shipped through
+# v0.4.0 and this app is its successor. The +N build number must only ever
+# increase once something has been published.
+version: 0.5.0+1
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -40,6 +53,9 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   # App icon generation (run: dart run flutter_launcher_icons). See MOBILE_RELEASE.md.
   flutter_launcher_icons: ^0.14.1
+  # Windows MSIX packaging (run: dart run msix:create). See msix_config below
+  # and the Windows section of MOBILE_RELEASE.md.
+  msix: ^3.18.0
 
 flutter:
   uses-material-design: true
@@ -56,8 +72,7 @@ flutter:
     # Linux runner can set the window icon (Flutter's Linux template sets none).
     - assets/icon/
 
-# App launcher icon = the desktop Qt app's mark
-# (icons/logosimple/logosimple.iconset/icon_512x512@2x.png -> assets/icon/app_icon.png).
+# App launcher icon: the project mark, at assets/icon/app_icon.png.
 # Regenerate all platform icons with `dart run flutter_launcher_icons`.
 # NOTE: this tool has no Linux support — the Linux window icon is set by hand in
 # linux/runner/my_application.cc from the bundled asset above.
@@ -79,3 +94,55 @@ flutter_launcher_icons:
     icon_size: 256
   macos:
     generate: true
+
+# Windows MSIX packaging. Two commands, one config:
+#
+#   dart run msix:create            self-signed, to INSTALL and verify locally
+#   dart run msix:create --store    unsigned, to UPLOAD to Partner Center
+#
+# A Store package is unsigned by design (Microsoft re-signs it after
+# certification, which is why no code-signing certificate is needed and none
+# should ever be bought for this project). Unsigned means uninstallable, so the
+# self-signed build is the only way to smoke-test the package — it is a testing
+# tool, not a second distribution channel.
+#
+# The identity below is the SIDELOAD identity. The Store's is different and is
+# NOT committed: Partner Center assigns `identity_name` from the reserved app
+# name and issues the `CN=...` publisher, and both are passed on the command
+# line at build time. They are case-sensitive, punctuation included — a mismatch
+# is the most common submission rejection. See MOBILE_RELEASE.md.
+msix_config:
+  display_name: DBS Annotator
+  publisher_display_name: Wyss Center for Bio and Neuroengineering
+  identity_name: ch.wysscenter.DBSAnnotator
+  # Four components, and the fourth MUST be 0: Microsoft reserves the revision
+  # field for Store use. That is why this cannot be derived from the pubspec
+  # `version: x.y.z+build` above — the build number is not a revision.
+  # Keep the first three equal to it; test/version_parity_test.dart enforces it.
+  msix_version: 0.5.0.0
+  # One 1024x1024 source; the tool generates the whole tile/scale set from it.
+  logo_path: assets/icon/app_icon.png
+  architecture: x64
+  output_path: build/windows/msix
+  # Do not auto-install the generated test certificate: that needs elevation,
+  # so it turns any non-interactive build (CI, a script) into a prompt or a
+  # failure. Trusting the certificate is a deliberate, documented step on each
+  # test machine - see the Windows section of MOBILE_RELEASE.md.
+  install_certificate: false
+  # Do NOT let msix drive the Flutter build. It shells out to `flutter build
+  # windows` with its own flags, and a build invoked with a different
+  # configuration than the previous one has twice now made Flutter's build
+  # system delete windows/flutter/ephemeral/cpp_client_wrapper/*.cc and then
+  # skip re-copying them (its filecache believes the unpack step is current),
+  # so the next build fails with C1083 on files nobody touched. Build first,
+  # package second:
+  #
+  #   flutter build windows --release && dart run msix:create
+  #
+  # msix validates that the expected .exe is present, so a forgotten build
+  # fails loudly rather than packaging a stale one.
+  build_windows: false
+  # No `capabilities:` on purpose. The app makes no network calls and uses no
+  # camera, microphone, location or background tasks; ordinary full-trust file
+  # access needs no declaration, and declaring an unused capability invites
+  # certification questions about why.

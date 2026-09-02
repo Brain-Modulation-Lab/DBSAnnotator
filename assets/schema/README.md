@@ -7,8 +7,8 @@ They are a bundled copy. The canonical copy is the repo-root `schema/`, because 
 assets that live under the project directory, so the app needs its own copy under `assets/`.
 
 Both copies are committed on purpose: a fresh clone must build and test with **no generation step**.
-They used to be gitignored and produced by `cp ../schema/*.json assets/schema/` in six CI steps, which
-meant a clone built fine and then threw at runtime the first time `rootBundle.loadString` was called.
+Generating the bundled copy at build time is what makes a clone build cleanly and then throw the first
+time `rootBundle.loadString` is called.
 
 ## Keeping them in sync
 
@@ -17,5 +17,6 @@ cp schema/*.json assets/schema/     # from the repo root
 ```
 
 If you change the contract, change the root `schema/` files, run the copy above, and commit both.
-The two must never diverge: runtime reads the bundled copy while several tests read the root one, so
-a mismatch shows up as "works in tests, wrong in the app".
+`test/schema_parity_test.dart` fails if the two ever diverge — the app loads the bundled copy while
+the docs render their column tables from the root one, so a silent mismatch would publish a reference
+describing a contract the app does not implement.

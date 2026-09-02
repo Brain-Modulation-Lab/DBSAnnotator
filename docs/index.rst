@@ -73,6 +73,7 @@ At a glance
    output_format
    reports
    faq
+   privacy
 
 Release notes are published with each tagged release on
 `GitHub <https://github.com/Brain-Modulation-Lab/DBSAnnotator/releases>`_.
