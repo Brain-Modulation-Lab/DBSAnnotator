@@ -1,14 +1,13 @@
 /*
  * DBS Annotator Read the Docs overrides (sphinx-rtd-theme).
  * Keep standard RTD colours (dark sidebar, light content, blue links/headings);
- * widen the prose column; cap screenshots at 65%.
+ * give the prose column the full viewport, and let screenshots use all of it.
  */
 :root {
   /* sphinx-rtd-theme .wy-nav-side */
   --dbs-docs-sidebar: #343131;
   /* sphinx-rtd-theme .wy-nav-content-wrap / content area */
   --dbs-docs-content-bg: #fcfcfc;
-  --dbs-docs-screenshot-max: 75%;
 }
 
 /* Outer area — same dark grey as the left navigation column (standard RTD). */
@@ -22,13 +21,20 @@ section.wy-nav-content-wrap,
   background-color: var(--dbs-docs-sidebar) !important;
 }
 
-/* Main prose column — standard RTD light panel (not app dark theme). */
+/*
+ * Main prose column — standard RTD light panel (not the app's dark theme).
+ *
+ * The theme caps this at 800px and adds 3.236em of side padding; both are
+ * overridden, and the outer gutter this file used to add is gone. A screenshot
+ * of a two-column clinical screen is unreadable at 800px, and every one of them
+ * is captured at the width it is meant to be seen at.
+ */
 .wy-nav-content {
   max-width: none !important;
   background: var(--dbs-docs-content-bg) !important;
   background-color: var(--dbs-docs-content-bg) !important;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  margin-inline: clamp(0px, 2.5vw, 40px);
+  padding-inline: clamp(16px, 2vw, 32px);
   min-height: 100%;
 }
 
@@ -85,27 +91,42 @@ section.wy-nav-content-wrap,
   color: #b3b3b3;
 }
 
-/* ---- Screenshots & figures (max 65% width, centered) ---- */
-.rst-content img.screenshot-full,
-.rst-content img.screenshot-native,
-.rst-content img.screenshot-medium,
-.rst-content .figure img,
-.wy-nav-content img.screenshot-full,
-.wy-nav-content img.screenshot-native,
-.wy-nav-content img.screenshot-medium,
-.wy-nav-content .figure img {
-  display: block;
-  width: auto !important;
-  max-width: var(--dbs-docs-screenshot-max);
-  height: auto;
-  margin-inline: auto;
+/*
+ * ---- Screenshots ----
+ *
+ * Framing only: the size comes from each directive's own `:width: 100%`, and
+ * every capture is generated at the width and height it should be seen at (see
+ * test/docs/screenshots_test.dart), so nothing here scales anything.
+ *
+ * The selector matches what Sphinx actually emits — an <img> inside the
+ * <a class="reference internal image-reference"> it wraps every image in. The
+ * rules this replaced were keyed on `img.screenshot-full` and `.figure img`,
+ * neither of which any page has produced since the Qt-era docs: the frame,
+ * shadow and cap had all been silently doing nothing.
+ */
+.rst-content a.image-reference img {
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 
-/* Home-page logo keeps its explicit :width: from RST. */
-.rst-content img[src*="logo.png"],
-.wy-nav-content img[src*="logo.png"] {
-  max-width: none;
+/* Figure captions read as captions, not as body text. */
+.rst-content figure figcaption,
+.rst-content .figure .caption {
+  color: #6b6b6b;
+  font-size: 90%;
+  font-style: italic;
+  margin-top: 0.4em;
+}
+
+/* Home-page logo: centred at its declared width, and unframed. */
+.rst-content img[src*="logo.png"] {
   box-shadow: none;
+}
+
+/*
+ * Wide content scrolls inside itself rather than pushing the page sideways.
+ * The generated column tables in output_format are the ones that do this.
+ */
+.rst-content .wy-table-responsive {
+  overflow-x: auto;
 }

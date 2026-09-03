@@ -58,8 +58,7 @@ class StimLimits {
       amplitudeFineStep: step2(amp, 0.5),
       pulseWidthFineStep: step2(pw, 5),
       amplitudeDecimals: ((amp['decimals'] as num?) ?? 2).toInt(),
-      sessionScaleOmittedTsv:
-          (sessionScale['omitted_tsv'] as String?) ?? 'NaN',
+      sessionScaleOmittedTsv: (sessionScale['omitted_tsv'] as String?) ?? 'NaN',
       frequencyPresets: values('frequencies'),
       amplitudePresets: values('amplitudes'),
       pulseWidthPresets: values('pulse_widths'),

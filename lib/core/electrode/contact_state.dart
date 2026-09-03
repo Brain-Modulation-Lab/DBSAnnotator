@@ -21,8 +21,8 @@ enum ContactState {
       0 => ContactState.off,
       1 => ContactState.anodic,
       2 => ContactState.cathodic,
-      _ => throw ArgumentError.value(
-          value, 'value', 'Unknown ContactState value'),
+      _ =>
+        throw ArgumentError.value(value, 'value', 'Unknown ContactState value'),
     };
   }
 }

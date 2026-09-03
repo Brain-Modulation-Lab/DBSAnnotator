@@ -17,15 +17,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'report_ranking_prefs.dart';
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync(),
     );
 
 void main() {
   late SessionReportData data;
 
-  setUp(() => data = rankedReportData(_example(),
-      generatedAt: DateTime(2026, 6, 26)));
+  setUp(() =>
+      data = rankedReportData(_example(), generatedAt: DateTime(2026, 6, 26)));
 
   test('the aggregate index per block, to three decimals', () {
     // Five scales, all defaulted to mode `min` over 0..10, so each block scores

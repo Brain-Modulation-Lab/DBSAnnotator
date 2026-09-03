@@ -24,14 +24,15 @@ void main() {
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
+      reason:
+          'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
 
-    List<String> columnsOf(String key) => ((json[key]
-            as Map<String, dynamic>)['columns'] as List)
-        .map((c) => (c as Map<String, dynamic>)['name'] as String)
-        .toList();
+    List<String> columnsOf(String key) =>
+        ((json[key] as Map<String, dynamic>)['columns'] as List)
+            .map((c) => (c as Map<String, dynamic>)['name'] as String)
+            .toList();
 
     expect(annotationColumns, columnsOf('annotation_tsv'));
     expect(sessionColumns, columnsOf('session_tsv'));
@@ -49,7 +50,8 @@ void main() {
       expect(root.existsSync(), isTrue,
           reason: 'schema/$name.json is committed; restore it from git.');
       expect(bundled.existsSync(), isTrue,
-          reason: 'assets/schema/$name.json is committed; restore it from git.');
+          reason:
+              'assets/schema/$name.json is committed; restore it from git.');
       // Compared as a bool rather than as two strings so a failure reads as the
       // instruction below instead of a diff of several thousand JSON lines.
       expect(

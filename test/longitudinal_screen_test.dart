@@ -20,8 +20,7 @@ void main() {
       });
     });
 
-    test('single file is identical to its own timeline; empty input is {}',
-        () {
+    test('single file is identical to its own timeline; empty input is {}', () {
       const rows = [
         SessionRow(blockId: '0', scaleName: 'Mood', scaleValue: '3'),
       ];

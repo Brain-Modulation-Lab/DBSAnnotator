@@ -13,14 +13,14 @@ typedef ScalePair = ({String name, String value});
 
 /// True if a scale_value cell means "not scored" and must be skipped.
 ///
-/// Mirrors models.is_session_scale_value_omitted: blank, "NaN" (any case;
-/// the desktop writes the literal "NaN" for a deactivated Step-3 scale),
-/// or pandas' "<NA>".
+/// Accepts every spelling that has ever meant "not scored": blank, BIDS' `n/a`
+/// (written from v0.5.0), the literal `NaN` any case (written by 0.4.x and the
+/// Qt desktop app for a deactivated Step-3 scale), and pandas' `<NA>`.
 bool isScaleValueOmitted(String value) {
   final s = value.trim();
   if (s.isEmpty) return true;
   final lowered = s.toLowerCase();
-  return lowered == 'nan' || lowered == '<na>';
+  return lowered == 'nan' || lowered == '<na>' || lowered == 'n/a';
 }
 
 /// Split a row's newline-separated scale_name/scale_value cells into pairs.
@@ -30,11 +30,8 @@ bool isScaleValueOmitted(String value) {
 /// is padded with '' up to the name count and zipped name-by-name. Extra
 /// value lines beyond the name count are ignored.
 List<ScalePair> splitScalePairs(String scaleName, String scaleValue) {
-  List<String> lines(String cell) => cell
-      .split('\n')
-      .map((s) => s.trim())
-      .where((s) => s.isNotEmpty)
-      .toList();
+  List<String> lines(String cell) =>
+      cell.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
   final names = lines(scaleName);
   final values = lines(scaleValue);
   while (values.length < names.length) {
@@ -53,11 +50,11 @@ int _coerceInt(String raw) {
   return v.truncate();
 }
 
-/// Per-scale timeline: scale name -> {block_ID -> numeric value}.
+/// Per-scale timeline: scale name -> {block_id -> numeric value}.
 ///
 /// Mirrors _collect_session_scale_data over a single file: only session
 /// rows (is_initial coerced != 1; blanks/junk coerce to 0 like pandas'
-/// fillna(0)) are used, rows are grouped by coerced block_ID, and
+/// fillna(0)) are used, rows are grouped by coerced block_id, and
 /// non-numeric/omitted values are skipped. When one block holds several
 /// values for the same scale, the last one wins (Python: "keep last").
 ///
@@ -65,7 +62,7 @@ int _coerceInt(String raw) {
 /// desktop exporter only exists in its derived lateral table, where every
 /// entry is duplicated into an L and an R row sharing the same scales, so
 /// its "L rows only" filter is equivalent to grouping the raw rows by
-/// block_ID as done here.
+/// block_id as done here.
 Map<String, Map<int, double>> scaleTimeline(List<SessionRow> rows) {
   final timeline = <String, Map<int, double>>{};
   for (final row in rows) {

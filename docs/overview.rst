@@ -57,7 +57,7 @@ access, and patient data should not require it. The app has no server component
 and makes no outbound connections.
 
 **One format, openly documented.** Output is tab-separated text with
-:doc:`BIDS <output_format>`-style filenames. It opens in a spreadsheet, in
+:doc:`BIDS <output_format>` filenames and layout. It opens in a spreadsheet, in
 pandas, in R, in a text editor. There is no proprietary container and no export
 step that can silently lose a field.
 

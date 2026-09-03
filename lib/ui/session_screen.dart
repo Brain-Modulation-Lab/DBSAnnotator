@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart' show PdfPageFormat;
 
 import '../core/bids.dart';
+import '../core/bids_sidecar.dart';
 import '../core/electrode/amplitude.dart';
 import '../core/electrode/contact_state.dart';
 import '../core/electrode/electrode_model.dart';
@@ -28,6 +29,7 @@ import '../report/session_docx.dart';
 import '../report/session_pdf.dart';
 import '../app_info.dart';
 import 'amplitude_split.dart';
+import 'bids_export.dart';
 import 'electrode_view.dart';
 import 'list_editor_dialog.dart';
 import 'report_images.dart';
@@ -228,7 +230,6 @@ class _SessionScreenState extends State<SessionScreen> {
     });
   }
 
-
   // Chart data is derived from every inserted row, so it is cached and rebuilt
   // only when the rows actually change. Without this it would be recomputed on
   // every setState -- i.e. on every slider tick in this step -- and, because
@@ -242,10 +243,10 @@ class _SessionScreenState extends State<SessionScreen> {
     // Also rebuild when the TARGETS change, not only the rows: the bounds set
     // the scales panel's y axis and the modes decide which block is banded, so
     // caching on rows alone left the figure stale after editing either.
-    if (_entryChartsCache == null ||
-        !listEquals(_entryChartsPrefs, prefs)) {
+    if (_entryChartsCache == null || !listEquals(_entryChartsPrefs, prefs)) {
       _entryChartsPrefs = prefs;
-      _entryChartsCache = buildEntryChartData(_authoring.rows, scalePrefs: prefs);
+      _entryChartsCache =
+          buildEntryChartData(_authoring.rows, scalePrefs: prefs);
     }
     return _entryChartsCache!;
   }
@@ -346,8 +347,8 @@ class _SessionScreenState extends State<SessionScreen> {
     super.dispose();
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   /// Amplitude cell: '' when blank, otherwise the plain total formatted via
   /// encodeAmplitude (split-across-cathodes UI is deferred; a single value
@@ -408,8 +409,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// active (using the amplitude-split percentages), else the plain total.
   String _amplitudeFor(
       _SideInputs side, ({String anode, String cathode}) tokens) {
-    final cathodes =
-        tokens.cathode.split('_').where((t) => t.isNotEmpty && t != 'case').toList();
+    final cathodes = tokens.cathode
+        .split('_')
+        .where((t) => t.isNotEmpty && t != 'case')
+        .toList();
     final total = double.tryParse(side.amp.text.trim());
     if (cathodes.length >= 2 &&
         total != null &&
@@ -479,9 +482,8 @@ class _SessionScreenState extends State<SessionScreen> {
         for (final s in _sessionScales)
           (
             name: s.name.text.trim(),
-            value: s.omitted
-                ? limits.sessionScaleOmittedTsv
-                : _fmtValue(s.value),
+            value:
+                s.omitted ? limits.sessionScaleOmittedTsv : _fmtValue(s.value),
           ),
       ],
       programId: _selectedProgram ?? '',
@@ -513,18 +515,31 @@ class _SessionScreenState extends State<SessionScreen> {
     }
   }
 
+  /// Write the `_beh.json` sidecar beside [tsvPath].
+  ///
+  /// Best-effort and silent: the sidecar documents the columns for whoever
+  /// analyses the file later, so failing to write it must never stop a session
+  /// from being recorded. Skipped when one is already there, since its content
+  /// depends only on the schema version, not on the session.
+  Future<void> _writeSidecar(String tsvPath) async {
+    try {
+      final json = tsvPath.replaceFirst(RegExp(r'\.tsv$'), '.json');
+      if (json == tsvPath || File(json).existsSync()) return;
+      final contract = await loadTsvContract();
+      await File(json)
+          .writeAsString(sessionSidecarJson(contract, appVersion: appVersion));
+    } catch (_) {
+      // No sidecar is a documentation loss, not a data loss.
+    }
+  }
+
   // ---- Open / Export (offline pattern from annotations_screen.dart) ----
 
   Future<void> _newSession() async {
     final subject =
         _subjectCtrl.text.trim().isEmpty ? '01' : _subjectCtrl.text.trim();
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
-    final name = BidsName(
-      subject: subject,
-      session: BidsName.sessionStamp(DateTime.now()),
-      task: 'programming',
-      run: run,
-    ).filename;
+    final name = _bidsName((subject: subject, run: run)).filename;
     // Desktop parity: choose where to create the BIDS TSV before continuing.
     String? path;
     try {
@@ -552,6 +567,7 @@ class _SessionScreenState extends State<SessionScreen> {
       if (mounted) _snack('Could not create $p: $e');
       return;
     }
+    await _writeSidecar(p);
     if (!mounted) return;
     setState(() {
       _authoring = authoring;
@@ -611,8 +627,7 @@ class _SessionScreenState extends State<SessionScreen> {
     // geometry.
     final catalog = (await _contracts).$1;
     final named = electrodeModelIn(_authoring.rows);
-    final unknownModel =
-        named.isNotEmpty && !catalog.models.containsKey(named);
+    final unknownModel = named.isNotEmpty && !catalog.models.containsKey(named);
 
     if (!mounted) return;
     setState(() {
@@ -639,12 +654,18 @@ class _SessionScreenState extends State<SessionScreen> {
   /// and become a path component.
   ({String subject, String run}) get _labels {
     final subject = BidsName.label(_subjectCtrl.text.trim());
-    final run = BidsName.label(_runCtrl.text.trim());
-    return (
-      subject: subject.isEmpty ? 'unknown' : subject,
-      run: run.isEmpty ? '01' : run,
-    );
+    final run = BidsName.index(_runCtrl.text.trim());
+    return (subject: subject.isEmpty ? 'unknown' : subject, run: run);
   }
+
+  /// The BIDS entities for everything this screen writes — the session TSV, its
+  /// sidecar, and the report derivative — so all three carry the same ones.
+  BidsName _bidsName(({String subject, String run}) labels) => BidsName(
+        subject: labels.subject,
+        session: BidsName.sessionStamp(DateTime.now()),
+        task: 'programming',
+        run: labels.run,
+      );
 
   /// Report sections the user last chose (all of them, by default).
   Set<ReportSection> get _sections {
@@ -668,8 +689,7 @@ class _SessionScreenState extends State<SessionScreen> {
       onEditTargets: _editScaleTargets,
     );
     if (chosen == null) return null;
-    setState(() =>
-        _prefs.reportSections = [for (final s in chosen) s.name]);
+    setState(() => _prefs.reportSections = [for (final s in chosen) s.name]);
     saveUserPrefs(_prefs);
     return chosen;
   }
@@ -679,26 +699,56 @@ class _SessionScreenState extends State<SessionScreen> {
       _snack('Insert at least one block before exporting.');
       return;
     }
-    final l = _labels;
-    final name = BidsName(
-      subject: l.subject,
-      session: BidsName.sessionStamp(DateTime.now()),
-      task: 'programming',
-      run: l.run,
-    );
     await exportFile(
       context,
-      filename: name.filename,
+      filename: _bidsName(_labels).filename,
       anchor: _exportKey,
       build: () async =>
           (bytes: utf8.encode(_authoring.serialize()), warning: null),
     );
   }
 
+  /// Export this session as a one-subject BIDS dataset (zipped).
+  ///
+  /// The TSV on its own carries BIDS entities in its *name*; this is the tree
+  /// those entities describe — `sub-XX/ses-YYYYMMDD/beh/` with the sidecar, a
+  /// `dataset_description.json`, a `README`, `participants.tsv` and `scans.tsv`
+  /// — which is what a validator, and a colleague pooling several patients,
+  /// actually need.
+  Future<void> _exportBids() async {
+    if (_authoring.rows.isEmpty) {
+      _snack('Insert at least one block before exporting.');
+      return;
+    }
+    final Map<String, dynamic> contract;
+    try {
+      contract = await loadTsvContract();
+    } catch (e) {
+      if (mounted) _snack('BIDS export failed: $e');
+      return;
+    }
+    if (!mounted) return;
+    final rows = _authoring.rows;
+    await exportBidsDataset(
+      context,
+      anchor: _exportKey,
+      entries: [
+        datasetEntry(
+          name: _bidsName(_labels),
+          tsv: _authoring.serialize(),
+          contract: contract,
+          kind: 'session_tsv',
+          acqTime: rows.isEmpty ? '' : rows.first.acqTime,
+        ),
+      ],
+    );
+  }
+
   /// Build the session report in [format] and share it (mobile) or save it
   /// (desktop). Both formats are built from ONE [SessionReportData] and one
   /// section selection, so they cannot disagree about content.
-  Future<void> _exportReport(ElectrodeModel? model, {required bool docx}) async {
+  Future<void> _exportReport(ElectrodeModel? model,
+      {required bool docx}) async {
     if (_authoring.rows.isEmpty) {
       _snack('Insert at least one block before exporting a report.');
       return;
@@ -707,12 +757,12 @@ class _SessionScreenState extends State<SessionScreen> {
     if (sections == null || !mounted) return;
 
     final l = _labels;
-    // Same BIDS-friendly report name as the desktop's
-    // _generate_bids_report_filename.
-    final stamp = BidsName.sessionStamp(DateTime.now());
-    final ext = docx ? 'docx' : 'pdf';
-    final filename = 'sub-${l.subject}_ses-$stamp'
-        '_task-programming_run-${l.run}_report.$ext';
+    // A report is a derivative, not raw data — `_report` is not a BIDS suffix
+    // and never will be. Built from the same entities as the TSV so the two
+    // files sort together, through the one builder so they cannot drift.
+    final filename = _bidsName(l)
+        .withSuffix('report', extension: docx ? 'docx' : 'pdf')
+        .filename;
 
     await exportFile(
       context,
@@ -757,8 +807,6 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
-
-
   /// One `Export` menu instead of four separate controls.
   ///
   /// Replaces three buttons and a paper-size toggle: the choice is always
@@ -789,17 +837,21 @@ class _SessionScreenState extends State<SessionScreen> {
             onPressed: _export,
             child: const Text('Export TSV'),
           ),
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.folder_zip_outlined),
+            onPressed: _exportBids,
+            child: const Text('Export BIDS dataset (zip)'),
+          ),
           const Divider(height: 8),
           SubmenuButton(
             leadingIcon: const Icon(Icons.description),
             menuChildren: [
               for (final size in kReportPageSizes)
                 MenuItemButton(
-                  leadingIcon: Icon((_prefs.reportPageSize ??
-                              kDefaultReportPageSize) ==
-                          size
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked),
+                  leadingIcon: Icon(
+                      (_prefs.reportPageSize ?? kDefaultReportPageSize) == size
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked),
                   onPressed: () {
                     setState(() => _prefs.reportPageSize = size);
                     saveUserPrefs(_prefs);
@@ -1006,12 +1058,15 @@ class _SessionScreenState extends State<SessionScreen> {
   List<String> _cathodesFor(_SideInputs side, ElectrodeModel? model) {
     if (model == null) return const [];
     final cathode = encodeTokens(side.states, side.caseState, model).cathode;
-    return cathode.split('_').where((t) => t.isNotEmpty && t != 'case').toList();
+    return cathode
+        .split('_')
+        .where((t) => t.isNotEmpty && t != 'case')
+        .toList();
   }
 
   /// Column 1 item: one side's stim params + its amplitude split.
-  Widget _paramsCard(
-      String title, _SideInputs side, ElectrodeModel? model, StimLimits limits) {
+  Widget _paramsCard(String title, _SideInputs side, ElectrodeModel? model,
+      StimLimits limits) {
     final card = GroupCard(
       title: side.enabled ? title : '$title (off)',
       child: Column(
@@ -1206,7 +1261,8 @@ class _SessionScreenState extends State<SessionScreen> {
       children: [
         swatch(DbsColors.offBase, DbsColors.offBorder, 'Off'),
         swatch(DbsColors.anodicBase, DbsColors.anodicBorder, 'Anodic (+)'),
-        swatch(DbsColors.cathodicBase, DbsColors.cathodicBorder, 'Cathodic (−)'),
+        swatch(
+            DbsColors.cathodicBase, DbsColors.cathodicBorder, 'Cathodic (−)'),
       ],
     );
   }
@@ -1356,7 +1412,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   /// Replace the clinical rows with a disease preset's scale names, like
   /// the desktop Step-1 pills. If the same disease exists as a session preset,
-  /// also pre-select + load it so Step 2 arrives already configured (the user
+  /// also preselect + load it so Step 2 arrives already configured (the user
   /// asked for clinical->session category sync).
   void _applyClinicalPreset(
       String preset, ScalePresets presets, StimLimits limits) {
@@ -1408,9 +1464,8 @@ class _SessionScreenState extends State<SessionScreen> {
       showCheckmark: false,
       onSelected: (_) => onTap(),
       selectedColor: DbsColors.accent.withValues(alpha: 0.2),
-      side: selected
-          ? const BorderSide(color: DbsColors.accent, width: 2)
-          : null,
+      side:
+          selected ? const BorderSide(color: DbsColors.accent, width: 2) : null,
       labelStyle: TextStyle(
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
       ),
@@ -1420,7 +1475,8 @@ class _SessionScreenState extends State<SessionScreen> {
   Widget _clinicalScalesCard(ScalePresets presets, StimLimits limits) {
     return Card(
       // Warm fill + outline to match GroupCard (dark-safe; no M3 blue).
-      color: DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
+      color:
+          DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -1446,8 +1502,8 @@ class _SessionScreenState extends State<SessionScreen> {
                 IconButton(
                   icon: const Icon(Icons.add),
                   tooltip: 'Add clinical scale',
-                  onPressed: () => setState(
-                      () => _clinicalScales.add(_ClinicalScaleEdit())),
+                  onPressed: () =>
+                      setState(() => _clinicalScales.add(_ClinicalScaleEdit())),
                 ),
               ],
             ),
@@ -1594,8 +1650,8 @@ class _SessionScreenState extends State<SessionScreen> {
             IconButton(
               icon: const Icon(Icons.add),
               tooltip: 'Add session scale',
-              onPressed: () => setState(() => _sessionScales.add(
-                  _SessionScaleEdit(min: range.min, max: range.max))),
+              onPressed: () => setState(() => _sessionScales
+                  .add(_SessionScaleEdit(min: range.min, max: range.max))),
             ),
           ],
         ),
@@ -1723,7 +1779,8 @@ class _SessionScreenState extends State<SessionScreen> {
   Widget _ratingsCard(StimLimits limits) {
     return Card(
       // Warm fill + outline to match GroupCard (dark-safe; no M3 blue).
-      color: DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
+      color:
+          DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -1808,8 +1865,7 @@ class _SessionScreenState extends State<SessionScreen> {
             setState(() => _prefs.entryPanelOrder = ids);
             saveUserPrefs(_prefs);
           },
-          visibleConfigs:
-              _prefs.entryVisibleConfigs ?? kDefaultVisibleConfigs,
+          visibleConfigs: _prefs.entryVisibleConfigs ?? kDefaultVisibleConfigs,
           onVisibleConfigsChanged: (n) {
             setState(() => _prefs.entryVisibleConfigs = n);
             saveUserPrefs(_prefs);
@@ -1850,11 +1906,7 @@ class _SessionScreenState extends State<SessionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complete workflow'),
-        actions: const [
-          TextSizeButtons(),
-          HelpButton(),
-          ThemeToggleButton()
-        ],
+        actions: const [TextSizeButtons(), HelpButton(), ThemeToggleButton()],
       ),
       body: FutureBuilder<(ElectrodeCatalog, StimLimits, ScalePresets)>(
         future: _contracts,
@@ -1876,8 +1928,7 @@ class _SessionScreenState extends State<SessionScreen> {
             pulseWidths: _prefs.stimPulseWidths,
           );
           final presets = mergeScalePresets(rawPresets, _prefs);
-          final model =
-              _modelName == null ? null : catalog.models[_modelName];
+          final model = _modelName == null ? null : catalog.models[_modelName];
           // Only the active step builds its (heavy) content: keeps one
           // ElectrodeView / one Notes field per side in the tree at a time,
           // so state lives in _SessionScreenState, not in step widgets.
@@ -1929,8 +1980,8 @@ class _SessionScreenState extends State<SessionScreen> {
                 subtitle: const Text(
                     'Baseline stimulation + clinical scales (is_initial 1)'),
                 isActive: _currentStep == 1,
-                content:
-                    when(1, () => _initialStep(catalog, limits, presets, model)),
+                content: when(
+                    1, () => _initialStep(catalog, limits, presets, model)),
               ),
               Step(
                 title: const Text('Session scales configuration'),
@@ -1941,8 +1992,8 @@ class _SessionScreenState extends State<SessionScreen> {
               ),
               Step(
                 title: const Text('Recording'),
-                subtitle: const Text(
-                    'Stimulation + ratings (is_initial 0), export'),
+                subtitle:
+                    const Text('Stimulation + ratings (is_initial 0), export'),
                 isActive: _currentStep == 3,
                 content: when(3, () => _recordingStep(catalog, limits, model)),
               ),

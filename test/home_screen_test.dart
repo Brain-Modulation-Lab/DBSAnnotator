@@ -52,12 +52,15 @@ void main() {
     // icon fails loudly here instead of shipping as a Material glyph.
     final data = await rootBundle.load(appIconAsset);
     final bytes = data.buffer.asUint8List();
-    expect(bytes.sublist(0, 8),
-        [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+    expect(
+        bytes.sublist(0, 8), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
         reason: 'not a PNG');
     // The 1024x1024 master, read from the IHDR.
-    int be32(int o) => (bytes[o] << 24) | (bytes[o + 1] << 16) |
-        (bytes[o + 2] << 8) | bytes[o + 3];
+    int be32(int o) =>
+        (bytes[o] << 24) |
+        (bytes[o + 1] << 16) |
+        (bytes[o + 2] << 8) |
+        bytes[o + 3];
     expect(be32(16), 1024);
     expect(be32(20), 1024);
   });

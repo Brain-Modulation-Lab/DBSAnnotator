@@ -107,7 +107,10 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
   final recording = rows.where((r) => coerceInt(r.isInitial) != 1).toList();
 
   // The visit's date is the earliest stamp in the file.
-  final dates = rows.map((r) => r.date.trim()).where((d) => d.isNotEmpty).toList()
+  final dates = rows
+      .map((r) => r.date.trim())
+      .where((d) => d.isNotEmpty)
+      .toList()
     ..sort();
   final date = dates.isEmpty ? '' : dates.first;
 

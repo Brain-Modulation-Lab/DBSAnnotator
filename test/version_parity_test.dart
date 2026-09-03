@@ -35,7 +35,8 @@ void main() {
 
   test('pubspec declares a parseable version', () {
     expect(firstMatch(pubspec, r'^version:\s*([0-9][^\s+#]*)'), isNotNull,
-        reason: 'pubspec.yaml must declare `version: <major.minor.patch>+<build>`.');
+        reason:
+            'pubspec.yaml must declare `version: <major.minor.patch>+<build>`.');
   });
 
   final version = firstMatch(pubspec, r'^version:\s*([0-9][^\s+#]*)')!;
@@ -62,7 +63,8 @@ void main() {
     );
   });
 
-  test('msix_version matches the pubspec, with the Store-reserved 0 revision', () {
+  test('msix_version matches the pubspec, with the Store-reserved 0 revision',
+      () {
     final msixVersion = firstMatch(pubspec, r'^\s+msix_version:\s*(\S+)');
     expect(msixVersion, isNotNull,
         reason: 'msix_config in pubspec.yaml must declare msix_version.');

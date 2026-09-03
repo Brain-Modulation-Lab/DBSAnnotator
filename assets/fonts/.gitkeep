@@ -1,12 +1,20 @@
-Keeps this directory in git.
+Keeps this directory in git when it is otherwise empty.
 
-pubspec.yaml declares `assets/fonts/` as an asset directory, and Flutter fails the
-build when a declared directory does not exist. Git does not track empty
-directories, so without this file a fresh checkout (CI included) has no
-assets/fonts/ and the build breaks.
+pubspec.yaml declares `assets/fonts/` as an asset directory, and Flutter fails
+the build when a declared directory does not exist. Git does not track empty
+directories, so without this file a checkout with no fonts breaks the build.
 
-The directory is otherwise optional: drop IBMPlexSans-Regular.ttf and
-IBMPlexSans-Bold.ttf here to give the PDF reports full Unicode coverage. When
-they are absent, lib/report/report_fonts.dart returns no theme and dart_pdf
-falls back to the built-in Helvetica, which covers Latin-1 (including the `µ` of
-`µs`) but not arbitrary clinical notes. See app/README.md.
+Since v0.5.0 the directory is NOT empty: IBMPlexSans-Regular.ttf and
+IBMPlexSans-Bold.ttf are committed (SIL Open Font License, see
+LICENSE-IBMPlexSans.txt). They do two jobs.
+
+1. PDF reports. lib/report/report_fonts.dart loads them and reports the exact
+   character coverage; without them dart_pdf falls back to the built-in
+   Helvetica, which covers Latin-1 (including the `µ` of `µs`) but not
+   arbitrary clinical notes, and the app warns on every export that replaced a
+   character.
+
+2. Documentation screenshots. flutter_tester ships no fonts at all, so
+   test/docs/screenshots_test.dart registers these; without them it falls back
+   to a host system font and the committed PNGs stop being reproducible between
+   machines and CI.

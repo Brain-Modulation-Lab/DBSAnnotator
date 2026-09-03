@@ -1,111 +1,122 @@
 {
-  "schema_version": "0.4.0",
+  "schema_version": "0.5.0",
   "session_tsv": {
     "columns": [
       {
         "name": "date",
         "type": "string",
-        "description": "Date of the entry (``YYYY-MM-DD``)."
+        "description": "Date of the entry (``YYYY-MM-DD``), local to the recording machine."
       },
       {
         "name": "time",
         "type": "string",
-        "description": "Time of the entry (``HH:MM:SS``)."
+        "description": "Time of the entry (``HH:MM:SS``), local to the recording machine."
       },
       {
         "name": "timezone",
         "type": "string",
-        "description": "Timezone abbreviation/offset at capture time."
+        "description": "Zone name and UTC offset at capture time, for human readers (e.g. ``CEST +02:00``). Parse ``acq_time`` instead."
       },
       {
-        "name": "block_ID",
-        "type": "integer",
-        "description": "Index of the stimulation block within a session."
+        "name": "acq_time",
+        "type": "string",
+        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-06-26T16:46:14+02:00``). The machine-readable timestamp."
       },
       {
-        "name": "session_ID",
+        "name": "block_id",
         "type": "integer",
-        "description": "Internal session counter."
+        "description": "Index of the stimulation block within a session. Every row of one block repeats its stimulation values."
+      },
+      {
+        "name": "session_id",
+        "type": "integer",
+        "description": "Internal session counter, incremented each time the file is reopened for appending."
       },
       {
         "name": "is_initial",
         "type": "integer",
-        "description": "``1`` for baseline Step 1 entries; ``0`` for Step 3 session entries."
+        "description": "``1`` for the baseline block recorded before any configuration is tried; ``0`` for a recording block."
       },
       {
         "name": "scale_name",
         "type": "string",
-        "description": "Clinical scale name (or newline-separated names)."
+        "description": "Clinical or session scale name (or newline-separated names)."
       },
       {
         "name": "scale_value",
-        "type": "string/float",
-        "description": "Scale value (``NaN`` when not assessed)."
+        "type": "string",
+        "description": "Scale value, or ``n/a`` when the scale was not assessed at this block."
       },
       {
         "name": "electrode_model",
         "type": "string",
-        "description": "Selected electrode model name."
+        "description": "Implanted lead model, as named in ``schema/electrode_models.json``."
       },
       {
-        "name": "program_ID",
+        "name": "program_id",
         "type": "string",
         "description": "Stimulation program label (e.g., ``A``, ``B``)."
       },
       {
         "name": "left_stim_freq",
         "type": "float",
-        "description": "Left stimulation frequency (Hz)."
+        "units": "Hz",
+        "description": "Left stimulation frequency."
       },
       {
         "name": "left_anode",
         "type": "string",
-        "description": "Left anode contact(s)."
+        "description": "Left anode contact(s) in the contact grammar: ``case`` for the can, ``E2`` for a ring, ``E2b`` for one segment, ``_`` joining several."
       },
       {
         "name": "left_cathode",
         "type": "string",
-        "description": "Left cathode contact(s)."
+        "description": "Left cathode contact(s), same grammar as ``left_anode``."
       },
       {
         "name": "left_amplitude",
-        "type": "float",
-        "description": "Left total amplitude (mA)."
+        "type": "string",
+        "units": "mA",
+        "description": "Left amplitude. A single value, or per-contact values joined by ``_`` in ``left_cathode`` order when current is steered (``3.3_2.2`` is 5.5 mA split 60/40)."
       },
       {
         "name": "left_pulse_width",
         "type": "float",
-        "description": "Left pulse width (µs)."
+        "units": "us",
+        "description": "Left pulse width."
       },
       {
         "name": "right_stim_freq",
         "type": "float",
-        "description": "Right stimulation frequency (Hz)."
+        "units": "Hz",
+        "description": "Right stimulation frequency."
       },
       {
         "name": "right_anode",
         "type": "string",
-        "description": "Right anode contact(s)."
+        "description": "Right anode contact(s), same grammar as ``left_anode``."
       },
       {
         "name": "right_cathode",
         "type": "string",
-        "description": "Right cathode contact(s)."
+        "description": "Right cathode contact(s), same grammar as ``left_anode``."
       },
       {
         "name": "right_amplitude",
-        "type": "float",
-        "description": "Right total amplitude (mA)."
+        "type": "string",
+        "units": "mA",
+        "description": "Right amplitude, same shape as ``left_amplitude``."
       },
       {
         "name": "right_pulse_width",
         "type": "float",
-        "description": "Right pulse width (µs)."
+        "units": "us",
+        "description": "Right pulse width."
       },
       {
         "name": "notes",
         "type": "string",
-        "description": "Free-text note for this entry."
+        "description": "Free-text note and side effects recorded at this block."
       }
     ]
   },
@@ -114,17 +125,22 @@
       {
         "name": "date",
         "type": "string",
-        "description": "Date of the entry (``YYYY-MM-DD``)."
+        "description": "Date of the entry (``YYYY-MM-DD``), local to the recording machine."
       },
       {
         "name": "time",
         "type": "string",
-        "description": "Time of the entry (``HH:MM:SS``)."
+        "description": "Time of the entry (``HH:MM:SS``), local to the recording machine."
       },
       {
         "name": "timezone",
         "type": "string",
-        "description": "Timezone abbreviation/offset at capture time."
+        "description": "Zone name and UTC offset at capture time, for human readers (e.g. ``CEST +02:00``). Parse ``acq_time`` instead."
+      },
+      {
+        "name": "acq_time",
+        "type": "string",
+        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-06-26T16:46:14+02:00``). The machine-readable timestamp."
       },
       {
         "name": "notes",
@@ -134,11 +150,17 @@
     ]
   },
   "bids": {
-    "filename_template": "sub-{subject}_ses-{session}_task-{task}_run-{run}_events.tsv",
+    "filename_template": "sub-{subject}_ses-{session}_task-{task}_run-{run}_beh.tsv",
+    "sidecar_template": "sub-{subject}_ses-{session}_task-{task}_run-{run}_beh.json",
+    "datatype": "beh",
+    "suffix": "beh",
+    "legacy_suffix": "events",
     "session_task": "programming",
     "annotation_task": "notes",
     "session_format": "%Y%m%d",
     "default_run": "01",
+    "na": "n/a",
+    "bids_version": "1.10.0",
     "entities": {
       "subject": "sub-([^_]+)",
       "session": "ses-([^_]+)",

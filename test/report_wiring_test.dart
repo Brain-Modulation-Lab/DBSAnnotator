@@ -18,8 +18,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const rows = [
-    SessionRow(blockId: '1', isInitial: '0', scaleName: 'Tremor', scaleValue: '20'),
-    SessionRow(blockId: '2', isInitial: '0', scaleName: 'Tremor', scaleValue: '80'),
+    SessionRow(
+        blockId: '1', isInitial: '0', scaleName: 'Tremor', scaleValue: '20'),
+    SessionRow(
+        blockId: '2', isInitial: '0', scaleName: 'Tremor', scaleValue: '80'),
   ];
 
   test('a single data object means one clock read for the whole document', () {
@@ -31,7 +33,8 @@ void main() {
         reason: 'sanity: same-day builds agree');
   });
 
-  test('user scale bounds reach the chart y-axis (0..100, not the 0..10 default)',
+  test(
+      'user scale bounds reach the chart y-axis (0..100, not the 0..10 default)',
       () {
     final withPrefs = buildSessionReportData(rows: rows, scalePrefs: const [
       (name: 'Tremor', min: 0.0, max: 100.0, mode: ScaleMode.min, custom: null),

@@ -13,7 +13,8 @@ void main() {
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
+      reason:
+          'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     return ElectrodeCatalog.fromJson(json);

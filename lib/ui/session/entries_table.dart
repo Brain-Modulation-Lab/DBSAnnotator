@@ -54,7 +54,8 @@ class SessionEntriesTable extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final rule = theme.dividerColor;
-    final tint = theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5);
+    final tint =
+        theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5);
 
     String triple(String f, String a, String pw) =>
         [f, a, pw].map((s) => s.trim().isEmpty ? '–' : s.trim()).join(' / ');

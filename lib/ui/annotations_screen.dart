@@ -8,9 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import '../app_info.dart';
 import '../core/annotation.dart';
 import '../core/bids.dart';
+import '../core/bids_sidecar.dart';
 import '../core/safe_file.dart';
 import '../report/annotations_report.dart';
 import '../report/session_docx.dart' show DocxPageSize;
+import 'bids_export.dart';
 import 'share_util.dart';
 import 'theme.dart';
 
@@ -51,8 +53,38 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     super.dispose();
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  /// The BIDS entities for everything this screen writes — the notes TSV, its
+  /// sidecar, and the report derivative — so all three carry the same ones.
+  ///
+  /// [subject] and [run] are free text that ends up in a path, so they go
+  /// through the sanitisers; run is an *index* in BIDS, hence `index` rather
+  /// than `label`.
+  BidsName _bidsName({String? subject, String? run}) {
+    final s = BidsName.label(subject ?? _subjectCtrl.text.trim());
+    return BidsName(
+      subject: s.isEmpty ? 'unknown' : s,
+      session: BidsName.sessionStamp(DateTime.now()),
+      task: 'notes',
+      run: BidsName.index(run ?? _runCtrl.text.trim()),
+    );
+  }
+
+  /// Write the `_beh.json` sidecar beside [tsvPath]; see the session screen's
+  /// copy for why this is best-effort and silent.
+  Future<void> _writeSidecar(String tsvPath) async {
+    try {
+      final json = tsvPath.replaceFirst(RegExp(r'\.tsv$'), '.json');
+      if (json == tsvPath || File(json).existsSync()) return;
+      final contract = await loadTsvContract();
+      await File(json).writeAsString(
+          annotationSidecarJson(contract, appVersion: appVersion));
+    } catch (_) {
+      // No sidecar is a documentation loss, not a data loss.
+    }
+  }
 
   // ---- Step 0: File (shared shape with the Complete-Workflow wizard) ----
 
@@ -60,12 +92,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     final subject =
         _subjectCtrl.text.trim().isEmpty ? '01' : _subjectCtrl.text.trim();
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
-    final name = BidsName(
-      subject: subject,
-      session: BidsName.sessionStamp(DateTime.now()),
-      task: 'notes',
-      run: run,
-    ).filename;
+    final name = _bidsName(subject: subject, run: run).filename;
     String? path;
     try {
       path = await FilePicker.platform.saveFile(
@@ -90,6 +117,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       if (mounted) _snack('Could not create $p: $e');
       return;
     }
+    await _writeSidecar(p);
     if (!mounted) return;
     setState(() {
       _entries.clear();
@@ -233,26 +261,46 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       _snack('Add at least one note before exporting.');
       return;
     }
-    final subject = _subjectCtrl.text.trim().isEmpty
-        ? 'unknown'
-        : _subjectCtrl.text.trim();
-    final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
-    final name = BidsName(
-      subject: subject,
-      session: BidsName.sessionStamp(DateTime.now()),
-      task: 'notes',
-      run: run,
-    );
-
     await exportFile(
       context,
-      filename: name.filename,
+      filename: _bidsName().filename,
       anchor: _exportKey,
       // Oldest-first in the file (the UI shows newest-first).
       build: () async => (
         bytes: utf8.encode(writeAnnotations(_entries.reversed.toList())),
         warning: null,
       ),
+    );
+  }
+
+  /// Export these notes as a one-subject BIDS dataset (zipped); see the session
+  /// screen's copy for what the tree contains and why it exists.
+  Future<void> _exportBids() async {
+    if (_entries.isEmpty) {
+      _snack('Add at least one note before exporting.');
+      return;
+    }
+    final Map<String, dynamic> contract;
+    try {
+      contract = await loadTsvContract();
+    } catch (e) {
+      if (mounted) _snack('BIDS export failed: $e');
+      return;
+    }
+    if (!mounted) return;
+    final oldestFirst = _entries.reversed.toList();
+    await exportBidsDataset(
+      context,
+      anchor: _exportKey,
+      entries: [
+        datasetEntry(
+          name: _bidsName(),
+          tsv: writeAnnotations(oldestFirst),
+          contract: contract,
+          kind: 'annotation_tsv',
+          acqTime: oldestFirst.first.acqTime,
+        ),
+      ],
     );
   }
 
@@ -263,15 +311,12 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       _snack('Add at least one note before exporting a report.');
       return;
     }
-    final subject = BidsName.label(_subjectCtrl.text.trim()).isEmpty
-        ? 'unknown'
-        : BidsName.label(_subjectCtrl.text.trim());
-    final run = BidsName.label(_runCtrl.text.trim()).isEmpty
-        ? '01'
-        : BidsName.label(_runCtrl.text.trim());
-    final stamp = BidsName.sessionStamp(DateTime.now());
-    final filename = 'sub-${subject}_ses-${stamp}_task-notes_run-${run}_report'
-        '.${docx ? 'docx' : 'pdf'}';
+    final name = _bidsName();
+    final subject = name.subject;
+    // A report is a derivative, not raw data — `_report` is not a BIDS suffix.
+    // Same entities as the TSV so the two files sort together.
+    final filename =
+        name.withSuffix('report', extension: docx ? 'docx' : 'pdf').filename;
 
     await exportFile(
       context,
@@ -351,6 +396,11 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
               onPressed: _export,
               child: const Text('Data (TSV)'),
             ),
+            MenuItemButton(
+              leadingIcon: const Icon(Icons.folder_zip_outlined),
+              onPressed: _exportBids,
+              child: const Text('BIDS dataset (zip)'),
+            ),
           ],
         ),
         const Divider(height: 32),
@@ -399,18 +449,13 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Annotations'),
-        actions: const [
-          TextSizeButtons(),
-          HelpButton(),
-          ThemeToggleButton()
-        ],
+        actions: const [TextSizeButtons(), HelpButton(), ThemeToggleButton()],
       ),
       body: Stepper(
         currentStep: _currentStep,
         onStepTapped: (i) => setState(() => _currentStep = i),
-        onStepContinue: _currentStep < 1
-            ? () => setState(() => _currentStep += 1)
-            : null,
+        onStepContinue:
+            _currentStep < 1 ? () => setState(() => _currentStep += 1) : null,
         onStepCancel:
             _currentStep > 0 ? () => setState(() => _currentStep -= 1) : null,
         controlsBuilder: (context, details) {

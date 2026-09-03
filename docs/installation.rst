@@ -167,20 +167,22 @@ enables TestFlight.
 Unicode in PDF reports
 ----------------------
 
-The PDF exporter falls back to a built-in font that covers Latin-1 only, so a
-curly quote or an accented character typed into a clinical note is replaced with
-``?``. **The app tells you when this happens** — it is never silent — but to
-avoid it entirely, place two font files in ``assets/fonts/``:
+Released builds bundle IBM Plex Sans, so a curly quote or an accented character
+typed into a clinical note comes out as itself.
+
+If you are building from a source tree whose ``assets/fonts/`` is empty, the PDF
+exporter falls back to a built-in font that covers Latin-1 only, and those
+characters are replaced with ``?``. **The app tells you when this happens** — it
+is never silent. To fix it, restore the two OFL-licensed files:
 
 .. code-block:: text
 
    assets/fonts/IBMPlexSans-Regular.ttf
    assets/fonts/IBMPlexSans-Bold.ttf
 
-Download the **static** TrueType builds of
-`IBM Plex Sans <https://fonts.google.com/specimen/IBM+Plex+Sans>`_ (they are
-OFL-licensed and redistributable). Word export is unaffected either way, since
-``.docx`` uses the reader's own fonts.
+from the **static** TrueType builds of
+`IBM Plex Sans <https://fonts.google.com/specimen/IBM+Plex+Sans>`_. Word export
+is unaffected either way, since ``.docx`` uses the reader's own fonts.
 
 Where your data goes
 --------------------

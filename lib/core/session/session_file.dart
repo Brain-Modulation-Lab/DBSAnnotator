@@ -16,6 +16,7 @@
 library;
 
 import '../schema_columns.dart';
+import '../timestamps.dart';
 import '../tsv.dart';
 import 'session_row.dart';
 
@@ -26,7 +27,7 @@ typedef ScaleEntry = ({String name, String value});
 List<SessionRow> parseSessionTsv(String content) =>
     parseTsvRecords(content).map(SessionRow.fromMap).toList();
 
-/// Serialize rows to a full TSV document with the canonical 21-column header.
+/// Serialize rows to a full TSV document with the canonical column header.
 String serializeSessionTsv(List<SessionRow> rows) =>
     writeTsvRecords(sessionColumns, rows.map((r) => r.toMap()).toList());
 
@@ -39,7 +40,7 @@ int? _asInt(String raw) {
   return v.truncate();
 }
 
-/// Next block ID for an append: max(block_ID) + 1, or 0 for an empty/new
+/// Next block ID for an append: max(block_id) + 1, or 0 for an empty/new
 /// file. Mirrors open_file_append (max_block starts at -1; malformed cells
 /// are skipped).
 int nextBlockId(List<SessionRow> existing) {
@@ -51,7 +52,7 @@ int nextBlockId(List<SessionRow> existing) {
   return maxBlock + 1;
 }
 
-/// Next session ID for an append: max(session_ID) + 1, or 1 for an
+/// Next session ID for an append: max(session_id) + 1, or 1 for an
 /// empty/new file. Mirrors open_file_append (max_session starts at 0).
 int nextSessionId(List<SessionRow> existing) {
   var maxSession = 0;
@@ -60,17 +61,6 @@ int nextSessionId(List<SessionRow> existing) {
     if (v != null && v > maxSession) maxSession = v;
   }
   return maxSession + 1;
-}
-
-/// Timezone string in the desktop format: "<name> <+HHMM>"
-/// (SessionData._timezone_string, e.g. "CEST +0200").
-String _timezoneString(DateTime dt) {
-  final offset = dt.timeZoneOffset;
-  final sign = offset.isNegative ? '-' : '+';
-  final abs = offset.abs();
-  String two(int n) => n.toString().padLeft(2, '0');
-  final hhmm = '${two(abs.inHours)}${two(abs.inMinutes.remainder(60))}';
-  return '${dt.timeZoneName} $sign$hhmm'.trim();
 }
 
 /// Build the NEW rows for one insert, mirroring write_session_scales
@@ -111,16 +101,16 @@ List<SessionRow> buildInsertRows({
   DateTime? at,
 }) {
   final dt = at ?? DateTime.now();
-  String two(int n) => n.toString().padLeft(2, '0');
-  final date = '${dt.year}-${two(dt.month)}-${two(dt.day)}';
-  final time = '${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
-  final timezone = _timezoneString(dt);
+  final date = dateCell(dt);
+  final time = timeCell(dt);
+  final timezone = timezoneCell(dt);
+  final acqTime = acqTimeCell(dt);
 
-  SessionRow row({String scaleName = '', String scaleValue = ''}) =>
-      SessionRow(
+  SessionRow row({String scaleName = '', String scaleValue = ''}) => SessionRow(
         date: date,
         time: time,
         timezone: timezone,
+        acqTime: acqTime,
         blockId: '$blockId',
         sessionId: '$sessionId',
         // 1 for Step-1 baseline (write_clinical_scales), 0 for Step-3
@@ -145,8 +135,7 @@ List<SessionRow> buildInsertRows({
 
   final valid = scales
       .where((s) =>
-          s.value.trim().isNotEmpty &&
-          (!isInitial || s.name.trim().isNotEmpty))
+          s.value.trim().isNotEmpty && (!isInitial || s.name.trim().isNotEmpty))
       .toList();
   if (valid.isEmpty) return [row()];
   return [

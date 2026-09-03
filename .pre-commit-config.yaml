@@ -1,0 +1,110 @@
+# Local pre-commit checks. CI is the authority (`--no-verify` skips these, and
+# .github/workflows/ci.yml runs the same set), so treat this as the fast
+# feedback loop, not the gate.
+#
+# Install once:  uvx pre-commit install
+# Run manually:  uvx pre-commit run --all-files
+#
+# `uvx` avoids managing a virtualenv. Python is not the application - the app is
+# Dart - but Sphinx already needs it to build the docs, so pre-commit adds no
+# new toolchain.
+default_install_hook_types: [pre-commit]
+exclude: |
+  (?x)^(
+    docs/_generated/.*         # Sphinx build output, rendered from schema/
+    | pubspec\.lock            # generated, and huge
+    | .*\.(png|ttf|ico|msix)$  # binaries
+  )$
+
+repos:
+  # ---- Repo hygiene, language-agnostic ------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        name: check-yaml (incl. CITATION.cff)
+        # CITATION.cff is YAML but `identify` does not classify it as such, and
+        # a malformed one silently breaks GitHub's "Cite this repository" box.
+        types: [file]
+        files: '\.(ya?ml|cff)$'
+      - id: check-toml
+      - id: check-json
+        # schema/*.json and assets/schema/*.json are the domain contract, loaded
+        # at runtime by rootBundle - a syntax error there is a crash on launch.
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+        # The braces to .gitignore's belt: `*.pfx` is ignored, but `git add -f`
+        # bypasses ignore rules. See the Windows section of MOBILE_RELEASE.md.
+      - id: check-added-large-files
+        # 600, not the default 500: the largest tracked file is the 496 KB
+        # 1024x1024 macOS app icon, so the default would fail the next time the
+        # icons are regenerated. Still low enough to catch a stray build
+        # artifact (the MSIX alone is 19 MB).
+        args: [--maxkb=600]
+
+  # ---- The app: Dart ------------------------------------------------------
+  # `language: system`, because the Flutter SDK is a prerequisite for working on
+  # this repo at all and pre-commit cannot install it.
+  - repo: local
+    hooks:
+      - id: dart-format
+        name: dart format
+        entry: dart format --output=none --set-exit-if-changed
+        language: system
+        types: [dart]
+      - id: flutter-analyze
+        name: flutter analyze --fatal-infos
+        entry: flutter analyze --fatal-infos
+        language: system
+        types: [dart]
+        # Whole-project analysis; passing changed filenames would hide errors
+        # introduced elsewhere by the same edit.
+        pass_filenames: false
+        # `flutter test` is deliberately NOT here: 357 tests take ~35 s, which
+        # is too slow per commit. CI runs them on every PR.
+
+  # ---- Docs ---------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      # Config in pyproject.toml, scoped to docs/**/*.py - the Sphinx conf and
+      # extension that renders the schema tables are the only Python here.
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      # doc8 resolves `.. include::` directives, and docs/output_format.rst
+      # includes three fragments under docs/_generated/ - gitignored build
+      # output. On a fresh clone doc8 would report three D000 "Problems with
+      # include directive path" errors before anyone had built the docs. CI
+      # solves this by ordering the Sphinx build first; here the generator runs
+      # standalone, which is possible because _write() ignores the Sphinx `app`
+      # argument and uses nothing outside the standard library. Milliseconds.
+      - id: generate-docs-includes
+        name: render docs/_generated from schema/
+        entry: python -c "import sys; sys.path.insert(0, 'docs/_ext'); import generated_includes as g; g._write(None)"
+        language: system
+        pass_filenames: false
+        files: ^(schema/|docs/_ext/|test/fixtures/)
+
+  - repo: https://github.com/PyCQA/doc8
+    rev: v2.0.0
+    hooks:
+      - id: doc8
+        # Configured by pyproject.toml, shared with CI.
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+        # Configured by pyproject.toml, shared with CI rather
+        # than duplicated as arguments in two places.
+
+  # actionlint is NOT a hook here: it is a Go binary and neither Go nor Node is
+  # installed on the maintainer's machine, so the hook would fail on a fresh
+  # clone. CI downloads the binary instead - see the `checks` job in ci.yml.
+  # That matters for this repo: the windows job interpolates `${{ vars.* }}`
+  # into bash, which is exactly what actionlint is good at catching.

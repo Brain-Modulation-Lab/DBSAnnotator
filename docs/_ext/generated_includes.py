@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import json
+import textwrap
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
@@ -25,31 +26,34 @@ _OUT = _DOCS / "_generated"
 
 #: The fixture shown as a worked example, copied into ``_generated`` so the
 #: ``:download:`` link stays inside Sphinx's source dir.
-_FIXTURE = _ROOT / "test" / "fixtures" / (
-    "sub-01_ses-20260626_task-programming_run-01_events.tsv"
-)
+_FIXTURE = _ROOT / "test" / "fixtures" / ("sub-01_ses-20260626_task-programming_run-01_beh.tsv")
 
 
 def _rst_table(columns: list[dict], title: str) -> str:
-    """A list-table of ``name / type / description``.
+    r"""A list-table of ``name / type / units / description``.
 
     ``list-table`` rather than a grid table because the descriptions contain
     inline RST markup (``\`\`YYYY-MM-DD\`\```) and would need re-wrapping by
     hand in any character-aligned table format.
+
+    ``units`` is the same value the JSON sidecar publishes as ``Units``, so the
+    page and the machine-readable file cannot disagree about what a number is.
     """
     lines = [
         f".. list-table:: {title}",
         "   :header-rows: 1",
-        "   :widths: 22 12 66",
+        "   :widths: 20 10 8 62",
         "",
         "   * - Column",
         "     - Type",
+        "     - Units",
         "     - Description",
     ]
     for col in columns:
         lines += [
             f"   * - ``{col['name']}``",
             f"     - {col.get('type', 'string')}",
+            f"     - {col.get('units', '') or '—'}",
             f"     - {col.get('description', '').strip() or '—'}",
         ]
     return "\n".join(lines) + "\n"
@@ -63,15 +67,21 @@ def _example_table(path: Path, max_rows: int = 6) -> str:
     contributes one row per scale, repeating its stimulation values.
     """
     show = [
-        "block_ID", "is_initial", "time", "scale_name", "scale_value",
-        "left_amplitude", "left_cathode",
+        "block_id",
+        "is_initial",
+        "time",
+        "scale_name",
+        "scale_value",
+        "left_amplitude",
+        "left_cathode",
     ]
     with path.open(encoding="utf-8", newline="") as fh:
         rows = list(csv.DictReader(fh, delimiter="\t"))[:max_rows]
 
     widths = [max(len(c), *(len(r.get(c, "")) for r in rows)) for c in show]
+
     def fmt(cells: list[str]) -> str:
-        return "   " + "  ".join(c.ljust(w) for c, w in zip(cells, widths)).rstrip()
+        return "   " + "  ".join(c.ljust(w) for c, w in zip(cells, widths, strict=True)).rstrip()
 
     out = ["::", ""]
     out.append(fmt(show))
@@ -81,10 +91,37 @@ def _example_table(path: Path, max_rows: int = 6) -> str:
     return "\n".join(out) + "\n"
 
 
-def _write(app, *_args) -> None:  # noqa: ANN001 - Sphinx passes its app
-    contract = json.loads(
-        (_ROOT / "schema" / "tsv_schema.json").read_text(encoding="utf-8")
-    )
+def _sidecar_excerpt(contract: dict, columns: tuple[str, ...]) -> str:
+    """A few entries of the JSON sidecar, exactly as the app writes them.
+
+    Rendered rather than hand-copied into the page, because these descriptions
+    and the ones the app ships are the same strings: a prose edit in
+    ``schema/tsv_schema.json`` would otherwise leave the documented example
+    quietly disagreeing with the file on disk.
+
+    Mirrors ``lib/core/bids_sidecar.dart``: BIDS key names, the reStructuredText
+    inline-literal markers stripped, ``Units`` only where the column has one.
+    """
+    by_name = {c["name"]: c for c in contract["session_tsv"]["columns"]}
+    sidecar: dict[str, object] = {}
+    if contract.get("bids", {}).get("na"):
+        sidecar["MissingValueCode"] = contract["bids"]["na"]
+    for name in columns:
+        col = by_name[name]
+        entry = {
+            "LongName": name.replace("_", " ").capitalize(),
+            "Description": col.get("description", "").replace("``", ""),
+        }
+        if col.get("units"):
+            entry["Units"] = col["units"]
+        sidecar[name] = entry
+
+    body = textwrap.indent(json.dumps(sidecar, indent=2), "   ")
+    return f".. code-block:: json\n\n{body}\n"
+
+
+def _write(app, *_args) -> None:
+    contract = json.loads((_ROOT / "schema" / "tsv_schema.json").read_text(encoding="utf-8"))
     _OUT.mkdir(parents=True, exist_ok=True)
 
     (_OUT / "session_columns.inc.rst").write_text(
@@ -96,16 +133,19 @@ def _write(app, *_args) -> None:  # noqa: ANN001 - Sphinx passes its app
         encoding="utf-8",
     )
 
+    (_OUT / "sidecar_example.inc.rst").write_text(
+        _sidecar_excerpt(contract, ("block_id", "left_stim_freq")),
+        encoding="utf-8",
+    )
+
     if _FIXTURE.exists():
-        (_OUT / "example_rows.inc.rst").write_text(
-            _example_table(_FIXTURE), encoding="utf-8"
-        )
+        (_OUT / "example_rows.inc.rst").write_text(_example_table(_FIXTURE), encoding="utf-8")
         # Inside srcdir, so `:download:` needs no traversal above it.
         (_OUT / _FIXTURE.name).write_bytes(_FIXTURE.read_bytes())
     else:  # pragma: no cover - a missing fixture should be loud
         raise FileNotFoundError(f"example fixture not found: {_FIXTURE}")
 
 
-def setup(app):  # noqa: ANN001, ANN201
+def setup(app):
     app.connect("builder-inited", _write)
     return {"version": "1", "parallel_read_safe": True}

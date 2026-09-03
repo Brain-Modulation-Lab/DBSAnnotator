@@ -13,7 +13,8 @@ void main() {
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
+      reason:
+          'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     return ScalePresets.fromJson(json);
@@ -62,8 +63,12 @@ void main() {
         ],
       },
     });
-    expect(sessionRows(p, 'X').single,
-        (name: 'Legacy', min: '0', max: '7', mode: defaultScaleOptimizationMode));
+    expect(sessionRows(p, 'X').single, (
+      name: 'Legacy',
+      min: '0',
+      max: '7',
+      mode: defaultScaleOptimizationMode
+    ));
   });
 
   test('an unrecognised mode cell falls back to the default', () {

@@ -13,7 +13,8 @@ void main() {
     expect(
       file.existsSync(),
       isTrue,
-      reason: 'assets/schema/*.json is a committed contract; restore it from git.',
+      reason:
+          'assets/schema/*.json is a committed contract; restore it from git.',
     );
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     return StimLimits.fromJson(json);
@@ -36,8 +37,7 @@ void main() {
       expect(v, inInclusiveRange(limits.amplitude.min, limits.amplitude.max));
     }
     for (final v in limits.pulseWidthPresets) {
-      expect(v,
-          inInclusiveRange(limits.pulseWidth.min, limits.pulseWidth.max));
+      expect(v, inInclusiveRange(limits.pulseWidth.min, limits.pulseWidth.max));
     }
   });
 
@@ -49,13 +49,14 @@ void main() {
     expect(limits.pulseWidthStep, 10);
     expect(limits.amplitudeDecimals, 2);
     // Omitted session scales write this literal to the scale_value cell.
-    expect(limits.sessionScaleOmittedTsv, 'NaN');
+    // `n/a` since v0.5.0: BIDS requires it, and `NaN` was never a legal cell.
+    expect(limits.sessionScaleOmittedTsv, 'n/a');
   });
 
-  test('step1 / decimals / omitted_tsv fall back to defaults when absent',
-      () {
-    final json = jsonDecode(File('assets/schema/limits.json').readAsStringSync())
-        as Map<String, dynamic>;
+  test('step1 / decimals / omitted_tsv fall back to defaults when absent', () {
+    final json =
+        jsonDecode(File('assets/schema/limits.json').readAsStringSync())
+            as Map<String, dynamic>;
     final stim = json['stimulation'] as Map<String, dynamic>;
     for (final key in ['frequency', 'amplitude', 'pulse_width']) {
       (stim[key] as Map<String, dynamic>).remove('step1');
@@ -78,10 +79,10 @@ void main() {
     expect(steppedLabel(0.1 + 0.2 + 0.2, 2), '0.5');
   });
 
-  test('presets are optional: contract without them parses to empty lists',
-      () {
-    final json = jsonDecode(File('assets/schema/limits.json').readAsStringSync())
-        as Map<String, dynamic>;
+  test('presets are optional: contract without them parses to empty lists', () {
+    final json =
+        jsonDecode(File('assets/schema/limits.json').readAsStringSync())
+            as Map<String, dynamic>;
     json.remove('stimulation_presets');
     final limits = StimLimits.fromJson(json);
     expect(limits.frequencyPresets, isEmpty);

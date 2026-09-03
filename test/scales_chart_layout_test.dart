@@ -45,8 +45,8 @@ void main() {
     expect(b.titleHeight, greaterThan(0));
     expect(b.legendTop, greaterThanOrEqualTo(b.titleTop + b.titleHeight),
         reason: 'the legend box would paint over the title');
-    expect(b.padTop,
-        greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
+    expect(
+        b.padTop, greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
         reason: 'the legend would overrun the plot');
   });
 
@@ -64,10 +64,11 @@ void main() {
       final b = band(_spec(scales: n));
       expect(b.legendTop, greaterThanOrEqualTo(b.titleTop + b.titleHeight),
           reason: '$n scales');
-      expect(b.padTop,
-          greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
+      expect(
+          b.padTop, greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
           reason: '$n scales');
-      expect(b.padTop, lessThan(120), reason: '$n scales must not eat the plot');
+      expect(b.padTop, lessThan(120),
+          reason: '$n scales must not eat the plot');
     }
   });
 

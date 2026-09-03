@@ -105,8 +105,8 @@ class ScalesChartPainter extends CustomPainter {
     // instead of dividing by zero.
     final xLo = spec.xs.first.toDouble() - 0.5;
     final xHi = spec.xs.last.toDouble() + 0.5;
-    double xPos(num x) => area.left +
-        (xHi == xLo ? 0.5 : (x - xLo) / (xHi - xLo)) * area.width;
+    double xPos(num x) =>
+        area.left + (xHi == xLo ? 0.5 : (x - xLo) / (xHi - xLo)) * area.width;
 
     // Panels, top to bottom, sharing that x mapping. The scales panel keeps the
     // lion's share; the index and dose strips only need enough height to show a
@@ -167,8 +167,11 @@ class ScalesChartPainter extends CustomPainter {
 
     // One band spanning every panel: the reader compares a scale dip against
     // the dose that caused it, so the marker has to cross both.
-    _paintBands(canvas, Rect.fromLTRB(area.left, rects.first.top, area.right,
-        rects.last.bottom), xPos);
+    _paintBands(
+        canvas,
+        Rect.fromLTRB(
+            area.left, rects.first.top, area.right, rects.last.bottom),
+        xPos);
 
     for (var i = 0; i < panels.length; i++) {
       _paintPanel(canvas, rects[i], panels[i], xPos);
@@ -195,8 +198,8 @@ class ScalesChartPainter extends CustomPainter {
   }
 
   /// One panel: grid, its own y axis with ticks and label, then its series.
-  void _paintPanel(Canvas canvas, Rect plot, _PanelSpec panel,
-      double Function(num) xPos) {
+  void _paintPanel(
+      Canvas canvas, Rect plot, _PanelSpec panel, double Function(num) xPos) {
     if (plot.height <= 6) return;
     final span = math.max(panel.yMax - panel.yMin, 1e-9);
     double yPos(double v) =>
@@ -270,8 +273,7 @@ class ScalesChartPainter extends CustomPainter {
     // Long labels (the longitudinal figures' `20260626_01`) are drawn rotated,
     // because horizontally they would overlap after three visits.
     final labelled = spec.xTickLabels.isNotEmpty;
-    final rotate = labelled &&
-        spec.xTickLabels.values.any((l) => l.length > 4);
+    final rotate = labelled && spec.xTickLabels.values.any((l) => l.length > 4);
     for (final x in spec.xs) {
       final px = xPos(x);
       canvas.drawLine(
@@ -325,6 +327,7 @@ class ScalesChartPainter extends CustomPainter {
         }
         canvas.restore();
       }
+
       for (final x in sorted.skip(1)) {
         if (x == to + 1) {
           to = x;
@@ -378,8 +381,7 @@ class ScalesChartPainter extends CustomPainter {
       if (kind == ChartLegendKind.band) {
         // A swatch, hatched: the two greens differ in lightness only, so in
         // greyscale or on a mono printer the hatch is what tells them apart.
-        final swatch =
-            Rect.fromLTWH(x, y - 5, legend.sample, 10);
+        final swatch = Rect.fromLTWH(x, y - 5, legend.sample, 10);
         canvas
           ..drawRect(swatch, Paint()..color = color)
           ..drawRect(
@@ -491,14 +493,12 @@ class ChartTopBand {
         ? 0.0
         : chartTextPainter(p.spec.title, color: p.ink, size: _titleSize).height;
     final legend = _measureLegend(p, size);
-    final legendTop =
-        _outerPad + (titleHeight > 0 ? titleHeight + _gap : 0.0);
+    final legendTop = _outerPad + (titleHeight > 0 ? titleHeight + _gap : 0.0);
     return ChartTopBand(
       titleTop: _outerPad,
       titleHeight: titleHeight,
       legendTop: legendTop,
-      padTop: legendTop +
-          (legend == null ? _gap : legend.height + _gap + 2),
+      padTop: legendTop + (legend == null ? _gap : legend.height + _gap + 2),
       legend: legend,
     );
   }
@@ -526,7 +526,8 @@ class ChartTopBand {
     double total;
     while (true) {
       painters = [
-        for (final e in entries) chartTextPainter(e.$1, color: p.ink, size: font),
+        for (final e in entries)
+          chartTextPainter(e.$1, color: p.ink, size: font),
       ];
       total = painters.fold<double>(
               0, (sum, t) => sum + sample + _legendGapAfterSample + t.width) +

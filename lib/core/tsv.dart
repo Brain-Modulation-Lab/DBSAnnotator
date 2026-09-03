@@ -23,17 +23,35 @@ List<List<String>> parseTsv(String content) {
       .toList();
 }
 
-/// Serialize rows to a TSV document using `\r\n` line endings to match the
-/// desktop writer, so a tablet-written file is drop-in for the Qt app.
+/// Serialize rows to a TSV document.
+///
+/// LF, not CRLF. The CRLF was chosen so a tablet-written file was byte-identical
+/// to the Qt desktop writer's; that app is frozen and no longer shipped, and a
+/// stray `\r` ends up inside the last field of every row for any reader that
+/// splits on `\n` alone. [parseTsv] still accepts both, so files written by
+/// earlier versions read unchanged.
+/// Ends with a newline, as a text file should: without one, concatenating two
+/// exports runs the last row of the first into the header of the second.
 String writeTsv(List<List<String>> rows) {
-  return const ListToCsvConverter(
+  if (rows.isEmpty) return '';
+  return '${const ListToCsvConverter(
     fieldDelimiter: '\t',
     textDelimiter: '"',
-    eol: '\r\n',
-  ).convert(rows);
+    eol: '\n',
+  ).convert(rows)}\n';
 }
 
+/// What BIDS requires in a cell that has no value: "Missing and non-applicable
+/// values MUST be coded as `n/a`" (Common principles, tabular files). An empty
+/// cell is not allowed, and neither is `NaN`.
+const String naCell = 'n/a';
+
 /// Parse a TSV with a header row into a list of column->value maps.
+///
+/// [naCell] is normalised back to the empty string, the inverse of what
+/// [writeTsvRecords] does. Without this the marker would surface as literal
+/// "n/a" text in note fields and report tables — `n/a` is BIDS' encoding of
+/// *absent*, so absent is what a reader should get back.
 List<Map<String, String>> parseTsvRecords(String content) {
   final rows = parseTsv(content);
   if (rows.isEmpty) return <Map<String, String>>[];
@@ -41,20 +59,27 @@ List<Map<String, String>> parseTsvRecords(String content) {
   return rows.skip(1).map((row) {
     final record = <String, String>{};
     for (var i = 0; i < header.length; i++) {
-      record[header[i]] = i < row.length ? row[i] : '';
+      final cell = i < row.length ? row[i] : '';
+      record[header[i]] = cell.trim() == naCell ? '' : cell;
     }
     return record;
   }).toList();
 }
 
 /// Serialize records to a TSV with the given column order as the header.
+///
+/// A column a record does not carry, or carries as an empty string, is written
+/// as [naCell] rather than left blank — see its doc comment for why.
 String writeTsvRecords(
   List<String> columns,
   List<Map<String, String>> records,
 ) {
   final rows = <List<String>>[columns];
   for (final record in records) {
-    rows.add(columns.map((col) => record[col] ?? '').toList());
+    rows.add(columns.map((col) {
+      final value = record[col] ?? '';
+      return value.isEmpty ? naCell : value;
+    }).toList());
   }
   return writeTsv(rows);
 }

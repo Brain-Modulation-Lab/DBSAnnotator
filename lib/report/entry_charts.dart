@@ -63,7 +63,12 @@ typedef EntryChartData = ({
 });
 
 /// Canonical panel ids, also the default top-to-bottom order.
-const List<String> kEntryPanelIds = ['scales', 'amplitude', 'pulseWidth', 'freq'];
+const List<String> kEntryPanelIds = [
+  'scales',
+  'amplitude',
+  'pulseWidth',
+  'freq'
+];
 
 /// Human titles per panel id, for a persisted order that no longer matches the
 /// default list.
@@ -75,9 +80,8 @@ const Map<String, String> kEntryPanelTitles = {
 };
 
 /// Trim a trailing ".0" so "90.0 us" reads as "90 us".
-String _trim(double v) => v == v.roundToDouble()
-    ? v.toStringAsFixed(0)
-    : v.toString();
+String _trim(double v) =>
+    v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
 /// Sum a possibly-split amplitude cell ("1.5_1" -> 2.5). Null when unparsable.
 ///
@@ -253,12 +257,12 @@ EntryChartData buildEntryChartData(
     if (bounds.$1 < scalesLo) scalesLo = bounds.$1;
     if (bounds.$2 > scalesHi) scalesHi = bounds.$2;
   }
-  final scalesRange = scalesHi > scalesLo
-      ? (scalesLo, scalesHi)
-      : rangeOf(scales.values);
+  final scalesRange =
+      scalesHi > scalesLo ? (scalesLo, scalesHi) : rangeOf(scales.values);
 
-  ParamPanel panel(String id, Map<String, Map<int, double>> series,
-      (double, double) range, {String unit = ''}) {
+  ParamPanel panel(
+      String id, Map<String, Map<int, double>> series, (double, double) range,
+      {String unit = ''}) {
     // Drop empty series so an unused side does not claim a legend slot.
     final used = <String, Map<int, double>>{
       for (final e in series.entries)
@@ -292,7 +296,8 @@ EntryChartData buildEntryChartData(
       // Dose is a magnitude, so its axis starts at zero: an amplitude panel
       // spanning 4.4-7.4 makes 5.5 -> 4.5 mA look like a collapse.
       panel('amplitude', {'Left': ampL, 'Right': ampR},
-          rangeOf([ampL, ampR], zeroBased: true), unit: 'mA'),
+          rangeOf([ampL, ampR], zeroBased: true),
+          unit: 'mA'),
       panel('pulseWidth', {'Left': pwL, 'Right': pwR}, rangeOf([pwL, pwR]),
           unit: 'µs'),
       panel('freq', {'Left': freqL, 'Right': freqR}, rangeOf([freqL, freqR]),

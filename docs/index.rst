@@ -14,9 +14,9 @@ analysis-ready data out.**
 DBS Annotator captures what actually happened during a DBS programming session —
 the stimulation parameters tried on each contact, the clinical and session scale
 ratings at every configuration, side effects, and free-text notes — and writes it
-to :doc:`BIDS-named TSV files <output_format>` that go straight into analysis. It
-also produces clinician-readable :doc:`PDF and Word reports <reports>` for the
-patient record.
+to :doc:`BIDS tab-separated files <output_format>` that go straight into
+analysis. It also produces clinician-readable :doc:`PDF and Word reports
+<reports>` for the patient record.
 
 It runs **fully offline**: no account, no server, no telemetry. Tablet-first for
 iPadOS and Android, with desktop builds for Linux, Windows and macOS.
@@ -43,7 +43,7 @@ At a glance
    * - Platforms
      - iPadOS, Android, Linux, Windows, macOS — one codebase
    * - Data format
-     - Tab-separated, BIDS-named, one row per (block, scale)
+     - BIDS ``_beh.tsv`` with a JSON sidecar, one row per (block, scale)
    * - Reports
      - PDF and Word, both built from the same numbers
    * - Connectivity
@@ -61,10 +61,14 @@ At a glance
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflows
+   :caption: Screens
 
-   workflow_complete
-   workflow_annotations
+   screens/home
+   screens/complete_workflow
+   screens/annotations
+   screens/single_session_report
+   screens/longitudinal
+   screens/dialogs
 
 .. toctree::
    :maxdepth: 2

@@ -27,7 +27,7 @@
     "decimals": 2,
     "step1": 1,
     "step2": 0.5,
-    "omitted_tsv": "NaN"
+    "omitted_tsv": "n/a"
   },
   "stimulation_presets": {
     "frequencies": [

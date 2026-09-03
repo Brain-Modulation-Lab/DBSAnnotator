@@ -62,15 +62,14 @@ class UserPrefs {
   List<String>? reportSections;
 
   factory UserPrefs.fromJson(Map<String, dynamic> j) {
-    List<num>? nums(String k) =>
-        (j[k] as List?)?.map((e) => e as num).toList();
+    List<num>? nums(String k) => (j[k] as List?)?.map((e) => e as num).toList();
     return UserPrefs(
       stimFrequencies: nums('stim_frequencies'),
       stimAmplitudes: nums('stim_amplitudes'),
       stimPulseWidths: nums('stim_pulse_widths'),
       programs: (j['programs'] as List?)?.map((e) => e as String).toList(),
-      clinical: (j['clinical'] as Map?)?.map((k, v) => MapEntry(
-          k as String, (v as List).map((e) => e as String).toList())),
+      clinical: (j['clinical'] as Map?)?.map((k, v) =>
+          MapEntry(k as String, (v as List).map((e) => e as String).toList())),
       session: (j['session'] as Map?)?.map((k, v) => MapEntry(
           k as String,
           (v as List)

@@ -56,8 +56,8 @@ void showAppAbout(BuildContext context) {
       SizedBox(height: 8),
       Text('Annotate DBS programming sessions: file setup → initial '
           'configuration → session-scales configuration → active recording. '
-          'Reads/writes the same BIDS TSV as the desktop app and exports PDF '
-          'reports.'),
+          'Writes BIDS behavioural TSV with a JSON sidecar documenting every '
+          'column, and exports PDF and Word reports.'),
       SizedBox(height: 12),
       Text('Links (select to copy):',
           style: TextStyle(fontWeight: FontWeight.w600)),

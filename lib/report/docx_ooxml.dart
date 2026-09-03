@@ -53,7 +53,8 @@ String docxEsc(String s) {
 String docxRun(String text, {bool bold = false, int size = 20}) {
   final rPr = '<w:rPr>${bold ? '<w:b/>' : ''}'
       '<w:sz w:val="$size"/><w:szCs w:val="$size"/></w:rPr>';
-  final lines = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+  final lines =
+      text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
   final parts = <String>[];
   for (var i = 0; i < lines.length; i++) {
     if (i > 0) parts.add('<w:br/>');
@@ -61,9 +62,6 @@ String docxRun(String text, {bool bold = false, int size = 20}) {
   }
   return '<w:r>$rPr${parts.join()}</w:r>';
 }
-
-
-
 
 /// A body paragraph.
 String docxPara(String text, {bool bold = false, int size = 20}) =>
@@ -76,14 +74,12 @@ String docxPara(String text, {bool bold = false, int size = 20}) =>
 /// generated, and assistive technology sees flat body text. The direct bold and
 /// size are kept alongside so the document still looks right if the style is
 /// missing from the consumer's template.
-String docxHeading(String text) =>
-    '<w:p><w:pPr><w:pStyle w:val="Heading1"/>'
+String docxHeading(String text) => '<w:p><w:pPr><w:pStyle w:val="Heading1"/>'
     '<w:spacing w:before="240" w:after="60"/></w:pPr>'
     '${docxRun(text, bold: true, size: 28)}</w:p>';
 
 /// A sub-heading (`Heading2`), for the blocks inside a section.
-String docxHeading2(String text) =>
-    '<w:p><w:pPr><w:pStyle w:val="Heading2"/>'
+String docxHeading2(String text) => '<w:p><w:pPr><w:pStyle w:val="Heading2"/>'
     '<w:spacing w:before="120" w:after="40"/></w:pPr>'
     '${docxRun(text, bold: true, size: 22)}</w:p>';
 
@@ -110,8 +106,7 @@ String docxCell(String text,
       ? '<w:tcBorders><w:top w:val="single" w:sz="24" w:space="0" '
           'w:color="auto"/></w:tcBorders>'
       : '';
-  final w =
-      widthTwips == null ? '' : '<w:tcW w:w="$widthTwips" w:type="dxa"/>';
+  final w = widthTwips == null ? '' : '<w:tcW w:w="$widthTwips" w:type="dxa"/>';
   final merge = switch (vMerge) {
     DocxVMerge.none => '',
     DocxVMerge.start => '<w:vMerge w:val="restart"/>',
@@ -176,9 +171,9 @@ String docxTable(
   required int contentTwips,
 }) {
   final widths = docxGridWidths(weights, contentTwips);
-  final b = StringBuffer(
-      '<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
-      '<w:tblBorders>');
+  final b =
+      StringBuffer('<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
+          '<w:tblBorders>');
   for (final side in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) {
     b.write('<w:$side w:val="single" w:sz="4" w:space="0" w:color="auto"/>');
   }
@@ -204,8 +199,8 @@ String docxTable(
   return b.toString();
 }
 
-
-const kDocxContentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+const kDocxContentTypes =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
     '<Default Extension="xml" ContentType="application/xml"/>'
@@ -223,7 +218,8 @@ const kDocxContentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"
     '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
     '</Types>';
 
-const kDocxPackageRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+const kDocxPackageRels =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
     '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'
@@ -360,7 +356,8 @@ class DocxMediaBag {
   /// `word/_rels/document.xml.rels`, or null when nothing was registered.
   String? get relsXml {
     if (_relTargets.isEmpty) return null;
-    final b = StringBuffer('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    final b = StringBuffer(
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
     for (final e in _relTargets.entries) {
       b.write('<Relationship Id="${e.key}" '
@@ -388,7 +385,10 @@ class DocxMediaBag {
     if (bytes[i] != sig[i]) return null;
   }
   int be32(int o) =>
-      (bytes[o] << 24) | (bytes[o + 1] << 16) | (bytes[o + 2] << 8) | bytes[o + 3];
+      (bytes[o] << 24) |
+      (bytes[o + 1] << 16) |
+      (bytes[o + 2] << 8) |
+      bytes[o + 3];
   final w = be32(16);
   final h = be32(20);
   if (w <= 0 || h <= 0) return null;
@@ -474,8 +474,8 @@ Uint8List packDocx({
   // footer always registers a relationship.
   final rels = bag.relsXml;
   if (rels != null) {
-    archive.addFile(ArchiveFile.bytes(
-        'word/_rels/document.xml.rels', utf8.encode(rels)));
+    archive.addFile(
+        ArchiveFile.bytes('word/_rels/document.xml.rels', utf8.encode(rels)));
   }
   for (final e in bag.media.entries) {
     archive.addFile(ArchiveFile.bytes('word/media/${e.key}', e.value));

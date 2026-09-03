@@ -53,8 +53,8 @@ String encodeAmplitude(double total, List<double> percentages) {
   // of hundredths; take back from the smallest remainders in that case.
   final step = residual >= 0 ? 1 : -1;
   for (var k = 0; residual != 0 && k < order.length * 2; k++) {
-    final i = order[step > 0 ? k % order.length
-        : order.length - 1 - (k % order.length)];
+    final i = order[
+        step > 0 ? k % order.length : order.length - 1 - (k % order.length)];
     if (parts[i] + step < 0) continue;
     parts[i] += step;
     residual -= step;

@@ -51,9 +51,10 @@ void main() {
     expect(encoded.anode, 'case');
     expect(encoded.cathode, 'E2b');
 
-    final encodedCathodicCase =
-        encodeTokens({const ContactKey(0, 0): ContactState.anodic},
-            ContactState.cathodic, directedModel);
+    final encodedCathodicCase = encodeTokens(
+        {const ContactKey(0, 0): ContactState.anodic},
+        ContactState.cathodic,
+        directedModel);
     expect(encodedCathodicCase.anode, 'E0');
     expect(encodedCathodicCase.cathode, 'case');
   });
@@ -87,8 +88,7 @@ void main() {
     expect(encoded.anode, 'case_E1b');
     expect(encoded.cathode, 'E0_E2c');
 
-    final decoded =
-        decodeTokens(encoded.anode, encoded.cathode, directedModel);
+    final decoded = decodeTokens(encoded.anode, encoded.cathode, directedModel);
     expect(decoded.states, states);
     expect(decoded.caseState, caseState);
   });

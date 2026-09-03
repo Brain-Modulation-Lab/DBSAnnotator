@@ -158,8 +158,8 @@ class _ScaleTargetsDialogState extends State<_ScaleTargetsDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(
-              context, [for (final r in _rows) r.toPref()]),
+          onPressed: () =>
+              Navigator.pop(context, [for (final r in _rows) r.toPref()]),
           child: const Text('Apply'),
         ),
       ],
@@ -200,8 +200,7 @@ class _ScaleTargetsDialogState extends State<_ScaleTargetsDialog> {
                           ),
                         ),
                     ],
-                    onChanged: (m) =>
-                        setState(() => row.mode = m ?? row.mode),
+                    onChanged: (m) => setState(() => row.mode = m ?? row.mode),
                   ),
                 ),
                 if (row.mode == ScaleMode.custom)

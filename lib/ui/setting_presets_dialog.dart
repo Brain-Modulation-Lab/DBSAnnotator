@@ -177,8 +177,8 @@ class _NumberListEditorState extends State<_NumberListEditor> {
                   Expanded(
                     child: TextField(
                       controller: widget.ctrls[i],
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         isDense: true,
                         suffixText: widget.unit,

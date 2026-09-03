@@ -34,6 +34,9 @@ ios/fastlane/*.mobileprovision
 *.p12
 
 # ---- Docs (Sphinx, built by Read the Docs from docs/) ----
+# Byte-compiled output of docs/_ext/. A .pyc was tracked before this rule.
+__pycache__/
+*.py[cod]
 docs/_build/
 
 # ---- Editors / OS ----

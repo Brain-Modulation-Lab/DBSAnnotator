@@ -1,26 +1,40 @@
-/// Optional Unicode font theme for the PDF reports.
+/// The Unicode font theme for the PDF reports, and what it can actually draw.
 ///
 /// dart_pdf's built-in Type1 fonts (Helvetica) only cover Latin-1, which is
 /// enough for the ASCII-only longitudinal report but not for the session
-/// report's `µs` pulse-width unit and verbatim clinical notes (arbitrary
-/// Unicode). IBMPlexSans-Regular.ttf / IBMPlexSans-Bold.ttf are OFL-licensed
-/// (https://github.com/IBM/plex) and are dropped into app/assets/fonts/
-/// (see app/README). This loader degrades gracefully: when the TTFs are
-/// absent (e.g. headless tests, a checkout without the fonts) it returns null
-/// and callers omit the theme, letting dart_pdf fall back to Helvetica — ASCII
-/// still renders.
+/// report's `µs` pulse-width unit or for verbatim clinical notes. The bundled
+/// IBMPlexSans-Regular.ttf / IBMPlexSans-Bold.ttf (OFL,
+/// https://github.com/IBM/plex) cover Latin, Greek and Cyrillic.
+///
+/// This loader degrades gracefully: when the TTFs are absent — a checkout
+/// without them, or a pure-Dart test with no asset bundle — it reports no
+/// coverage at all and callers fall back to Helvetica with the Latin-1
+/// sanitiser switched on.
 library;
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:pdf/pdf.dart' show TtfParser;
 import 'package:pdf/widgets.dart' as pw;
 
-/// Load the bundled IBM Plex Sans TTFs into a pdf theme, or null when they are
-/// missing (caller then builds `pw.Document()` without a theme).
-Future<pw.ThemeData?> loadReportTheme() async {
+/// A loaded report font: the theme to draw with, and the runes it can draw.
+///
+/// The coverage set is the point. Before it existed the sanitiser was switched
+/// on and off by a single boolean — "did a theme load?" — which was right only
+/// while the answer was almost always no. With the fonts bundled the answer is
+/// always yes, and a CJK note (which IBM Plex Sans has no glyphs for) went from
+/// "replaced with ? and reported" to "silently drawn as nothing". Coverage is
+/// what distinguishes *this font can render it* from *some font could*.
+typedef ReportFonts = ({pw.ThemeData? theme, Set<int> coverage});
+
+/// No font: Helvetica, Latin-1 only, sanitiser on.
+const ReportFonts noReportFonts = (theme: null, coverage: <int>{});
+
+/// Load the bundled IBM Plex Sans TTFs, with the character map they provide.
+Future<ReportFonts> loadReportFonts() async {
   try {
-    final base = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/IBMPlexSans-Regular.ttf'),
-    );
+    final regular =
+        await rootBundle.load('assets/fonts/IBMPlexSans-Regular.ttf');
+    final base = pw.Font.ttf(regular);
     final bold = pw.Font.ttf(
       await rootBundle.load('assets/fonts/IBMPlexSans-Bold.ttf'),
     );
@@ -35,18 +49,18 @@ Future<pw.ThemeData?> loadReportTheme() async {
     // middle of building the document, so EVERY export failed instead of
     // degrading to Helvetica. Reading `fontName` parses the table directory, so
     // a bad file fails now, here, where the catch can do its job.
-    // `fontName` builds a TtfParser over the bytes, which is what actually
-    // reads the table directory.
-    if (base.fontName.isEmpty || bold.fontName.isEmpty) return null;
-    return pw.ThemeData.withFont(
-      base: base,
-      bold: bold,
-      fontFallback: [base],
+    if (base.fontName.isEmpty || bold.fontName.isEmpty) return noReportFonts;
+    return (
+      theme:
+          pw.ThemeData.withFont(base: base, bold: bold, fontFallback: [base]),
+      // The regular face's cmap. Bold is the same family and the same coverage,
+      // and a character present in one but not the other would be a broken
+      // font, not a case worth splitting the set for.
+      coverage: TtfParser(regular).charToGlyphIndexMap.keys.toSet(),
     );
   } catch (_) {
     // Missing asset, no asset bundle at all (pure Dart tests), or a file that
-    // is not a usable font: fall back to the built-in Helvetica by returning no
-    // theme. Callers then enable the sanitiser and warn if a glyph was lost.
-    return null;
+    // is not a usable font.
+    return noReportFonts;
   }
 }

@@ -189,8 +189,8 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                 onReorderItem: (o, n) => _reorderItem(o, n, panels),
                 children: [
                   for (var i = 0; i < panels.length; i++)
-                    _panelRow(theme, panels[i], i, xs, pxPerStep, offset,
-                        viewport),
+                    _panelRow(
+                        theme, panels[i], i, xs, pxPerStep, offset, viewport),
                 ],
               ),
             ),
@@ -375,36 +375,36 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                       ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             )
           else
-          Row(
-            children: [
-              SizedBox(
-                width: _gutterWidth,
-                height: _panelHeight,
-                child: _YGutter(panel: panel, theme: theme),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragUpdate: (d) => _pan(d.delta.dx, viewport),
-                  child: SizedBox(
-                    height: _panelHeight,
-                    child: CustomPaint(
-                      painter: _PanelPainter(
-                        panel: panel,
-                        xs: xs,
-                        pxPerStep: pxPerStep,
-                        offset: offset,
-                        bestX: widget.bestX,
-                        secondX: widget.secondX,
-                        ink: theme.colorScheme.onSurfaceVariant,
-                        grid: theme.dividerColor,
+            Row(
+              children: [
+                SizedBox(
+                  width: _gutterWidth,
+                  height: _panelHeight,
+                  child: _YGutter(panel: panel, theme: theme),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragUpdate: (d) => _pan(d.delta.dx, viewport),
+                    child: SizedBox(
+                      height: _panelHeight,
+                      child: CustomPaint(
+                        painter: _PanelPainter(
+                          panel: panel,
+                          xs: xs,
+                          pxPerStep: pxPerStep,
+                          offset: offset,
+                          bestX: widget.bestX,
+                          secondX: widget.secondX,
+                          ink: theme.colorScheme.onSurfaceVariant,
+                          grid: theme.dividerColor,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
@@ -475,7 +475,8 @@ class _YGutter extends StatelessWidget {
   Widget build(BuildContext context) {
     final mid = (panel.yMin + panel.yMax) / 2;
     return Padding(
-      padding: const EdgeInsets.only(right: 5, top: _plotPadY - 5, bottom: _plotPadY - 5),
+      padding: const EdgeInsets.only(
+          right: 5, top: _plotPadY - 5, bottom: _plotPadY - 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -522,7 +523,9 @@ class _PanelPainter extends CustomPainter {
     double xPos(num i) => (i.toDouble() + 0.5) * pxPerStep - offset;
     final span = math.max(panel.yMax - panel.yMin, 1e-9);
     double yPos(double v) =>
-        size.height - _plotPadY - ((v - panel.yMin) / span) * (size.height - 2 * _plotPadY);
+        size.height -
+        _plotPadY -
+        ((v - panel.yMin) / span) * (size.height - 2 * _plotPadY);
 
     // Green ranking bands, behind everything.
     void band(int? block, int argb) {
@@ -635,9 +638,7 @@ class _XAxisPainter extends CustomPainter {
       drawChartText(canvas, label, Offset(x, 5),
           color: ink, align: TextAlign.center, size: 9);
       drawChartText(canvas, '#${xs[i]}', Offset(x, 16),
-          color: ink.withValues(alpha: 0.7),
-          align: TextAlign.center,
-          size: 8);
+          color: ink.withValues(alpha: 0.7), align: TextAlign.center, size: 8);
     }
     canvas.restore();
   }

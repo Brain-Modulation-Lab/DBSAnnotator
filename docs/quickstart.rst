@@ -15,36 +15,34 @@ offers four entries, in two groups:
    :alt: Home screen with four entries grouped under Record and Reports
    :width: 100%
 
-The theme follows a toggle in the top bar, which matters in a darkened theatre:
-
-.. image:: _static/screenshots/home_dark.png
-   :alt: The same home screen in dark theme
-   :width: 100%
-
 .. list-table::
    :header-rows: 1
    :widths: 26 74
 
    * - Entry
      - Use it when
-   * - :doc:`Complete workflow <workflow_complete>`
+   * - :doc:`Complete workflow <screens/complete_workflow>`
      - You are running a programming session: stimulation parameters, electrode
        contacts, scale ratings, side effects and notes.
-   * - :doc:`Annotations only <workflow_annotations>`
+   * - :doc:`Annotations only <screens/annotations>`
      - You only want timestamped notes — no stimulation data.
-   * - Single session report
+   * - :doc:`Single session report <screens/single_session_report>`
      - You have a TSV and want its report, with no authoring.
-   * - Longitudinal review
+   * - :doc:`Longitudinal review <screens/longitudinal>`
      - You have several sessions for one patient and want to see change across
        visits.
 
 The first two *create* data. The last two only *read* it, so they are safe to
 open against a file you care about.
 
+The theme and text-size controls in the top bar are on every screen; see
+:doc:`screens/home`.
+
 Your first session
 ------------------
 
-The shortest useful path through :doc:`Complete workflow <workflow_complete>`:
+The shortest useful path through
+:doc:`Complete workflow <screens/complete_workflow>`:
 
 1. **File.** Enter the patient ID and run number, then choose where to save.
    The app builds the BIDS filename for you and writes the file immediately, so

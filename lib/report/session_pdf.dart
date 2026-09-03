@@ -160,8 +160,8 @@ List<pw.Widget> _legendBlock(SessionReportData data, ReportTextSanitiser t) {
     return [
       pw.SizedBox(height: 4),
       pw.Text(t(data.targetsText),
-          style: const pw.TextStyle(
-              fontSize: 9, fontStyle: pw.FontStyle.italic)),
+          style:
+              const pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic)),
     ];
   }
   if (data.bestBlocks.isEmpty && data.secondBlocks.isEmpty) return const [];
@@ -203,8 +203,7 @@ List<pw.Widget> _legendBlock(SessionReportData data, ReportTextSanitiser t) {
     pw.Text(data.indexMethod, style: const pw.TextStyle(fontSize: 8)),
     pw.SizedBox(height: 2),
     pw.Text(kRankingDisclaimer,
-        style: const pw.TextStyle(
-            fontSize: 9, fontStyle: pw.FontStyle.italic)),
+        style: const pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic)),
   ];
 }
 
@@ -274,8 +273,9 @@ Future<ReportBytes> buildSessionPdf({
   // unsupported rune — it silently draws an empty placeholder box — so without
   // the sanitiser a smart apostrophe from an iPad note would leave a blank
   // rectangle in a clinical document with no error. See report_text.dart.
-  final theme = await loadReportTheme();
-  final t = ReportTextSanitiser(active: theme == null);
+  final fonts = await loadReportFonts();
+  final theme = fonts.theme;
+  final t = ReportTextSanitiser(coverage: fonts.coverage);
   final tableData = t.rows(data.tableData);
   // Document properties. The PDF carried NO /Info dictionary at all, so once
   // the file reached a document system its filename was the only clue to what
@@ -464,8 +464,8 @@ Future<ReportBytes> buildSessionPdf({
             // The screen didn't rasterise one (headless caller); say so rather
             // than silently omitting the section's main graphic.
             pw.Text('(scales timeline chart unavailable)',
-                style: const pw.TextStyle(
-                    fontSize: 8, color: PdfColors.grey600)),
+                style:
+                    const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
           if (wantsTable && !data.hasRecording)
             pw.Text('No recording blocks in this session.')
           else if (wantsTable) ...[
@@ -500,7 +500,8 @@ Future<ReportBytes> buildSessionPdf({
                   color: fill,
                   border: isBoundary
                       ? const pw.Border(
-                          top: pw.BorderSide(width: 1.6, color: PdfColors.black))
+                          top:
+                              pw.BorderSide(width: 1.6, color: PdfColors.black))
                       : null,
                 );
               },
@@ -519,75 +520,77 @@ Future<ReportBytes> buildSessionPdf({
         // as a printing fault.
         if (sections.contains(ReportSection.electrodes))
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-          pw.Header(level: 1, text: 'Electrode configuration'),
-          if (!data.hasElectrodeConfig)
-            pw.Text('No electrode configuration recorded.')
-          else ...[
-            if (data.electrodeModel.isNotEmpty)
-              pw.Text('Electrode model: ${t(data.electrodeModel)}'),
-            pw.SizedBox(height: 4),
-            if (hasElectrodeImages) ...[
-              // ONE row of four leads under a merged Initial/Final header, as
-              // Word and the desktop lay it out. Two stacked rows cost ~380 pt
-              // of height, which is why this section used to break across
-              // pages; 4 x ~114 pt of width fits in 482 pt and halves that.
-              pw.Row(children: [
-                for (final title in ['Initial settings', 'Final settings'])
-                  pw.SizedBox(
-                    width: leadWidth * 2,
-                    child: pw.Text(title,
-                        textAlign: pw.TextAlign.center,
-                        style: const pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold)),
-                  ),
-              ]),
-              pw.SizedBox(height: 2),
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  _electrodeCell('Left', ei.initLeft, leadWidth,
-                      imageHeight: leadHeight,
-                      detail: t(_leadDetail(data.initialTokens, true))),
-                  _electrodeCell('Right', ei.initRight, leadWidth,
-                      imageHeight: leadHeight,
-                      detail: t(_leadDetail(data.initialTokens, false))),
-                  _electrodeCell('Left', ei.finalLeft, leadWidth,
-                      imageHeight: leadHeight,
-                      detail: t(_leadDetail(data.finalTokens, true))),
-                  _electrodeCell('Right', ei.finalRight, leadWidth,
-                      imageHeight: leadHeight,
-                      detail: t(_leadDetail(data.finalTokens, false))),
-                ],
-              ),
-              // A key, because the drawing encodes polarity by COLOUR alone -
-              // useless on a mono printer or to a colour-blind reader.
-              pw.SizedBox(height: 3),
-              pw.Text(
-                  'Red = anode (+)   Blue = cathode (-)   Grey = inactive.   '
-                  "A percentage is that contact's share of the total current.",
-                  style: const pw.TextStyle(
-                      fontSize: 7, color: PdfColors.grey700)),
-            ] else ...[
-              // Text fallback (no rasteriser available). Vendor nomenclature
-              // here too — the raw `E2b_E2c` tokens are internal identifiers,
-              // and printing them in one place and `2b(3.3)` in another
-              // described the same lead two ways.
-              for (final pair in [
-                ('Initial settings', data.initialTokens),
-                ('Last recorded settings', data.finalTokens),
-              ])
-                if (pair.$2 != null) ...[
-                  pw.SizedBox(height: 4),
-                  pw.Text(pair.$1,
-                      style:
-                          const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('  Left:   ${t(lateralText(pair.$2!, left: true))}'),
-                  pw.Text('  Right:  ${t(lateralText(pair.$2!, left: false))}'),
-                ],
+            pw.Header(level: 1, text: 'Electrode configuration'),
+            if (!data.hasElectrodeConfig)
+              pw.Text('No electrode configuration recorded.')
+            else ...[
+              if (data.electrodeModel.isNotEmpty)
+                pw.Text('Electrode model: ${t(data.electrodeModel)}'),
+              pw.SizedBox(height: 4),
+              if (hasElectrodeImages) ...[
+                // ONE row of four leads under a merged Initial/Final header, as
+                // Word and the desktop lay it out. Two stacked rows cost ~380 pt
+                // of height, which is why this section used to break across
+                // pages; 4 x ~114 pt of width fits in 482 pt and halves that.
+                pw.Row(children: [
+                  for (final title in ['Initial settings', 'Final settings'])
+                    pw.SizedBox(
+                      width: leadWidth * 2,
+                      child: pw.Text(title,
+                          textAlign: pw.TextAlign.center,
+                          style: const pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold)),
+                    ),
+                ]),
+                pw.SizedBox(height: 2),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _electrodeCell('Left', ei.initLeft, leadWidth,
+                        imageHeight: leadHeight,
+                        detail: t(_leadDetail(data.initialTokens, true))),
+                    _electrodeCell('Right', ei.initRight, leadWidth,
+                        imageHeight: leadHeight,
+                        detail: t(_leadDetail(data.initialTokens, false))),
+                    _electrodeCell('Left', ei.finalLeft, leadWidth,
+                        imageHeight: leadHeight,
+                        detail: t(_leadDetail(data.finalTokens, true))),
+                    _electrodeCell('Right', ei.finalRight, leadWidth,
+                        imageHeight: leadHeight,
+                        detail: t(_leadDetail(data.finalTokens, false))),
+                  ],
+                ),
+                // A key, because the drawing encodes polarity by COLOUR alone -
+                // useless on a mono printer or to a colour-blind reader.
+                pw.SizedBox(height: 3),
+                pw.Text(
+                    'Red = anode (+)   Blue = cathode (-)   Grey = inactive.   '
+                    "A percentage is that contact's share of the total current.",
+                    style: const pw.TextStyle(
+                        fontSize: 7, color: PdfColors.grey700)),
+              ] else ...[
+                // Text fallback (no rasteriser available). Vendor nomenclature
+                // here too — the raw `E2b_E2c` tokens are internal identifiers,
+                // and printing them in one place and `2b(3.3)` in another
+                // described the same lead two ways.
+                for (final pair in [
+                  ('Initial settings', data.initialTokens),
+                  ('Last recorded settings', data.finalTokens),
+                ])
+                  if (pair.$2 != null) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Text(pair.$1,
+                        style:
+                            const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                        '  Left:   ${t(lateralText(pair.$2!, left: true))}'),
+                    pw.Text(
+                        '  Right:  ${t(lateralText(pair.$2!, left: false))}'),
+                  ],
+              ],
             ],
-          ],
-          pw.SizedBox(height: 8),
-        ]),
+            pw.SizedBox(height: 8),
+          ]),
 
         // (e) Programming summary (desktop _add_programming_summary math).
         if (sections.contains(ReportSection.summary)) ...[

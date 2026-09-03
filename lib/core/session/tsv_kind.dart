@@ -13,7 +13,6 @@
 /// convention a user can rename, and the columns are the actual contract.
 library;
 
-import '../schema_columns.dart';
 import '../tsv.dart';
 
 /// The kinds of TSV this app reads.
@@ -31,10 +30,20 @@ enum TsvKind {
   unreadable,
 }
 
-/// Columns that only a programming TSV has. `block_ID` and `is_initial` are the
-/// structural ones — everything a session report does starts by grouping on
-/// them — so their presence is what makes a file a session.
-const _programmingMarkers = {'block_ID', 'is_initial'};
+/// Columns that only a programming TSV has. The block index and `is_initial`
+/// are the structural ones — everything a session report does starts by
+/// grouping on them — so their presence is what makes a file a session.
+///
+/// The block index is spelled `block_id` from v0.5.0 and `block_ID` before it,
+/// so either satisfies the marker; a file that predates the rename must still
+/// classify as a session.
+const _blockMarkers = {'block_id', 'block_ID'};
+const _programmingMarkers = {'is_initial'};
+
+/// The annotation columns present in every version of the format. `acq_time`
+/// was added in v0.5.0 and is deliberately not required here, so a 0.4.x notes
+/// file still classifies.
+const _notesMarkers = {'date', 'time', 'timezone', 'notes'};
 
 /// Classify [content] by its header row.
 ///
@@ -53,8 +62,13 @@ TsvKind sniffTsvKind(String content) {
   if (rows.isEmpty || rows.first.isEmpty) return TsvKind.unreadable;
   final header = rows.first.map((c) => c.trim()).toSet();
 
-  if (_programmingMarkers.every(header.contains)) return TsvKind.programming;
-  if (annotationColumns.every(header.contains)) return TsvKind.notes;
+  if (_programmingMarkers.every(header.contains) &&
+      _blockMarkers.any(header.contains)) {
+    return TsvKind.programming;
+  }
+  // `acq_time` only exists from v0.5.0, so match on the columns every version
+  // of an annotations file has had.
+  if (_notesMarkers.every(header.contains)) return TsvKind.notes;
   return TsvKind.unknown;
 }
 

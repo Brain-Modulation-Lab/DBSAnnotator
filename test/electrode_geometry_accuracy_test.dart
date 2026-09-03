@@ -123,8 +123,8 @@ void main() {
     expect(boston.leadRect.bottom,
         closeTo(boston.levels.last.contactRects.values.first.top, 0.01));
 
-    final mdt = computeLayout(
-        catalog.models['Medtronic 3389']!, const Size(300, 600));
+    final mdt =
+        computeLayout(catalog.models['Medtronic 3389']!, const Size(300, 600));
     expect(mdt.isTipContact, isFalse);
     expect(mdt.levels.last.isTip, isFalse);
     expect(mdt.leadRect.bottom,
@@ -164,14 +164,13 @@ void main() {
           for (var i = 0; i < l.levels.length; i++) {
             final cap = l.levels[i].ringCapRect;
             if (cap == null) continue;
-            expect(cap.bottom,
+            expect(
+                cap.bottom,
                 lessThanOrEqualTo(
                     l.levels[i].contactRects.values.first.top + 0.01),
                 reason: 'cap overlaps its own segments');
             if (i > 0) {
-              final above = l.levels[i - 1]
-                  .contactRects
-                  .values
+              final above = l.levels[i - 1].contactRects.values
                   .map((r) => r.bottom)
                   .reduce((a, b) => a > b ? a : b);
               expect(cap.top, greaterThanOrEqualTo(above - 0.01),
@@ -246,7 +245,8 @@ void main() {
       // stay legible. A SenSight on a small tablet pane used to get 36 px
       // contacts at a 10.9 px font.
       final layout = computeLayout(
-          _catalog().models['Medtronic SenSight B33005']!, const Size(220, 420));
+          _catalog().models['Medtronic SenSight B33005']!,
+          const Size(220, 420));
       final contact = layout.levels.first.contactRects.values.first;
       expect(contact.height, greaterThan(45));
       expect(layout.scale, greaterThan(30));
@@ -258,9 +258,8 @@ void main() {
       // cannot grow, so width does.
       const pane = Size(220, 420);
       final catalog = _catalog();
-      final four = computeLayout(catalog.models['Medtronic 3389']!, pane)
-          .leadRect
-          .width;
+      final four =
+          computeLayout(catalog.models['Medtronic 3389']!, pane).leadRect.width;
       for (final name in [
         'Boston Scientific Vercise Cartesia HX', // 6 levels
         'Boston Scientific Vercise', // 8 rings

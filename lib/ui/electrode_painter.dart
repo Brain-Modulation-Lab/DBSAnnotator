@@ -330,9 +330,7 @@ class ElectrodePainter extends CustomPainter {
         text: text,
         style: TextStyle(
           fontFamily: debugPainterFontFamily,
-          color: polarity == ContactState.off
-              ? labelColor
-              : _border(polarity),
+          color: polarity == ContactState.off ? labelColor : _border(polarity),
           fontSize: _font(0.46, 10, 20),
           fontWeight: FontWeight.bold,
           height: 1,
@@ -383,9 +381,8 @@ class ElectrodePainter extends CustomPainter {
 
     // A single gutter column for every E-label, just left of the widest level.
     final gutterRight = layout.levels
-            .map((l) => l.contactRects.values
-                .map((r) => r.left)
-                .reduce(math.min))
+            .map((l) =>
+                l.contactRects.values.map((r) => r.left).reduce(math.min))
             .reduce(math.min) -
         8;
 
@@ -395,8 +392,8 @@ class ElectrodePainter extends CustomPainter {
       if (cap != null) {
         final ringState = _ringState(level.levelIdx);
         _paintCap(canvas, cap, ringState);
-        _paintTextCentered(canvas, 'Ring', cap, _labelOn(ringState),
-            _font(0.28, 7, 13));
+        _paintTextCentered(
+            canvas, 'Ring', cap, _labelOn(ringState), _font(0.28, 7, 13));
       }
 
       for (final entry in level.contactRects.entries) {

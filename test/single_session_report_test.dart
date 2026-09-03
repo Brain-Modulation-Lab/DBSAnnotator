@@ -79,8 +79,8 @@ void main() {
       // for about ten minutes, and it was the worse of the two - no section
       // gating, four sequential awaits instead of concurrent, and its own idea
       // of which rows to draw. That is now renderReportGraphics, shared.
-      final src = File('lib/ui/single_session_report_screen.dart')
-          .readAsLinesSync();
+      final src =
+          File('lib/ui/single_session_report_screen.dart').readAsLinesSync();
       final code = src.where((l) {
         final t = l.trim();
         return t.isNotEmpty && !t.startsWith('//') && !t.startsWith('///');

@@ -63,10 +63,11 @@ Reports
    which block came last. See :ref:`what-the-reports-do-not-say`.
 
 **A character in my note came out as a question mark.**
-   The PDF exporter's built-in font covers Latin-1 only. Adding the two IBM Plex
-   Sans files described in :doc:`installation` gives full Unicode coverage; Word
-   export is unaffected either way. The app warns whenever a character was
-   replaced, so this never happens silently.
+   You are on a build whose bundled fonts are missing; the PDF exporter's
+   fallback font covers Latin-1 only. Restore the two IBM Plex Sans files
+   described in :doc:`installation`. Word export is unaffected either way, and
+   the app warns whenever a character was replaced, so this never happens
+   silently.
 
 **Can I get the report as a Word file I can edit?**
    Yes — both formats come from the same numbers, so the ``.docx`` says exactly

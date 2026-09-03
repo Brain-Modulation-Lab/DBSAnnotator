@@ -55,7 +55,8 @@ void main() {
     expect(rows.single.programId, 'A');
   });
 
-  test('baseline drops unnamed scales, recording keeps them '
+  test(
+      'baseline drops unnamed scales, recording keeps them '
       '(is_valid vs has_value)', () {
     const scales = [(name: '   ', value: '5'), (name: 'Tremor', value: '2')];
 

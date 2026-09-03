@@ -97,11 +97,13 @@ void main() {
     expect(bytes.sublist(0, 4), [0x50, 0x4B, 0x03, 0x04]);
 
     final names = ZipDecoder().decodeBytes(bytes).files.map((f) => f.name);
-    expect(names, containsAll(<String>[
-      '[Content_Types].xml',
-      '_rels/.rels',
-      'word/document.xml',
-    ]));
+    expect(
+        names,
+        containsAll(<String>[
+          '[Content_Types].xml',
+          '_rels/.rels',
+          'word/document.xml',
+        ]));
   });
 
   test('document.xml carries the report sections and escapes XML', () {
@@ -170,8 +172,9 @@ void main() {
       final rels = _part(bytes, 'word/_rels/document.xml.rels');
       final doc = _part(bytes, 'word/document.xml');
 
-      final relIds = RegExp(r'Id="(rId\d+)"\s+Type="[^"]*/image"\s+Target="([^"]+)"')
-          .allMatches(rels);
+      final relIds =
+          RegExp(r'Id="(rId\d+)"\s+Type="[^"]*/image"\s+Target="([^"]+)"')
+              .allMatches(rels);
       expect(relIds, isNotEmpty);
       for (final m in relIds) {
         // Target must exist in the package...
@@ -228,8 +231,8 @@ void main() {
       // pane and in anything that indexes the file.
       expect(names, contains('docProps/core.xml'));
       expect(_part(bytes, '_rels/.rels'), contains('docProps/core.xml'));
-      expect(_part(bytes, '[Content_Types].xml'),
-          contains('core-properties+xml'));
+      expect(
+          _part(bytes, '[Content_Types].xml'), contains('core-properties+xml'));
       final core = _part(bytes, 'docProps/core.xml');
       expect(core, contains('DBS session report - sub-01'));
       expect(core, contains('DBS Annotator v'));
@@ -257,9 +260,8 @@ void main() {
     });
 
     test('without images there is no media and no drawing', () {
-      final bytes =
-          buildSessionDocx(
-              data: buildSessionReportData(rows: rows), subjectId: '01');
+      final bytes = buildSessionDocx(
+          data: buildSessionReportData(rows: rows), subjectId: '01');
       final names =
           ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
       expect(names.where((n) => n.startsWith('word/media/')), isEmpty);
@@ -298,7 +300,8 @@ void main() {
       final match =
           RegExp(r'Id="(rId\d+)"[^>]*/relationships/footer"').firstMatch(rels);
       expect(match, isNotNull, reason: 'the footer needs a relationship');
-      expect(_part(bytes, 'word/document.xml'),
+      expect(
+          _part(bytes, 'word/document.xml'),
           contains('<w:footerReference w:type="default" '
               'r:id="${match!.group(1)}"/>'));
     });
@@ -405,13 +408,14 @@ void main() {
     // With no width hints Word auto-fits from content, and since most of these
     // cells hold 1-4 characters the ten columns collapsed to a fraction of the
     // page while the PDF's filled it. This is the fix for that.
-    List<List<int>> gridsIn(String doc) => RegExp(r'<w:tblGrid>(.*?)</w:tblGrid>')
-        .allMatches(doc)
-        .map((m) => RegExp(r'w:w="(\d+)"')
-            .allMatches(m.group(1)!)
-            .map((g) => int.parse(g.group(1)!))
-            .toList())
-        .toList();
+    List<List<int>> gridsIn(String doc) =>
+        RegExp(r'<w:tblGrid>(.*?)</w:tblGrid>')
+            .allMatches(doc)
+            .map((m) => RegExp(r'w:w="(\d+)"')
+                .allMatches(m.group(1)!)
+                .map((g) => int.parse(g.group(1)!))
+                .toList())
+            .toList();
 
     for (final size in DocxPageSize.values) {
       test('${size.name}: every grid sums to the content width', () {
@@ -457,8 +461,8 @@ void main() {
         expect(declared[dataIdx], size.contentWidthTwips);
 
         // The electrode grid: four evenly quartered columns.
-        final leadIdx = grids.indexWhere(
-            (g) => g.length == 4 && g.toSet().length <= 2);
+        final leadIdx =
+            grids.indexWhere((g) => g.length == 4 && g.toSet().length <= 2);
         expect(leadIdx, greaterThanOrEqualTo(0));
         expect(declared[leadIdx], size.contentWidthTwips);
 

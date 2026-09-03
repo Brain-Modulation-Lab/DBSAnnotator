@@ -112,7 +112,7 @@ void main() {
     // dart_pdf throws. Use a REALISTIC raster, not a 1x1, or the regression
     // this guards against slips through.
     final rows = parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync(),
     );
     final data = buildSessionReportData(rows: rows);
@@ -161,7 +161,8 @@ void main() {
     // rather than extracting text (see the note at the top). The .docx test
     // does the content assertions, and both formats read the same enum.
     final data = buildSessionReportData(
-      rows: parseSessionTsv(File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      rows: parseSessionTsv(File(
+              'test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync()),
       generatedAt: DateTime(2026, 6, 26),
     );

@@ -29,7 +29,7 @@ Uint8List _tinyPng() => base64Decode(
     'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC');
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync(),
     );
 
@@ -43,8 +43,8 @@ String _docxText(List<int> bytes) {
   final out = StringBuffer();
   // `<w:t` only, not `<w:tbl`/`<w:tc`/`<w:tr`: `[^>]*` happily matches "blPr",
   // which pulled raw markup into the "text" and made the assertions meaningless.
-  for (final m
-      in RegExp(r'<w:t(?:\s[^>]*)?>(.*?)</w:t>', dotAll: true).allMatches(xml)) {
+  for (final m in RegExp(r'<w:t(?:\s[^>]*)?>(.*?)</w:t>', dotAll: true)
+      .allMatches(xml)) {
     out.write(m
         .group(1)!
         .replaceAll('&amp;', '&')
@@ -62,8 +62,7 @@ void main() {
   late SessionReportData data;
 
   setUpAll(() async {
-    data = rankedReportData(_example(),
-        generatedAt: DateTime(2026, 6, 26));
+    data = rankedReportData(_example(), generatedAt: DateTime(2026, 6, 26));
     // With a chart, so the figure + caption path is exercised too.
     docx = _docxText(
         buildSessionDocx(data: data, subjectId: '01', chartPng: _tinyPng()));

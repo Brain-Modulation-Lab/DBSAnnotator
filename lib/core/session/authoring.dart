@@ -24,8 +24,8 @@ class SessionAuthoring {
   int get sessionId => _sessionId;
 
   /// Load an existing TSV and continue numbering, mirroring
-  /// open_file_append: next block = max(block_ID)+1, this session =
-  /// max(session_ID)+1 (malformed cells are skipped).
+  /// open_file_append: next block = max(block_id)+1, this session =
+  /// max(session_id)+1 (malformed cells are skipped).
   void loadExisting(String tsv) {
     rows
       ..clear()

@@ -79,8 +79,8 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
     });
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(m)));
+  void _snack(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   bool get _isSession => _kind == TsvKind.programming;
   bool get _hasFile => _rows.isNotEmpty || _notes.isNotEmpty;
@@ -170,7 +170,14 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
 
     final letter =
         (_prefs.reportPageSize ?? kDefaultReportPageSize) == 'letter';
-    final base = (_filename ?? 'report').replaceAll(RegExp(r'\.tsv$'), '');
+    // Derive the report name from the source file's entities so the two sort
+    // together. A file whose name carries no `sub-` entity keeps its stem, with
+    // the data suffix swapped for `_report` — inventing entities for a
+    // hand-renamed file would put a wrong subject label on a clinical document.
+    final base = (_filename ?? 'report')
+        .replaceAll(RegExp(r'\.tsv$'), '')
+        .replaceAll(
+            RegExp('_(${BidsName.behSuffix}|${BidsName.legacySuffix})\$'), '');
     final name = '${base}_report.${docx ? 'docx' : 'pdf'}';
 
     await exportFile(
@@ -227,8 +234,6 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
           'with "?". Add the IBM Plex fonts to assets/fonts/ for full Unicode, '
           'or export to Word instead.'
       : null;
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -352,7 +357,8 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
           ),
         ),
       const SizedBox(height: 12),
-      EntryChartsView(data: _chartData(), visibleConfigs: kDefaultVisibleConfigs),
+      EntryChartsView(
+          data: _chartData(), visibleConfigs: kDefaultVisibleConfigs),
       const SizedBox(height: 12),
       SessionEntriesTable(rows: _rows),
     ];

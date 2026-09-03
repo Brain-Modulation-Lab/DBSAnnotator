@@ -1,4 +1,9 @@
 /// One row of a programming-session (`task-programming`) TSV.
+library;
+
+import '../schema_columns.dart';
+
+/// One row of a programming-session (`task-programming`) TSV.
 ///
 /// Mirrors the desktop writer in
 /// dbs_annotator/models/session_data.py (write_clinical_scales /
@@ -11,6 +16,7 @@ class SessionRow {
     this.date = '',
     this.time = '',
     this.timezone = '',
+    this.acqTime = '',
     this.blockId = '',
     this.sessionId = '',
     this.isInitial = '',
@@ -34,6 +40,10 @@ class SessionRow {
   final String date;
   final String time;
   final String timezone;
+
+  /// The same instant as [date] + [time] + [timezone], as one ISO-8601 string
+  /// (`2026-06-26T16:46:14+02:00`). Empty on rows written before v0.5.0.
+  final String acqTime;
   final String blockId;
   final String sessionId;
   final String isInitial;
@@ -53,30 +63,35 @@ class SessionRow {
   final String rightPulseWidth;
   final String notes;
 
-  /// Build from a TSV record keyed by the exact column names in
+  /// Build from a TSV record keyed by the column names in
   /// schema_columns.dart `sessionColumns`. Missing columns become ''.
+  ///
+  /// Goes through [readColumn], so the pre-0.5.0 `block_ID` / `session_ID` /
+  /// `program_ID` spellings are read as well as the current ones — an older
+  /// file opens with no conversion step.
   factory SessionRow.fromMap(Map<String, String> m) => SessionRow(
-        date: m['date'] ?? '',
-        time: m['time'] ?? '',
-        timezone: m['timezone'] ?? '',
-        blockId: m['block_ID'] ?? '',
-        sessionId: m['session_ID'] ?? '',
-        isInitial: m['is_initial'] ?? '',
-        scaleName: m['scale_name'] ?? '',
-        scaleValue: m['scale_value'] ?? '',
-        electrodeModel: m['electrode_model'] ?? '',
-        programId: m['program_ID'] ?? '',
-        leftStimFreq: m['left_stim_freq'] ?? '',
-        leftAnode: m['left_anode'] ?? '',
-        leftCathode: m['left_cathode'] ?? '',
-        leftAmplitude: m['left_amplitude'] ?? '',
-        leftPulseWidth: m['left_pulse_width'] ?? '',
-        rightStimFreq: m['right_stim_freq'] ?? '',
-        rightAnode: m['right_anode'] ?? '',
-        rightCathode: m['right_cathode'] ?? '',
-        rightAmplitude: m['right_amplitude'] ?? '',
-        rightPulseWidth: m['right_pulse_width'] ?? '',
-        notes: m['notes'] ?? '',
+        date: readColumn(m, 'date'),
+        time: readColumn(m, 'time'),
+        timezone: readColumn(m, 'timezone'),
+        acqTime: readColumn(m, 'acq_time'),
+        blockId: readColumn(m, 'block_id'),
+        sessionId: readColumn(m, 'session_id'),
+        isInitial: readColumn(m, 'is_initial'),
+        scaleName: readColumn(m, 'scale_name'),
+        scaleValue: readColumn(m, 'scale_value'),
+        electrodeModel: readColumn(m, 'electrode_model'),
+        programId: readColumn(m, 'program_id'),
+        leftStimFreq: readColumn(m, 'left_stim_freq'),
+        leftAnode: readColumn(m, 'left_anode'),
+        leftCathode: readColumn(m, 'left_cathode'),
+        leftAmplitude: readColumn(m, 'left_amplitude'),
+        leftPulseWidth: readColumn(m, 'left_pulse_width'),
+        rightStimFreq: readColumn(m, 'right_stim_freq'),
+        rightAnode: readColumn(m, 'right_anode'),
+        rightCathode: readColumn(m, 'right_cathode'),
+        rightAmplitude: readColumn(m, 'right_amplitude'),
+        rightPulseWidth: readColumn(m, 'right_pulse_width'),
+        notes: readColumn(m, 'notes'),
       );
 
   /// The row's `date` + `time` as a local [DateTime], or null when either cell
@@ -89,6 +104,14 @@ class SessionRow {
   /// than guessing. The separate `timezone` cell is deliberately not folded in:
   /// every timestamp in one file is local to the same session.
   DateTime? get timestamp {
+    // v0.5.0+ writes the whole instant, offset included, in one cell; prefer it
+    // when present and fall back for older files. `.toLocal()` keeps the result
+    // comparable with the dates parsed from the two-cell form below.
+    final iso = acqTime.trim();
+    if (iso.isNotEmpty) {
+      final parsed = DateTime.tryParse(iso);
+      if (parsed != null) return parsed.toLocal();
+    }
     final d = date.trim();
     final t = time.trim();
     if (d.isEmpty || t.isEmpty) return null;
@@ -100,13 +123,14 @@ class SessionRow {
         'date': date,
         'time': time,
         'timezone': timezone,
-        'block_ID': blockId,
-        'session_ID': sessionId,
+        'acq_time': acqTime,
+        'block_id': blockId,
+        'session_id': sessionId,
         'is_initial': isInitial,
         'scale_name': scaleName,
         'scale_value': scaleValue,
         'electrode_model': electrodeModel,
-        'program_ID': programId,
+        'program_id': programId,
         'left_stim_freq': leftStimFreq,
         'left_anode': leftAnode,
         'left_cathode': leftCathode,

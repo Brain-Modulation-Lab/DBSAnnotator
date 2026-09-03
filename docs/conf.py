@@ -13,8 +13,8 @@ consequences:
 from __future__ import annotations
 
 import re
-from datetime import datetime
 import sys
+from datetime import datetime
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
@@ -35,7 +35,7 @@ _HOLDERS = (
 _FIRST_YEAR = 2026  # matches lib/app_info.dart's About-dialog notice
 _YEAR = datetime.now().year
 _SPAN = str(_FIRST_YEAR) if _YEAR <= _FIRST_YEAR else f"{_FIRST_YEAR}-{_YEAR}"
-copyright = f"{_SPAN}, {_HOLDERS}"  # noqa: A001
+copyright = f"{_SPAN}, {_HOLDERS}"
 html_context = {"contact_email": "lucia.poma@wysscenter.ch"}
 
 

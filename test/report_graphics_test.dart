@@ -19,7 +19,7 @@ import 'report_ranking_prefs.dart';
 /// against data we can compare with the reference figure in
 /// docs/_static/session_report_session_scales_figure.png.
 List<SessionRow> _exampleRows() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync(),
     );
 
@@ -30,8 +30,8 @@ void main() {
     late SessionReportData data;
 
     setUp(() {
-      data = rankedReportData(_exampleRows(),
-          generatedAt: DateTime(2026, 6, 26));
+      data =
+          rankedReportData(_exampleRows(), generatedAt: DateTime(2026, 6, 26));
     });
 
     test('plots the session scales over the recording blocks', () {
@@ -80,7 +80,8 @@ void main() {
       expect(data.bestBlocks, isNot(equals(data.secondBlocks)));
     });
 
-    test('lists only the SESSION scales as targets, not clinical baselines', () {
+    test('lists only the SESSION scales as targets, not clinical baselines',
+        () {
       expect(data.targetsText, contains('Obsessions: min'));
       expect(data.targetsText, isNot(contains('Y-BOCS')),
           reason: 'clinical baseline scales are not session targets');
@@ -95,13 +96,17 @@ void main() {
 
     test('respects explicit scale prefs (max flips the ranking)', () {
       final maxPrefs = [
-        for (final name in ['Obsessions', 'Compulsions', 'Anxiety', 'Mood',
-          'Energy'])
-          (name: name, min: 0.0, max: 10.0, mode: ScaleMode.max,
-              custom: null),
+        for (final name in [
+          'Obsessions',
+          'Compulsions',
+          'Anxiety',
+          'Mood',
+          'Energy'
+        ])
+          (name: name, min: 0.0, max: 10.0, mode: ScaleMode.max, custom: null),
       ];
-      final flipped = buildSessionReportData(
-          rows: _exampleRows(), scalePrefs: maxPrefs);
+      final flipped =
+          buildSessionReportData(rows: _exampleRows(), scalePrefs: maxPrefs);
       // Maximising instead of minimising must not pick the same best block.
       expect(flipped.chart.bestX, isNot(7));
     });
@@ -116,10 +121,18 @@ void main() {
       // which is right - the grouping keys on the stimulation - but is not a
       // shape a real session produces.)
       const rows = [
-        SessionRow(blockId: '1', isInitial: '0', scaleName: 'Tremor',
-            scaleValue: '3', leftAmplitude: '2.0'),
-        SessionRow(blockId: '2', isInitial: '0', scaleName: 'Tremor',
-            scaleValue: '1', leftAmplitude: '3.0'),
+        SessionRow(
+            blockId: '1',
+            isInitial: '0',
+            scaleName: 'Tremor',
+            scaleValue: '3',
+            leftAmplitude: '2.0'),
+        SessionRow(
+            blockId: '2',
+            isInitial: '0',
+            scaleName: 'Tremor',
+            scaleValue: '1',
+            leftAmplitude: '3.0'),
       ];
       final one = rankedReportData(rows);
       expect(one.chart.series, hasLength(1));
@@ -138,8 +151,8 @@ void main() {
 
     test('no session scales -> an empty chart the builders can skip', () {
       final none = buildSessionReportData(rows: const [
-        SessionRow(blockId: '0', isInitial: '1', scaleName: 'UPDRS',
-            scaleValue: '30'),
+        SessionRow(
+            blockId: '0', isInitial: '1', scaleName: 'UPDRS', scaleValue: '30'),
       ]);
       expect(none.chart.isEmpty, isTrue);
     });
@@ -162,7 +175,8 @@ void main() {
 
     test('renderElectrodePng produces a PNG at the requested size', () async {
       final catalog = ElectrodeCatalog.fromJson(
-        jsonDecode(File('assets/schema/electrode_models.json').readAsStringSync())
+        jsonDecode(
+                File('assets/schema/electrode_models.json').readAsStringSync())
             as Map<String, dynamic>,
       );
       final png = await renderElectrodePng(

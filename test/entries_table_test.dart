@@ -42,8 +42,9 @@ const _rows = [
       scaleValue: '1'),
 ];
 
-Future<void> _pump(WidgetTester tester, List<SessionRow> rows) => tester
-    .pumpWidget(MaterialApp(home: Scaffold(body: SessionEntriesTable(rows: rows))));
+Future<void> _pump(WidgetTester tester, List<SessionRow> rows) =>
+    tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: SessionEntriesTable(rows: rows))));
 
 void main() {
   test('blockCount counts blocks, not TSV rows', () {

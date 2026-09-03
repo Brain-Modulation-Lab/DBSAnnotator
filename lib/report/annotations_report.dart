@@ -109,8 +109,8 @@ AnnotationsReportData buildAnnotationsReportData({
 List<pw.Widget> _attestation() => [
       pw.SizedBox(height: 18),
       pw.Text('Attestation',
-          style: const pw.TextStyle(
-              fontSize: 10, fontWeight: pw.FontWeight.bold)),
+          style:
+              const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 10),
       pw.Row(children: [
         for (final label in ['Recorded by', 'Reviewed by', 'Date'])
@@ -135,8 +135,9 @@ Future<ReportBytes> buildAnnotationsPdf(
   AnnotationsReportData data, {
   PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
-  final theme = await loadReportTheme();
-  final t = ReportTextSanitiser(active: theme == null);
+  final fonts = await loadReportFonts();
+  final theme = fonts.theme;
+  final t = ReportTextSanitiser(coverage: fonts.coverage);
   final doc = pw.Document(
     theme: theme,
     title: data.title,
@@ -192,8 +193,7 @@ Future<ReportBytes> buildAnnotationsPdf(
         pw.TableHelper.fromTextArray(
           headers: const ['Time', 'Note'],
           data: [
-            for (final e in data.entries)
-              [t(e.time.trim()), t(e.notes.trim())],
+            for (final e in data.entries) [t(e.time.trim()), t(e.notes.trim())],
           ],
           cellStyle: const pw.TextStyle(fontSize: 9),
           headerStyle:

@@ -66,17 +66,13 @@ Annotations report
 ------------------
 
 A patient header, the notes in a time-and-text table oldest-first, the span they
-cover, and an attestation block. See :doc:`workflow_annotations`.
+cover, and an attestation block. See :doc:`screens/annotations`.
 
 Longitudinal report
 -------------------
 
-.. image:: _static/screenshots/longitudinal.png
-   :alt: The Longitudinal review screen before any session is imported
-   :width: 100%
-
-
-Several sessions of one patient, compared across visits. Two figures, because
+Several sessions of one patient, compared across visits — see
+:doc:`screens/longitudinal` for the screen that produces it. Two figures, because
 they answer different questions:
 
 **Clinical scales by visit.** One assessment per visit, so the x axis is the

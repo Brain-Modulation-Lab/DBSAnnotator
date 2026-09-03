@@ -20,8 +20,8 @@ void main() {
   Map<String, dynamic> readJson(String path) =>
       jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
 
-  final catalog =
-      ElectrodeCatalog.fromJson(readJson('assets/schema/electrode_models.json'));
+  final catalog = ElectrodeCatalog.fromJson(
+      readJson('assets/schema/electrode_models.json'));
   final limits = StimLimits.fromJson(readJson('assets/schema/limits.json'));
   final scalePresets =
       ScalePresets.fromJson(readJson('assets/schema/scale_presets.json'));
@@ -60,7 +60,8 @@ void main() {
     }
   }
 
-  testWidgets('wizard: file step, then baseline insert lands in the '
+  testWidgets(
+      'wizard: file step, then baseline insert lands in the '
       'recording-step blocks list', (tester) async {
     final authoring = SessionAuthoring();
     await pumpWizard(tester, authoring: authoring);
@@ -139,7 +140,8 @@ void main() {
     expect(find.text('Paper size: A4'), findsOneWidget);
   });
 
-  testWidgets('stim - / + steppers move by step1 and the clear X empties '
+  testWidgets(
+      'stim - / + steppers move by step1 and the clear X empties '
       'the field', (tester) async {
     await pumpWizard(tester);
     await tapNext(tester); // Step 1.
@@ -239,8 +241,9 @@ void main() {
     expect(find.text('Not a number'), findsNothing);
   });
 
-  testWidgets('session scales defined in Step 2 become Step-3 rating rows; '
-      'an omitted scale is inserted as "NaN"', (tester) async {
+  testWidgets(
+      'session scales defined in Step 2 become Step-3 rating rows; '
+      'an omitted scale is inserted as "n/a"', (tester) async {
     final authoring = SessionAuthoring();
     await pumpWizard(tester, authoring: authoring);
     await tapNext(tester, 2); // Step 2.
@@ -284,10 +287,10 @@ void main() {
     expect(authoring.rows.first.isInitial, '0');
     expect(authoring.rows.first.scaleName, 'Tremor');
     expect(authoring.rows.first.scaleValue, limits.sessionScaleOmittedTsv);
-    expect(authoring.rows.first.scaleValue, 'NaN');
+    expect(authoring.rows.first.scaleValue, 'n/a');
     expect(authoring.rows[1].scaleName, 'Rigidity');
     expect(authoring.rows[1].scaleValue, '0');
-    expect(authoring.serialize(), contains('NaN'));
+    expect(authoring.serialize(), contains('n/a'));
 
     // The recording rows appear in the inserted-entries review table.
     expect(find.text('Rec'), findsWidgets);

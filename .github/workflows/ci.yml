@@ -23,6 +23,12 @@ on:
       - "macos/**"
       - "windows/**"
       - "schema/**"
+      # The checks job builds the docs with -W, so a docs-only change must
+      # trigger CI or a publishing break is only found on Read the Docs.
+      - "docs/**"
+      - "pyproject.toml"
+      - ".pre-commit-config.yaml"
+      - ".readthedocs.yaml"
       - ".github/workflows/ci.yml"
   workflow_dispatch:
 
@@ -31,6 +37,57 @@ permissions:
 
 
 jobs:
+  # Static checks. Fast and independent of the build, so a formatting or lint
+  # failure is reported in seconds rather than behind a 3-minute compile.
+  #
+  # The same set runs locally via .pre-commit-config.yaml. This job is the
+  # authority, because `git commit --no-verify` skips hooks and this cannot be
+  # skipped. Keep the two in step.
+  checks:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+      # Formatting is NOT covered by `flutter analyze`, which is why it had
+      # drifted across 66 of 99 files before this gate existed.
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze --fatal-infos
+
+      # actionlint validates `${{ }}` expressions and shellchecks every `run:`
+      # block. The windows job interpolates repository variables into bash, so
+      # this is not hypothetical. Not a pre-commit hook: it is a Go binary and
+      # the maintainer's machine has no Go toolchain.
+      #
+      # A pinned action, NOT `curl | bash`. The download script lives on a
+      # moving branch and is unchecksummed, and this workflow holds a token that
+      # can write to the repository - so piping it into a shell would be remote
+      # code execution with push access, on a clinical tool.
+      - uses: rhysd/actionlint@v1.7.7
+
+      - uses: astral-sh/setup-uv@v5
+      # Python here is only the Sphinx config and the docs extension; pyproject.toml
+      # scopes it to docs/**/*.py.
+      - run: uvx ruff@0.16.5 check docs/
+      - run: uvx ruff@0.16.5 format --check docs/
+      - run: uvx codespell@2.4.3         # configured by pyproject.toml
+
+      # Read the Docs builds with fail_on_warning, so without this a docs
+      # regression is only discovered after merge, when publishing breaks.
+      #
+      # This runs BEFORE doc8 on purpose. docs/output_format.rst `.. include::`s
+      # three fragments under docs/_generated/, which is gitignored build output
+      # written by docs/_ext/generated_includes.py during this build. doc8
+      # resolves includes, so on a fresh clone it reports three D000
+      # "Problems with include directive path" errors if it runs first.
+      - name: Docs build (warnings are errors)
+        run: uv run --with-requirements docs/requirements.txt sphinx-build -b html -W --keep-going docs docs/_build/html
+      - run: uvx --from doc8@2.0.0 doc8 docs   # configured by pyproject.toml
+
   test:
     name: Analyze & test
     runs-on: ubuntu-latest

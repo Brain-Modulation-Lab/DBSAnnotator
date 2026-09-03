@@ -46,8 +46,9 @@ Future<ReportBytes> buildLongitudinalPdf({
   Uint8List? sessionChartPng,
   PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
-  final theme = await loadReportTheme();
-  final t = ReportTextSanitiser(active: theme == null);
+  final fonts = await loadReportFonts();
+  final theme = fonts.theme;
+  final t = ReportTextSanitiser(coverage: fonts.coverage);
   final format = pageFormat.copyWith(
     marginLeft: _marginSide,
     marginRight: _marginSide,
@@ -103,7 +104,10 @@ Future<ReportBytes> buildLongitudinalPdf({
           ),
           child: pw.Text(
               'WARNING: the imported files name more than one patient '
-              '(${t(([data.patientId, ...data.mismatchedPatients]).join(', '))}). '
+              '(${t(([
+                data.patientId,
+                ...data.mismatchedPatients
+              ]).join(', '))}). '
               'This report combines them.',
               style: const pw.TextStyle(
                   fontSize: 9, fontWeight: pw.FontWeight.bold)),
@@ -151,8 +155,8 @@ Future<ReportBytes> buildLongitudinalPdf({
           headers: longitudinalTableHeaders,
           data: t.rows(data.visitTable),
           cellStyle: const pw.TextStyle(fontSize: 8),
-          headerStyle: const pw.TextStyle(
-              fontSize: 8, fontWeight: pw.FontWeight.bold),
+          headerStyle:
+              const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
           cellAlignment: pw.Alignment.centerLeft,
           columnWidths: {
@@ -193,8 +197,8 @@ Uint8List buildLongitudinalDocx({
       : '${data.visits.first.date} to ${data.visits.last.date}';
 
   final body = StringBuffer()
-    ..write(docxPara('DBS Annotator - Longitudinal report',
-        bold: true, size: 40))
+    ..write(
+        docxPara('DBS Annotator - Longitudinal report', bold: true, size: 40))
     ..write(docxPara('Patient: sub-${data.patientId}    '
         'Visits: ${data.visits.length}${span.isEmpty ? '' : '    $span'}'))
     ..write(docxPara(
@@ -223,8 +227,7 @@ Uint8List buildLongitudinalDocx({
             'so values from different visits were never on one scale.',
             size: 16));
     } else if (data.clinicalChart.isEmpty) {
-      body.write(
-          docxPara('No baseline clinical scale scores were recorded.'));
+      body.write(docxPara('No baseline clinical scale scores were recorded.'));
     }
 
     body.write(docxHeading('Session scales by visit and block'));
@@ -255,9 +258,8 @@ Uint8List buildLongitudinalDocx({
           size: 16))
       ..write(docxHeading('Source files'));
     for (final v in data.visits) {
-      body.write(docxPara(
-          '  • ${v.filename}  (${v.blocks.length} blocks)',
-          size: 16));
+      body.write(
+          docxPara('  • ${v.filename}  (${v.blocks.length} blocks)', size: 16));
     }
   }
 

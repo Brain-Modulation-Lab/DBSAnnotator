@@ -32,7 +32,8 @@ free text or on paper.
 
 `DBS Annotator` is an offline, cross-platform application for recording a DBS
 programming session as it happens, and writing it to a documented, tab-separated,
-BIDS-style [@Gorgolewski2016] file that is directly usable for analysis. It captures
+BIDS-compliant [@Gorgolewski2016] `_beh.tsv` file, with a JSON sidecar documenting
+every column, that is directly usable for analysis. It captures
 per-configuration stimulation parameters, including current-steered splits across
 segmented contacts; the clinical and session scale ratings taken at each
 configuration; side effects attached to the configuration that produced them; and

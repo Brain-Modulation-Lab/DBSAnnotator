@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 
 import '../app_info.dart';
 import '../core/bids.dart';
+import '../core/bids_dataset.dart' show DatasetEntry;
+import '../core/bids_sidecar.dart';
 import '../core/session/longitudinal.dart';
 import '../core/session/tsv_kind.dart';
 import '../core/session/session_file.dart';
@@ -14,8 +16,8 @@ import '../core/session/session_row.dart';
 import '../report/longitudinal_data.dart';
 import '../report/longitudinal_pdf.dart';
 import '../report/session_docx.dart' show DocxPageSize;
-import '../report/report_data.dart'
-    show ScalesChartSpec, buildScalesChartSpec;
+import '../report/report_data.dart' show ScalesChartSpec, buildScalesChartSpec;
+import 'bids_export.dart';
 import 'scales_chart_painter.dart';
 import 'share_util.dart';
 import 'theme.dart';
@@ -58,14 +60,23 @@ Map<String, Map<int, double>> combinedScaleTimeline(
 /// session scales across blocks, and export a PDF report — the tablet
 /// counterpart of the desktop's longitudinal report view.
 class LongitudinalScreen extends StatefulWidget {
-  const LongitudinalScreen({super.key});
+  const LongitudinalScreen({super.key, this.initialFiles});
+
+  /// Pre-imported files, for headless tests and the documentation screenshots.
+  ///
+  /// Importing normally goes through the platform file picker, which a widget
+  /// test cannot drive — so without this seam the only capturable state is the
+  /// empty one, and the populated chart and the patient-mismatch banner (the
+  /// two things worth documenting here) were unreachable. Mirrors the
+  /// `authoring` seam on [SessionScreen].
+  final List<ImportedSessionFile>? initialFiles;
 
   @override
   State<LongitudinalScreen> createState() => _LongitudinalScreenState();
 }
 
 class _LongitudinalScreenState extends State<LongitudinalScreen> {
-  final _files = <ImportedSessionFile>[];
+  late final _files = <ImportedSessionFile>[...?widget.initialFiles];
 
   /// Anchors the iPadOS share popover to the export button. See
   /// [shareOriginFrom].
@@ -74,11 +85,10 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
   Map<String, Map<int, double>> get _timeline =>
       combinedScaleTimeline(_files.map((f) => f.rows));
 
-  bool get _idsMismatch =>
-      !patientIdsMatch(_files.map((f) => f.name).toList());
+  bool get _idsMismatch => !patientIdsMatch(_files.map((f) => f.name).toList());
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _import() async {
     final result = await FilePicker.platform.pickFiles(
@@ -125,6 +135,62 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
         files: {for (final f in _files) f.name: f.rows},
       );
 
+  /// Lay the imported files out as a BIDS dataset and export it, zipped.
+  ///
+  /// This is the screen where the tree pays for itself: several visits of one
+  /// patient are exactly what `sub-XX/ses-YYYYMMDD/beh/` is for, and the files
+  /// arrived here as loose downloads from wherever they were recorded.
+  ///
+  /// Entities come from each file's own name. A file whose name carries none
+  /// (renamed by hand, say) is skipped rather than guessed at — a wrong `sub-`
+  /// label in a shared dataset is worse than a missing file.
+  Future<void> _exportBids() async {
+    if (_files.isEmpty) {
+      _snack('Import at least one session first.');
+      return;
+    }
+    final Map<String, dynamic> contract;
+    try {
+      contract = await loadTsvContract();
+    } catch (e) {
+      if (mounted) _snack('BIDS export failed: $e');
+      return;
+    }
+    final entries = <DatasetEntry>[];
+    final skipped = <String>[];
+    for (final file in _files) {
+      final name = BidsName.parse(file.name);
+      if (name == null || name.session.isEmpty) {
+        skipped.add(file.name);
+        continue;
+      }
+      entries.add(datasetEntry(
+        // Re-emit with the current suffix and column names, so a 0.4.x
+        // `_events.tsv` lands in the dataset as a valid `_beh.tsv`.
+        name: BidsName(
+          subject: name.subject,
+          session: name.session,
+          task: name.task.isEmpty ? 'programming' : name.task,
+          run: name.run,
+        ),
+        tsv: serializeSessionTsv(file.rows),
+        contract: contract,
+        kind: 'session_tsv',
+        acqTime: file.rows.isEmpty ? '' : file.rows.first.acqTime,
+      ));
+    }
+    if (!mounted) return;
+    if (entries.isEmpty) {
+      _snack('No imported file carries BIDS entities in its name.');
+      return;
+    }
+    await exportBidsDataset(context, anchor: _exportKey, entries: entries);
+    if (mounted && skipped.isNotEmpty) {
+      _snack('Skipped (no BIDS entities in the filename): '
+          '${skipped.join(', ')}');
+    }
+  }
+
   Future<void> _exportReport({required bool docx}) async {
     if (_files.isEmpty) {
       _snack('Import at least one session first.');
@@ -135,10 +201,12 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       _snack('The imported files contain no visits to report.');
       return;
     }
-    // BIDS-canonical, like every other export this app writes.
+    // A derivative that spans visits, so it carries neither `ses-` (there are
+    // several) nor `task-` (`longitudinal` was never a task the app records).
+    // `desc-` is the BIDS derivatives entity for exactly this: naming what a
+    // computed file is.
     final name = 'sub-${BidsName.label(data.patientId)}'
-        '_ses-${BidsName.sessionStamp(DateTime.now())}'
-        '_task-longitudinal_report.${docx ? 'docx' : 'pdf'}';
+        '_desc-longitudinal_report.${docx ? 'docx' : 'pdf'}';
 
     await exportFile(
       context,
@@ -221,6 +289,12 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
                 leadingIcon: const Icon(Icons.description_outlined),
                 onPressed: () => _exportReport(docx: true),
                 child: const Text('Report (Word)'),
+              ),
+              const Divider(height: 8),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.folder_zip_outlined),
+                onPressed: _exportBids,
+                child: const Text('BIDS dataset (zip)'),
               ),
             ],
           ),

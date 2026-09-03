@@ -22,11 +22,7 @@ class HomeScreen extends StatelessWidget {
         ),
         leadingWidth: 54,
         title: const Text(appName),
-        actions: const [
-          TextSizeButtons(),
-          HelpButton(),
-          ThemeToggleButton()
-        ],
+        actions: const [TextSizeButtons(), HelpButton(), ThemeToggleButton()],
       ),
       body: Center(
         child: ConstrainedBox(
@@ -118,7 +114,8 @@ class _WorkflowCard extends StatelessWidget {
         title: Text(title, style: Theme.of(context).textTheme.titleLarge),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         onTap: onTap,
       ),
     );

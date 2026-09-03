@@ -186,11 +186,9 @@ void main() {
   });
 
   test('a real committed session imports as one visit', () {
-    const name = 'sub-01_ses-20260626_task-programming_run-01_events.tsv';
+    const name = 'sub-01_ses-20260626_task-programming_run-01_beh.tsv';
     final real = buildLongitudinalReportData(files: {
-      name: parseSessionTsv(
-          File('test/fixtures/$name')
-              .readAsStringSync()),
+      name: parseSessionTsv(File('test/fixtures/$name').readAsStringSync()),
     });
     expect(real.visits, hasLength(1));
     expect(real.visits.first.blocks, [1, 2, 3, 4, 5, 6, 7]);

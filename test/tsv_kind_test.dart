@@ -10,11 +10,27 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final programming =
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync();
 
   test('the committed programming example is recognised', () {
     expect(sniffTsvKind(programming), TsvKind.programming);
+  });
+
+  test('a pre-0.5.0 file with block_ID is still a programming session', () {
+    // The sniffer is what stands between a 0.4.x file and "unrecognised TSV",
+    // so the rename to snake_case must not make old files unopenable.
+    final legacy = File('test/fixtures/legacy_0.4_sub-01_ses-20260626_'
+            'task-programming_run-01_events.tsv')
+        .readAsStringSync();
+    expect(sniffTsvKind(legacy), TsvKind.programming);
+  });
+
+  test('a pre-0.5.0 notes file, which has no acq_time, is still notes', () {
+    expect(
+        sniffTsvKind('date\ttime\ttimezone\tnotes\n'
+            '2026-06-26\t09:00:00\tCEST\ta note\n'),
+        TsvKind.notes);
   });
 
   test('a notes TSV is recognised, and is NOT a session', () {
@@ -46,7 +62,8 @@ void main() {
   });
 
   test('the message names both the file and the workflow', () {
-    final msg = tsvKindMismatch('notes.tsv', TsvKind.notes, TsvKind.programming);
+    final msg =
+        tsvKindMismatch('notes.tsv', TsvKind.notes, TsvKind.programming);
     expect(msg, contains('notes.tsv'));
     expect(msg, contains('annotations'));
     expect(msg, contains('programming session'));

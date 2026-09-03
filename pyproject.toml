@@ -1,0 +1,29 @@
+# Tool configuration only. This is NOT a Python project: the application is
+# Dart (see pubspec.yaml), and the only Python here is docs/conf.py plus the
+# Sphinx extension that renders the schema tables. There is deliberately no
+# [project] table, so `uv run` does not try to install anything.
+#
+# These three tools all read pyproject.toml, which is why they live together:
+# it keeps their settings out of .pre-commit-config.yaml and ci.yml, so the
+# hook and CI cannot invoke them with different arguments.
+# Dart's own lint config stays in analysis_options.yaml - it reads nothing else.
+
+[tool.ruff]
+line-length = 100          # matches doc8 below, for the .rst next to the .py
+target-version = "py312"   # the version .readthedocs.yaml pins
+include = ["docs/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "RUF"]
+
+[tool.doc8]
+max-line-length = 100
+# Sphinx build output, rendered from schema/ at build time and written with
+# CRLF on Windows, which doc8 reports as a literal carriage return.
+ignore-path = ["docs/_generated", "docs/_build"]
+
+[tool.codespell]
+skip = "./build,./.git,./.dart_tool,./pubspec.lock,./docs/_build,./docs/_generated,./assets,./ios,./macos,./android,./windows/flutter,./linux/flutter,*.png,*.ttf,*.ico,*.msix"
+# Bloc/bloc: report_data.dart quotes the broken column heading "Bloc k" while
+# explaining the arithmetic that produced it. vas: the VAS rating scale.
+ignore-words-list = "Bloc,bloc,vas,ist,nd,te,ba"

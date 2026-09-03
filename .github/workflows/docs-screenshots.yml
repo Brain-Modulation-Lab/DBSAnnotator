@@ -1,0 +1,77 @@
+name: Docs screenshots
+
+# Regenerates the documentation screenshots and uploads them as an artifact.
+#
+# The PNGs under docs/_static/screenshots/ are committed, because Read the Docs
+# cannot run a ~1 GB Flutter SDK inside its build limits (see .readthedocs.yaml).
+# Committed images go stale silently, so this job re-renders them from the
+# current UI and hands back the result for a developer to commit.
+#
+# ## Why this does not diff against the committed PNGs
+#
+# It would be a flaky gate, not a useful one. Skia and text shaping differ
+# enough between the runner and a developer's machine that a byte comparison
+# fails on renders that are visually identical, and a check that cries wolf gets
+# disabled. What IS enforced is that generation still works: a finder that no
+# longer matches, a dialog that moved, a region whose bounds vanished — every
+# one of those fails the test rather than quietly writing a wrong picture. The
+# uploaded artifact is then the thing to eyeball.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      # Anything that changes what the captures look like.
+      - "lib/ui/**"
+      - "test/docs/screenshots_test.dart"
+      - "test/fixtures/**"
+      - "assets/fonts/**"
+      - "schema/**"
+      - ".github/workflows/docs-screenshots.yml"
+
+jobs:
+  screenshots:
+    name: Generate docs screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      # The harness fails loudly rather than emitting boxes-for-glyphs if it
+      # finds no text font, so a missing assets/fonts/IBMPlexSans-*.ttf is a
+      # failure here and not a silent visual regression.
+      - name: Render screenshots
+        env:
+          DOCS_SCREENSHOT_DIR: build/docs-screenshots
+        run: flutter test test/docs/screenshots_test.dart
+
+      - name: Report what changed
+        run: |
+          echo "### Screenshot render" >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '| File | Committed | Rendered |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|---|---|---|' >> "$GITHUB_STEP_SUMMARY"
+          for f in build/docs-screenshots/*.png; do
+            name="$(basename "$f")"
+            old="docs/_static/screenshots/$name"
+            committed="missing"
+            [ -f "$old" ] && committed="$(stat -c%s "$old") B"
+            echo "| $name | $committed | $(stat -c%s "$f") B |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          # A capture that exists on disk but is no longer rendered is a stale
+          # image the documentation may still be pointing at.
+          for f in docs/_static/screenshots/*.png; do
+            name="$(basename "$f")"
+            if [ ! -f "build/docs-screenshots/$name" ]; then
+              echo "| $name | committed | **no longer rendered** |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-screenshots-${{ github.sha }}
+          path: build/docs-screenshots
+          if-no-files-found: error

@@ -16,8 +16,8 @@ void main() {
   Map<String, dynamic> readJson(String p) =>
       jsonDecode(File(p).readAsStringSync()) as Map<String, dynamic>;
 
-  final catalog =
-      ElectrodeCatalog.fromJson(readJson('assets/schema/electrode_models.json'));
+  final catalog = ElectrodeCatalog.fromJson(
+      readJson('assets/schema/electrode_models.json'));
   final limits = StimLimits.fromJson(readJson('assets/schema/limits.json'));
   final presets =
       ScalePresets.fromJson(readJson('assets/schema/scale_presets.json'));

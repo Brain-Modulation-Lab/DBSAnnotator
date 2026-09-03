@@ -131,8 +131,8 @@ class _BarPainter extends CustomPainter {
       canvas.drawRect(
         fillRect,
         Paint()
-          ..shader =
-              LinearGradient(colors: DbsColors.scaleFill(dark)).createShader(fillRect),
+          ..shader = LinearGradient(colors: DbsColors.scaleFill(dark))
+              .createShader(fillRect),
       );
       canvas.restore();
     }
@@ -154,7 +154,7 @@ class _BarPainter extends CustomPainter {
         text: TextSpan(
           text: label,
           style: TextStyle(
-          fontFamily: debugPainterFontFamily,
+            fontFamily: debugPainterFontFamily,
             color: dark ? Colors.white : const Color(0xFF0F172A),
             fontWeight: FontWeight.bold,
             fontSize: 12,

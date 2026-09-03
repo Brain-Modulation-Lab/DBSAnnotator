@@ -34,6 +34,51 @@ Then:
 3. `flutter analyze && flutter test` must both be clean
 4. Open a pull request
 
+## Checks
+
+`flutter analyze` does **not** check formatting, which is why formatting had
+drifted across two thirds of the files before a gate existed. Both are enforced
+now, along with a few things that are cheap to check and expensive to miss.
+
+To run everything the way CI does:
+
+```bash
+uvx pre-commit run --all-files
+```
+
+To have it run on each commit:
+
+```bash
+uvx pre-commit install
+```
+
+`uvx` needs no virtualenv. Python is not the application — the app is Dart — but
+Sphinx already needs it to build the docs, so this adds no new toolchain.
+
+| Check | Why it is here |
+|---|---|
+| `dart format` | Not covered by `flutter analyze`. |
+| `flutter analyze --fatal-infos` | Infos are already clean; keeping them clean is free. |
+| `check-yaml` / `check-json` | `schema/*.json` is loaded at runtime, so a syntax error is a crash on launch. A bad regex once wrote a control character into `ci.yml`. Also covers `CITATION.cff`, which GitHub parses. |
+| `detect-private-key` | `.gitignore` covers `*.pfx`, but `git add -f` bypasses ignore rules. |
+| `check-added-large-files` | A stray build artifact is 19 MB. |
+| `ruff`, `doc8` | The Sphinx config and the docs extension are the only Python here. |
+| `codespell` | Typos in report prose end up in a patient record. |
+
+Two more run in CI only: **`actionlint`**, which shellchecks the workflow's
+`run:` blocks and validates its `${{ }}` expressions (it is a Go binary, so it
+is not a local hook), and a **docs build with `-W`**, because Read the Docs
+publishes with `fail_on_warning` and a warning there breaks publishing after
+merge rather than before.
+
+CI is the authority: `git commit --no-verify` skips the hooks, and CI cannot be
+skipped. If you change one, change the other.
+
+Not enforced, deliberately: `trailing-whitespace` and `end-of-file-fixer`. With
+`core.autocrlf` on Windows and only `*.sh` pinned in `.gitattributes`, they
+fight the line-ending filter and produce churn. Worth revisiting alongside a
+`* text=auto` policy.
+
 ## What we look for
 
 - **Tests that would have caught the bug.** A test asserting only that a
@@ -61,8 +106,39 @@ that, and both have already caused real changes here:
 ## Documentation
 
 Documentation lives in `docs/` (Sphinx, reStructuredText) and is published to
-Read the Docs. Screenshots are generated from Flutter widget tests — do not edit
-them by hand.
+Read the Docs. Pages under `docs/screens/` describe one screen each; the column
+tables and the sidecar example in `output_format` are rendered from
+`schema/tsv_schema.json` at build time, so edit the schema, not the page.
+
+### Screenshots
+
+The 28 images under `docs/_static/screenshots/` are generated from widget tests
+— do not edit them by hand — and committed, because Read the Docs cannot run a
+Flutter SDK inside its build limits. To regenerate after a UI change:
+
+```powershell
+$env:DOCS_SCREENSHOT_DIR = "docs/_static/screenshots"
+flutter test test/docs/screenshots_test.dart
+```
+
+Without that variable a plain `flutter test` skips the whole file, so the working
+tree is never dirtied by accident.
+
+Two rules the harness enforces, both of which had regressed before it did:
+
+- **Heights are measured, never chosen.** `_shootFitted` sizes the window to the
+  page's own laid-out content; `_shootRegion` cuts a band on widget boundaries.
+  Do not add a capture with a hard-coded `Size(...)`.
+- **Nothing is photographed empty.** The `_seed*` helpers fill in stimulation
+  parameters, contacts, scale ratings and notes first. A screenshot of a blank
+  form documents nothing.
+
+`.github/workflows/docs-screenshots.yml` re-renders them on PRs touching
+`lib/ui/**` and uploads the result as an artifact. It deliberately does **not**
+diff against the committed PNGs: Skia and text shaping differ enough between a
+runner and a developer machine that a byte comparison fails on visually
+identical renders. What it does catch is a capture that no longer *generates* —
+a finder that stopped matching, a dialog that moved.
 
 ## Getting help
 

@@ -20,8 +20,7 @@ void main() {
     });
 
     test('maps iOS smart punctuation faithfully, without flagging loss', () {
-      final r = sanitiseForLatin1(
-          '‘tremor’ “better” – much — improved…');
+      final r = sanitiseForLatin1('‘tremor’ “better” – much — improved…');
       expect(r.text, "'tremor' \"better\" - much - improved...");
       // Faithful substitutions are not data loss, so no warning.
       expect(r.replaced, isFalse);
@@ -77,14 +76,21 @@ void main() {
   });
 
   group('ReportTextSanitiser', () {
-    test('is a no-op when a Unicode font is available', () {
-      final s = ReportTextSanitiser(active: false);
-      expect(s('注意 ’'), '注意 ’');
+    test('passes through whatever the loaded font covers', () {
+      // `’` is in the substitution table, so it is normalised either way; `注意`
+      // is not, so coverage is the only thing that decides its fate. The set is
+      // authoritative — ASCII is in it because every real font has it, not
+      // because the sanitiser assumes it.
+      final s = ReportTextSanitiser(coverage: {
+        for (var r = 0x20; r < 0x7f; r++) r,
+        ...'注意'.runes,
+      });
+      expect(s('注意 ’'), "注意 '");
       expect(s.lostCharacters, isFalse);
     });
 
     test('tracks loss across many calls', () {
-      final s = ReportTextSanitiser(active: true);
+      final s = ReportTextSanitiser();
       expect(s('fine'), 'fine');
       expect(s.lostCharacters, isFalse);
       s('’ still fine');
@@ -94,7 +100,7 @@ void main() {
     });
 
     test('sanitises table rows', () {
-      final s = ReportTextSanitiser(active: true);
+      final s = ReportTextSanitiser();
       final out = s.rows([
         ['1', 'L', '‘A’'],
         ['1', 'R', '注'],

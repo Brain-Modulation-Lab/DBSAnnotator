@@ -6,7 +6,7 @@ analysis-ready data out.
 DBS Annotator captures what was actually done during a DBS programming session —
 the stimulation parameters tried on each contact, the clinical and session scale
 ratings at each configuration, side effects, and free-text notes — and writes it
-to **BIDS-named TSV files** that go straight into analysis. It also produces
+to **BIDS tab-separated files** that go straight into analysis. It also produces
 clinician-readable **PDF and Word reports** for the patient record.
 
 It runs **fully offline**. No account, no server, no telemetry. Tablet-first
@@ -28,7 +28,7 @@ timestamps intact.
 
 ```
 lib/                 the Flutter application (Dart)
-test/                357 tests
+test/                380 tests
 assets/              bundled schema contract, fonts, app icon
 android/ ios/ linux/ macos/ windows/
 schema/              the machine-readable domain contract (TSV columns,
@@ -44,7 +44,7 @@ Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
 
 ```bash
 flutter pub get
-flutter test        # 357 tests, no device needed
+flutter test        # 380 tests, no device needed
 flutter analyze
 flutter run         # on a connected tablet, emulator, or desktop
 ```
@@ -63,38 +63,44 @@ clone builds and tests immediately.
 
 ## Output
 
-Data is written as BIDS-named TSV, one row per (block, scale), so it pivots
-directly:
+Data is written as BIDS `_beh.tsv` with a JSON sidecar documenting every column,
+one row per (block, scale), so it pivots directly:
 
 ```python
-df = pd.read_csv(path, sep="\t")
-df.pivot_table(index=["session_ID", "block_ID"],
-               columns="scale_name", values="scale_value")
+df = pd.read_csv(path, sep="\t", na_values=["n/a"])
+df.pivot_table(index=["session_id", "block_id"], columns="scale_name", values="scale_value")
 ```
+
+`_beh` rather than `_events`: the BIDS specification reserves `_events.tsv` for
+files whose first two columns are `onset` and `duration` and which accompany a
+recording, and says that files without them "MUST be labeled `_beh.tsv`". A
+programming session has neither. **Export → BIDS dataset** lays a set of sessions
+out as a validator-ready `sub-XX/ses-YYYYMMDD/beh/` tree.
 
 Reports come out as PDF and Word, both built from the same numbers so they
-cannot disagree. The full format reference is in the
+cannot disagree. The full format reference, including what changed in 0.5.0 and
+how older files are still read, is in the
 [documentation](https://dbsannotator.readthedocs.io/).
 
-## Report fonts (optional, but recommended)
+## Fonts
 
-The PDF exporter falls back to Helvetica, which is Latin-1 only — so a curly
-quote or an accented character in a clinical note becomes `?`. The app warns you
-when that happens. To get full Unicode, drop these two files into
-`assets/fonts/`:
+`assets/fonts/IBMPlexSans-{Regular,Bold}.ttf` are committed (SIL Open Font
+License, see `assets/fonts/LICENSE-IBMPlexSans.txt`). They do two jobs:
 
-```
-assets/fonts/IBMPlexSans-Regular.ttf
-assets/fonts/IBMPlexSans-Bold.ttf
-```
+- **PDF reports.** Without them the exporter falls back to Helvetica, which is
+  Latin-1 only, so a curly quote or an accented character in a clinical note
+  becomes `?`. The app warns when that happens.
+- **Documentation screenshots.** `flutter_tester` ships no fonts at all, so the
+  capture harness registers these; on a host without them it falls back to a
+  system font and the images stop being reproducible between machines.
 
-Get the **static** TTFs from
+If you ever need to replace them, get the **static** TTFs from
 <https://fonts.google.com/specimen/IBM+Plex+Sans> ("Get font", then the
 `static/` folder in the zip) or from <https://github.com/IBM/plex/releases>.
 
-Do **not** hot-link a `raw.githubusercontent` path — google/fonts has moved IBM
-Plex Sans to a variable font, so the old static path 404s, and a 404 still
-writes a file: GitHub's error page is ~300 KB of HTML, which sails past any
+Do **not** hot-link a `raw.githubusercontent` path from google/fonts — IBM Plex
+Sans has moved to a variable font there, so the old static path 404s, and a 404
+still writes a file: GitHub's error page is ~300 KB of HTML, which sails past any
 "is the file big enough?" check. Verify the magic bytes instead:
 
 ```powershell

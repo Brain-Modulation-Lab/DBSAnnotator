@@ -91,8 +91,7 @@ class ElectrodeCatalog {
     final modelsJson = json['models'] as Map<String, dynamic>;
     final models = <String, ElectrodeModel>{
       for (final entry in modelsJson.entries)
-        entry.key:
-            ElectrodeModel.fromJson(entry.value as Map<String, dynamic>),
+        entry.key: ElectrodeModel.fromJson(entry.value as Map<String, dynamic>),
     };
 
     final manufacturersJson = json['manufacturers'] as Map<String, dynamic>;

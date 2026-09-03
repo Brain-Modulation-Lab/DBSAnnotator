@@ -23,8 +23,7 @@ void main() {
 
   const size = Size(300, 600);
 
-  group('computeLayout — Boston Scientific Vercise Directed (directional)',
-      () {
+  group('computeLayout — Boston Scientific Vercise Directed (directional)', () {
     // 4 contacts; levels 1 and 2 are directional, 0 and 3 are rings.
     final model = loadModel('Boston Scientific Vercise Directed');
     final layout = computeLayout(model, size);
@@ -80,8 +79,7 @@ void main() {
 
     test('a ring level yields exactly 1 rect and no ring cap', () {
       for (final levelIdx in [0, 3]) {
-        final level =
-            layout.levels.firstWhere((l) => l.levelIdx == levelIdx);
+        final level = layout.levels.firstWhere((l) => l.levelIdx == levelIdx);
         expect(level.isDirectional, isFalse);
         expect(level.contactRects.keys.toList(), [ContactKey(levelIdx, 0)]);
         expect(level.ringCapRect, isNull);
@@ -136,8 +134,7 @@ void main() {
       for (final level in layout.levels) {
         expect(level.isDirectional, isFalse);
         expect(level.contactRects.length, 1);
-        expect(level.contactRects.keys.single,
-            ContactKey(level.levelIdx, 0));
+        expect(level.contactRects.keys.single, ContactKey(level.levelIdx, 0));
         expect(level.ringCapRect, isNull);
       }
     });

@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dbs_annotator/core/schema_columns.dart';
 import 'package:dbs_annotator/core/session/session_file.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -113,12 +116,46 @@ void main() {
       expect(reparsed.single.notes, 'multi\nline note with a\ttab');
     });
 
-    test('header is the canonical 21-column order', () {
-      final header = serializeSessionTsv(const []).trimRight().split('\t');
-      expect(header.first, 'date');
-      expect(header.length, 21);
-      expect(header.contains('block_ID'), isTrue);
-      expect(header.last, 'notes');
+    test('header is the canonical column order, in full', () {
+      // Spelled out rather than spot-checked: this line IS the published
+      // contract, so a column silently renamed or reordered should fail here
+      // and not first in someone's analysis script.
+      expect(
+        serializeSessionTsv(const []).trimRight(),
+        'date\ttime\ttimezone\tacq_time\tblock_id\tsession_id\tis_initial\t'
+        'scale_name\tscale_value\telectrode_model\tprogram_id\t'
+        'left_stim_freq\tleft_anode\tleft_cathode\tleft_amplitude\t'
+        'left_pulse_width\tright_stim_freq\tright_anode\tright_cathode\t'
+        'right_amplitude\tright_pulse_width\tnotes',
+      );
+    });
+
+    test('column names are BIDS-style snake_case', () {
+      // BIDS: "It is RECOMMENDED that the column names ... are written in
+      // snake_case with the first letter in lower case." The `block_ID` /
+      // `session_ID` / `program_ID` spellings this replaced were not.
+      for (final column in sessionColumns) {
+        expect(column, matches(RegExp(r'^[a-z][a-z0-9_]*$')),
+            reason: '$column is not snake_case');
+      }
+    });
+
+    test('a pre-0.5.0 file with block_ID / NaN still reads', () {
+      final legacy = File('test/fixtures/legacy_0.4_sub-01_ses-20260626_'
+              'task-programming_run-01_events.tsv')
+          .readAsStringSync();
+      final rows = parseSessionTsv(legacy);
+
+      expect(rows, isNotEmpty);
+      // The pre-rename spellings resolve through `readColumn`.
+      expect(rows.first.blockId, '0');
+      expect(rows.first.sessionId, '1');
+      expect(rows.first.programId, 'B');
+      expect(rows.first.electrodeModel, 'Medtronic SenSight B33005');
+      // No acq_time column existed then; it stays empty rather than inventing
+      // an instant, and `timestamp` falls back to date + time.
+      expect(rows.first.acqTime, '');
+      expect(rows.first.timestamp, DateTime(2026, 6, 26, 16, 46, 14));
     });
   });
 }

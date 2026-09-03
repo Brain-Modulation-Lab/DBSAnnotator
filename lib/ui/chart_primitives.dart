@@ -188,6 +188,7 @@ void drawRotatedChartText(
   double size = 12,
   bool bold = false,
   bool clockwise = false,
+
   /// Anchor the text's START at [at] instead of its centre, so a rotated tick
   /// label hangs down from its tick rather than straddling the axis.
   bool anchorTop = false,
@@ -197,7 +198,6 @@ void drawRotatedChartText(
     ..save()
     ..translate(at.dx, at.dy)
     ..rotate(clockwise ? math.pi / 2 : -math.pi / 2);
-  p.paint(canvas,
-      Offset(anchorTop ? 0 : -p.width / 2, -p.height / 2));
+  p.paint(canvas, Offset(anchorTop ? 0 : -p.width / 2, -p.height / 2));
   canvas.restore();
 }

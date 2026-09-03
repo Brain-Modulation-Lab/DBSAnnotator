@@ -58,10 +58,10 @@ class _ReportSectionsDialogState extends State<_ReportSectionsDialog> {
                   dense: true,
                   value: _on.contains(s),
                   title: Text(s.label),
-                  subtitle: Text(s.description,
-                      style: theme.textTheme.bodySmall),
-                  onChanged: (v) => setState(
-                      () => v == true ? _on.add(s) : _on.remove(s)),
+                  subtitle:
+                      Text(s.description, style: theme.textTheme.bodySmall),
+                  onChanged: (v) =>
+                      setState(() => v == true ? _on.add(s) : _on.remove(s)),
                 ),
             ],
           ),

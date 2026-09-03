@@ -16,7 +16,6 @@ library;
 
 import 'dart:typed_data';
 
-
 import '../app_info.dart' show appVersion;
 import 'docx_ooxml.dart';
 import 'report_data.dart';
@@ -34,9 +33,9 @@ String _borderlessTable(List<String> rowsXml, {required int contentTwips}) {
   // Four equal columns, explicitly quartered: with no grid, Word sized the
   // electrode cells from their captions and the four leads came out unequal.
   final widths = docxGridWidths(const [1, 1, 1, 1], contentTwips);
-  final b = StringBuffer(
-      '<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
-      '<w:tblBorders>');
+  final b =
+      StringBuffer('<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
+          '<w:tblBorders>');
   for (final side in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) {
     b.write('<w:$side w:val="none" w:sz="0" w:space="0" w:color="auto"/>');
   }
@@ -89,6 +88,7 @@ String _num(double v) {
   }
   return out;
 }
+
 /// Twin of the PDF's rated-per-block note, so both documents say it.
 String? _ratedNote(SessionReportData data) {
   final counts = data.scalesRated.values.toSet();
@@ -102,6 +102,7 @@ String? _ratedNote(SessionReportData data) {
       'rated at each block, so blocks with different rated sets are not '
       'directly comparable.';
 }
+
 /// A signed delta: "-5", "+0.25", or "0" for no change — never "+0".
 String _delta(double v) => v == 0 ? '0' : '${v > 0 ? '+' : ''}${_num(v)}';
 
@@ -162,7 +163,9 @@ Uint8List buildSessionDocx({
       const ['At start of session', 'Last recorded configuration'],
       [
         [
-          data.firstConfig.entries.map((e) => '${e.key}: ${e.value}').join('\n'),
+          data.firstConfig.entries
+              .map((e) => '${e.key}: ${e.value}')
+              .join('\n'),
           data.lastConfig.entries.map((e) => '${e.key}: ${e.value}').join('\n'),
         ],
       ],
@@ -288,10 +291,8 @@ Uint8List buildSessionDocx({
             png == null ? '' : media.drawing(png, widthPx: cellPx);
         final quarter = pageSize.contentWidthTwips ~/ 4;
         String cap(String text, {bool bold = false, int span = 1}) =>
-            _captionCell(text,
-                bold: bold, span: span, widthTwips: quarter);
-        String cell(Uint8List? png) =>
-            _xmlCell(img(png), widthTwips: quarter);
+            _captionCell(text, bold: bold, span: span, widthTwips: quarter);
+        String cell(Uint8List? png) => _xmlCell(img(png), widthTwips: quarter);
         body.write(_borderlessTable(contentTwips: pageSize.contentWidthTwips, [
           '<w:tr>${cap('Initial settings', bold: true, span: 2)}'
               '${cap('Final settings', bold: true, span: 2)}</w:tr>',
@@ -325,10 +326,8 @@ Uint8List buildSessionDocx({
           final tokens = pair.$2;
           if (tokens == null) continue;
           body.write(docxPara(pair.$1, bold: true));
-          body.write(
-              docxPara('  Left:   ${lateralText(tokens, left: true)}'));
-          body.write(
-              docxPara('  Right:  ${lateralText(tokens, left: false)}'));
+          body.write(docxPara('  Left:   ${lateralText(tokens, left: true)}'));
+          body.write(docxPara('  Right:  ${lateralText(tokens, left: false)}'));
         }
       }
     }
@@ -351,8 +350,9 @@ Uint8List buildSessionDocx({
       if (data.response.isNotEmpty) {
         body.write(docxHeading2('Response (first to last rated block)'));
         for (final r in data.response) {
-          body.write(docxPara('  ${r.name}: ${_num(r.first)} -> ${_num(r.last)} '
-              '(${_delta(r.last - r.first)})'));
+          body.write(
+              docxPara('  ${r.name}: ${_num(r.first)} -> ${_num(r.last)} '
+                  '(${_delta(r.last - r.first)})'));
         }
       }
       body.write(docxPara(data.instrumentNote, size: 16));

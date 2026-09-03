@@ -7,7 +7,7 @@ import 'package:dbs_annotator/report/entry_charts.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync(),
     );
 
@@ -41,8 +41,10 @@ void main() {
 
     test('the scales panel carries one series per session scale', () {
       final scales = data.panels.first;
-      expect(scales.series.keys,
-          containsAll(['Obsessions', 'Compulsions', 'Anxiety', 'Mood', 'Energy']));
+      expect(
+          scales.series.keys,
+          containsAll(
+              ['Obsessions', 'Compulsions', 'Anxiety', 'Mood', 'Energy']));
     });
 
     test('amplitude sums split values instead of plotting the first part', () {
@@ -91,10 +93,16 @@ void main() {
     // A TSV whose block ids do not ascend with the clock (e.g. re-opened file).
     const rows = [
       SessionRow(
-          date: '2026-01-01', time: '10:00:00', blockId: '7', isInitial: '0',
+          date: '2026-01-01',
+          time: '10:00:00',
+          blockId: '7',
+          isInitial: '0',
           leftStimFreq: '130'),
       SessionRow(
-          date: '2026-01-01', time: '09:00:00', blockId: '3', isInitial: '0',
+          date: '2026-01-01',
+          time: '09:00:00',
+          blockId: '3',
+          isInitial: '0',
           leftStimFreq: '120'),
     ];
     final data = buildEntryChartData(rows);

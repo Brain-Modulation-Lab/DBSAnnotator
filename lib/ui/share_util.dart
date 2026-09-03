@@ -29,6 +29,7 @@ String? mimeTypeFor(String filename) {
     '.docx' =>
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.tsv' => 'text/tab-separated-values',
+    '.zip' => 'application/zip',
     _ => null,
   };
 }

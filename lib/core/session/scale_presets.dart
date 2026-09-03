@@ -61,24 +61,22 @@ class ScalePresets {
     final sessionJson = json['session'] as Map<String, dynamic>;
     final session = <String, List<SessionScaleRow>>{
       for (final entry in sessionJson.entries)
-        entry.key: (entry.value as List)
-            .map((row) {
-              final cells = (row as List).map((e) => '$e').toList();
-              // The 4th cell (optimization mode) is absent in contracts
-              // generated before it was added.
-              final mode = cells.length > 3
-                  ? cells[3].trim().toLowerCase()
-                  : defaultScaleOptimizationMode;
-              return (
-                name: cells[0],
-                min: cells[1],
-                max: cells[2],
-                mode: scaleOptimizationModes.contains(mode)
-                    ? mode
-                    : defaultScaleOptimizationMode,
-              );
-            })
-            .toList(growable: false),
+        entry.key: (entry.value as List).map((row) {
+          final cells = (row as List).map((e) => '$e').toList();
+          // The 4th cell (optimization mode) is absent in contracts
+          // generated before it was added.
+          final mode = cells.length > 3
+              ? cells[3].trim().toLowerCase()
+              : defaultScaleOptimizationMode;
+          return (
+            name: cells[0],
+            min: cells[1],
+            max: cells[2],
+            mode: scaleOptimizationModes.contains(mode)
+                ? mode
+                : defaultScaleOptimizationMode,
+          );
+        }).toList(growable: false),
     };
 
     return ScalePresets(buttons: buttons, clinical: clinical, session: session);

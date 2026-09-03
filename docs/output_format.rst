@@ -1,18 +1,20 @@
 Data format
 ===========
 
-Everything the app records is written as **tab-separated text**. There is no
-proprietary container, no binary blob and no export step that can silently drop
-a field: what you see in the file is what was recorded.
+Everything the app records is written as **tab-separated text**, with a JSON
+sidecar beside it describing every column. There is no proprietary container, no
+binary blob and no export step that can silently drop a field: what you see in
+the file is what was recorded.
 
 Filenames
 ---------
 
-Filenames follow the `BIDS <https://bids.neuroimaging.io/>`_ convention:
+Filenames follow the `BIDS <https://bids.neuroimaging.io/>`_ entity convention:
 
 .. code-block:: text
 
-   sub-<subject>_ses-<YYYYMMDD>_task-<task>_run-<NN>_events.tsv
+   sub-<subject>_ses-<YYYYMMDD>_task-<task>_run-<NN>_beh.tsv
+   sub-<subject>_ses-<YYYYMMDD>_task-<task>_run-<NN>_beh.json
 
 with two task values:
 
@@ -26,12 +28,20 @@ For example:
 
 .. code-block:: text
 
-   sub-01_ses-20260626_task-programming_run-01_events.tsv
-   sub-01_ses-20260626_task-notes_run-01_events.tsv
+   sub-01_ses-20260626_task-programming_run-01_beh.tsv
+   sub-01_ses-20260626_task-notes_run-01_beh.tsv
 
-``run`` distinguishes several sessions on the same day and defaults to ``01``.
-The subject label is sanitised to alphanumerics, so a typed ``/`` or ``..``
-cannot escape into the path.
+``run`` distinguishes several sessions on the same day and defaults to ``01``. It
+is an *index*, so it is reduced to digits and zero-padded. The subject label is
+sanitised to alphanumerics, so a typed ``/`` or ``..`` cannot escape into the
+path.
+
+.. note::
+
+   Files written before v0.5.0 end in ``_events.tsv`` and spell three columns
+   ``block_ID``, ``session_ID`` and ``program_ID``. They open unchanged — the
+   app detects the format from the file's columns, not from its name. See
+   :ref:`bids-changes` for why the names moved.
 
 Row shape
 ---------
@@ -64,9 +74,9 @@ reshaping:
 
    import pandas as pd
 
-   df = pd.read_csv(path, sep="\t")
+   df = pd.read_csv(path, sep="\t", na_values=["n/a"])
    wide = df.pivot_table(
-       index=["session_ID", "block_ID"],
+       index=["session_id", "block_id"],
        columns="scale_name",
        values="scale_value",
    )
@@ -94,31 +104,40 @@ Which rows are which
 Omitted ratings
 ~~~~~~~~~~~~~~~
 
-A scale that was not assessed at a block is written as ``NaN`` in
-``scale_value``. Read it with:
+A scale that was not assessed at a block is written as ``n/a``, which is what
+BIDS requires for a missing or non-applicable value. Read it with:
 
 .. code-block:: python
 
-   df = pd.read_csv(path, sep="\t", na_values=["NaN"])
+   df = pd.read_csv(path, sep="\t", na_values=["n/a", "NaN"])
+
+``NaN`` is there for files written before v0.5.0, which used that spelling.
 
 Timestamps
 ----------
 
-Every row carries ``date`` (``YYYY-MM-DD``), ``time`` (``HH:MM:SS``) and
-``timezone``. Combine the first two:
+Every row carries four time cells. Parse ``acq_time`` and ignore the rest:
 
 .. code-block:: python
 
-   df["when"] = pd.to_datetime(df.date + " " + df.time)
+   df["when"] = pd.to_datetime(df.acq_time)   # tz-aware, ISO-8601
 
-``timezone`` holds a platform-supplied name followed by a UTC offset, for
-example ``W. Europe Daylight Time +0200``. Only the offset half is portable —
-``pd.to_datetime`` cannot parse the display name — so extract it if you need a
-timezone-aware index:
+``acq_time`` is the whole instant with its UTC offset
+(``2026-06-26T16:46:14+02:00``). ``date`` and ``time`` are the same instant split
+in two, for reading in a spreadsheet, and ``timezone`` is the zone name and
+offset for a human (``CEST +02:00``).
 
-.. code-block:: python
+.. note::
 
-   offset = df.timezone.str.extract(r"([+-]\d{4})")[0]
+   Files written before v0.5.0 have no ``acq_time``, and their ``timezone`` cell
+   holds a platform-supplied display name — on Windows,
+   ``W. Europe Daylight Time +0200``, which no date parser accepts. For those,
+   combine ``date`` and ``time`` and extract the offset:
+
+   .. code-block:: python
+
+      when = pd.to_datetime(df.date + " " + df.time)
+      offset = df.timezone.str.extract(r"([+-]\d{4})")[0]
 
 Amplitudes and current steering
 -------------------------------
@@ -146,6 +165,9 @@ Contacts are written in the app's token grammar: ``case`` for the can, ``E2``
 for a ring contact, ``E2b`` for one segment of a segmented level, and ``_`` to
 join several. ``E2b_E2c`` therefore means two segments of level 2 are active.
 
+This grammar is documented in the JSON sidecar as well as here, because the
+sidecar is where a downstream tool will look.
+
 Session columns
 ---------------
 
@@ -156,11 +178,99 @@ Annotations columns
 
 .. include:: _generated/annotation_columns.inc.rst
 
+The JSON sidecar
+----------------
+
+Every TSV is written with a ``_beh.json`` beside it, carrying one entry per
+column with a ``LongName``, a ``Description`` and, where the column has a
+physical unit, ``Units``. It is generated from the same contract as the tables
+above, so the two cannot disagree.
+
+.. include:: _generated/sidecar_example.inc.rst
+
+The full sidecar carries one such entry per column in the tables above.
+
+.. _bids-relationship:
+
+Relationship to BIDS
+--------------------
+
+These files are BIDS files, not merely BIDS-*named*. That distinction is worth
+spelling out, because until v0.5.0 they were the latter.
+
+.. _bids-changes:
+
+Why the suffix is ``_beh``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``_events.tsv`` is a reserved suffix with mandatory content. The specification
+requires ``onset`` as its first column and ``duration`` as its second, and states
+that "each ``events.tsv`` file REQUIRES at least one corresponding data file".
+
+A programming session has neither. There is no acquisition to measure an onset
+from, and no imaging or electrophysiology recording beside it. The specification
+names the correct alternative directly:
+
+   events files that do not include the mandatory ``onset`` and ``duration``
+   columns MAY be included, but MUST be labeled ``_beh.tsv`` rather than
+   ``_events.tsv``.
+
+So ``_beh.tsv``, in a ``beh/`` datatype directory, is not a compromise: it is the
+suffix the specification points at for exactly this shape of file. Versions up
+to 0.4.0 wrote ``_events.tsv``, which no validator would have accepted.
+
+The same release moved ``block_ID``, ``session_ID`` and ``program_ID`` to
+``block_id``, ``session_id`` and ``program_id`` (BIDS recommends snake_case
+throughout), replaced ``NaN`` with ``n/a``, added ``acq_time``, and switched line
+endings from CRLF to LF.
+
+.. _bids-dataset-export:
+
+Exporting a dataset
+~~~~~~~~~~~~~~~~~~~
+
+A single file with BIDS entities in its name is still not a BIDS *dataset*. The
+specification wants a tree, and **Export → BIDS dataset** produces one as a zip,
+from any of the three screens that hold session data:
+
+.. code-block:: text
+
+   dataset_description.json
+   README
+   participants.tsv
+   participants.json
+   sub-01/
+     ses-20260626/
+       sub-01_ses-20260626_scans.tsv
+       beh/
+         sub-01_ses-20260626_task-programming_run-01_beh.tsv
+         sub-01_ses-20260626_task-programming_run-01_beh.json
+
+The longitudinal screen is the useful place to do this: it already holds several
+visits of one patient, which is exactly what the ``sub-``/``ses-`` hierarchy is
+for, and a file imported as a pre-0.5.0 ``_events.tsv`` is re-emitted into the
+tree as a valid ``_beh.tsv``.
+
+Reports are derived documents, so they belong under ``derivatives/`` rather than
+beside the raw data, and are written there — with their own
+``dataset_description.json`` — rather than being given invented raw-data
+filenames.
+
+What is still not standard
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The columns themselves. Of the twenty-two in a session file, only ``notes``
+resembles anything BIDS defines; ``block_id``, ``left_cathode``,
+``left_amplitude`` and the rest are this application's own. That is permitted —
+BIDS allows additional columns and asks that they be documented in a sidecar,
+which is what the ``_beh.json`` is for — but it does mean no generic BIDS tool
+will understand what a *block* is. Read this page, or the sidecar.
+
 Worked example
 --------------
 
 The file used throughout this documentation, and in the app's own test suite, is
 a real 7-configuration session with five session scales:
 
-:download:`sub-01_ses-20260626_task-programming_run-01_events.tsv
-<_generated/sub-01_ses-20260626_task-programming_run-01_events.tsv>`
+:download:`sub-01_ses-20260626_task-programming_run-01_beh.tsv
+<_generated/sub-01_ses-20260626_task-programming_run-01_beh.tsv>`

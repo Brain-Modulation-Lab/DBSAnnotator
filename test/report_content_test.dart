@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'report_ranking_prefs.dart';
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_events.tsv')
+      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
           .readAsStringSync(),
     );
 
@@ -48,8 +48,7 @@ void main() {
     test('a note becomes a line in Recorded observations', () {
       // The notes column is the only adverse-event data the format captures.
       expect(data.observations, isNotEmpty);
-      final warm =
-          data.observations.firstWhere((o) => o.contains('warm rush'));
+      final warm = data.observations.firstWhere((o) => o.contains('warm rush'));
       expect(warm, startsWith('Block 4'));
       expect(warm, contains('16:47:11'), reason: 'when it happened');
       expect(warm, contains('%'), reason: 'and under what stimulation');
@@ -77,8 +76,8 @@ void main() {
       final second = data.tableData[2][time];
       expect(second, startsWith('16:46:45'));
       expect(second, contains('(+8 s)'));
-      expect(data.tableData[data.tableData.length - 2][time],
-          contains('(+9 s)'));
+      expect(
+          data.tableData[data.tableData.length - 2][time], contains('(+9 s)'));
     });
 
     test('parameters list their distinct values and the blocks that used them',
@@ -155,8 +154,13 @@ void main() {
       final ignored = buildSessionReportData(
         rows: _example(),
         scalePrefs: const [
-          (name: 'Obsessions', min: 0, max: 10, mode: ScaleMode.ignore,
-              custom: null),
+          (
+            name: 'Obsessions',
+            min: 0,
+            max: 10,
+            mode: ScaleMode.ignore,
+            custom: null
+          ),
         ],
       );
       expect(ignored.hasTargets, isFalse);

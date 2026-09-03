@@ -128,8 +128,10 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Amplitude split',
-              style:
-                  Theme.of(context).textTheme.labelMedium?.copyWith(color: muted)),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: muted)),
           for (var i = 0; i < widget.cathodes.length; i++)
             Padding(
               padding: const EdgeInsets.only(top: 4),
