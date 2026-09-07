@@ -3,10 +3,10 @@ revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version >= '3.15' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
     "python_full_version >= '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.14.*' and sys_platform == 'win32'",
+    "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version < '3.14' and sys_platform == 'win32'",
     "python_full_version < '3.14' and sys_platform == 'emscripten'",
@@ -58,7 +58,7 @@ name = "appscript"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "lxml", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "lxml" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ca/52/2fa70edfd98f0058219ecc2e365a3ba7aabd42db14ff9d7f44bbdcc5400d/appscript-1.4.0.tar.gz", hash = "sha256:b2c6fc770bf822ea45529c7084bc0ee340e67ab260016b01d28e0449ec8723be", size = 295279, upload-time = "2025-10-08T07:56:39.126Z" }
 wheels = [
@@ -106,7 +106,7 @@ wheels = [
 
 [[package]]
 name = "briefcase"
-version = "0.4.2"
+version = "0.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "binaryornot" },
@@ -128,9 +128,9 @@ dependencies = [
     { name = "truststore" },
     { name = "wheel" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/10/0b/3be6503a193db8439afbbdf15e2622b22aeeacd11d42ee2d8a41d225823e/briefcase-0.4.2.tar.gz", hash = "sha256:e1026ad9502760d6f296bc2c68f32a3279f3af7a0560032356379c9b5860ed4f", size = 2657584, upload-time = "2026-05-06T03:27:31.56Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/79/f6fa74fd99cc521f59bdc0094f268b4d8720fcbb977443dd69cb8e6b7d49/briefcase-0.4.4.tar.gz", hash = "sha256:e6e1a9d6811e2436fa2bfb2ecafdd12605e3920473946c09562fb9c9526e60ac", size = 2675906, upload-time = "2026-07-08T01:41:34.156Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/48/b9fac2c98a3439d65d63f5c828ab03540fbd31eda4d2ed120f982c8b7d18/briefcase-0.4.2-py3-none-any.whl", hash = "sha256:daf921b4520915e002b0a0f8e4abc82f046bddedcc4a52e9cbb2a8c444ff3cd1", size = 279029, upload-time = "2026-05-06T03:27:28.216Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/49/d7ffd855159c4371e7783a34ac92791af5fe838777059b9290c06d504086/briefcase-0.4.4-py3-none-any.whl", hash = "sha256:667b5e0c4d25c388efef822d1f5b0381c57619d198dad6ed2b7e323f7460baf4", size = 291828, upload-time = "2026-07-08T01:41:31.478Z" },
 ]
 
 [[package]]
@@ -540,8 +540,8 @@ name = "dmgbuild"
 version = "1.6.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ds-store", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "mac-alias", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "ds-store" },
+    { name = "mac-alias" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a7/a5/f4dbd63c96902de8f2427a82518aaeedac0006587409294e55a14e45f367/dmgbuild-1.6.7.tar.gz", hash = "sha256:676b17acd448899f6d4a83b2184e0657480444ecb6ac9c4922889efad9e5dbfb", size = 36938, upload-time = "2026-01-15T23:13:43.779Z" }
 wheels = [
@@ -562,9 +562,9 @@ name = "docx2pdf"
 version = "0.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "appscript", marker = "sys_platform == 'darwin'" },
+    { name = "appscript", marker = "sys_platform != 'win32'" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "tqdm", marker = "sys_platform != 'emscripten'" },
+    { name = "tqdm" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ab/5d/112531fff53cf60513e14fa1707755c874d47880ec4de7b2235302ad19a0/docx2pdf-0.1.8.tar.gz", hash = "sha256:6d2c20f9ad36eec75f4da017dc7a97622946954a6124ca0b11772875fa86fbed", size = 6483, upload-time = "2021-12-11T16:56:36.75Z" }
 wheels = [
@@ -576,7 +576,7 @@ name = "ds-store"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "mac-alias", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "mac-alias" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e9/11/971e423750b219ec3f3a7f27dfb9bd74aef3d3fdfee6cc7df10a0217b5cd/ds_store-1.3.2.tar.gz", hash = "sha256:e4da49df901123481a85b9250945f2aac054a0f0c29352cd2cc858c536cdd364", size = 26574, upload-time = "2025-12-04T00:52:46.178Z" }
 wheels = [
