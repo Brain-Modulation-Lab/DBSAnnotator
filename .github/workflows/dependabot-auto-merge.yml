@@ -42,9 +42,16 @@ jobs:
 
       # For a GROUPED pull request `update-type` is the highest bump in the
       # group, so a group containing one major is excluded whole.
+      # An ALLOWLIST, not a denylist. This was written as
+      # `package-ecosystem != 'pub'`, which auto-merges anything unexpected by
+      # default - and that is not hypothetical: 28 open PRs from the retired
+      # `uv` ecosystem all satisfied it. Name the two ecosystems whose failure
+      # mode CI actually proves, and let everything else fall through to a
+      # human.
       - name: Enable auto-merge (CI-proven ecosystems only)
         if: >-
-          steps.meta.outputs.package-ecosystem != 'pub' &&
+          (steps.meta.outputs.package-ecosystem == 'github_actions' ||
+           steps.meta.outputs.package-ecosystem == 'pip') &&
           steps.meta.outputs.update-type != 'version-update:semver-major'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
@@ -55,8 +62,9 @@ jobs:
       # auto-merge job was green" never gets mistaken for "it merged".
       - name: Note that this one merges by hand
         if: >-
-          steps.meta.outputs.package-ecosystem == 'pub' ||
-          steps.meta.outputs.update-type == 'version-update:semver-major'
+          !((steps.meta.outputs.package-ecosystem == 'github_actions' ||
+             steps.meta.outputs.package-ecosystem == 'pip') &&
+            steps.meta.outputs.update-type != 'version-update:semver-major')
         run: |
           {
             echo "### Not auto-merged"

@@ -146,6 +146,54 @@ void main() {
     expect(data.visitTable[1][2], contains('Group B'));
   });
 
+  test('a scale change is rendered without float artifacts', () {
+    // The per-visit table prints the change in the primary clinical scale, and
+    // it used `v.toString()` on a SUBTRACTION - so a UPDRS-III falling 40.0 to
+    // 36.4 rendered as "-3.6000000000000014" in a document filed in a patient
+    // record. Both reports now share report_data's trimZeros, which caps at two
+    // decimals: the scales step in 0.25, so it cannot show precision the
+    // instrument has not got.
+    final artifact = buildLongitudinalReportData(
+      files: {
+        'sub-07_ses-20260101_task-programming_run-01_beh.tsv': const [
+          SessionRow(
+            date: '2026-01-01',
+            time: '09:00:00',
+            blockId: '0',
+            isInitial: '1',
+            scaleName: 'UPDRS-III',
+            scaleValue: '40.0',
+          ),
+        ],
+        'sub-07_ses-20260615_task-programming_run-01_beh.tsv': const [
+          SessionRow(
+            date: '2026-06-15',
+            time: '09:00:00',
+            blockId: '0',
+            isInitial: '1',
+            scaleName: 'UPDRS-III',
+            scaleValue: '36.4',
+          ),
+        ],
+      },
+      generatedAt: DateTime(2026, 7, 1),
+    );
+    final deltas = artifact.visitTable.map((r) => r.last).toList();
+    expect(
+      deltas.first,
+      '-',
+      reason: 'the first visit has nothing to differ from',
+    );
+    expect(deltas.last, '-3.6');
+    for (final cell in deltas) {
+      expect(
+        cell.length,
+        lessThan(8),
+        reason: 'no float artifact ("-3.6000000000000014") in a clinical table',
+      );
+    }
+  });
+
   test('a mixed-patient import is reported, not silently merged', () {
     final mixed = buildLongitudinalReportData(
       files: {

@@ -24,7 +24,7 @@ library;
 import '../core/session/longitudinal.dart'
     show extractPatientId, isScaleValueOmitted, splitScalePairs;
 import '../core/session/session_row.dart';
-import 'report_data.dart' show ScalesChartSpec, coerceInt;
+import 'report_data.dart' show ScalesChartSpec, coerceInt, trimZeros;
 
 /// One imported file: a visit.
 typedef LongitudinalVisit = ({
@@ -156,10 +156,6 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
   );
 }
 
-/// Round-trip-safe number text: "8" not "8.0", "7.25" as typed.
-String _fmt(double v) =>
-    v == v.roundToDouble() ? v.toInt().toString() : v.toString();
-
 /// Build the whole report from the imported files.
 ///
 /// [files] is filename -> rows, in the order they were imported; visits are
@@ -284,8 +280,8 @@ LongitudinalReportData buildLongitudinalReportData({
       visit.date.isEmpty ? 'unknown' : visit.date,
       _programmeText(visit.finalRow),
       '${visit.blocks.length}',
-      score == null ? '-' : '${primary!}: ${_fmt(score)}',
-      delta == null ? '-' : '${delta > 0 ? '+' : ''}${_fmt(delta)}',
+      score == null ? '-' : '${primary!}: ${trimZeros(score)}',
+      delta == null ? '-' : '${delta > 0 ? '+' : ''}${trimZeros(delta)}',
     ]);
     if (score != null) previous = score;
   }

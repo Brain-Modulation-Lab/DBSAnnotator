@@ -9,8 +9,11 @@ tags:
   - Flutter
 authors:
   - name: Lucia Poma
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0000-0000-0000   # TODO: real ORCID; a placeholder fails editorialbot
     corresponding: true
+    affiliation: 1
+  - name: Richard M. Kohler
+    orcid: 0000-0000-0000-0000   # TODO: real ORCID
     affiliation: 1
 affiliations:
   - name: Wyss Center for Bio and Neuroengineering, Geneva, Switzerland

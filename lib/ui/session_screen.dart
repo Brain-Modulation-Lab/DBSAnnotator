@@ -352,10 +352,14 @@ class _SessionScreenState extends State<SessionScreen> {
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
-  /// Amplitude cell: '' when blank, otherwise the plain total formatted via
-  /// encodeAmplitude (split-across-cathodes UI is deferred; a single value
-  /// is what the desktop writes when there is at most one cathode).
-  static String _amplitudeCell(String text) {
+  /// The `left_amplitude`/`right_amplitude` cell to WRITE for a side: '' when
+  /// blank, otherwise the total encoded by encodeAmplitude.
+  ///
+  /// Named `_encodeAmplitudeCell`, not `_amplitudeCell`, because
+  /// report_data.dart has an unrelated `_amplitudeCell` that RENDERS a stored
+  /// cell for a report table. Two functions with one name on opposite sides of
+  /// the same column invite exactly the wrong assumption.
+  static String _encodeAmplitudeCell(String text) {
     final t = text.trim();
     if (t.isEmpty) return '';
     final v = double.tryParse(t);
@@ -426,7 +430,7 @@ class _SessionScreenState extends State<SessionScreen> {
         side.ampSplit.length == cathodes.length) {
       return encodeAmplitude(total, side.ampSplit);
     }
-    return _amplitudeCell(side.amp.text);
+    return _encodeAmplitudeCell(side.amp.text);
   }
 
   /// Navigate to [step], seeding the recording config from the initial config
