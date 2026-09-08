@@ -9,8 +9,14 @@ JOSS requires that every author made a substantial contribution to the *software
 The repository records these names, but a record is not an author list:
 
 - **Lucia Poma** - lead author and developer (`lib/app_info.dart`).
-- **Richard Koehler** - recorded as maintainer in the project's earlier documentation.
-  Confirm whether this is an authorship contribution.
+- ~~**Richard Köhler** - recorded as maintainer in the project's earlier
+  documentation. Confirm whether this is an authorship contribution.~~
+  **Resolved: included as an author** (maintainer's decision). Note the evidence
+  a reviewer could check: `git log -- lib` shows 0 commits from him to the
+  submitted Flutter app, and 29 to the `src/` Qt implementation the paper cites
+  as its reference. If asked, the contribution to point at is that
+  implementation and the format it established, not the Dart code. **He still
+  needs a real ORCID.**
 - The copyright line names three institutions: Massachusetts General Hospital,
   Harvard Medical School, and the Wyss Center for Bio and Neuroengineering.
   Institutions are affiliations, not authors - decide who from each, if anyone,

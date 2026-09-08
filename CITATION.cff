@@ -10,6 +10,11 @@ authors:
     email: lucia.poma@wysscenter.ch
     affiliation: Wyss Center for Bio and Neuroengineering, Geneva, Switzerland
     # orcid: 'https://orcid.org/0000-0000-0000-0000'   # TODO: add before submission
+  - given-names: Richard M.
+    family-names: Köhler
+    email: richard.kohler@wysscenter.ch
+    affiliation: Wyss Center for Bio and Neuroengineering, Geneva, Switzerland
+    # orcid: 'https://orcid.org/0000-0000-0000-0000'   # TODO: add before submission
 repository-code: https://github.com/Brain-Modulation-Lab/DBSAnnotator
 url: https://dbsannotator.readthedocs.io/
 abstract: >-

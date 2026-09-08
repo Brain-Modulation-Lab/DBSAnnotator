@@ -41,7 +41,14 @@ int coerceInt(String raw) {
 }
 
 /// Desktop-identical number trimming: f"{x:.2f}".rstrip("0").rstrip(".").
-String _trimZeros(double v) {
+///
+/// Public because the longitudinal report needs the same rendering: it used
+/// `v.toString()`, which prints float artifacts straight into a clinical table
+/// - a Y-BOCS falling 28.0 to 24.4 rendered its change as
+/// "3.6000000000000014". Capping at two decimals also matches the data, whose
+/// scales step in 0.25, so it can never claim precision the instrument has not
+/// got.
+String trimZeros(double v) {
   var out = v.toStringAsFixed(2);
   while (out.endsWith('0')) {
     out = out.substring(0, out.length - 1);
@@ -573,7 +580,6 @@ class SessionReportData {
     required this.freqR,
     required this.pwL,
     required this.pwR,
-    required this.timeline,
     required this.chart,
     required this.bestBlocks,
     required this.secondBlocks,
@@ -656,9 +662,6 @@ class SessionReportData {
   /// blocks are 5 distinct settings.
   final int numDistinctConfigs;
   final String ampL, ampR, freqL, freqR, pwL, pwR;
-
-  /// scale -> {block -> value} for the scales-timeline graph.
-  final Map<String, Map<int, double>> timeline;
 
   /// Everything needed to draw the scales chart, ready for the shared painter.
   final ScalesChartSpec chart;
@@ -967,17 +970,13 @@ String _targetsText(List<ScalePref> prefs) {
       // The bounds travel with the mode: the index normalises into them, so a
       // reader cannot reproduce the score without knowing what they were.
       case ScaleMode.min:
-        parts.add(
-          '${p.name}: min of ${_trimZeros(p.min)}-${_trimZeros(p.max)}',
-        );
+        parts.add('${p.name}: min of ${trimZeros(p.min)}-${trimZeros(p.max)}');
       case ScaleMode.max:
-        parts.add(
-          '${p.name}: max of ${_trimZeros(p.min)}-${_trimZeros(p.max)}',
-        );
+        parts.add('${p.name}: max of ${trimZeros(p.min)}-${trimZeros(p.max)}');
       case ScaleMode.custom:
         parts.add(
-          '${p.name}: ${_trimZeros(p.custom ?? 0)} '
-          'of ${_trimZeros(p.min)}-${_trimZeros(p.max)}',
+          '${p.name}: ${trimZeros(p.custom ?? 0)} '
+          'of ${trimZeros(p.min)}-${trimZeros(p.max)}',
         );
       case ScaleMode.ignore:
         break;
@@ -1060,7 +1059,7 @@ Map<String, String> _lastConfigLines(SessionRow? r) {
     final anodes = contactsWithCurrent(anode, '');
     if (cathodes.isEmpty && anodes.isEmpty) return '';
     final total = _paramRange([amp], splitSum: true);
-    final dose = total == null ? '' : ' = ${_trimZeros(total.$2)} mA';
+    final dose = total == null ? '' : ' = ${trimZeros(total.$2)} mA';
     final f = freq.trim().isEmpty ? '' : ', ${_numCell(freq)} Hz';
     final p = pw.trim().isEmpty ? '' : ', ${_numCell(pw)} \u00B5s';
     return '$cathodes-'
@@ -1400,6 +1399,5 @@ SessionReportData buildSessionReportData({
     freqR: freqR,
     pwL: pwL,
     pwR: pwR,
-    timeline: timeline,
   );
 }

@@ -52,7 +52,6 @@ List<DatasetFile> buildBidsDataset(
   required String appName,
   required String appVersion,
   required String repoUrl,
-  DateTime? generatedAt,
 }) {
   final files = <DatasetFile>[
     (
