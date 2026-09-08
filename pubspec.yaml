@@ -46,7 +46,7 @@ dependencies:
   # cannot disagree).
   pdf: ^3.11.1
   # Desktop window sizing + title (Linux/Windows/macOS). No-op on mobile.
-  window_manager: ^0.4.2
+  window_manager: ^0.5.2
   # Word (.docx) export = zipping OOXML parts (already transitive via pdf).
   archive: ^4.0.0
   # Primary-display work area, to clamp the window to the screen (transitive via
