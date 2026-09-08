@@ -66,32 +66,40 @@ void main() {
     expect(r91 - r87, greaterThan(0.3));
   });
 
-  test('ring caps are a usable touch target, and segments keep the majority',
-      () {
-    // Tablet-first: the "Ring" strip must be comfortably pressable, so it
-    // claims part of the segments' height on top of the inter-level gap.
-    for (final name in [
-      'Medtronic SenSight B33005',
-      'Boston Scientific Vercise Directed',
-      'Abbott StJude Infinity 6172',
-      'ALEVA directSTIM',
-    ]) {
-      for (final size in [const Size(300, 640), const Size(520, 900)]) {
-        final l = computeLayout(catalog.models[name]!, size);
-        for (final lv in l.levels.where((x) => x.isDirectional)) {
-          final cap = lv.ringCapRect!;
-          final seg = lv.contactRects.values.first;
-          expect(cap.height, greaterThanOrEqualTo(20),
-              reason: '$name @$size cap too thin to press');
-          // The segments must still dominate the level.
-          expect(seg.height, greaterThan(cap.height),
-              reason: '$name @$size cap outweighs its segments');
-          // And the cap must not have eaten into them past the cap.
-          expect(cap.bottom, lessThanOrEqualTo(seg.top + 0.01));
+  test(
+    'ring caps are a usable touch target, and segments keep the majority',
+    () {
+      // Tablet-first: the "Ring" strip must be comfortably pressable, so it
+      // claims part of the segments' height on top of the inter-level gap.
+      for (final name in [
+        'Medtronic SenSight B33005',
+        'Boston Scientific Vercise Directed',
+        'Abbott StJude Infinity 6172',
+        'ALEVA directSTIM',
+      ]) {
+        for (final size in [const Size(300, 640), const Size(520, 900)]) {
+          final l = computeLayout(catalog.models[name]!, size);
+          for (final lv in l.levels.where((x) => x.isDirectional)) {
+            final cap = lv.ringCapRect!;
+            final seg = lv.contactRects.values.first;
+            expect(
+              cap.height,
+              greaterThanOrEqualTo(20),
+              reason: '$name @$size cap too thin to press',
+            );
+            // The segments must still dominate the level.
+            expect(
+              seg.height,
+              greaterThan(cap.height),
+              reason: '$name @$size cap outweighs its segments',
+            );
+            // And the cap must not have eaten into them past the cap.
+            expect(cap.bottom, lessThanOrEqualTo(seg.top + 0.01));
+          }
         }
       }
-    }
-  });
+    },
+  );
 
   test('all leads render at the same width — they are all 1.27-1.30 mm', () {
     // Width must NOT follow the height-fitted scale, or a widely-spaced model
@@ -105,30 +113,40 @@ void main() {
     }
     // Boston is 1.30 mm vs Medtronic 1.27 mm: a touch wider, but only a touch.
     final boston = computeLayout(
-            catalog.models['Boston Scientific Vercise']!, const Size(300, 600))
-        .leadRect
-        .width;
+      catalog.models['Boston Scientific Vercise']!,
+      const Size(300, 600),
+    ).leadRect.width;
     expect(boston, greaterThan(widths.first));
     expect(boston, lessThan(widths.first * 1.1));
   });
 
   test('tipContact models expose a metal tip on E0; others do not', () {
     final boston = computeLayout(
-        catalog.models['Boston Scientific Vercise Directed']!,
-        const Size(300, 600));
+      catalog.models['Boston Scientific Vercise Directed']!,
+      const Size(300, 600),
+    );
     expect(boston.isTipContact, isTrue);
-    expect(boston.levels.last.isTip, isTrue,
-        reason: 'E0 is the hemispherical tip on Boston leads');
+    expect(
+      boston.levels.last.isTip,
+      isTrue,
+      reason: 'E0 is the hemispherical tip on Boston leads',
+    );
     // Body stops at the distal contact, which finishes the lead itself.
-    expect(boston.leadRect.bottom,
-        closeTo(boston.levels.last.contactRects.values.first.top, 0.01));
+    expect(
+      boston.leadRect.bottom,
+      closeTo(boston.levels.last.contactRects.values.first.top, 0.01),
+    );
 
-    final mdt =
-        computeLayout(catalog.models['Medtronic 3389']!, const Size(300, 600));
+    final mdt = computeLayout(
+      catalog.models['Medtronic 3389']!,
+      const Size(300, 600),
+    );
     expect(mdt.isTipContact, isFalse);
     expect(mdt.levels.last.isTip, isFalse);
-    expect(mdt.leadRect.bottom,
-        closeTo(mdt.levels.last.contactRects.values.first.bottom, 0.01));
+    expect(
+      mdt.leadRect.bottom,
+      closeTo(mdt.levels.last.contactRects.values.first.bottom, 0.01),
+    );
   });
 
   group('invariants across every catalogue model and canvas size', () {
@@ -149,15 +167,23 @@ void main() {
           for (final r in rects) {
             expect(r.left, greaterThanOrEqualTo(-0.01), reason: 'left $r');
             expect(r.top, greaterThanOrEqualTo(-0.01), reason: 'top $r');
-            expect(r.right, lessThanOrEqualTo(size.width + 0.01),
-                reason: 'right $r');
-            expect(r.bottom, lessThanOrEqualTo(size.height + 0.01),
-                reason: 'bottom $r');
+            expect(
+              r.right,
+              lessThanOrEqualTo(size.width + 0.01),
+              reason: 'right $r',
+            );
+            expect(
+              r.bottom,
+              lessThanOrEqualTo(size.height + 0.01),
+              reason: 'bottom $r',
+            );
           }
           // The dome hangs below the distal contact and must also fit.
-          expect(l.domeRect.bottom - l.domeRect.height / 2,
-              lessThanOrEqualTo(size.height + 0.01),
-              reason: 'dome overflows');
+          expect(
+            l.domeRect.bottom - l.domeRect.height / 2,
+            lessThanOrEqualTo(size.height + 0.01),
+            reason: 'dome overflows',
+          );
 
           // (b) A ring cap never overlaps the level above it (the old
           // max(gap*0.8, 16.0) floor did exactly that on Cartesia HX/X).
@@ -165,16 +191,21 @@ void main() {
             final cap = l.levels[i].ringCapRect;
             if (cap == null) continue;
             expect(
-                cap.bottom,
-                lessThanOrEqualTo(
-                    l.levels[i].contactRects.values.first.top + 0.01),
-                reason: 'cap overlaps its own segments');
+              cap.bottom,
+              lessThanOrEqualTo(
+                l.levels[i].contactRects.values.first.top + 0.01,
+              ),
+              reason: 'cap overlaps its own segments',
+            );
             if (i > 0) {
               final above = l.levels[i - 1].contactRects.values
                   .map((r) => r.bottom)
                   .reduce((a, b) => a > b ? a : b);
-              expect(cap.top, greaterThanOrEqualTo(above - 0.01),
-                  reason: 'cap overlaps the level above');
+              expect(
+                cap.top,
+                greaterThanOrEqualTo(above - 0.01),
+                reason: 'cap overlaps the level above',
+              );
             }
             expect(cap.height, greaterThan(0));
           }
@@ -184,8 +215,11 @@ void main() {
           for (final lv in l.levels) {
             final cap = lv.ringCapRect;
             if (cap == null) continue;
-            expect(hitTest(l, cap.center), isA<RingCapHit>(),
-                reason: 'cap centre of E${lv.levelIdx} not reachable');
+            expect(
+              hitTest(l, cap.center),
+              isA<RingCapHit>(),
+              reason: 'cap centre of E${lv.levelIdx} not reachable',
+            );
           }
 
           // (d) Every contact centre resolves to its own contact.
@@ -236,8 +270,11 @@ void main() {
         }
       }
       expect(heights, hasLength(1), reason: 'one height everywhere: $heights');
-      expect(heights.single, lessThan(40),
-          reason: 'and a modest one: ${heights.single}');
+      expect(
+        heights.single,
+        lessThan(40),
+        reason: 'and a modest one: ${heights.single}',
+      );
     });
 
     test('shortening the case gave the contacts the room', () {
@@ -245,8 +282,9 @@ void main() {
       // stay legible. A SenSight on a small tablet pane used to get 36 px
       // contacts at a 10.9 px font.
       final layout = computeLayout(
-          _catalog().models['Medtronic SenSight B33005']!,
-          const Size(220, 420));
+        _catalog().models['Medtronic SenSight B33005']!,
+        const Size(220, 420),
+      );
       final contact = layout.levels.first.contactRects.values.first;
       expect(contact.height, greaterThan(45));
       expect(layout.scale, greaterThan(30));
@@ -258,8 +296,10 @@ void main() {
       // cannot grow, so width does.
       const pane = Size(220, 420);
       final catalog = _catalog();
-      final four =
-          computeLayout(catalog.models['Medtronic 3389']!, pane).leadRect.width;
+      final four = computeLayout(
+        catalog.models['Medtronic 3389']!,
+        pane,
+      ).leadRect.width;
       for (final name in [
         'Boston Scientific Vercise Cartesia HX', // 6 levels
         'Boston Scientific Vercise', // 8 rings
@@ -273,7 +313,9 @@ void main() {
       // The ramp is deliberately mild: a paddle would be worse than small text.
       for (final size in const [Size(300, 600), Size(220, 420)]) {
         final l = computeLayout(
-            _catalog().models['Boston Scientific Vercise']!, size);
+          _catalog().models['Boston Scientific Vercise']!,
+          size,
+        );
         expect(l.leadRect.width, lessThan(l.leadRect.height * 0.6));
       }
     });

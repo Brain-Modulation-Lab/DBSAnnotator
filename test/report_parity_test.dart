@@ -25,32 +25,40 @@ import 'report_ranking_prefs.dart';
 
 /// A 2x1 red PNG, enough for `pngSize` to read a real IHDR.
 Uint8List _tinyPng() => base64Decode(
-    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
-    'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC');
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
+  'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC',
+);
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
-          .readAsStringSync(),
-    );
+  File(
+    'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
+  ).readAsStringSync(),
+);
 
 /// The visible text of `word/document.xml`, in order.
 String _docxText(List<int> bytes) {
-  final xml = utf8.decode(ZipDecoder()
-      .decodeBytes(bytes)
-      .files
-      .firstWhere((f) => f.name == 'word/document.xml')
-      .content);
+  final xml = utf8.decode(
+    ZipDecoder()
+        .decodeBytes(bytes)
+        .files
+        .firstWhere((f) => f.name == 'word/document.xml')
+        .content,
+  );
   final out = StringBuffer();
   // `<w:t` only, not `<w:tbl`/`<w:tc`/`<w:tr`: `[^>]*` happily matches "blPr",
   // which pulled raw markup into the "text" and made the assertions meaningless.
-  for (final m in RegExp(r'<w:t(?:\s[^>]*)?>(.*?)</w:t>', dotAll: true)
-      .allMatches(xml)) {
-    out.write(m
-        .group(1)!
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"'));
+  for (final m in RegExp(
+    r'<w:t(?:\s[^>]*)?>(.*?)</w:t>',
+    dotAll: true,
+  ).allMatches(xml)) {
+    out.write(
+      m
+          .group(1)!
+          .replaceAll('&amp;', '&')
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>')
+          .replaceAll('&quot;', '"'),
+    );
   }
   return out.toString();
 }
@@ -65,7 +73,8 @@ void main() {
     data = rankedReportData(_example(), generatedAt: DateTime(2026, 6, 26));
     // With a chart, so the figure + caption path is exercised too.
     docx = _docxText(
-        buildSessionDocx(data: data, subjectId: '01', chartPng: _tinyPng()));
+      buildSessionDocx(data: data, subjectId: '01', chartPng: _tinyPng()),
+    );
   });
 
   test('every section heading appears in both formats', () async {

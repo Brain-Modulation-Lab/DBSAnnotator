@@ -60,17 +60,25 @@ void main() {
     test('every replacement maps INTO Latin-1', () {
       // A mapping whose output is itself unencodable would defeat the purpose,
       // which is exactly the trap the Greek-mu case above falls into.
-      const probes = '‘’‚‛“”„′″'
+      const probes =
+          '‘’‚‛“”„′″'
           '–—―−…•   '
           '≥≤≠≈×→←↑↓'
           'Δμ℃℉';
       final out = sanitiseForLatin1(probes);
-      expect(out.replaced, isFalse,
-          reason: 'a known character fell through to "?"');
+      expect(
+        out.replaced,
+        isFalse,
+        reason: 'a known character fell through to "?"',
+      );
       for (final rune in out.text.runes) {
-        expect(rune, lessThanOrEqualTo(0xFF),
-            reason: 'replacement emitted U+${rune.toRadixString(16)}, '
-                'which Helvetica cannot encode');
+        expect(
+          rune,
+          lessThanOrEqualTo(0xFF),
+          reason:
+              'replacement emitted U+${rune.toRadixString(16)}, '
+              'which Helvetica cannot encode',
+        );
       }
     });
   });
@@ -81,10 +89,9 @@ void main() {
       // is not, so coverage is the only thing that decides its fate. The set is
       // authoritative — ASCII is in it because every real font has it, not
       // because the sanitiser assumes it.
-      final s = ReportTextSanitiser(coverage: {
-        for (var r = 0x20; r < 0x7f; r++) r,
-        ...'注意'.runes,
-      });
+      final s = ReportTextSanitiser(
+        coverage: {for (var r = 0x20; r < 0x7f; r++) r, ...'注意'.runes},
+      );
       expect(s('注意 ’'), "注意 '");
       expect(s.lostCharacters, isFalse);
     });

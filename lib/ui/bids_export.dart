@@ -29,16 +29,17 @@ Future<void> exportBidsDataset(
   GlobalKey? anchor,
 }) async {
   if (entries.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Nothing to export yet.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Nothing to export yet.')));
     return;
   }
   // One subject means a name that says whose data it is; several means it does
   // not, and saying "bids-dataset" beats naming only the first of them.
   final subjects = {for (final e in entries) BidsName.label(e.name.subject)};
-  final stem =
-      subjects.length == 1 ? 'sub-${subjects.first}_bids' : 'bids-dataset';
+  final stem = subjects.length == 1
+      ? 'sub-${subjects.first}_bids'
+      : 'bids-dataset';
 
   await exportFile(
     context,
@@ -54,8 +55,9 @@ Future<void> exportBidsDataset(
       );
       final archive = Archive();
       for (final file in files) {
-        archive
-            .addFile(ArchiveFile.bytes(file.path, utf8.encode(file.content)));
+        archive.addFile(
+          ArchiveFile.bytes(file.path, utf8.encode(file.content)),
+        );
       }
       return (
         bytes: Uint8List.fromList(ZipEncoder().encode(archive)),
@@ -76,13 +78,12 @@ DatasetEntry datasetEntry({
   required Map<String, dynamic> contract,
   required String kind,
   required String acqTime,
-}) =>
-    (
-      name: name,
-      tsv: tsv,
-      sidecar: _encode(buildSidecar(contract, kind, appVersion: appVersion)),
-      acqTime: acqTime.isEmpty ? 'n/a' : acqTime,
-    );
+}) => (
+  name: name,
+  tsv: tsv,
+  sidecar: _encode(buildSidecar(contract, kind, appVersion: appVersion)),
+  acqTime: acqTime.isEmpty ? 'n/a' : acqTime,
+);
 
 String _encode(Map<String, dynamic> sidecar) =>
     '${const JsonEncoder.withIndent('  ').convert(sidecar)}\n';

@@ -80,7 +80,7 @@ scale — lower, higher, or closest to a value. Until you do, no configuration i
 ranked. This is deliberate; see :ref:`what-the-reports-do-not-say`.
 
 **Text size and theme** are adjustable from the top bar of every screen, which
-matters on a tablet at a bedside.
+matters on a tablet held in a consulting room rather than at a desk.
 
 Getting the report
 ------------------

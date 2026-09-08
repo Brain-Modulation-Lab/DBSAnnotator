@@ -67,120 +67,140 @@ Future<ReportBytes> buildLongitudinalPdf({
     subject: 'Deep brain stimulation longitudinal review',
   );
 
-  doc.addPage(pw.MultiPage(
-    pageFormat: format,
-    footer: (context) => pw.Container(
-      alignment: pw.Alignment.center,
-      margin: const pw.EdgeInsets.only(top: 6),
-      child: pw.Text(
-        'sub-${t(data.patientId)}  |  ${data.visits.length} visits'
-        '${span.isEmpty ? '' : ', $span'}  |  DBS Annotator v$appVersion'
-        '  |  Page ${context.pageNumber} of ${context.pagesCount}',
-        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: format,
+      footer: (context) => pw.Container(
+        alignment: pw.Alignment.center,
+        margin: const pw.EdgeInsets.only(top: 6),
+        child: pw.Text(
+          'sub-${t(data.patientId)}  |  ${data.visits.length} visits'
+          '${span.isEmpty ? '' : ', $span'}  |  DBS Annotator v$appVersion'
+          '  |  Page ${context.pageNumber} of ${context.pagesCount}',
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+        ),
       ),
-    ),
-    build: (context) => [
-      pw.Header(
-        level: 0,
-        child: pw.Text('DBS Annotator - Longitudinal report',
-            style: const pw.TextStyle(
-                fontSize: 20, fontWeight: pw.FontWeight.bold)),
-      ),
-      pw.Text('Patient: sub-${t(data.patientId)}    '
-          'Visits: ${data.visits.length}${span.isEmpty ? '' : '    $span'}'),
-      pw.Text('Generated on: ${data.generatedOn} by DBS Annotator v$appVersion',
-          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-
-      // Mixing two patients into one longitudinal report is a safety problem,
-      // so it is stated at the top of page 1, not buried in a file list.
-      if (data.mismatchedPatients.isNotEmpty) ...[
-        pw.SizedBox(height: 6),
-        pw.Container(
-          width: double.infinity,
-          padding: const pw.EdgeInsets.all(6),
-          decoration: pw.BoxDecoration(
-            color: PdfColors.grey100,
-            border: pw.Border.all(color: PdfColors.black, width: 1),
-          ),
+      build: (context) => [
+        pw.Header(
+          level: 0,
           child: pw.Text(
+            'DBS Annotator - Longitudinal report',
+            style: const pw.TextStyle(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ),
+        pw.Text(
+          'Patient: sub-${t(data.patientId)}    '
+          'Visits: ${data.visits.length}${span.isEmpty ? '' : '    $span'}',
+        ),
+        pw.Text(
+          'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+        ),
+
+        // Mixing two patients into one longitudinal report is a safety problem,
+        // so it is stated at the top of page 1, not buried in a file list.
+        if (data.mismatchedPatients.isNotEmpty) ...[
+          pw.SizedBox(height: 6),
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(6),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              border: pw.Border.all(color: PdfColors.black, width: 1),
+            ),
+            child: pw.Text(
               'WARNING: the imported files name more than one patient '
-              '(${t(([
-                data.patientId,
-                ...data.mismatchedPatients
-              ]).join(', '))}). '
+              '(${t(([data.patientId, ...data.mismatchedPatients]).join(', '))}). '
               'This report combines them.',
               style: const pw.TextStyle(
-                  fontSize: 9, fontWeight: pw.FontWeight.bold)),
-        ),
-      ],
-      pw.SizedBox(height: 12),
+                fontSize: 9,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        pw.SizedBox(height: 12),
 
-      if (data.isEmpty)
-        pw.Text('No visits imported.')
-      else ...[
-        // (a) Clinical scales by visit.
-        pw.Header(level: 1, text: 'Clinical scales by visit'),
-        if (clinicalChartPng != null) ...[
-          _fitWidth(clinicalChartPng, format.availableWidth),
-          pw.Text(
+        if (data.isEmpty)
+          pw.Text('No visits imported.')
+        else ...[
+          // (a) Clinical scales by visit.
+          pw.Header(level: 1, text: 'Clinical scales by visit'),
+          if (clinicalChartPng != null) ...[
+            _fitWidth(clinicalChartPng, format.availableWidth),
+            pw.Text(
               'Figure 1. Clinical scale scores, one assessment per visit. '
               'No aggregate index is shown: it is normalised within a session, '
               'so values from different visits were never on one scale.',
               style: const pw.TextStyle(
-                  fontSize: 8, fontStyle: pw.FontStyle.italic)),
-        ] else if (data.clinicalChart.isEmpty)
-          pw.Text('No baseline clinical scale scores were recorded.')
-        else
-          pw.Text('(figure unavailable)'),
-        pw.SizedBox(height: 10),
+                fontSize: 8,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
+          ] else if (data.clinicalChart.isEmpty)
+            pw.Text('No baseline clinical scale scores were recorded.')
+          else
+            pw.Text('(figure unavailable)'),
+          pw.SizedBox(height: 10),
 
-        // (b) Session scales by visit and block.
-        pw.Header(level: 1, text: 'Session scales by visit and block'),
-        if (sessionChartPng != null) ...[
-          _fitWidth(sessionChartPng, format.availableWidth),
-          pw.Text(
+          // (b) Session scales by visit and block.
+          pw.Header(level: 1, text: 'Session scales by visit and block'),
+          if (sessionChartPng != null) ...[
+            _fitWidth(sessionChartPng, format.availableWidth),
+            pw.Text(
               'Figure 2. Session scale ratings against visit and block. Each '
               'visit contributes one point per configuration tested.',
               style: const pw.TextStyle(
-                  fontSize: 8, fontStyle: pw.FontStyle.italic)),
-        ] else if (data.sessionChart.isEmpty)
-          pw.Text('No session scale ratings were recorded.')
-        else
-          pw.Text('(figure unavailable)'),
-        pw.SizedBox(height: 10),
+                fontSize: 8,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
+          ] else if (data.sessionChart.isEmpty)
+            pw.Text('No session scale ratings were recorded.')
+          else
+            pw.Text('(figure unavailable)'),
+          pw.SizedBox(height: 10),
 
-        // (c) The per-visit table.
-        pw.Header(level: 1, text: 'Visits'),
-        pw.TableHelper.fromTextArray(
-          headers: longitudinalTableHeaders,
-          data: t.rows(data.visitTable),
-          cellStyle: const pw.TextStyle(fontSize: 8),
-          headerStyle:
-              const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-          cellAlignment: pw.Alignment.centerLeft,
-          columnWidths: {
-            for (final (i, w) in _tableWeights.indexed)
-              i: pw.FlexColumnWidth(w),
-          },
-        ),
-        pw.Text(
+          // (c) The per-visit table.
+          pw.Header(level: 1, text: 'Visits'),
+          pw.TableHelper.fromTextArray(
+            headers: longitudinalTableHeaders,
+            data: t.rows(data.visitTable),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            headerStyle: const pw.TextStyle(
+              fontSize: 8,
+              fontWeight: pw.FontWeight.bold,
+            ),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+            cellAlignment: pw.Alignment.centerLeft,
+            columnWidths: {
+              for (final (i, w) in _tableWeights.indexed)
+                i: pw.FlexColumnWidth(w),
+            },
+          ),
+          pw.Text(
             'Change is against the previous visit that recorded the same '
             'scale. The programme shown is the last configuration recorded at '
             'that visit, which is not necessarily one a clinician confirmed.',
-            style: const pw.TextStyle(fontSize: 8)),
+            style: const pw.TextStyle(fontSize: 8),
+          ),
 
-        // (d) Sources, demoted to an appendix: provenance, not content.
-        pw.SizedBox(height: 12),
-        pw.Header(level: 1, text: 'Source files'),
-        for (final v in data.visits)
-          pw.Bullet(
+          // (d) Sources, demoted to an appendix: provenance, not content.
+          pw.SizedBox(height: 12),
+          pw.Header(level: 1, text: 'Source files'),
+          for (final v in data.visits)
+            pw.Bullet(
               text: t('${v.filename}  (${v.blocks.length} blocks)'),
               style: const pw.TextStyle(fontSize: 8),
-              bulletSize: 1.5),
+              bulletSize: 1.5,
+            ),
+        ],
       ],
-    ],
-  ));
+    ),
+  );
   return (bytes: await doc.save(), lostCharacters: t.lostCharacters);
 }
 
@@ -198,19 +218,30 @@ Uint8List buildLongitudinalDocx({
 
   final body = StringBuffer()
     ..write(
-        docxPara('DBS Annotator - Longitudinal report', bold: true, size: 40))
-    ..write(docxPara('Patient: sub-${data.patientId}    '
-        'Visits: ${data.visits.length}${span.isEmpty ? '' : '    $span'}'))
-    ..write(docxPara(
+      docxPara('DBS Annotator - Longitudinal report', bold: true, size: 40),
+    )
+    ..write(
+      docxPara(
+        'Patient: sub-${data.patientId}    '
+        'Visits: ${data.visits.length}${span.isEmpty ? '' : '    $span'}',
+      ),
+    )
+    ..write(
+      docxPara(
         'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion',
-        size: 18));
+        size: 18,
+      ),
+    );
 
   if (data.mismatchedPatients.isNotEmpty) {
-    body.write(docxPara(
+    body.write(
+      docxPara(
         'WARNING: the imported files name more than one patient '
         '(${([data.patientId, ...data.mismatchedPatients]).join(', ')}). '
         'This report combines them.',
-        bold: true));
+        bold: true,
+      ),
+    );
   }
 
   if (data.isEmpty) {
@@ -219,13 +250,18 @@ Uint8List buildLongitudinalDocx({
     body.write(docxHeading('Clinical scales by visit'));
     if (clinicalChartPng != null) {
       body
-        ..write('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
-            '${media.drawing(clinicalChartPng, widthPx: pageSize.contentWidthPx, description: 'Clinical scale scores by visit')}</w:p>')
-        ..write(docxPara(
+        ..write(
+          '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
+          '${media.drawing(clinicalChartPng, widthPx: pageSize.contentWidthPx, description: 'Clinical scale scores by visit')}</w:p>',
+        )
+        ..write(
+          docxPara(
             'Figure 1. Clinical scale scores, one assessment per visit. '
             'No aggregate index is shown: it is normalised within a session, '
             'so values from different visits were never on one scale.',
-            size: 16));
+            size: 16,
+          ),
+        );
     } else if (data.clinicalChart.isEmpty) {
       body.write(docxPara('No baseline clinical scale scores were recorded.'));
     }
@@ -233,33 +269,44 @@ Uint8List buildLongitudinalDocx({
     body.write(docxHeading('Session scales by visit and block'));
     if (sessionChartPng != null) {
       body
-        ..write('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
-            '${media.drawing(sessionChartPng, widthPx: pageSize.contentWidthPx, description: 'Session scale ratings by visit and block')}</w:p>')
-        ..write(docxPara(
+        ..write(
+          '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
+          '${media.drawing(sessionChartPng, widthPx: pageSize.contentWidthPx, description: 'Session scale ratings by visit and block')}</w:p>',
+        )
+        ..write(
+          docxPara(
             'Figure 2. Session scale ratings against visit and block. Each '
             'visit contributes one point per configuration tested.',
-            size: 16));
+            size: 16,
+          ),
+        );
     } else if (data.sessionChart.isEmpty) {
       body.write(docxPara('No session scale ratings were recorded.'));
     }
 
     body
       ..write(docxHeading('Visits'))
-      ..write(docxTable(
-        longitudinalTableHeaders,
-        data.visitTable,
-        weights: _tableWeights,
-        contentTwips: pageSize.contentWidthTwips,
-      ))
-      ..write(docxPara(
+      ..write(
+        docxTable(
+          longitudinalTableHeaders,
+          data.visitTable,
+          weights: _tableWeights,
+          contentTwips: pageSize.contentWidthTwips,
+        ),
+      )
+      ..write(
+        docxPara(
           'Change is against the previous visit that recorded the same scale. '
           'The programme shown is the last configuration recorded at that '
           'visit, which is not necessarily one a clinician confirmed.',
-          size: 16))
+          size: 16,
+        ),
+      )
       ..write(docxHeading('Source files'));
     for (final v in data.visits) {
       body.write(
-          docxPara('  • ${v.filename}  (${v.blocks.length} blocks)', size: 16));
+        docxPara('  • ${v.filename}  (${v.blocks.length} blocks)', size: 16),
+      );
     }
   }
 
@@ -270,7 +317,8 @@ Uint8List buildLongitudinalDocx({
     title: 'DBS longitudinal report - sub-${data.patientId}',
     subject: 'Deep brain stimulation longitudinal review',
     createdDate: data.generatedOn,
-    footerPrefix: 'sub-${data.patientId}  |  ${data.visits.length} visits'
+    footerPrefix:
+        'sub-${data.patientId}  |  ${data.visits.length} visits'
         '${span.isEmpty ? '' : ', $span'}  |  DBS Annotator v$appVersion'
         '  |  Page ',
   );

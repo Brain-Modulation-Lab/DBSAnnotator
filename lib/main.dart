@@ -54,9 +54,9 @@ Rect fitWindowRect({
 /// A minimum bigger than the screen re-creates the unreachable-title-bar bug it
 /// is meant to prevent, because the window can then never be shrunk to fit.
 Size fitMinimumSize(Size window, {Size minimum = _minWindowSize}) => Size(
-      math.min(minimum.width, window.width),
-      math.min(minimum.height, window.height),
-    );
+  math.min(minimum.width, window.width),
+  math.min(minimum.height, window.height),
+);
 
 /// Size and position the window so it is entirely inside the current display's
 /// work area (the screen minus the taskbar/dock/menu bar).
@@ -124,8 +124,9 @@ class DbsAnnotatorApp extends StatelessWidget {
           // App-wide runtime text scaling (wraps the Navigator, so dialogs
           // and all routes scale too).
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(scale)),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
             child: child!,
           ),
           home: const HomeScreen(),

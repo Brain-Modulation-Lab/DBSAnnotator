@@ -68,11 +68,11 @@ double _clip01(double v) => v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);
 /// desktop behaves in effect: `parse_scale_targets` writes no entry for them,
 /// so they contribute nothing to a target lookup.
 ScaleMode scaleModeFromString(String raw) => switch (raw.trim().toLowerCase()) {
-      'low' || 'min' => ScaleMode.min,
-      'high' || 'max' => ScaleMode.max,
-      'custom' => ScaleMode.custom,
-      _ => ScaleMode.ignore,
-    };
+  'low' || 'min' => ScaleMode.min,
+  'high' || 'max' => ScaleMode.max,
+  'custom' => ScaleMode.custom,
+  _ => ScaleMode.ignore,
+};
 
 /// Build a [ScalePref] from the raw strings a UI or TSV supplies, mirroring the
 /// desktop's coercion: unparsable bounds become `0.0`, a blank or unparsable
@@ -83,14 +83,13 @@ ScalePref scalePrefFromStrings({
   required String max,
   required String mode,
   String custom = '',
-}) =>
-    (
-      name: name,
-      min: double.tryParse(min.trim()) ?? 0.0,
-      max: double.tryParse(max.trim()) ?? 0.0,
-      mode: scaleModeFromString(mode),
-      custom: double.tryParse(custom.trim()) ?? 0.0,
-    );
+}) => (
+  name: name,
+  min: double.tryParse(min.trim()) ?? 0.0,
+  max: double.tryParse(max.trim()) ?? 0.0,
+  mode: scaleModeFromString(mode),
+  custom: double.tryParse(custom.trim()) ?? 0.0,
+);
 
 /// Resolve [prefs] into per-scale targets keyed by scale name.
 ///
@@ -111,11 +110,19 @@ Map<String, ScaleTarget> parseScaleTargets(List<ScalePref> prefs) {
     }
     switch (pref.mode) {
       case ScaleMode.min:
-        targets[pref.name] =
-            (type: ScaleMode.min, value: lower, lower: lower, upper: upper);
+        targets[pref.name] = (
+          type: ScaleMode.min,
+          value: lower,
+          lower: lower,
+          upper: upper,
+        );
       case ScaleMode.max:
-        targets[pref.name] =
-            (type: ScaleMode.max, value: upper, lower: lower, upper: upper);
+        targets[pref.name] = (
+          type: ScaleMode.max,
+          value: upper,
+          lower: lower,
+          upper: upper,
+        );
       case ScaleMode.custom:
         targets[pref.name] = (
           type: ScaleMode.custom,
@@ -177,13 +184,13 @@ Map<int, double> computeAggregateIndex(
           ScaleMode.min => 1.0 - z,
           ScaleMode.max => z,
           ScaleMode.custom => () {
-              final maxDistance = [
-                (target.value - target.lower).abs(),
-                (target.upper - target.value).abs(),
-              ].reduce((a, b) => a > b ? a : b);
-              if (maxDistance <= 0) return 0.5;
-              return 1.0 - _clip01((value - target.value).abs() / maxDistance);
-            }(),
+            final maxDistance = [
+              (target.value - target.lower).abs(),
+              (target.upper - target.value).abs(),
+            ].reduce((a, b) => a > b ? a : b);
+            if (maxDistance <= 0) return 0.5;
+            return 1.0 - _clip01((value - target.value).abs() / maxDistance);
+          }(),
           ScaleMode.ignore => 0.5,
         };
       }

@@ -42,7 +42,7 @@ class SessionRow {
   final String timezone;
 
   /// The same instant as [date] + [time] + [timezone], as one ISO-8601 string
-  /// (`2026-06-26T16:46:14+02:00`). Empty on rows written before v0.5.0.
+  /// (`2026-02-03T09:00:00+00:00`). Empty on rows written before v0.5.0.
   final String acqTime;
   final String blockId;
   final String sessionId;
@@ -70,29 +70,29 @@ class SessionRow {
   /// `program_ID` spellings are read as well as the current ones — an older
   /// file opens with no conversion step.
   factory SessionRow.fromMap(Map<String, String> m) => SessionRow(
-        date: readColumn(m, 'date'),
-        time: readColumn(m, 'time'),
-        timezone: readColumn(m, 'timezone'),
-        acqTime: readColumn(m, 'acq_time'),
-        blockId: readColumn(m, 'block_id'),
-        sessionId: readColumn(m, 'session_id'),
-        isInitial: readColumn(m, 'is_initial'),
-        scaleName: readColumn(m, 'scale_name'),
-        scaleValue: readColumn(m, 'scale_value'),
-        electrodeModel: readColumn(m, 'electrode_model'),
-        programId: readColumn(m, 'program_id'),
-        leftStimFreq: readColumn(m, 'left_stim_freq'),
-        leftAnode: readColumn(m, 'left_anode'),
-        leftCathode: readColumn(m, 'left_cathode'),
-        leftAmplitude: readColumn(m, 'left_amplitude'),
-        leftPulseWidth: readColumn(m, 'left_pulse_width'),
-        rightStimFreq: readColumn(m, 'right_stim_freq'),
-        rightAnode: readColumn(m, 'right_anode'),
-        rightCathode: readColumn(m, 'right_cathode'),
-        rightAmplitude: readColumn(m, 'right_amplitude'),
-        rightPulseWidth: readColumn(m, 'right_pulse_width'),
-        notes: readColumn(m, 'notes'),
-      );
+    date: readColumn(m, 'date'),
+    time: readColumn(m, 'time'),
+    timezone: readColumn(m, 'timezone'),
+    acqTime: readColumn(m, 'acq_time'),
+    blockId: readColumn(m, 'block_id'),
+    sessionId: readColumn(m, 'session_id'),
+    isInitial: readColumn(m, 'is_initial'),
+    scaleName: readColumn(m, 'scale_name'),
+    scaleValue: readColumn(m, 'scale_value'),
+    electrodeModel: readColumn(m, 'electrode_model'),
+    programId: readColumn(m, 'program_id'),
+    leftStimFreq: readColumn(m, 'left_stim_freq'),
+    leftAnode: readColumn(m, 'left_anode'),
+    leftCathode: readColumn(m, 'left_cathode'),
+    leftAmplitude: readColumn(m, 'left_amplitude'),
+    leftPulseWidth: readColumn(m, 'left_pulse_width'),
+    rightStimFreq: readColumn(m, 'right_stim_freq'),
+    rightAnode: readColumn(m, 'right_anode'),
+    rightCathode: readColumn(m, 'right_cathode'),
+    rightAmplitude: readColumn(m, 'right_amplitude'),
+    rightPulseWidth: readColumn(m, 'right_pulse_width'),
+    notes: readColumn(m, 'notes'),
+  );
 
   /// The row's `date` + `time` as a local [DateTime], or null when either cell
   /// is missing or unparsable.
@@ -120,29 +120,29 @@ class SessionRow {
 
   /// Convert to a TSV record keyed by the exact column names.
   Map<String, String> toMap() => {
-        'date': date,
-        'time': time,
-        'timezone': timezone,
-        'acq_time': acqTime,
-        'block_id': blockId,
-        'session_id': sessionId,
-        'is_initial': isInitial,
-        'scale_name': scaleName,
-        'scale_value': scaleValue,
-        'electrode_model': electrodeModel,
-        'program_id': programId,
-        'left_stim_freq': leftStimFreq,
-        'left_anode': leftAnode,
-        'left_cathode': leftCathode,
-        'left_amplitude': leftAmplitude,
-        'left_pulse_width': leftPulseWidth,
-        'right_stim_freq': rightStimFreq,
-        'right_anode': rightAnode,
-        'right_cathode': rightCathode,
-        'right_amplitude': rightAmplitude,
-        'right_pulse_width': rightPulseWidth,
-        'notes': notes,
-      };
+    'date': date,
+    'time': time,
+    'timezone': timezone,
+    'acq_time': acqTime,
+    'block_id': blockId,
+    'session_id': sessionId,
+    'is_initial': isInitial,
+    'scale_name': scaleName,
+    'scale_value': scaleValue,
+    'electrode_model': electrodeModel,
+    'program_id': programId,
+    'left_stim_freq': leftStimFreq,
+    'left_anode': leftAnode,
+    'left_cathode': leftCathode,
+    'left_amplitude': leftAmplitude,
+    'left_pulse_width': leftPulseWidth,
+    'right_stim_freq': rightStimFreq,
+    'right_anode': rightAnode,
+    'right_cathode': rightCathode,
+    'right_amplitude': rightAmplitude,
+    'right_pulse_width': rightPulseWidth,
+    'notes': notes,
+  };
 }
 
 /// The electrode model named by [rows], or '' when none of them say.

@@ -59,8 +59,10 @@ void main() {
         ),
       ]);
       expect(tsv, isNot(contains('\r')));
-      expect(parseAnnotations(tsv.replaceAll('\n', '\r\n')).single.notes,
-          'a note');
+      expect(
+        parseAnnotations(tsv.replaceAll('\n', '\r\n')).single.notes,
+        'a note',
+      );
     });
   });
 
@@ -75,8 +77,10 @@ void main() {
       // `_beh`, not `_events`: the spec reserves the latter for files with
       // onset/duration columns. See lib/core/bids.dart.
       expect(name.filename, 'sub-01_ses-20260724_task-notes_run-01_beh.tsv');
-      expect(name.sidecarFilename,
-          'sub-01_ses-20260724_task-notes_run-01_beh.json');
+      expect(
+        name.sidecarFilename,
+        'sub-01_ses-20260724_task-notes_run-01_beh.json',
+      );
       expect(name.relativeDir, 'sub-01/ses-20260724/beh');
 
       final parsed = BidsName.parse(name.filename)!;
@@ -87,7 +91,8 @@ void main() {
 
     test('still parses a pre-0.5.0 _events name, and says so', () {
       final parsed = BidsName.parse(
-          'sub-P07_ses-20250101_task-programming_run-02_events.tsv')!;
+        'sub-P07_ses-20250101_task-programming_run-02_events.tsv',
+      )!;
       expect(parsed.subject, 'P07');
       expect(parsed.run, '02');
       expect(parsed.suffix, BidsName.legacySuffix);
@@ -119,8 +124,10 @@ void main() {
         task: 'programming',
         run: '01',
       );
-      expect(name.withSuffix('report', extension: 'pdf').filename,
-          'sub-01_ses-20260724_task-programming_run-01_report.pdf');
+      expect(
+        name.withSuffix('report', extension: 'pdf').filename,
+        'sub-01_ses-20260724_task-programming_run-01_report.pdf',
+      );
     });
   });
 }

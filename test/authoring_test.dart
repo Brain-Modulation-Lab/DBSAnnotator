@@ -17,26 +17,28 @@ void main() {
     'right_pulse_width': '90',
   };
 
-  test('two recording inserts: blocks 0 then 1, same session, is_initial 0',
-      () {
-    final a = SessionAuthoring();
-    expect(a.blockId, 0);
-    expect(a.sessionId, 1);
+  test(
+    'two recording inserts: blocks 0 then 1, same session, is_initial 0',
+    () {
+      final a = SessionAuthoring();
+      expect(a.blockId, 0);
+      expect(a.sessionId, 1);
 
-    final first = a.addInsert(isInitial: false, stim: stim, at: stamp);
-    final second = a.addInsert(isInitial: false, stim: stim, at: stamp);
+      final first = a.addInsert(isInitial: false, stim: stim, at: stamp);
+      final second = a.addInsert(isInitial: false, stim: stim, at: stamp);
 
-    expect(first.single.blockId, '0');
-    expect(second.single.blockId, '1');
-    for (final row in [...first, ...second]) {
-      expect(row.sessionId, '1');
-      expect(row.isInitial, '0');
-      expect(row.leftCathode, 'E1a_E1b');
-      expect(row.rightAmplitude, '1.5_1');
-    }
-    expect(a.blockId, 2); // Desktop: block_id += 1 after each write.
-    expect(a.rows.length, 2);
-  });
+      expect(first.single.blockId, '0');
+      expect(second.single.blockId, '1');
+      for (final row in [...first, ...second]) {
+        expect(row.sessionId, '1');
+        expect(row.isInitial, '0');
+        expect(row.leftCathode, 'E1a_E1b');
+        expect(row.rightAmplitude, '1.5_1');
+      }
+      expect(a.blockId, 2); // Desktop: block_id += 1 after each write.
+      expect(a.rows.length, 2);
+    },
+  );
 
   test('baseline insert writes is_initial 1 (write_clinical_scales)', () {
     final a = SessionAuthoring();
@@ -55,8 +57,7 @@ void main() {
     expect(rows.single.programId, 'A');
   });
 
-  test(
-      'baseline drops unnamed scales, recording keeps them '
+  test('baseline drops unnamed scales, recording keeps them '
       '(is_valid vs has_value)', () {
     const scales = [(name: '   ', value: '5'), (name: 'Tremor', value: '2')];
 

@@ -17,22 +17,26 @@ void main() {
       jsonDecode(File(p).readAsStringSync()) as Map<String, dynamic>;
 
   final catalog = ElectrodeCatalog.fromJson(
-      readJson('assets/schema/electrode_models.json'));
+    readJson('assets/schema/electrode_models.json'),
+  );
   final limits = StimLimits.fromJson(readJson('assets/schema/limits.json'));
-  final presets =
-      ScalePresets.fromJson(readJson('assets/schema/scale_presets.json'));
+  final presets = ScalePresets.fromJson(
+    readJson('assets/schema/scale_presets.json'),
+  );
 
   Future<void> pump(WidgetTester tester, SessionAuthoring authoring) async {
     await tester.binding.setSurfaceSize(const Size(1400, 2600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(MaterialApp(
-      home: SessionScreen(
-        catalog: catalog,
-        limits: limits,
-        scalePresets: presets,
-        authoring: authoring,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SessionScreen(
+          catalog: catalog,
+          limits: limits,
+          scalePresets: presets,
+          authoring: authoring,
+        ),
       ),
-    ));
+    );
     await tester.pump();
     await tester.pump();
   }
@@ -52,23 +56,31 @@ void main() {
     await pump(tester, SessionAuthoring());
     await next(tester); // -> Initial configuration
     expect(find.text('Notes'), findsOneWidget);
-    expect(find.text(label), findsNothing,
-        reason: 'a baseline has no configuration to have a side effect to');
+    expect(
+      find.text(label),
+      findsNothing,
+      reason: 'a baseline has no configuration to have a side effect to',
+    );
 
     await next(tester, 2); // -> Recording
     expect(find.text(label), findsOneWidget);
   });
 
-  testWidgets('it is written into the notes cell, prefixed and first',
-      (tester) async {
+  testWidgets('it is written into the notes cell, prefixed and first', (
+    tester,
+  ) async {
     final authoring = SessionAuthoring();
     await pump(tester, authoring);
     await next(tester, 3);
 
     await tester.enterText(
-        find.widgetWithText(TextField, label), 'paraesthesia left hand');
+      find.widgetWithText(TextField, label),
+      'paraesthesia left hand',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Notes'), 'patient tolerated well');
+      find.widgetWithText(TextField, 'Notes'),
+      'patient tolerated well',
+    );
     await tester.pump();
 
     final insert = find.text('Insert recording block');
@@ -80,12 +92,15 @@ void main() {
     // a tolerability line is never lost at the end of a long paragraph. No new
     // TSV column, so the desktop app still reads the file.
     expect(authoring.rows, isNotEmpty);
-    expect(authoring.rows.first.notes,
-        'Side effects: paraesthesia left hand\npatient tolerated well');
+    expect(
+      authoring.rows.first.notes,
+      'Side effects: paraesthesia left hand\npatient tolerated well',
+    );
   });
 
-  testWidgets('either half may be empty, with no stray prefix or newline',
-      (tester) async {
+  testWidgets('either half may be empty, with no stray prefix or newline', (
+    tester,
+  ) async {
     final authoring = SessionAuthoring();
     await pump(tester, authoring);
     await next(tester, 3);
@@ -101,10 +116,11 @@ void main() {
     // And it clears after an insert, so a side effect cannot be attributed to
     // the next configuration too.
     expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, label))
-            .controller!
-            .text,
-        isEmpty);
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, label))
+          .controller!
+          .text,
+      isEmpty,
+    );
   });
 }

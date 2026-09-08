@@ -4,11 +4,16 @@ Overview
 Why this exists
 ---------------
 
-A DBS programming session is an experiment. The clinician moves through a series
-of stimulation configurations — contacts, amplitude, pulse width, frequency — and
-at each one records how the patient is doing: tremor, rigidity, mood, side
-effects. The useful output is not the final setting on its own. It is the
-*relationship* between what was delivered and what happened.
+Implanting the electrodes is the start of the treatment, not the end of it. The
+patient returns to a neurologist or psychiatrist, who moves through a series of
+stimulation configurations — contacts, amplitude, pulse width, frequency — and at
+each one records how the patient is doing: tremor, rigidity, mood, side effects.
+Finding a setting that works can take one visit or many, and it is revisited over
+months and years as the patient's response changes.
+
+Each of those visits is an experiment. The useful output is not the final setting
+on its own. It is the *relationship* between what was delivered and what
+happened.
 
 That relationship is the part that usually gets lost.
 
@@ -74,6 +79,7 @@ do so until someone has said what "better" means for each scale. See
 Who it is for
 -------------
 
-Clinicians and researchers running DBS programming sessions who want the session
-documented once, in a form that is both readable in a patient record and usable
-in an analysis six months later.
+Neurologists, psychiatrists and researchers who run DBS programming visits and
+want each one documented once, in a form that is both readable in a patient
+record and usable in an analysis six months later — including when the question
+is how this visit compares with the last four.

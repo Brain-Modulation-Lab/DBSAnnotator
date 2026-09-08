@@ -160,18 +160,24 @@ class ScalesChartPainter extends CustomPainter {
     // how the legend used to erase the title. They now occupy reserved space, so
     // the order is belt and braces.
     if (band.titleHeight > 0) {
-      drawChartText(canvas, spec.title, Offset(area.center.dx, band.titleTop),
-          align: TextAlign.center, size: _titleSize, color: ink);
+      drawChartText(
+        canvas,
+        spec.title,
+        Offset(area.center.dx, band.titleTop),
+        align: TextAlign.center,
+        size: _titleSize,
+        color: ink,
+      );
     }
     _paintLegend(canvas, size, band);
 
     // One band spanning every panel: the reader compares a scale dip against
     // the dose that caused it, so the marker has to cross both.
     _paintBands(
-        canvas,
-        Rect.fromLTRB(
-            area.left, rects.first.top, area.right, rects.last.bottom),
-        xPos);
+      canvas,
+      Rect.fromLTRB(area.left, rects.first.top, area.right, rects.last.bottom),
+      xPos,
+    );
 
     for (var i = 0; i < panels.length; i++) {
       _paintPanel(canvas, rects[i], panels[i], xPos);
@@ -199,7 +205,11 @@ class ScalesChartPainter extends CustomPainter {
 
   /// One panel: grid, its own y axis with ticks and label, then its series.
   void _paintPanel(
-      Canvas canvas, Rect plot, _PanelSpec panel, double Function(num) xPos) {
+    Canvas canvas,
+    Rect plot,
+    _PanelSpec panel,
+    double Function(num) xPos,
+  ) {
     if (plot.height <= 6) return;
     final span = math.max(panel.yMax - panel.yMin, 1e-9);
     double yPos(double v) =>
@@ -230,17 +240,34 @@ class ScalesChartPainter extends CustomPainter {
       final v = panel.yMin + span * i / panel.ticks;
       final y = plot.bottom - plot.height * i / panel.ticks;
       canvas.drawLine(Offset(plot.left - 4, y), Offset(plot.left, y), axis);
-      drawChartText(canvas, tickLabel(v), Offset(plot.left - 7, y),
-          align: TextAlign.right, anchorY: 0.5, size: 10, color: ink);
+      drawChartText(
+        canvas,
+        tickLabel(v),
+        Offset(plot.left - 7, y),
+        align: TextAlign.right,
+        anchorY: 0.5,
+        size: 10,
+        color: ink,
+      );
     }
-    drawRotatedChartText(canvas, panel.label, Offset(16, plot.center.dy),
-        size: 11, color: ink);
+    drawRotatedChartText(
+      canvas,
+      panel.label,
+      Offset(16, plot.center.dy),
+      size: 11,
+      color: ink,
+    );
   }
 
   /// A panel's series. [_PanelSpec.mono] draws one heavy black line with
   /// diamond markers (the index); otherwise the Dark2 colour + dash cycle.
-  void _paintPanelSeries(Canvas canvas, Rect plot, _PanelSpec panel,
-      double Function(num) xPos, double Function(double) yPos) {
+  void _paintPanelSeries(
+    Canvas canvas,
+    Rect plot,
+    _PanelSpec panel,
+    double Function(num) xPos,
+    double Function(double) yPos,
+  ) {
     var i = 0;
     for (final entry in panel.series.entries) {
       final color = panel.mono ? ink : seriesColor(i);
@@ -259,14 +286,20 @@ class ScalesChartPainter extends CustomPainter {
         final v = entry.value[x];
         if (v == null) continue;
         canvas.drawPath(
-            diamondPath(Offset(xPos(x), yPos(v)), 4.5), Paint()..color = color);
+          diamondPath(Offset(xPos(x), yPos(v)), 4.5),
+          Paint()..color = color,
+        );
       }
     }
   }
 
   /// The shared x axis, under the bottom panel.
   void _paintXAxis(
-      Canvas canvas, Rect plot, Size size, double Function(num) xPos) {
+    Canvas canvas,
+    Rect plot,
+    Size size,
+    double Function(num) xPos,
+  ) {
     final axis = Paint()
       ..color = ink
       ..strokeWidth = 1.2;
@@ -277,18 +310,40 @@ class ScalesChartPainter extends CustomPainter {
     for (final x in spec.xs) {
       final px = xPos(x);
       canvas.drawLine(
-          Offset(px, plot.bottom), Offset(px, plot.bottom + 4), axis);
+        Offset(px, plot.bottom),
+        Offset(px, plot.bottom + 4),
+        axis,
+      );
       final label = spec.xTickLabels[x] ?? '$x';
       if (rotate) {
-        drawRotatedChartText(canvas, label, Offset(px, plot.bottom + 8),
-            size: 8, color: ink, clockwise: true, anchorTop: true);
+        drawRotatedChartText(
+          canvas,
+          label,
+          Offset(px, plot.bottom + 8),
+          size: 8,
+          color: ink,
+          clockwise: true,
+          anchorTop: true,
+        );
       } else {
-        drawChartText(canvas, label, Offset(px, plot.bottom + 7),
-            align: TextAlign.center, size: 10, color: ink);
+        drawChartText(
+          canvas,
+          label,
+          Offset(px, plot.bottom + 7),
+          align: TextAlign.center,
+          size: 10,
+          color: ink,
+        );
       }
     }
-    drawChartText(canvas, spec.xLabel, Offset(plot.center.dx, size.height - 22),
-        align: TextAlign.center, size: 12, color: ink);
+    drawChartText(
+      canvas,
+      spec.xLabel,
+      Offset(plot.center.dx, size.height - 22),
+      align: TextAlign.center,
+      size: 12,
+      color: ink,
+    );
   }
 
   /// Green vertical bands behind everything, marking the best and second-best
@@ -316,14 +371,21 @@ class ScalesChartPainter extends CustomPainter {
       var to = sorted.first;
       void flush() {
         final r = Rect.fromLTRB(
-            xPos(from - 0.35), plot.top, xPos(to + 0.35), plot.bottom);
+          xPos(from - 0.35),
+          plot.top,
+          xPos(to + 0.35),
+          plot.bottom,
+        );
         canvas
           ..drawRect(r, paint)
           ..save()
           ..clipRect(r);
         for (var hx = r.left - r.height; hx < r.right + r.height; hx += step) {
           canvas.drawLine(
-              Offset(hx, r.bottom), Offset(hx + r.height, r.top), hatch);
+            Offset(hx, r.bottom),
+            Offset(hx + r.height, r.top),
+            hatch,
+          );
         }
         canvas.restore();
       }
@@ -385,11 +447,12 @@ class ScalesChartPainter extends CustomPainter {
         canvas
           ..drawRect(swatch, Paint()..color = color)
           ..drawRect(
-              swatch,
-              Paint()
-                ..color = ink.withValues(alpha: 0.55)
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 0.8)
+            swatch,
+            Paint()
+              ..color = ink.withValues(alpha: 0.55)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.8,
+          )
           ..save()
           ..clipRect(swatch);
         final hatch = Paint()
@@ -399,7 +462,10 @@ class ScalesChartPainter extends CustomPainter {
         final step = color.toARGB32() == kBestFill ? 4.0 : 8.0;
         for (var hx = swatch.left - 10; hx < swatch.right + 10; hx += step) {
           canvas.drawLine(
-              Offset(hx, swatch.bottom), Offset(hx + 10, swatch.top), hatch);
+            Offset(hx, swatch.bottom),
+            Offset(hx + 10, swatch.top),
+            hatch,
+          );
         }
         canvas.restore();
       } else {
@@ -416,7 +482,9 @@ class ScalesChartPainter extends CustomPainter {
         final markerX = x + legend.sample / 2;
         if (kind == ChartLegendKind.aggregate) {
           canvas.drawPath(
-              diamondPath(Offset(markerX, y), 4), Paint()..color = color);
+            diamondPath(Offset(markerX, y), 4),
+            Paint()..color = color,
+          );
         } else {
           canvas.drawCircle(Offset(markerX, y), 2.6, Paint()..color = color);
         }
@@ -529,8 +597,11 @@ class ChartTopBand {
         for (final e in entries)
           chartTextPainter(e.$1, color: p.ink, size: font),
       ];
-      total = painters.fold<double>(
-              0, (sum, t) => sum + sample + _legendGapAfterSample + t.width) +
+      total =
+          painters.fold<double>(
+            0,
+            (sum, t) => sum + sample + _legendGapAfterSample + t.width,
+          ) +
           gapBetween * (entries.length - 1);
       if (total <= size.width - 20 || font <= 6) break;
       font -= 0.5;
@@ -538,8 +609,10 @@ class ChartTopBand {
       gapBetween = math.max(6, gapBetween - 1);
     }
     // Box height from the tallest label, so a larger font is never clipped.
-    final textHeight =
-        painters.fold<double>(0, (m, t) => math.max(m, t.height));
+    final textHeight = painters.fold<double>(
+      0,
+      (m, t) => math.max(m, t.height),
+    );
     return (
       entries: entries,
       painters: painters,
@@ -568,9 +641,9 @@ Future<Uint8List?> renderScalesChartPng(
   final canvas = Canvas(recorder)..scale(pixelRatio);
   ScalesChartPainter(spec: spec).paint(canvas, size);
   final image = await recorder.endRecording().toImage(
-        (size.width * pixelRatio).round(),
-        (size.height * pixelRatio).round(),
-      );
+    (size.width * pixelRatio).round(),
+    (size.height * pixelRatio).round(),
+  );
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
   return data?.buffer.asUint8List();

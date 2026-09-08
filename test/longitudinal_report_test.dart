@@ -12,74 +12,85 @@ import 'package:dbs_annotator/report/longitudinal_data.dart';
 import 'package:dbs_annotator/report/longitudinal_pdf.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-String _part(List<int> bytes, String name) => utf8.decode(ZipDecoder()
-    .decodeBytes(bytes)
-    .files
-    .firstWhere((f) => f.name == name)
-    .content);
+String _part(List<int> bytes, String name) => utf8.decode(
+  ZipDecoder()
+      .decodeBytes(bytes)
+      .files
+      .firstWhere((f) => f.name == name)
+      .content,
+);
 
 /// Two visits of the same patient: a clinical baseline plus rated blocks, so
 /// both figures and the delta column have something to show.
 Map<String, List<SessionRow>> _twoVisits() => {
-      'sub-07_ses-20260101_task-programming_run-01_events.tsv': const [
-        SessionRow(
-            date: '2026-01-01',
-            time: '09:00:00',
-            blockId: '0',
-            isInitial: '1',
-            scaleName: 'UPDRS-III',
-            scaleValue: '40'),
-        SessionRow(
-            date: '2026-01-01',
-            time: '09:10:00',
-            blockId: '1',
-            isInitial: '0',
-            scaleName: 'Tremor',
-            scaleValue: '6',
-            leftAmplitude: '2.0',
-            leftStimFreq: '130',
-            leftPulseWidth: '60',
-            programId: 'A'),
-        SessionRow(
-            date: '2026-01-01',
-            time: '09:20:00',
-            blockId: '2',
-            isInitial: '0',
-            scaleName: 'Tremor',
-            scaleValue: '4',
-            leftAmplitude: '3.0',
-            leftStimFreq: '130',
-            leftPulseWidth: '60',
-            programId: 'A'),
-      ],
-      'sub-07_ses-20260615_task-programming_run-02_events.tsv': const [
-        SessionRow(
-            date: '2026-06-15',
-            time: '10:00:00',
-            blockId: '0',
-            isInitial: '1',
-            scaleName: 'UPDRS-III',
-            scaleValue: '28'),
-        SessionRow(
-            date: '2026-06-15',
-            time: '10:10:00',
-            blockId: '1',
-            isInitial: '0',
-            scaleName: 'Tremor',
-            scaleValue: '3',
-            leftAmplitude: '3.5',
-            leftStimFreq: '130',
-            leftPulseWidth: '60',
-            programId: 'B'),
-      ],
-    };
+  'sub-07_ses-20260101_task-programming_run-01_beh.tsv': const [
+    SessionRow(
+      date: '2026-01-01',
+      time: '09:00:00',
+      blockId: '0',
+      isInitial: '1',
+      scaleName: 'UPDRS-III',
+      scaleValue: '40',
+    ),
+    SessionRow(
+      date: '2026-01-01',
+      time: '09:10:00',
+      blockId: '1',
+      isInitial: '0',
+      scaleName: 'Tremor',
+      scaleValue: '6',
+      leftAmplitude: '2.0',
+      leftStimFreq: '130',
+      leftPulseWidth: '60',
+      programId: 'A',
+    ),
+    SessionRow(
+      date: '2026-01-01',
+      time: '09:20:00',
+      blockId: '2',
+      isInitial: '0',
+      scaleName: 'Tremor',
+      scaleValue: '4',
+      leftAmplitude: '3.0',
+      leftStimFreq: '130',
+      leftPulseWidth: '60',
+      programId: 'A',
+    ),
+  ],
+  'sub-07_ses-20260615_task-programming_run-02_events.tsv': const [
+    SessionRow(
+      date: '2026-06-15',
+      time: '10:00:00',
+      blockId: '0',
+      isInitial: '1',
+      scaleName: 'UPDRS-III',
+      scaleValue: '28',
+    ),
+    SessionRow(
+      date: '2026-06-15',
+      time: '10:10:00',
+      blockId: '1',
+      isInitial: '0',
+      scaleName: 'Tremor',
+      scaleValue: '3',
+      leftAmplitude: '3.5',
+      leftStimFreq: '130',
+      leftPulseWidth: '60',
+      programId: 'B',
+    ),
+  ],
+};
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late LongitudinalReportData data;
-  setUp(() => data = buildLongitudinalReportData(
-      files: _twoVisits(), generatedAt: DateTime(2026, 7, 1)));
+  setUp(
+    () => data = buildLongitudinalReportData(
+      files: _twoVisits(),
+      generatedAt: DateTime(2026, 7, 1),
+    ),
+  );
 
   test('visits are ordered by date and carry both kinds of scale', () {
     expect(data.visits.map((v) => v.date), ['2026-01-01', '2026-06-15']);
@@ -136,18 +147,21 @@ void main() {
   });
 
   test('a mixed-patient import is reported, not silently merged', () {
-    final mixed = buildLongitudinalReportData(files: {
-      ..._twoVisits(),
-      'sub-99_ses-20260701_task-programming_run-01_events.tsv': const [
-        SessionRow(
+    final mixed = buildLongitudinalReportData(
+      files: {
+        ..._twoVisits(),
+        'sub-99_ses-20260701_task-programming_run-01_beh.tsv': const [
+          SessionRow(
             date: '2026-07-01',
             time: '11:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',
-            scaleValue: '30'),
-      ],
-    });
+            scaleValue: '30',
+          ),
+        ],
+      },
+    );
     expect(mixed.mismatchedPatients, isNotEmpty);
   });
 
@@ -156,17 +170,21 @@ void main() {
     expect(pdf.bytes.sublist(0, 4), '%PDF'.codeUnits);
 
     final bytes = buildLongitudinalDocx(data: data);
-    final names =
-        ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+    final names = ZipDecoder()
+        .decodeBytes(bytes)
+        .files
+        .map((f) => f.name)
+        .toList();
     expect(
-        names,
-        containsAll(<String>[
-          '[Content_Types].xml',
-          'word/document.xml',
-          'word/footer1.xml',
-          'word/styles.xml',
-          'docProps/core.xml',
-        ]));
+      names,
+      containsAll(<String>[
+        '[Content_Types].xml',
+        'word/document.xml',
+        'word/footer1.xml',
+        'word/styles.xml',
+        'docProps/core.xml',
+      ]),
+    );
     final doc = _part(bytes, 'word/document.xml');
     expect(doc, contains('Longitudinal report'));
     expect(doc, contains('Clinical scales by visit'));
@@ -181,15 +199,19 @@ void main() {
     expect(empty.isEmpty, isTrue);
     final pdf = await buildLongitudinalPdf(data: empty);
     expect(pdf.bytes.sublist(0, 4), '%PDF'.codeUnits);
-    expect(_part(buildLongitudinalDocx(data: empty), 'word/document.xml'),
-        contains('No visits imported.'));
+    expect(
+      _part(buildLongitudinalDocx(data: empty), 'word/document.xml'),
+      contains('No visits imported.'),
+    );
   });
 
   test('a real committed session imports as one visit', () {
-    const name = 'sub-01_ses-20260626_task-programming_run-01_beh.tsv';
-    final real = buildLongitudinalReportData(files: {
-      name: parseSessionTsv(File('test/fixtures/$name').readAsStringSync()),
-    });
+    const name = 'sub-01_ses-20260203_task-programming_run-01_beh.tsv';
+    final real = buildLongitudinalReportData(
+      files: {
+        name: parseSessionTsv(File('test/fixtures/$name').readAsStringSync()),
+      },
+    );
     expect(real.visits, hasLength(1));
     expect(real.visits.first.blocks, [1, 2, 3, 4, 5, 6, 7]);
     expect(real.visits.first.clinicalScales.keys, contains('Y-BOCS'));

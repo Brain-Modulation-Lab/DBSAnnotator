@@ -88,8 +88,10 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
   Future<void> _open() async {
     FilePickerResult? result;
     try {
-      result = await FilePicker.platform
-          .pickFiles(type: FileType.any, withData: true);
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
     } catch (e) {
       if (mounted) _snack('Could not open the file picker. ($e)');
       return;
@@ -149,16 +151,16 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
       _rows.where((r) => coerceInt(r.isInitial) != 1);
 
   SessionReportData _sessionData() => buildSessionReportData(
-        rows: _rows,
-        scalePrefs: _targets,
-        sourceFile: _filename ?? '',
-      );
+    rows: _rows,
+    scalePrefs: _targets,
+    sourceFile: _filename ?? '',
+  );
 
   AnnotationsReportData _notesData() => buildAnnotationsReportData(
-        entries: _notes,
-        subjectId: BidsName.parse(_filename ?? '')?.subject ?? 'unknown',
-        sourceFile: _filename ?? '',
-      );
+    entries: _notes,
+    subjectId: BidsName.parse(_filename ?? '')?.subject ?? 'unknown',
+    sourceFile: _filename ?? '',
+  );
 
   Future<void> _export({required bool docx}) async {
     if (!_hasFile) return;
@@ -177,7 +179,9 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
     final base = (_filename ?? 'report')
         .replaceAll(RegExp(r'\.tsv$'), '')
         .replaceAll(
-            RegExp('_(${BidsName.behSuffix}|${BidsName.legacySuffix})\$'), '');
+          RegExp('_(${BidsName.behSuffix}|${BidsName.legacySuffix})\$'),
+          '',
+        );
     final name = '${base}_report.${docx ? 'docx' : 'pdf'}';
 
     await exportFile(
@@ -190,19 +194,26 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
           final data = _notesData();
           if (docx) {
             return (
-              bytes: buildAnnotationsDocx(data,
-                  pageSize: letter ? DocxPageSize.letter : DocxPageSize.a4),
+              bytes: buildAnnotationsDocx(
+                data,
+                pageSize: letter ? DocxPageSize.letter : DocxPageSize.a4,
+              ),
               warning: null,
             );
           }
-          final report = await buildAnnotationsPdf(data,
-              pageFormat: letter ? PdfPageFormat.letter : PdfPageFormat.a4);
+          final report = await buildAnnotationsPdf(
+            data,
+            pageFormat: letter ? PdfPageFormat.letter : PdfPageFormat.a4,
+          );
           return (bytes: report.bytes, warning: _warn(report.lostCharacters));
         }
 
         final data = _sessionData();
         final gfx = await renderReportGraphics(
-            data, _catalog?.models[electrodeModelIn(_rows)], sections);
+          data,
+          _catalog?.models[electrodeModelIn(_rows)],
+          sections,
+        );
         if (docx) {
           return (
             bytes: buildSessionDocx(
@@ -231,8 +242,8 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
 
   String? _warn(bool lost) => lost
       ? 'Some characters could not be rendered in the PDF and were replaced '
-          'with "?". Add the IBM Plex fonts to assets/fonts/ for full Unicode, '
-          'or export to Word instead.'
+            'with "?". Add the IBM Plex fonts to assets/fonts/ for full Unicode, '
+            'or export to Word instead.'
       : null;
 
   @override
@@ -272,21 +283,23 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Row(children: [
-            FilledButton.icon(
-              onPressed: _open,
-              icon: const Icon(Icons.folder_open),
-              label: const Text('Open TSV'),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _filename ?? 'No file opened.',
-                style: theme.textTheme.bodyMedium,
-                overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              FilledButton.icon(
+                onPressed: _open,
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Open TSV'),
               ),
-            ),
-          ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _filename ?? 'No file opened.',
+                  style: theme.textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
           if (!_hasFile)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 32),
@@ -295,8 +308,9 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
                   'Open a session or notes TSV to produce its report.\n'
                   'The file type is detected from its columns.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.disabledColor),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.disabledColor,
+                  ),
                 ),
               ),
             )
@@ -310,34 +324,34 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
   }
 
   List<Widget> _notesPreview() => [
-        Text('${_notes.length} notes'),
-        const SizedBox(height: 8),
-        for (final n in _notes.take(50))
-          ListTile(
-            dense: true,
-            leading: Text(n.time),
-            title: Text(n.notes),
-          ),
-      ];
+    Text('${_notes.length} notes'),
+    const SizedBox(height: 8),
+    for (final n in _notes.take(50))
+      ListTile(dense: true, leading: Text(n.time), title: Text(n.notes)),
+  ];
 
   List<Widget> _sessionPreview(ThemeData theme) {
     final model = electrodeModelIn(_rows);
     final known = _catalog?.models.containsKey(model) ?? false;
     return [
-      Row(children: [
-        Expanded(
-          child: Text(
-            '${blockCount(_rows)} blocks'
-            '${model.isEmpty ? '' : '   ·   $model'}',
-            style: theme.textTheme.titleMedium,
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${blockCount(_rows)} blocks'
+              '${model.isEmpty ? '' : '   ·   $model'}',
+              style: theme.textTheme.titleMedium,
+            ),
           ),
-        ),
-        OutlinedButton.icon(
-          onPressed: _editTargets,
-          icon: const Icon(Icons.adjust, size: 18),
-          label: Text(_targets == null ? 'Set scale targets' : 'Scale targets'),
-        ),
-      ]),
+          OutlinedButton.icon(
+            onPressed: _editTargets,
+            icon: const Icon(Icons.adjust, size: 18),
+            label: Text(
+              _targets == null ? 'Set scale targets' : 'Scale targets',
+            ),
+          ),
+        ],
+      ),
       if (model.isNotEmpty && !known)
         Padding(
           padding: const EdgeInsets.only(top: 4),
@@ -358,7 +372,9 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
         ),
       const SizedBox(height: 12),
       EntryChartsView(
-          data: _chartData(), visibleConfigs: kDefaultVisibleConfigs),
+        data: _chartData(),
+        visibleConfigs: kDefaultVisibleConfigs,
+      ),
       const SizedBox(height: 12),
       SessionEntriesTable(rows: _rows),
     ];

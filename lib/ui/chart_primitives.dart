@@ -142,21 +142,24 @@ String tickLabel(double v) {
 }
 
 /// A laid-out text run, ready to paint.
-TextPainter chartTextPainter(String text,
-        {required Color color, double size = 10, bool bold = false}) =>
-    TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontFamily: debugPainterFontFamily,
-          color: color,
-          fontSize: size,
-          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-          height: 1,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+TextPainter chartTextPainter(
+  String text, {
+  required Color color,
+  double size = 10,
+  bool bold = false,
+}) => TextPainter(
+  text: TextSpan(
+    text: text,
+    style: TextStyle(
+      fontFamily: debugPainterFontFamily,
+      color: color,
+      fontSize: size,
+      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+      height: 1,
+    ),
+  ),
+  textDirection: TextDirection.ltr,
+)..layout();
 
 /// Paint [text] at [at]. [align] is horizontal; [anchorY] is the fraction of the
 /// text height above [at] (0 = top, 0.5 = vertically centred).

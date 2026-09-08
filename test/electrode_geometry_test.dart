@@ -115,14 +115,16 @@ void main() {
       expect(hitTest(layout, const Offset(2, 2)), isNull);
     });
 
-    test('generous tap padding: a point just outside a segment still hits it',
-        () {
-      final b = layout.levels[1].contactRects[const ContactKey(2, 1)]!;
-      final justBelow = Offset(b.center.dx, b.bottom + 4);
-      final hit = hitTest(layout, justBelow);
-      expect(hit, isA<ContactHit>());
-      expect((hit! as ContactHit).key, const ContactKey(2, 1));
-    });
+    test(
+      'generous tap padding: a point just outside a segment still hits it',
+      () {
+        final b = layout.levels[1].contactRects[const ContactKey(2, 1)]!;
+        final justBelow = Offset(b.center.dx, b.bottom + 4);
+        final hit = hitTest(layout, justBelow);
+        expect(hit, isA<ContactHit>());
+        expect((hit! as ContactHit).key, const ContactKey(2, 1));
+      },
+    );
   });
 
   group('computeLayout — Medtronic 3389 (non-directional)', () {

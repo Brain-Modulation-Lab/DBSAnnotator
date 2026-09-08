@@ -85,7 +85,9 @@ void main() {
 
     final report = await buildSessionPdf(
       data: buildSessionReportData(
-          rows: rows, generatedAt: DateTime(2026, 7, 29)),
+        rows: rows,
+        generatedAt: DateTime(2026, 7, 29),
+      ),
       subjectId: '01',
     );
     final bytes = report.bytes;
@@ -98,7 +100,9 @@ void main() {
   test('empty rows still yield a valid PDF', () async {
     final report = await buildSessionPdf(
       data: buildSessionReportData(
-          rows: const [], generatedAt: DateTime(2026, 7, 29)),
+        rows: const [],
+        generatedAt: DateTime(2026, 7, 29),
+      ),
       subjectId: 'unknown',
     );
     final bytes = report.bytes;
@@ -112,8 +116,9 @@ void main() {
     // dart_pdf throws. Use a REALISTIC raster, not a 1x1, or the regression
     // this guards against slips through.
     final rows = parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
-          .readAsStringSync(),
+      File(
+        'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
+      ).readAsStringSync(),
     );
     final data = buildSessionReportData(rows: rows);
     final chart = await renderScalesChartPng(data.chart);
@@ -124,7 +129,10 @@ void main() {
           as Map<String, dynamic>,
     );
     final lead = await renderElectrodePng(
-        catalog.models['Medtronic SenSight B33005']!, 'case', 'E2b');
+      catalog.models['Medtronic SenSight B33005']!,
+      'case',
+      'E2b',
+    );
 
     final bare = (await buildSessionPdf(data: data, subjectId: '01')).bytes;
     final rich = (await buildSessionPdf(
@@ -137,8 +145,7 @@ void main() {
         finalLeft: lead,
         finalRight: lead,
       ),
-    ))
-        .bytes;
+    )).bytes;
     expect(rich.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
     // Images really landed, rather than being silently dropped.
     expect(rich.length, greaterThan(bare.length + 100000));
@@ -161,16 +168,24 @@ void main() {
     // rather than extracting text (see the note at the top). The .docx test
     // does the content assertions, and both formats read the same enum.
     final data = buildSessionReportData(
-      rows: parseSessionTsv(File(
-              'test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
-          .readAsStringSync()),
+      rows: parseSessionTsv(
+        File(
+          'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
+        ).readAsStringSync(),
+      ),
       generatedAt: DateTime(2026, 6, 26),
     );
     final all = await buildSessionPdf(data: data, subjectId: '01');
     final summaryOnly = await buildSessionPdf(
-        data: data, subjectId: '01', sections: {ReportSection.summary});
+      data: data,
+      subjectId: '01',
+      sections: {ReportSection.summary},
+    );
     expect(summaryOnly.bytes.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
-    expect(summaryOnly.bytes.length, lessThan(all.bytes.length),
-        reason: 'dropping the table and baseline must shrink the PDF');
+    expect(
+      summaryOnly.bytes.length,
+      lessThan(all.bytes.length),
+      reason: 'dropping the table and baseline must shrink the PDF',
+    );
   });
 }

@@ -31,11 +31,10 @@ void main() {
     });
   });
 
-  testWidgets('LongitudinalScreen shows the empty-state import prompt',
-      (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: LongitudinalScreen()),
-    );
+  testWidgets('LongitudinalScreen shows the empty-state import prompt', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: LongitudinalScreen()));
     expect(find.text('No sessions imported yet.'), findsOneWidget);
     expect(find.text('Import session TSVs'), findsOneWidget);
   });

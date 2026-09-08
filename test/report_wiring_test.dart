@@ -19,9 +19,17 @@ void main() {
 
   const rows = [
     SessionRow(
-        blockId: '1', isInitial: '0', scaleName: 'Tremor', scaleValue: '20'),
+      blockId: '1',
+      isInitial: '0',
+      scaleName: 'Tremor',
+      scaleValue: '20',
+    ),
     SessionRow(
-        blockId: '2', isInitial: '0', scaleName: 'Tremor', scaleValue: '80'),
+      blockId: '2',
+      isInitial: '0',
+      scaleName: 'Tremor',
+      scaleValue: '80',
+    ),
   ];
 
   test('a single data object means one clock read for the whole document', () {
@@ -29,37 +37,64 @@ void main() {
     // Same object drives both builders, so the date cannot differ between them.
     expect(data.generatedOn, isNotEmpty);
     final again = buildSessionReportData(rows: rows);
-    expect(data.generatedOn, again.generatedOn,
-        reason: 'sanity: same-day builds agree');
+    expect(
+      data.generatedOn,
+      again.generatedOn,
+      reason: 'sanity: same-day builds agree',
+    );
   });
 
   test(
-      'user scale bounds reach the chart y-axis (0..100, not the 0..10 default)',
-      () {
-    final withPrefs = buildSessionReportData(rows: rows, scalePrefs: const [
-      (name: 'Tremor', min: 0.0, max: 100.0, mode: ScaleMode.min, custom: null),
-    ]);
-    expect(withPrefs.chart.yMax, 100,
-        reason: 'Step-2 max must clamp the axis; it was ignored before');
+    'user scale bounds reach the chart y-axis (0..100, not the 0..10 default)',
+    () {
+      final withPrefs = buildSessionReportData(
+        rows: rows,
+        scalePrefs: const [
+          (
+            name: 'Tremor',
+            min: 0.0,
+            max: 100.0,
+            mode: ScaleMode.min,
+            custom: null,
+          ),
+        ],
+      );
+      expect(
+        withPrefs.chart.yMax,
+        100,
+        reason: 'Step-2 max must clamp the axis; it was ignored before',
+      );
 
-    final defaulted = rankedReportData(rows);
-    expect(defaulted.chart.yMax, 10, reason: 'fallback is still 0..10');
-  });
+      final defaulted = rankedReportData(rows);
+      expect(defaulted.chart.yMax, 10, reason: 'fallback is still 0..10');
+    },
+  );
 
   test('buildSessionPdf reports whether characters were lost', () async {
     final clean = await buildSessionPdf(
-        data: buildSessionReportData(rows: rows), subjectId: '01');
+      data: buildSessionReportData(rows: rows),
+      subjectId: '01',
+    );
     expect(clean.lostCharacters, isFalse);
 
     // A CJK note cannot be encoded by the Latin-1 fallback font.
     final lossy = await buildSessionPdf(
-      data: buildSessionReportData(rows: const [
-        SessionRow(blockId: '1', isInitial: '0', notes: '注意 warm rush'),
-      ]),
+      data: buildSessionReportData(
+        rows: const [
+          SessionRow(
+            blockId: '1',
+            isInitial: '0',
+            notes: '注意 transient warmth',
+          ),
+        ],
+      ),
       subjectId: '01',
     );
-    expect(lossy.lostCharacters, isTrue,
-        reason: 'the flag must surface so the UI can warn');
+    expect(
+      lossy.lostCharacters,
+      isTrue,
+      reason: 'the flag must surface so the UI can warn',
+    );
     expect(lossy.bytes.sublist(0, 4), [0x25, 0x50, 0x44, 0x46]);
   });
 }

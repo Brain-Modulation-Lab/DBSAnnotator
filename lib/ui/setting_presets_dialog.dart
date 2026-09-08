@@ -58,8 +58,9 @@ class _SettingPresetsDialogState extends State<_SettingPresetsDialog> {
   late final List<TextEditingController> _pw = _seed(widget.pulseWidths);
   String? _error;
 
-  List<TextEditingController> _seed(List<num> values) =>
-      [for (final v in values) TextEditingController(text: presetLabel(v))];
+  List<TextEditingController> _seed(List<num> values) => [
+    for (final v in values) TextEditingController(text: presetLabel(v)),
+  ];
 
   @override
   void dispose() {
@@ -72,7 +73,10 @@ class _SettingPresetsDialogState extends State<_SettingPresetsDialog> {
   /// Parse one tab's fields into a sorted, de-duplicated list; throws a
   /// user-facing message on the first bad / out-of-range value, or when empty.
   List<num> _collect(
-      List<TextEditingController> ctrls, LimitRange range, String label) {
+    List<TextEditingController> ctrls,
+    LimitRange range,
+    String label,
+  ) {
     final out = <num>[];
     for (final c in ctrls) {
       final t = c.text.trim();
@@ -132,8 +136,10 @@ class _SettingPresetsDialogState extends State<_SettingPresetsDialog> {
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: Text(_error!,
-                      style: const TextStyle(color: DbsColors.invalid)),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: DbsColors.invalid),
+                  ),
                 ),
             ],
           ),
@@ -177,8 +183,9 @@ class _NumberListEditorState extends State<_NumberListEditor> {
                   Expanded(
                     child: TextField(
                       controller: widget.ctrls[i],
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
                         suffixText: widget.unit,

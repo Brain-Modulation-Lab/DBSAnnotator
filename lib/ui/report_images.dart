@@ -39,10 +39,7 @@ Future<Uint8List?> renderElectrodePng(
   final canvas = Canvas(recorder);
   canvas.scale(pixelRatio);
   // Opaque white background (reports embed on white pages).
-  canvas.drawRect(
-    Offset.zero & size,
-    Paint()..color = const Color(0xFFFFFFFF),
-  );
+  canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFFFFFFF));
   ElectrodePainter(
     layout: computeLayout(model, size),
     states: decoded.states,
@@ -53,9 +50,9 @@ Future<Uint8List?> renderElectrodePng(
     palette: ElectrodePalette.light,
   ).paint(canvas, size);
   final image = await recorder.endRecording().toImage(
-        (size.width * pixelRatio).round(),
-        (size.height * pixelRatio).round(),
-      );
+    (size.width * pixelRatio).round(),
+    (size.height * pixelRatio).round(),
+  );
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
   // Null rather than `data!`: an export must never be lost because one lead
@@ -77,8 +74,11 @@ Future<Uint8List?> renderElectrodePng(
 /// a few hundred ms on the UI isolate, so rasterising four leads for a report
 /// that omits the electrode section is pure latency.
 Future<({ElectrodeReportImages? electrodes, Uint8List? chart})>
-    renderReportGraphics(SessionReportData data, ElectrodeModel? model,
-        Set<ReportSection> sections) async {
+renderReportGraphics(
+  SessionReportData data,
+  ElectrodeModel? model,
+  Set<ReportSection> sections,
+) async {
   // Every rasterisation is best-effort. Both builders already degrade to
   // anode/cathode token text when an image is missing, but that fallback was
   // unreachable: a single failure here aborted the whole export and the user

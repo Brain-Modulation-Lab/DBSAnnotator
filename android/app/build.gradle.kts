@@ -44,11 +44,20 @@ val releaseSigningReady = releaseKeystore != null &&
     signingValue("storePassword", "ANDROID_STORE_PASSWORD") != null
 
 if (!releaseSigningReady) {
-    logger.lifecycle(
-        "DBS Annotator: no release keystore configured - signing the release " +
-            "build with the DEBUG key. Runnable, but not distributable. " +
-            "See MOBILE_RELEASE.md."
-    )
+    val message =
+        "no release keystore configured - signing the release build with the " +
+            "DEBUG key. Runnable, but not distributable. See MOBILE_RELEASE.md."
+
+    // CI sets this on release tags only. A warning alone was not enough: the
+    // build exited 0, and the workflow then attached the debug-signed APK to a
+    // public GitHub Release. Locally, and on PRs, the variable is unset - so
+    // `flutter build apk --release` keeps producing a runnable debug-signed APK
+    // for testing, which is the documented and useful behaviour. What it must
+    // never do is exit 0 in a job that publishes the result.
+    if (System.getenv("ANDROID_REQUIRE_RELEASE_SIGNING") == "true") {
+        throw GradleException("DBS Annotator: $message")
+    }
+    logger.lifecycle("DBS Annotator: $message")
 }
 
 android {

@@ -68,38 +68,44 @@ class UserPrefs {
       stimAmplitudes: nums('stim_amplitudes'),
       stimPulseWidths: nums('stim_pulse_widths'),
       programs: (j['programs'] as List?)?.map((e) => e as String).toList(),
-      clinical: (j['clinical'] as Map?)?.map((k, v) =>
-          MapEntry(k as String, (v as List).map((e) => e as String).toList())),
-      session: (j['session'] as Map?)?.map((k, v) => MapEntry(
+      clinical: (j['clinical'] as Map?)?.map(
+        (k, v) =>
+            MapEntry(k as String, (v as List).map((e) => e as String).toList()),
+      ),
+      session: (j['session'] as Map?)?.map(
+        (k, v) => MapEntry(
           k as String,
           (v as List)
               .map((r) => (r as List).map((e) => e as String).toList())
-              .toList())),
+              .toList(),
+        ),
+      ),
       reportPageSize: j['report_page_size'] as String?,
-      entryPanelOrder:
-          (j['entry_panel_order'] as List?)?.map((e) => e as String).toList(),
+      entryPanelOrder: (j['entry_panel_order'] as List?)
+          ?.map((e) => e as String)
+          .toList(),
       entryVisibleConfigs: (j['entry_visible_configs'] as num?)?.toInt(),
       entryTableExpanded: j['entry_table_expanded'] as bool?,
-      reportSections:
-          (j['report_sections'] as List?)?.map((e) => e as String).toList(),
+      reportSections: (j['report_sections'] as List?)
+          ?.map((e) => e as String)
+          .toList(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        if (stimFrequencies != null) 'stim_frequencies': stimFrequencies,
-        if (stimAmplitudes != null) 'stim_amplitudes': stimAmplitudes,
-        if (stimPulseWidths != null) 'stim_pulse_widths': stimPulseWidths,
-        if (programs != null) 'programs': programs,
-        if (clinical != null) 'clinical': clinical,
-        if (session != null) 'session': session,
-        if (reportPageSize != null) 'report_page_size': reportPageSize,
-        if (entryPanelOrder != null) 'entry_panel_order': entryPanelOrder,
-        if (entryVisibleConfigs != null)
-          'entry_visible_configs': entryVisibleConfigs,
-        if (entryTableExpanded != null)
-          'entry_table_expanded': entryTableExpanded,
-        if (reportSections != null) 'report_sections': reportSections,
-      };
+    if (stimFrequencies != null) 'stim_frequencies': stimFrequencies,
+    if (stimAmplitudes != null) 'stim_amplitudes': stimAmplitudes,
+    if (stimPulseWidths != null) 'stim_pulse_widths': stimPulseWidths,
+    if (programs != null) 'programs': programs,
+    if (clinical != null) 'clinical': clinical,
+    if (session != null) 'session': session,
+    if (reportPageSize != null) 'report_page_size': reportPageSize,
+    if (entryPanelOrder != null) 'entry_panel_order': entryPanelOrder,
+    if (entryVisibleConfigs != null)
+      'entry_visible_configs': entryVisibleConfigs,
+    if (entryTableExpanded != null) 'entry_table_expanded': entryTableExpanded,
+    if (reportSections != null) 'report_sections': reportSections,
+  };
 }
 
 /// Default report paper size. A4 rather than the desktop's US Letter (which is
@@ -121,20 +127,23 @@ ScalePresets mergeScalePresets(ScalePresets base, UserPrefs prefs) {
   final clinical = {...base.clinical};
   prefs.clinical?.forEach((k, v) => clinical[k] = v);
   final session = {...base.session};
-  prefs.session?.forEach((k, rows) => session[k] = [
-        for (final r in rows)
-          (
-            name: r.isNotEmpty ? r[0] : '',
-            min: r.length > 1 ? r[1] : '0',
-            max: r.length > 2 ? r[2] : '10',
-            // The 4th cell is the report's optimization mode. Rows saved
-            // before it existed fall back to the contract default.
-            mode: r.length > 3 &&
-                    scaleOptimizationModes.contains(r[3].trim().toLowerCase())
-                ? r[3].trim().toLowerCase()
-                : defaultScaleOptimizationMode,
-          ),
-      ]);
+  prefs.session?.forEach(
+    (k, rows) => session[k] = [
+      for (final r in rows)
+        (
+          name: r.isNotEmpty ? r[0] : '',
+          min: r.length > 1 ? r[1] : '0',
+          max: r.length > 2 ? r[2] : '10',
+          // The 4th cell is the report's optimization mode. Rows saved
+          // before it existed fall back to the contract default.
+          mode:
+              r.length > 3 &&
+                  scaleOptimizationModes.contains(r[3].trim().toLowerCase())
+              ? r[3].trim().toLowerCase()
+              : defaultScaleOptimizationMode,
+        ),
+    ],
+  );
   final buttons = [
     ...base.buttons,
     for (final k in {...clinical.keys, ...session.keys})
@@ -154,7 +163,8 @@ Future<UserPrefs> loadUserPrefs() async {
     final f = await _prefsFile();
     if (!await f.exists()) return UserPrefs();
     return UserPrefs.fromJson(
-        jsonDecode(await f.readAsString()) as Map<String, dynamic>);
+      jsonDecode(await f.readAsString()) as Map<String, dynamic>,
+    );
   } catch (_) {
     return UserPrefs();
   }

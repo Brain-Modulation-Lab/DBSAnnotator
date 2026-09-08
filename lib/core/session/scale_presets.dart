@@ -15,24 +15,14 @@ import 'package:flutter/services.dart' show rootBundle;
 /// `config.SESSION_SCALES_PRESETS`. Contracts generated before the field
 /// existed carry 3-element rows, which decode to
 /// [defaultScaleOptimizationMode].
-typedef SessionScaleRow = ({
-  String name,
-  String min,
-  String max,
-  String mode,
-});
+typedef SessionScaleRow = ({String name, String min, String max, String mode});
 
 /// Fallback for a preset row with no mode cell — matches the desktop's
 /// `config.DEFAULT_SCALE_OPTIMIZATION_MODE`.
 const String defaultScaleOptimizationMode = 'min';
 
 /// The modes the contract may carry; anything else decodes to the default.
-const List<String> scaleOptimizationModes = [
-  'min',
-  'max',
-  'custom',
-  'ignore',
-];
+const List<String> scaleOptimizationModes = ['min', 'max', 'custom', 'ignore'];
 
 /// The desktop's disease preset tables:
 /// - [buttons]: ordered preset names shown as the pill/button bar;
@@ -61,22 +51,24 @@ class ScalePresets {
     final sessionJson = json['session'] as Map<String, dynamic>;
     final session = <String, List<SessionScaleRow>>{
       for (final entry in sessionJson.entries)
-        entry.key: (entry.value as List).map((row) {
-          final cells = (row as List).map((e) => '$e').toList();
-          // The 4th cell (optimization mode) is absent in contracts
-          // generated before it was added.
-          final mode = cells.length > 3
-              ? cells[3].trim().toLowerCase()
-              : defaultScaleOptimizationMode;
-          return (
-            name: cells[0],
-            min: cells[1],
-            max: cells[2],
-            mode: scaleOptimizationModes.contains(mode)
-                ? mode
-                : defaultScaleOptimizationMode,
-          );
-        }).toList(growable: false),
+        entry.key: (entry.value as List)
+            .map((row) {
+              final cells = (row as List).map((e) => '$e').toList();
+              // The 4th cell (optimization mode) is absent in contracts
+              // generated before it was added.
+              final mode = cells.length > 3
+                  ? cells[3].trim().toLowerCase()
+                  : defaultScaleOptimizationMode;
+              return (
+                name: cells[0],
+                min: cells[1],
+                max: cells[2],
+                mode: scaleOptimizationModes.contains(mode)
+                    ? mode
+                    : defaultScaleOptimizationMode,
+              );
+            })
+            .toList(growable: false),
     };
 
     return ScalePresets(buttons: buttons, clinical: clinical, session: session);

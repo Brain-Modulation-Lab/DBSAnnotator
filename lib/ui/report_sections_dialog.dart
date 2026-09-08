@@ -19,12 +19,11 @@ Future<Set<ReportSection>?> showReportSectionsDialog(
   BuildContext context,
   Set<ReportSection> selected, {
   Future<void> Function()? onEditTargets,
-}) =>
-    showDialog<Set<ReportSection>>(
-      context: context,
-      builder: (_) => _ReportSectionsDialog(
-          selected: selected, onEditTargets: onEditTargets),
-    );
+}) => showDialog<Set<ReportSection>>(
+  context: context,
+  builder: (_) =>
+      _ReportSectionsDialog(selected: selected, onEditTargets: onEditTargets),
+);
 
 class _ReportSectionsDialog extends StatefulWidget {
   const _ReportSectionsDialog({required this.selected, this.onEditTargets});
@@ -58,8 +57,10 @@ class _ReportSectionsDialogState extends State<_ReportSectionsDialog> {
                   dense: true,
                   value: _on.contains(s),
                   title: Text(s.label),
-                  subtitle:
-                      Text(s.description, style: theme.textTheme.bodySmall),
+                  subtitle: Text(
+                    s.description,
+                    style: theme.textTheme.bodySmall,
+                  ),
                   onChanged: (v) =>
                       setState(() => v == true ? _on.add(s) : _on.remove(s)),
                 ),

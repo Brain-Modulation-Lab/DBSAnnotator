@@ -92,8 +92,9 @@ Building from source
 
 The most reliable route on any platform, and the one to use if you intend to
 modify anything. It needs only the
-`Flutter SDK <https://docs.flutter.dev/get-started/install>`_ (Dart 3.4 or
-later):
+`Flutter SDK <https://docs.flutter.dev/get-started/install>`_ **3.38.4 or later**
+(Dart 3.12 or later — that is the floor ``pubspec.lock`` resolves against, so an
+older SDK fails at ``pub get``):
 
 .. code-block:: bash
 

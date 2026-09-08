@@ -61,9 +61,11 @@ class AnnotationsReportData {
   String get span {
     if (entries.length < 2) return '';
     final first = DateTime.tryParse(
-        '${entries.first.date.trim()} ${entries.first.time.trim()}');
+      '${entries.first.date.trim()} ${entries.first.time.trim()}',
+    );
     final last = DateTime.tryParse(
-        '${entries.last.date.trim()} ${entries.last.time.trim()}');
+      '${entries.last.date.trim()} ${entries.last.time.trim()}',
+    );
     if (first == null || last == null) return '';
     final mins = last.difference(first).inMinutes;
     if (mins <= 0) return '';
@@ -107,28 +109,33 @@ AnnotationsReportData buildAnnotationsReportData({
 
 /// The three attestation rules, drawn the same way as the session report's.
 List<pw.Widget> _attestation() => [
-      pw.SizedBox(height: 18),
-      pw.Text('Attestation',
-          style:
-              const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-      pw.SizedBox(height: 10),
-      pw.Row(children: [
-        for (final label in ['Recorded by', 'Reviewed by', 'Date'])
-          pw.Expanded(
-            child: pw.Container(
-              margin: const pw.EdgeInsets.only(right: 16),
-              padding: const pw.EdgeInsets.only(top: 14),
-              decoration: const pw.BoxDecoration(
-                border: pw.Border(
-                    top: pw.BorderSide(color: PdfColors.grey600, width: 0.8)),
+  pw.SizedBox(height: 18),
+  pw.Text(
+    'Attestation',
+    style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+  ),
+  pw.SizedBox(height: 10),
+  pw.Row(
+    children: [
+      for (final label in ['Recorded by', 'Reviewed by', 'Date'])
+        pw.Expanded(
+          child: pw.Container(
+            margin: const pw.EdgeInsets.only(right: 16),
+            padding: const pw.EdgeInsets.only(top: 14),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(
+                top: pw.BorderSide(color: PdfColors.grey600, width: 0.8),
               ),
-              child: pw.Text(label,
-                  style: const pw.TextStyle(
-                      fontSize: 8, color: PdfColors.grey700)),
+            ),
+            child: pw.Text(
+              label,
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
             ),
           ),
-      ]),
-    ];
+        ),
+    ],
+  ),
+];
 
 /// The notes report as a PDF.
 Future<ReportBytes> buildAnnotationsPdf(
@@ -146,68 +153,81 @@ Future<ReportBytes> buildAnnotationsPdf(
     subject: 'Deep brain stimulation session notes',
   );
 
-  doc.addPage(pw.MultiPage(
-    // Same margins as the session report, so a clinician filing both does not
-    // get two different page geometries for one patient.
-    pageFormat: pageFormat.copyWith(
-      marginLeft: 36,
-      marginRight: 36,
-      marginTop: 54,
-      marginBottom: 54,
-    ),
-    footer: (context) => pw.Container(
-      alignment: pw.Alignment.center,
-      margin: const pw.EdgeInsets.only(top: 6),
-      child: pw.Text(
-        'sub-${t(data.subjectId)}  |  ${data.sessionStamp}  |  '
-        'DBS Annotator v$appVersion  |  '
-        'Page ${context.pageNumber} of ${context.pagesCount}',
-        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+  doc.addPage(
+    pw.MultiPage(
+      // Same margins as the session report, so a clinician filing both does not
+      // get two different page geometries for one patient.
+      pageFormat: pageFormat.copyWith(
+        marginLeft: 36,
+        marginRight: 36,
+        marginTop: 54,
+        marginBottom: 54,
       ),
-    ),
-    build: (context) => [
-      pw.Header(
-        level: 0,
-        child: pw.Text('DBS Annotator - Session notes',
+      footer: (context) => pw.Container(
+        alignment: pw.Alignment.center,
+        margin: const pw.EdgeInsets.only(top: 6),
+        child: pw.Text(
+          'sub-${t(data.subjectId)}  |  ${data.sessionStamp}  |  '
+          'DBS Annotator v$appVersion  |  '
+          'Page ${context.pageNumber} of ${context.pagesCount}',
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+        ),
+      ),
+      build: (context) => [
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            'DBS Annotator - Session notes',
             style: const pw.TextStyle(
-                fontSize: 20, fontWeight: pw.FontWeight.bold)),
-      ),
-      pw.Text(
-          'Patient: sub-${t(data.subjectId)}    Session: ${data.sessionStamp}'),
-      pw.Text(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ),
+        pw.Text(
+          'Patient: sub-${t(data.subjectId)}    Session: ${data.sessionStamp}',
+        ),
+        pw.Text(
           'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion'
           '${data.sourceFile.isEmpty ? '' : '  |  Source: '
-              '${t(data.sourceFile)} (${data.entries.length} notes)'}',
-          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-      pw.SizedBox(height: 12),
-      pw.Header(
-          level: 1,
-          text: 'Notes (${data.entries.length}'
-              '${data.span.isEmpty ? '' : ', over ${data.span}'})'),
-      if (data.entries.isEmpty)
-        pw.Text('No notes recorded.')
-      else
-        // A fixed time column beside the text, rather than the timestamp inline:
-        // the reading task is "what happened, in order", and a column lets the
-        // eye run down it.
-        pw.TableHelper.fromTextArray(
-          headers: const ['Time', 'Note'],
-          data: [
-            for (final e in data.entries) [t(e.time.trim()), t(e.notes.trim())],
-          ],
-          cellStyle: const pw.TextStyle(fontSize: 9),
-          headerStyle:
-              const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-          cellAlignment: pw.Alignment.topLeft,
-          columnWidths: const {
-            0: pw.FlexColumnWidth(1),
-            1: pw.FlexColumnWidth(7),
-          },
+                    '${t(data.sourceFile)} (${data.entries.length} notes)'}',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
         ),
-      ..._attestation(),
-    ],
-  ));
+        pw.SizedBox(height: 12),
+        pw.Header(
+          level: 1,
+          text:
+              'Notes (${data.entries.length}'
+              '${data.span.isEmpty ? '' : ', over ${data.span}'})',
+        ),
+        if (data.entries.isEmpty)
+          pw.Text('No notes recorded.')
+        else
+          // A fixed time column beside the text, rather than the timestamp inline:
+          // the reading task is "what happened, in order", and a column lets the
+          // eye run down it.
+          pw.TableHelper.fromTextArray(
+            headers: const ['Time', 'Note'],
+            data: [
+              for (final e in data.entries)
+                [t(e.time.trim()), t(e.notes.trim())],
+            ],
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: const pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+            ),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+            cellAlignment: pw.Alignment.topLeft,
+            columnWidths: const {
+              0: pw.FlexColumnWidth(1),
+              1: pw.FlexColumnWidth(7),
+            },
+          ),
+        ..._attestation(),
+      ],
+    ),
+  );
   return (bytes: await doc.save(), lostCharacters: t.lostCharacters);
 }
 
@@ -218,33 +238,49 @@ Uint8List buildAnnotationsDocx(
 }) {
   final body = StringBuffer()
     ..write(docxPara('DBS Annotator - Session notes', bold: true, size: 40))
-    ..write(docxPara(
-        'Patient: sub-${data.subjectId}    Session: ${data.sessionStamp}'))
-    ..write(docxPara(
+    ..write(
+      docxPara(
+        'Patient: sub-${data.subjectId}    Session: ${data.sessionStamp}',
+      ),
+    )
+    ..write(
+      docxPara(
         'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion'
         '${data.sourceFile.isEmpty ? '' : '  |  Source: ${data.sourceFile} '
-            '(${data.entries.length} notes)'}',
-        size: 18))
-    ..write(docxHeading('Notes (${data.entries.length}'
-        '${data.span.isEmpty ? '' : ', over ${data.span}'})'));
+                  '(${data.entries.length} notes)'}',
+        size: 18,
+      ),
+    )
+    ..write(
+      docxHeading(
+        'Notes (${data.entries.length}'
+        '${data.span.isEmpty ? '' : ', over ${data.span}'})',
+      ),
+    );
 
   if (data.entries.isEmpty) {
     body.write(docxPara('No notes recorded.'));
   } else {
-    body.write(docxTable(
-      const ['Time', 'Note'],
-      [
-        for (final e in data.entries) [e.time.trim(), e.notes.trim()],
-      ],
-      weights: const [1, 7],
-      contentTwips: pageSize.contentWidthTwips,
-    ));
+    body.write(
+      docxTable(
+        const ['Time', 'Note'],
+        [
+          for (final e in data.entries) [e.time.trim(), e.notes.trim()],
+        ],
+        weights: const [1, 7],
+        contentTwips: pageSize.contentWidthTwips,
+      ),
+    );
   }
 
   body
     ..write(docxHeading2('Attestation'))
-    ..write(docxPara('Recorded by: ${'_' * 26}    '
-        'Reviewed by: ${'_' * 26}    Date: ${'_' * 14}'));
+    ..write(
+      docxPara(
+        'Recorded by: ${'_' * 26}    '
+        'Reviewed by: ${'_' * 26}    Date: ${'_' * 14}',
+      ),
+    );
 
   return packDocx(
     body: body.toString(),
@@ -252,7 +288,8 @@ Uint8List buildAnnotationsDocx(
     title: data.title,
     subject: 'Deep brain stimulation session notes',
     createdDate: data.generatedOn,
-    footerPrefix: 'sub-${data.subjectId}  |  ${data.sessionStamp}  |  '
+    footerPrefix:
+        'sub-${data.subjectId}  |  ${data.sessionStamp}  |  '
         'DBS Annotator v$appVersion  |  Page ',
   );
 }

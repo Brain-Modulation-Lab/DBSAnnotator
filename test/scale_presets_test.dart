@@ -67,7 +67,7 @@ void main() {
       name: 'Legacy',
       min: '0',
       max: '7',
-      mode: defaultScaleOptimizationMode
+      mode: defaultScaleOptimizationMode,
     ));
   });
 

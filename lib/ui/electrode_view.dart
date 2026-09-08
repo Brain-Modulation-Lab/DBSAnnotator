@@ -9,10 +9,8 @@ import 'theme.dart';
 
 /// Fired after every applied change with the full new configuration.
 /// OFF contacts are absent from the map (Python representation invariant).
-typedef ElectrodeChanged = void Function(
-  Map<ContactKey, ContactState> states,
-  ContactState caseState,
-);
+typedef ElectrodeChanged =
+    void Function(Map<ContactKey, ContactState> states, ContactState caseState);
 
 /// Fired after every applied change with the `validateConfiguration` result.
 /// Like the desktop, changes are applied even when invalid; this callback is
@@ -82,10 +80,10 @@ class _ElectrodeViewState extends State<ElectrodeView> {
 
   /// OFF -> ANODIC -> CATHODIC -> OFF.
   static ContactState _next(ContactState state) => switch (state) {
-        ContactState.off => ContactState.anodic,
-        ContactState.anodic => ContactState.cathodic,
-        ContactState.cathodic => ContactState.off,
-      };
+    ContactState.off => ContactState.anodic,
+    ContactState.anodic => ContactState.cathodic,
+    ContactState.cathodic => ContactState.off,
+  };
 
   /// Applies the change unconditionally (like the desktop
   /// `_apply_change_if_valid`) and reports the validation outcome.

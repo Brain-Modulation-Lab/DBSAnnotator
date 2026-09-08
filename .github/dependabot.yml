@@ -1,21 +1,100 @@
 version: 2
+
+# `pub` is still a beta ecosystem for Dependabot and needs this opt-in. It is a
+# repository-level switch and changes nothing for the GA ecosystems below.
+# Consequence worth knowing: pub gets VERSION updates only - Dependabot raises
+# no security-advisory PRs for Dart packages, so pub.dev advisories remain a
+# manual read.
+enable-beta-ecosystems: true
+
 updates:
-  - package-ecosystem: "uv"
+  # ---- The application: Dart / Flutter ------------------------------------
+  # This was not configured at all, so the dependencies that ship inside a
+  # clinical binary were the only ones nobody watched - and they drifted 28
+  # packages behind, several by a major.
+  - package-ecosystem: "pub"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    # Three, not ten. This is the queue-depth control: at most one dev-tooling
+    # group, one runtime-patch group, and one individual major in flight. A
+    # limit of 10 is how 13 stale branches happened.
+    open-pull-requests-limit: 3
     cooldown:
-      default-days: 7
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "python"
+      default-days: 14 # skip the same-week hotfix churn
+    labels: ["dependencies", "dart"]
+    groups:
+      # One PR for the toolchain that cannot change a rendered report.
+      dart-dev-tooling:
+        dependency-type: "development"
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      # One PR for runtime patches. Grouped because reviewing eight separate
+      # patch PRs is how a queue becomes a wall - but NOT auto-merged: `pdf`
+      # and `archive` are in here, and the tests do not cover rendered output.
+      dart-runtime-patches:
+        dependency-type: "production"
+        patterns: ["*"]
+        update-types: ["patch"]
+      # Runtime minors separately: a minor in file_picker or share_plus can
+      # change platform-channel behaviour on one OS only.
+      dart-runtime-minors:
+        dependency-type: "production"
+        patterns: ["*"]
+        update-types: ["minor"]
+    # Majors are deliberately NOT ignored and NOT grouped - they fall through
+    # one PR each. share_plus 10->13, file_picker 8->10 and flutter_lints 4->6
+    # each need a code read and a manual smoke test of the export path; one PR
+    # bumping all four would be unreviewable, and `ignore` would make them
+    # invisible and let them rot for another year. Rate-limited by the limit
+    # of 3 above, so they arrive one at a time.
 
+  # ---- Documentation toolchain --------------------------------------------
+  # docs/requirements.txt was watched by nothing, and .readthedocs.yaml sets
+  # fail_on_warning: true, so a Sphinx release that adds one warning stops the
+  # docs publishing. `pip`, not `uv`: the file is a plain requirements.txt by
+  # deliberate choice - see its header.
+  - package-ecosystem: "pip"
+    directory: "/docs"
+    schedule:
+      interval: "monthly"
+    # The pins are open ranges (`sphinx>=8.1,<10`) that CI and Read the Docs
+    # already resolve to newest on every build, so the newest Sphinx is
+    # ALREADY exercised continuously by the `-W` docs build in the checks job.
+    # increase-if-necessary keeps Dependabot silent while a new release still
+    # satisfies the range, and speaks up exactly when one falls outside it -
+    # the moment a human has to decide whether to widen the ceiling.
+    versioning-strategy: "increase-if-necessary"
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 14
+    labels: ["dependencies", "docs"]
+    groups:
+      sphinx-toolchain:
+        patterns: ["*"]
+
+  # ---- The workflow's own actions -----------------------------------------
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "ci"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "ci"]
+    groups:
+      # Minors and patches in one PR, auto-merged on green (see
+      # .github/workflows/dependabot-auto-merge.yml). Majors fall through
+      # individually: actions/checkout v4->v7 and astral-sh/setup-uv v5->v10
+      # are both waiting, and both change runtime behaviour.
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+# ---- Removed: package-ecosystem "uv" at "/" -------------------------------
+# The Python project it watched lives on the `qt-legacy` branch now, and the
+# root uv.lock it resolved against was a 3-line stub with zero packages, since
+# deleted. Left in place it reports a repository-level "no dependency files
+# found" error and keeps opening PRs against a codebase that is not in the
+# tree - nine of the thirteen stale dependabot branches were exactly that.
+# `qt-legacy` is frozen, so it gets no `target-branch` entry either: an update
+# there has no consumer.

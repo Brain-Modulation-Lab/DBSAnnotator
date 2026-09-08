@@ -45,7 +45,7 @@ Future<void> writeStringAtomic(String path, String contents) async {
   final tmp = File('$path.tmp');
   await tmp.writeAsString(contents, flush: true);
   var delay = const Duration(milliseconds: 15);
-  for (var attempt = 0;; attempt++) {
+  for (var attempt = 0; ; attempt++) {
     try {
       await tmp.rename(path);
       return;

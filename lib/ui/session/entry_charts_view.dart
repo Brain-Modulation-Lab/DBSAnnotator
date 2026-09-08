@@ -131,8 +131,10 @@ class _EntryChartsViewState extends State<EntryChartsView> {
   }
 
   void _zoom(int delta) {
-    final next =
-        (widget.visibleConfigs + delta).clamp(_minVisible, _maxVisible);
+    final next = (widget.visibleConfigs + delta).clamp(
+      _minVisible,
+      _maxVisible,
+    );
     if (next == widget.visibleConfigs) return;
     widget.onVisibleConfigsChanged?.call(next);
   }
@@ -153,9 +155,12 @@ class _EntryChartsViewState extends State<EntryChartsView> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
-          child: Text('No configurations inserted yet.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.disabledColor)),
+          child: Text(
+            'No configurations inserted yet.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.disabledColor,
+            ),
+          ),
         ),
       );
     }
@@ -190,28 +195,37 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                 children: [
                   for (var i = 0; i < panels.length; i++)
                     _panelRow(
-                        theme, panels[i], i, xs, pxPerStep, offset, viewport),
+                      theme,
+                      panels[i],
+                      i,
+                      xs,
+                      pxPerStep,
+                      offset,
+                      viewport,
+                    ),
                 ],
               ),
             ),
             // The shared x axis, drawn once under the last panel.
-            Row(children: [
-              const SizedBox(width: _gutterWidth),
-              Expanded(
-                child: SizedBox(
-                  height: _axisHeight,
-                  child: CustomPaint(
-                    painter: _XAxisPainter(
-                      xs: xs,
-                      labels: widget.data.xLabels,
-                      pxPerStep: pxPerStep,
-                      offset: offset,
-                      ink: theme.colorScheme.onSurfaceVariant,
+            Row(
+              children: [
+                const SizedBox(width: _gutterWidth),
+                Expanded(
+                  child: SizedBox(
+                    height: _axisHeight,
+                    child: CustomPaint(
+                      painter: _XAxisPainter(
+                        xs: xs,
+                        labels: widget.data.xLabels,
+                        pxPerStep: pxPerStep,
+                        offset: offset,
+                        ink: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             _scrollbar(theme, viewport, offset),
           ],
         );
@@ -228,8 +242,10 @@ class _EntryChartsViewState extends State<EntryChartsView> {
   Widget _scrollbar(ThemeData theme, double viewport, double offset) {
     final maxOff = _maxOffset(viewport);
     if (maxOff <= 0.5) return const SizedBox(height: 6);
-    final thumbWidth =
-        (viewport * viewport / _contentWidth(viewport)).clamp(32.0, viewport);
+    final thumbWidth = (viewport * viewport / _contentWidth(viewport)).clamp(
+      32.0,
+      viewport,
+    );
     final travel = math.max(1.0, viewport - thumbWidth);
     return Padding(
       padding: const EdgeInsets.only(left: _gutterWidth, top: 6, bottom: 2),
@@ -272,8 +288,13 @@ class _EntryChartsViewState extends State<EntryChartsView> {
     );
   }
 
-  Widget _header(ThemeData theme, int total, double viewport, double pxPerStep,
-      double offset) {
+  Widget _header(
+    ThemeData theme,
+    int total,
+    double viewport,
+    double pxPerStep,
+    double offset,
+  ) {
     final first = (offset / pxPerStep).floor() + 1;
     final last = math.min(total, (offset + viewport) / pxPerStep).ceil();
     return Padding(
@@ -291,15 +312,17 @@ class _EntryChartsViewState extends State<EntryChartsView> {
           IconButton(
             visualDensity: VisualDensity.compact,
             tooltip: 'Show fewer configurations (zoom in)',
-            onPressed:
-                widget.visibleConfigs > _minVisible ? () => _zoom(-2) : null,
+            onPressed: widget.visibleConfigs > _minVisible
+                ? () => _zoom(-2)
+                : null,
             icon: const Icon(Icons.zoom_in),
           ),
           IconButton(
             visualDensity: VisualDensity.compact,
             tooltip: 'Show more configurations (zoom out)',
-            onPressed:
-                widget.visibleConfigs < _maxVisible ? () => _zoom(2) : null,
+            onPressed: widget.visibleConfigs < _maxVisible
+                ? () => _zoom(2)
+                : null,
             icon: const Icon(Icons.zoom_out),
           ),
         ],
@@ -307,8 +330,15 @@ class _EntryChartsViewState extends State<EntryChartsView> {
     );
   }
 
-  Widget _panelRow(ThemeData theme, ParamPanel panel, int index, List<int> xs,
-      double pxPerStep, double offset, double viewport) {
+  Widget _panelRow(
+    ThemeData theme,
+    ParamPanel panel,
+    int index,
+    List<int> xs,
+    double pxPerStep,
+    double offset,
+    double viewport,
+  ) {
     final names = panel.series.keys.toList();
     return Container(
       key: ValueKey(panel.id),
@@ -330,14 +360,20 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                   index: index,
                   child: Tooltip(
                     message: 'Drag to reorder',
-                    child: Icon(Icons.drag_indicator,
-                        size: 16, color: theme.disabledColor),
+                    child: Icon(
+                      Icons.drag_indicator,
+                      size: 16,
+                      color: theme.disabledColor,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 2),
-                Text(panel.title,
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  panel.title,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Wrap(
@@ -370,9 +406,12 @@ class _EntryChartsViewState extends State<EntryChartsView> {
             // exactly under the Right with nothing saying so.
             Padding(
               padding: const EdgeInsets.only(left: _gutterWidth, bottom: 8),
-              child: Text(panel.constantLabel!,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              child: Text(
+                panel.constantLabel!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             )
           else
             Row(
@@ -421,19 +460,19 @@ class _SeriesKey extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 16,
-            height: 8,
-            child: CustomPaint(
-              painter: _KeyLinePainter(color: color, dash: dash),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(name, style: const TextStyle(fontSize: 11)),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SizedBox(
+        width: 16,
+        height: 8,
+        child: CustomPaint(
+          painter: _KeyLinePainter(color: color, dash: dash),
+        ),
+      ),
+      const SizedBox(width: 4),
+      Text(name, style: const TextStyle(fontSize: 11)),
+    ],
+  );
 }
 
 class _KeyLinePainter extends CustomPainter {
@@ -476,7 +515,10 @@ class _YGutter extends StatelessWidget {
     final mid = (panel.yMin + panel.yMax) / 2;
     return Padding(
       padding: const EdgeInsets.only(
-          right: 5, top: _plotPadY - 5, bottom: _plotPadY - 5),
+        right: 5,
+        top: _plotPadY - 5,
+        bottom: _plotPadY - 5,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -552,8 +594,11 @@ class _PanelPainter extends CustomPainter {
     for (var i = 0; i < xs.length; i++) {
       final x = xPos(i);
       if (x < -pxPerStep || x > size.width + pxPerStep) continue;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height),
-          gridPaint..color = grid.withValues(alpha: 0.5));
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        gridPaint..color = grid.withValues(alpha: 0.5),
+      );
     }
 
     // Series, keyed by index so colour and dash match the gutter key.
@@ -635,10 +680,22 @@ class _XAxisPainter extends CustomPainter {
       canvas.drawLine(Offset(x, 0), Offset(x, 3), axis);
       if (i % every != 0) continue;
       final label = labels[xs[i]] ?? '${xs[i]}';
-      drawChartText(canvas, label, Offset(x, 5),
-          color: ink, align: TextAlign.center, size: 9);
-      drawChartText(canvas, '#${xs[i]}', Offset(x, 16),
-          color: ink.withValues(alpha: 0.7), align: TextAlign.center, size: 8);
+      drawChartText(
+        canvas,
+        label,
+        Offset(x, 5),
+        color: ink,
+        align: TextAlign.center,
+        size: 9,
+      );
+      drawChartText(
+        canvas,
+        '#${xs[i]}',
+        Offset(x, 16),
+        color: ink.withValues(alpha: 0.7),
+        align: TextAlign.center,
+        size: 8,
+      );
     }
     canvas.restore();
   }

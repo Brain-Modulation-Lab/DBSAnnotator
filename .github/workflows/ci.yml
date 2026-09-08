@@ -8,32 +8,40 @@ name: App CI/CD
 # Apple secrets are configured).
 on:
   push:
-    tags:
-      - "app-v*"
+    # CI on main was missing entirely: a merge that broke the build was only
+    # discovered by the next PR, or by a tag.
+    branches: [main]
+    tags: ["app-v*"]
+  # No `paths:` filter, deliberately. The app IS the repo root, so the filter
+  # had to enumerate what the app is NOT - and it got it wrong: a PR touching
+  # only `pubspec.lock` (i.e. every Dependabot PR) matched nothing and ran ZERO
+  # jobs, and it listed a `ruff.toml` that no longer exists while omitting the
+  # `pyproject.toml` that replaced it. A workflow that silently runs nothing is
+  # worse than one that runs for two minutes on a README typo, and runner
+  # minutes are free on a public repository.
   pull_request:
-    paths:
-      # The Flutter app IS the repo root now, so the filter is what it is NOT.
-      - "lib/**"
-      - "test/**"
-      - "assets/**"
-      - "pubspec.yaml"
-      - "android/**"
-      - "ios/**"
-      - "linux/**"
-      - "macos/**"
-      - "windows/**"
-      - "schema/**"
-      # The checks job builds the docs with -W, so a docs-only change must
-      # trigger CI or a publishing break is only found on Read the Docs.
-      - "docs/**"
-      - "pyproject.toml"
-      - ".pre-commit-config.yaml"
-      - ".readthedocs.yaml"
-      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
+# Read-only by default. Only the `release` job gets `contents: write`, and only
+# it needs one - previously all seven jobs held a token that could push to the
+# repository, including the job that pipes a third-party binary into bash.
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # PR pushes cancel the previous run. Tag and main runs are NEVER cancelled: a
+  # cancelled tag run is exactly the half-built release this workflow exists to
+  # prevent.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pinned, not a bare `channel: stable`. pubspec.lock resolves against
+  # `flutter: ">=3.38.4"`, and with --enforce-lockfile an upstream stable
+  # release can break this build with no change in the repository. Bump by hand
+  # alongside a local `flutter upgrade`; there is no Dependabot ecosystem for
+  # the Flutter SDK.
+  FLUTTER_VERSION: "3.47.1"
 
 
 jobs:
@@ -46,17 +54,46 @@ jobs:
   checks:
     name: Static checks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      # test/version_parity_test.dart locks pubspec.yaml <-> lib/app_info.dart
+      # <-> CITATION.cff <-> msix_version to each other, but the TAG sat outside
+      # that ring: `git tag app-v0.6.0` on a 0.5.0 commit produced an MSIX
+      # labelled 0.6.0.0 wrapping an app whose report footers - filed in a
+      # patient record - said 0.5.0. This closes the ring.
+      #
+      # First step, before any toolchain: it fails in seconds, in front of a
+      # 20-minute fan-out. The regex is the same one version_parity_test.dart
+      # uses, so the two cannot disagree about what "the version" is.
+      - name: Tag matches the pubspec version
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#app-v}"
+          tag="${tag%-rc*}"          # app-v0.5.1-rc / -rc2 / -rc.2 -> 0.5.1
+          pub=$(sed -n 's/^version:[[:space:]]*\([0-9][^+ #]*\).*/\1/p' pubspec.yaml | head -1)
+          [ -n "$pub" ] || { echo "::error::pubspec.yaml declares no parseable version:"; exit 1; }
+          if [ "$tag" != "$pub" ]; then
+            echo "::error::tag $GITHUB_REF_NAME implies $tag but pubspec.yaml says $pub. Bump the pubspec (and the three literals version_parity_test.dart checks), or delete and re-cut the tag."
+            exit 1
+          fi
+          echo "Releasing $pub from $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
 
-      - run: flutter pub get
-      # Formatting is NOT covered by `flutter analyze`, which is why it had
-      # drifted across 66 of 99 files before this gate existed.
-      - run: dart format --output=none --set-exit-if-changed .
-      - run: flutter analyze --fatal-infos
+      # Needed before the analyze hook, and before the docs build resolves the
+      # schema. `dart format` and `flutter analyze --fatal-infos` are NOT
+      # separate steps here: both are local hooks in .pre-commit-config.yaml and
+      # run in the pre-commit invocation below, so there is one definition of
+      # each rather than two that can drift.
+      - run: flutter pub get --enforce-lockfile
 
       # actionlint validates `${{ }}` expressions and shellchecks every `run:`
       # block. The windows job interpolates repository variables into bash, so
@@ -69,223 +106,357 @@ jobs:
       # code execution with push access, on a clinical tool.
       - uses: rhysd/actionlint@v1.7.7
 
+      # `python` on PATH for the generate-docs-includes hook, which is
+      # `language: system`.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - uses: astral-sh/setup-uv@v5
-      # Python here is only the Sphinx config and the docs extension; pyproject.toml
-      # scopes it to docs/**/*.py.
-      - run: uvx ruff@0.16.5 check docs/
-      - run: uvx ruff@0.16.5 format --check docs/
-      - run: uvx codespell@2.4.3         # configured by pyproject.toml
 
-      # Read the Docs builds with fail_on_warning, so without this a docs
-      # regression is only discovered after merge, when publishing breaks.
+      # One source of truth for hook versions, arguments AND ordering:
+      # .pre-commit-config.yaml. This used to be three `uvx ruff@0.16.5 …` /
+      # `codespell@2.4.3` / `doc8@2.0.0` steps that pinned the same versions a
+      # SECOND time, so the hooks and CI could enforce different rules - and a
+      # `pre-commit autoupdate` PR would have desynced them silently while CI
+      # kept enforcing the old ones. It also subsumes `dart format` and
+      # `flutter analyze --fatal-infos` (both local hooks) and satisfies the
+      # generate-includes-before-doc8 ordering structurally rather than by
+      # comment.
       #
-      # This runs BEFORE doc8 on purpose. docs/output_format.rst `.. include::`s
-      # three fragments under docs/_generated/, which is gitignored build output
-      # written by docs/_ext/generated_includes.py during this build. doc8
-      # resolves includes, so on a fresh clone it reports three D000
-      # "Problems with include directive path" errors if it runs first.
+      # `--show-diff-on-failure` so a formatting failure prints the fix.
+      - run: uvx pre-commit run --all-files --show-diff-on-failure
+
+      # Not a hook: Read the Docs builds with fail_on_warning, so without this a
+      # docs regression is only discovered after merge, when publishing breaks.
+      # It needs the generated includes, which the pre-commit run above has
+      # already rendered.
       - name: Docs build (warnings are errors)
         run: uv run --with-requirements docs/requirements.txt sphinx-build -b html -W --keep-going docs docs/_build/html
-      - run: uvx --from doc8@2.0.0 doc8 docs   # configured by pyproject.toml
+
 
   test:
-    name: Analyze & test
+    # Renamed from "Analyze & test": `flutter analyze` moved out. The `checks`
+    # job runs it with --fatal-infos, which is strictly stronger, so running the
+    # weaker form here bought a second Flutter install and nothing else.
+    name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-      - run: flutter pub get
-      - run: flutter analyze
+          cache: true
+      - run: flutter pub get --enforce-lockfile
       - run: flutter test
 
-  # Desktop builds. These are compile-level proof that the report/export path
-  # builds on every target we ship; the delivery step (share sheet vs Save-As)
-  # still needs a manual smoke test per OS.
+  # ---------------------------------------------------------------------------
+  # Build jobs. Each produces ONE correctly-named archive in `out/`, and the
+  # `cp`/`test -x` that names it IS the completeness check - `upload-artifact`
+  # errors only when NOTHING matches, so listing two paths under one
+  # `if-no-files-found: error` let a missing .aab beside a present .apk upload a
+  # partial artifact and pass.
+  #
+  # The version comes from pubspec.yaml, not the tag, so PR builds produce
+  # identically-named archives and the packaging path is exercised on every PR
+  # rather than first on a release. The `checks` job asserts tag == pubspec, so
+  # the two cannot disagree.
+  # ---------------------------------------------------------------------------
   linux:
     name: Linux
-    needs: test
+    needs: [checks, test]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
       - name: Install Linux desktop toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev
       - run: flutter config --enable-linux-desktop
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter build linux --release
+
+      # tar, not upload-artifact on the directory: artifacts do not preserve the
+      # executable bit, so the old `linux-bundle` download contained a
+      # non-executable `dbs_annotator` and was never actually a deliverable.
+      - name: Package the Linux bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's/^version:[[:space:]]*\([0-9][^+ #]*\).*/\1/p' pubspec.yaml | head -1)
+          test -x build/linux/x64/release/bundle/dbs_annotator
+          mkdir -p out
+          tar -czf "out/dbs-annotator-${v}-linux-x64.tar.gz" \
+              -C build/linux/x64/release/bundle .
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-bundle
-          path: build/linux/x64/release/bundle
+          name: linux
+          path: out/*
           if-no-files-found: error
+          retention-days: 14
 
   windows:
     name: Windows
-    needs: test
+    needs: [checks, test]
     runs-on: windows-latest
+    timeout-minutes: 30
     # Job-level env so step `if:` conditions can read it (a step-level env is
     # not visible to that step's own `if:`) - same reason as the android job.
     env:
+      IS_TAG: ${{ startsWith(github.ref, 'refs/tags/app-v') }}
       WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
       WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+      MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+      MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
       - run: flutter config --enable-windows-desktop
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter build windows --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-bundle
-          path: build/windows/x64/runner/Release
-          if-no-files-found: error
 
-      # ---- MSIX, on tags only -------------------------------------------
-      # PRs keep costing just a compile. `windows-latest` already ships the
-      # Windows SDK, so MakeAppx/SignTool need no install step.
-      #
-      # The version comes from the TAG, not the pubspec: a tag is what actually
-      # identifies a release, and MSIX needs a fourth component the pubspec
-      # grammar has no room for. `app-v0.5.0` -> `0.5.0.0`.
-      - name: Derive the MSIX version from the tag
-        if: startsWith(github.ref, 'refs/tags/app-v')
+      - name: Package the Windows bundle
         shell: bash
         run: |
-          v="${GITHUB_REF_NAME#app-v}"
-          # Tolerate a `-rc` suffix on dry-run tags; MSIX takes digits only.
-          v="${v%%-*}"
-          echo "MSIX_VERSION=${v}.0" >> "$GITHUB_ENV"
+          set -euo pipefail
+          v=$(sed -n 's/^version:[[:space:]]*\([0-9][^+ #]*\).*/\1/p' pubspec.yaml | head -1)
+          test -f build/windows/x64/runner/Release/dbs_annotator.exe
+          mkdir -p out
+          7z a -tzip "out/dbs-annotator-${v}-windows-x64.zip" \
+               ./build/windows/x64/runner/Release/*
 
-      - name: Decode signing certificate
-        if: startsWith(github.ref, 'refs/tags/app-v') && env.WINDOWS_CERT_BASE64 != ''
-        shell: bash
-        run: echo "$WINDOWS_CERT_BASE64" | base64 -d > signing.pfx
-
-      # Signed when a certificate secret exists (installable by anyone who
-      # trusts it), otherwise the Store-mode package: unsigned on purpose,
-      # because Microsoft re-signs MSIX submissions itself after certification.
-      #
+      # ---- MSIX: on tags, and only when it CAN be built --------------------
       # `--store` needs the Partner Center identity, which is deliberately not
-      # in the repo. `publisher` is unset in pubspec.yaml, so a store build
-      # FAILS HERE with a message naming the exact dashboard page to copy it
-      # from - which is the behaviour we want: better a red tag build than a
-      # package rejected at upload. Set the three repo variables below once the
-      # app name is reserved.
+      # in the repo. This step used to run unconditionally on a tag and
+      # therefore FAILED on every real tag (no `publisher` in msix_config) while
+      # the android job had already created the Release. Now: no certificate and
+      # no Store identity means the step is SKIPPED, the job stays green with a
+      # portable zip, and the release job records the absence in the run summary.
+      # The day Partner Center is configured it becomes mandatory with no edit
+      # to this file.
+      #
+      # No --version: msix reads msix_version from pubspec.yaml, which
+      # version_parity_test.dart pins to <version>.0 and the checks job now pins
+      # to the tag. One source of truth, and the old tag-munging step is gone.
       - name: Build MSIX
-        if: startsWith(github.ref, 'refs/tags/app-v')
+        id: msix
+        if: env.IS_TAG == 'true' && (env.WINDOWS_CERT_BASE64 != '' || env.MSIX_IDENTITY_NAME != '')
         shell: bash
         run: |
-          args=(--version "$MSIX_VERSION")
+          set -euo pipefail
+          args=()
           if [ -n "$WINDOWS_CERT_BASE64" ]; then
+            echo "$WINDOWS_CERT_BASE64" | base64 -d > signing.pfx
             args+=(--certificate-path signing.pfx
                    --certificate-password "$WINDOWS_CERT_PASSWORD"
                    --install-certificate false)
           else
             args+=(--store)
           fi
-          if [ -n "${{ vars.MSIX_IDENTITY_NAME }}" ]; then
-            args+=(--identity-name "${{ vars.MSIX_IDENTITY_NAME }}"
-                   --publisher "${{ vars.MSIX_PUBLISHER }}"
-                   --publisher-display-name "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}")
+          if [ -n "$MSIX_IDENTITY_NAME" ]; then
+            args+=(--identity-name "$MSIX_IDENTITY_NAME"
+                   --publisher "$MSIX_PUBLISHER"
+                   --publisher-display-name "$MSIX_PUBLISHER_DISPLAY_NAME")
           fi
           dart run msix:create "${args[@]}"
 
       - name: Shred the certificate
         # `always()` so a failed MSIX build cannot leave a private key on disk
-        # for later steps or a cached workspace.
-        if: always() && startsWith(github.ref, 'refs/tags/app-v')
+        # for a later step or a cached workspace.
+        if: always()
         shell: bash
         run: rm -f signing.pfx
 
-      - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/app-v')
-        with:
-          name: windows-msix
-          path: build/windows/msix/*.msix
-          if-no-files-found: error
+      # A signature check is the WRONG assertion here: a --store package is
+      # unsigned by design, so `signtool verify /pa` would fail on correct
+      # output. The failure that actually costs a review cycle is an identity
+      # mismatch, which MOBILE_RELEASE.md calls the most common rejection - so
+      # assert the manifest the tool actually wrote.
+      - name: Verify the MSIX identity
+        if: steps.msix.outcome == 'success'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = (Get-ChildItem build/windows/msix/*.msix)[0]
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($pkg.FullName)
+          $reader = New-Object System.IO.StreamReader($zip.GetEntry('AppxManifest.xml').Open())
+          $xml = [xml]$reader.ReadToEnd()
+          $reader.Close(); $zip.Dispose()
+          $id = $xml.Package.Identity
+          "MSIX identity: Name=$($id.Name) Publisher=$($id.Publisher) Version=$($id.Version)" |
+            Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+          $expected = (Select-String -Path pubspec.yaml -Pattern '^\s+msix_version:\s*(\S+)').Matches[0].Groups[1].Value
+          if ($id.Version -ne $expected) {
+            throw "MSIX Version $($id.Version) != msix_version $expected in pubspec.yaml"
+          }
+          if ($env:MSIX_IDENTITY_NAME -and $id.Name -ne $env:MSIX_IDENTITY_NAME) {
+            throw "MSIX Identity/Name '$($id.Name)' != MSIX_IDENTITY_NAME '$($env:MSIX_IDENTITY_NAME)' (case- and punctuation-sensitive)"
+          }
 
-      - name: Attach MSIX to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/app-v')
-        uses: softprops/action-gh-release@v2
+      - name: Name the MSIX asset
+        if: steps.msix.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's/^version:[[:space:]]*\([0-9][^+ #]*\).*/\1/p' pubspec.yaml | head -1)
+          cp build/windows/msix/*.msix "out/dbs-annotator-${v}-windows.msix"
+
+      - uses: actions/upload-artifact@v4
         with:
-          files: build/windows/msix/*.msix
-          fail_on_unmatched_files: true
+          name: windows
+          path: out/*
+          if-no-files-found: error
+          retention-days: 14
 
   macos:
     name: macOS
-    needs: test
+    needs: [checks, test]
     runs-on: macos-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
       - run: flutter config --enable-macos-desktop
-      - run: flutter pub get
-      # Unsigned: proves it compiles and links. Signing/notarisation is a
-      # release concern, not a CI-correctness one.
+      - run: flutter pub get --enforce-lockfile
+      # A compile gate that contributes NO release asset, deliberately: an
+      # unsigned .app is Gatekeeper-quarantined and there is no macOS section in
+      # MOBILE_RELEASE.md telling anyone how to open it. Shipping a zip that
+      # fails to launch is worse than shipping nothing. Signing needs a paid
+      # Apple account that does not exist yet.
       - run: flutter build macos --release
 
   android:
     name: Android (APK + AAB)
-    needs: test
+    needs: [checks, test]
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     # Job-level env so step `if:` conditions can read it (step-level env is not
     # visible to that step's own `if:`).
     env:
+      IS_TAG: ${{ startsWith(github.ref, 'refs/tags/app-v') }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+
+      # All four, or none. `releaseSigningReady` in android/app/build.gradle.kts
+      # is an AND over the keystore plus three values: set the keystore secret
+      # and forget ANDROID_KEY_PASSWORD, and the release build is signed with
+      # the DEBUG key with only a `logger.lifecycle` line and exit code 0.
+      - name: Signing secrets are all-or-nothing
+        shell: bash
+        run: |
+          set -euo pipefail
+          n=0
+          [ -n "$ANDROID_KEYSTORE_BASE64" ] && n=$((n+1)) || true
+          [ -n "$ANDROID_KEY_ALIAS" ]       && n=$((n+1)) || true
+          [ -n "$ANDROID_KEY_PASSWORD" ]    && n=$((n+1)) || true
+          [ -n "$ANDROID_STORE_PASSWORD" ]  && n=$((n+1)) || true
+          echo "ANDROID_SIGNING_SECRETS=$n" >> "$GITHUB_ENV"
+          if [ "$n" -ne 0 ] && [ "$n" -ne 4 ]; then
+            echo "::error::$n of 4 ANDROID_* secrets are set. A partial set silently debug-signs the release build. See MOBILE_RELEASE.md section 2."
+            exit 1
+          fi
+          if [ "$IS_TAG" = "true" ] && [ "$n" -eq 0 ]; then
+            echo "::error::A release tag requires all four ANDROID_* secrets. Without them Gradle falls back to the DEBUG key and the APK is not distributable."
+            exit 1
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-
+          cache: true
 
       - name: Decode signing keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
 
       - name: Build APK + AAB
+        env:
+          # Makes Gradle THROW rather than fall back to the debug key. Set only
+          # on tags, so a local or PR `flutter build apk --release` keeps its
+          # useful debug-signed behaviour.
+          ANDROID_REQUIRE_RELEASE_SIGNING: ${{ env.IS_TAG }}
         run: |
-          flutter pub get
+          flutter pub get --enforce-lockfile
           flutter build apk --release
           flutter build appbundle --release
 
-      - name: Upload artifacts to workflow run
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-artifacts
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
-          if-no-files-found: error
+      # `apksigner`, not `keytool -printcert -jarfile`: keytool reads only the
+      # v1 JAR signature and prints "Not a signed jar file" for a v2/v3-only
+      # APK, which is what Flutter produces. apksigner ships in the build-tools
+      # already on the runner.
+      #
+      # Runs on EVERY build so the path and the fingerprint output are proven
+      # continuously; the ASSERTION is conditional, because a PR build with no
+      # secrets is legitimately debug-signed.
+      - name: Verify the APK signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n1)
+          "$apksigner" verify --verbose --print-certs \
+            build/app/outputs/flutter-apk/app-release.apk | tee signer.txt
+          {
+            echo "### APK signer"
+            grep -E 'certificate DN:|SHA-256 digest:' signer.txt || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$ANDROID_SIGNING_SECRETS" = "4" ]; then
+            if grep -q "CN=Android Debug" signer.txt; then
+              echo "::error::All four signing secrets are set but the APK is DEBUG-signed (CN=Android Debug). The keystore or one of the three values did not reach Gradle."
+              exit 1
+            fi
+            grep -q "certificate DN:" signer.txt
+          fi
 
-      - name: Attach APK to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/app-v')
-        uses: softprops/action-gh-release@v2
+      # Two `cp`s instead of a two-line `path:`, so a missing file fails here
+      # rather than uploading a partial artifact that passes.
+      - name: Name the release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's/^version:[[:space:]]*\([0-9][^+ #]*\).*/\1/p' pubspec.yaml | head -1)
+          mkdir -p out
+          cp build/app/outputs/flutter-apk/app-release.apk "out/dbs-annotator-${v}-android.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "out/dbs-annotator-${v}-android.aab"
+
+      - uses: actions/upload-artifact@v4
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-          fail_on_unmatched_files: true
+          name: android
+          path: out/*
+          if-no-files-found: error
+          retention-days: 14
 
   ios:
     name: iOS (TestFlight)
-    needs: test
+    needs: [checks, test]
     runs-on: macos-latest
+    timeout-minutes: 45
     env:
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -294,19 +465,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
 
-
-      # Dry-run build (no signing) — always runs so PRs verify iOS compiles.
+      # A compile gate that contributes NO release asset: an unsigned .app
+      # cannot be installed from a GitHub Release, and iPadOS distribution is
+      # TestFlight-only. Always runs, so PRs verify iOS still compiles.
       - name: Build iOS (no codesign)
         run: |
-          flutter pub get
+          flutter pub get --enforce-lockfile
           flutter build ios --release --no-codesign
 
-      # Signed IPA + TestFlight upload only on a tag and only when Apple
-      # secrets are present (App Store Connect API key). Wire fastlane pilot /
-      # xcrun altool here once the Apple Developer account (nonprofit fee
-      # waiver) is set up.
+      # Signed IPA + TestFlight upload only on a tag and only when the Apple
+      # secrets are present. Wire fastlane pilot here once the Apple Developer
+      # account is set up - see MOBILE_RELEASE.md section 3.
       - name: Upload to TestFlight (fastlane)
         if: ${{ startsWith(github.ref, 'refs/tags/app-v') && env.APP_STORE_CONNECT_KEY_ID != '' }}
         run: |
@@ -317,3 +490,80 @@ jobs:
             echo "See MOBILE_RELEASE.md section 3 to add it."
             exit 1
           fi
+
+      # Without this, a tag with no Apple secrets goes GREEN having shipped
+      # nothing, while MOBILE_RELEASE.md claims CI uploads to TestFlight. A
+      # warning in the run summary keeps "green" from meaning "shipped".
+      - name: Note that iOS was not shipped
+        if: ${{ startsWith(github.ref, 'refs/tags/app-v') && env.APP_STORE_CONNECT_KEY_ID == '' }}
+        run: |
+          echo "::warning::iOS was compiled but not uploaded: the App Store Connect secrets are not configured. iPadOS is not part of this release."
+          echo "iOS: compiled, not uploaded (no App Store Connect secrets)." >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # The single release writer.
+  #
+  # Previously `windows` and `android` each called action-gh-release, so
+  # whichever finished first CREATED the Release - and since the MSIX step
+  # failed on every real tag, the actual outcome of tagging this repo was a
+  # public release containing one debug-signed APK and nothing else. Per-job
+  # attach cannot be made atomic: there is no ordering between those jobs. One
+  # writer with one manifest eliminates the possibility.
+  #
+  # If any upstream job fails, this job never starts, so NO Release object is
+  # ever created - nothing to retract.
+  #
+  # `draft: true` always: the automation guarantees "every gate passed and the
+  # asset list is complete", and a human clicks Publish. That single flag is
+  # also what makes the -rc dry run free - an rc exercises this entire job,
+  # artifact download and manifest check included, and publishes nothing.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Draft the release
+    if: startsWith(github.ref, 'refs/tags/app-v')
+    needs: [checks, test, linux, windows, macos, android, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The only job in this workflow that can write to the repository.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Verify the asset manifest
+        shell: bash
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          v="${GITHUB_REF_NAME#app-v}"; v="${v%-rc*}"
+          missing=0
+          expect() { [ -f "dist/$1" ] || { echo "::error::missing release asset: $1"; missing=1; }; }
+          expect "dbs-annotator-${v}-linux-x64.tar.gz"
+          expect "dbs-annotator-${v}-windows-x64.zip"
+          expect "dbs-annotator-${v}-android.apk"
+          expect "dbs-annotator-${v}-android.aab"
+          if [ -n "$MSIX_IDENTITY_NAME" ] || [ -n "$WINDOWS_CERT_BASE64" ]; then
+            expect "dbs-annotator-${v}-windows.msix"
+          else
+            echo "No MSIX: neither the MSIX_IDENTITY_NAME variable nor the WINDOWS_CERT_BASE64 secret is set. See MOBILE_RELEASE.md section 4." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          # macOS and iOS contribute no asset by design - see their jobs.
+          [ "$missing" = 0 ]
+          { echo "### Release assets"; echo '```'; ls -l dist/; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          name: >-
+            ${{ contains(github.ref_name, '-rc')
+                && format('{0} — dry run, do not publish', github.ref_name)
+                || format('DBS Annotator {0}', github.ref_name) }}
+          files: dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true

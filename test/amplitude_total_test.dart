@@ -22,8 +22,11 @@ void main() {
     ];
     for (final (total, pct) in cases) {
       final encoded = encodeAmplitude(total, pct);
-      expect(parseAmplitude(encoded).total, closeTo(total, 1e-9),
-          reason: '$total split $pct encoded as "$encoded"');
+      expect(
+        parseAmplitude(encoded).total,
+        closeTo(total, 1e-9),
+        reason: '$total split $pct encoded as "$encoded"',
+      );
     }
   });
 

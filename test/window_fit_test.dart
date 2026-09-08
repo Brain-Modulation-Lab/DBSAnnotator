@@ -23,11 +23,18 @@ void main() {
         final r = fitWindowRect(work: work);
 
         // The whole point: never larger than the screen can show.
-        expect(r.width, lessThanOrEqualTo(work.width),
-            reason: 'wider than the work area');
-        expect(r.height, lessThanOrEqualTo(work.height),
-            reason: 'taller than the work area — this is what hid the title '
-                'bar and the taskbar');
+        expect(
+          r.width,
+          lessThanOrEqualTo(work.width),
+          reason: 'wider than the work area',
+        );
+        expect(
+          r.height,
+          lessThanOrEqualTo(work.height),
+          reason:
+              'taller than the work area — this is what hid the title '
+              'bar and the taskbar',
+        );
         // And fully within it, so the title bar can be grabbed.
         expect(r.left, greaterThanOrEqualTo(0));
         expect(r.top, greaterThanOrEqualTo(0));
@@ -42,7 +49,9 @@ void main() {
     test('honours a multi-monitor work-area origin', () {
       // A second display to the right of a 1920-wide primary.
       final r = fitWindowRect(
-          work: const Size(1280, 700), workOrigin: const Offset(1920, 0));
+        work: const Size(1280, 700),
+        workOrigin: const Offset(1920, 0),
+      );
       expect(r.left, greaterThanOrEqualTo(1920));
       expect(r.right, lessThanOrEqualTo(1920 + 1280.01));
     });

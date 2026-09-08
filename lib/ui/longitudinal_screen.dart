@@ -35,7 +35,8 @@ class ImportedSessionFile {
 /// sessions render sequentially left-to-right instead of overwriting each
 /// other at block 0 (files are taken in import order).
 Map<String, Map<int, double>> combinedScaleTimeline(
-    Iterable<List<SessionRow>> perFileRows) {
+  Iterable<List<SessionRow>> perFileRows,
+) {
   final combined = <String, Map<int, double>>{};
   var offset = 0;
   for (final rows in perFileRows) {
@@ -111,14 +112,17 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
         // screen then showed a review with no data in it and no explanation.
         final kind = sniffTsvKind(content);
         if (kind != TsvKind.programming) {
-          wrongKind
-              .add(tsvKindMismatch(picked.name, kind, TsvKind.programming));
+          wrongKind.add(
+            tsvKindMismatch(picked.name, kind, TsvKind.programming),
+          );
           continue;
         }
-        added.add(ImportedSessionFile(
-          name: picked.name,
-          rows: parseSessionTsv(content),
-        ));
+        added.add(
+          ImportedSessionFile(
+            name: picked.name,
+            rows: parseSessionTsv(content),
+          ),
+        );
       } catch (_) {
         failed.add(picked.name);
       }
@@ -132,8 +136,8 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
   /// The report content, computed once so both formats and both figures come
   /// from the same numbers.
   LongitudinalReportData _reportData() => buildLongitudinalReportData(
-        files: {for (final f in _files) f.name: f.rows},
-      );
+    files: {for (final f in _files) f.name: f.rows},
+  );
 
   /// Lay the imported files out as a BIDS dataset and export it, zipped.
   ///
@@ -164,20 +168,22 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
         skipped.add(file.name);
         continue;
       }
-      entries.add(datasetEntry(
-        // Re-emit with the current suffix and column names, so a 0.4.x
-        // `_events.tsv` lands in the dataset as a valid `_beh.tsv`.
-        name: BidsName(
-          subject: name.subject,
-          session: name.session,
-          task: name.task.isEmpty ? 'programming' : name.task,
-          run: name.run,
+      entries.add(
+        datasetEntry(
+          // Re-emit with the current suffix and column names, so a 0.4.x
+          // `_events.tsv` lands in the dataset as a valid `_beh.tsv`.
+          name: BidsName(
+            subject: name.subject,
+            session: name.session,
+            task: name.task.isEmpty ? 'programming' : name.task,
+            run: name.run,
+          ),
+          tsv: serializeSessionTsv(file.rows),
+          contract: contract,
+          kind: 'session_tsv',
+          acqTime: file.rows.isEmpty ? '' : file.rows.first.acqTime,
         ),
-        tsv: serializeSessionTsv(file.rows),
-        contract: contract,
-        kind: 'session_tsv',
-        acqTime: file.rows.isEmpty ? '' : file.rows.first.acqTime,
-      ));
+      );
     }
     if (!mounted) return;
     if (entries.isEmpty) {
@@ -186,8 +192,10 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
     }
     await exportBidsDataset(context, anchor: _exportKey, entries: entries);
     if (mounted && skipped.isNotEmpty) {
-      _snack('Skipped (no BIDS entities in the filename): '
-          '${skipped.join(', ')}');
+      _snack(
+        'Skipped (no BIDS entities in the filename): '
+        '${skipped.join(', ')}',
+      );
     }
   }
 
@@ -205,7 +213,8 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
     // several) nor `task-` (`longitudinal` was never a task the app records).
     // `desc-` is the BIDS derivatives entity for exactly this: naming what a
     // computed file is.
-    final name = 'sub-${BidsName.label(data.patientId)}'
+    final name =
+        'sub-${BidsName.label(data.patientId)}'
         '_desc-longitudinal_report.${docx ? 'docx' : 'pdf'}';
 
     await exportFile(
@@ -239,8 +248,8 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
           bytes: report.bytes,
           warning: report.lostCharacters
               ? 'Some characters could not be rendered in the PDF and were '
-                  'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
-                  'for full Unicode, or export to Word instead.'
+                    'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
+                    'for full Unicode, or export to Word instead.'
               : null,
         );
       },
@@ -392,8 +401,10 @@ class _FileList extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Imported sessions (${files.length})',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Imported sessions (${files.length})',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const Spacer(),
             TextButton.icon(
               onPressed: onClear,
@@ -437,7 +448,9 @@ class _FileList extends StatelessWidget {
 /// NOTE: the x axis is still the concatenated block index. Group 3 replaces it
 /// with real session dates, which is what makes it interpretable across visits.
 Widget _timelineChart(
-    BuildContext context, Map<String, Map<int, double>> timeline) {
+  BuildContext context,
+  Map<String, Map<int, double>> timeline,
+) {
   final theme = Theme.of(context);
   return CustomPaint(
     painter: ScalesChartPainter(

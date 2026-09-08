@@ -79,8 +79,9 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       final json = tsvPath.replaceFirst(RegExp(r'\.tsv$'), '.json');
       if (json == tsvPath || File(json).existsSync()) return;
       final contract = await loadTsvContract();
-      await File(json).writeAsString(
-          annotationSidecarJson(contract, appVersion: appVersion));
+      await File(
+        json,
+      ).writeAsString(annotationSidecarJson(contract, appVersion: appVersion));
     } catch (_) {
       // No sidecar is a documentation loss, not a data loss.
     }
@@ -89,8 +90,9 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
   // ---- Step 0: File (shared shape with the Complete-Workflow wizard) ----
 
   Future<void> _newSession() async {
-    final subject =
-        _subjectCtrl.text.trim().isEmpty ? '01' : _subjectCtrl.text.trim();
+    final subject = _subjectCtrl.text.trim().isEmpty
+        ? '01'
+        : _subjectCtrl.text.trim();
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
     final name = _bidsName(subject: subject, run: run).filename;
     String? path;
@@ -315,8 +317,9 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     final subject = name.subject;
     // A report is a derivative, not raw data — `_report` is not a BIDS suffix.
     // Same entities as the TSV so the two files sort together.
-    final filename =
-        name.withSuffix('report', extension: docx ? 'docx' : 'pdf').filename;
+    final filename = name
+        .withSuffix('report', extension: docx ? 'docx' : 'pdf')
+        .filename;
 
     await exportFile(
       context,
@@ -343,8 +346,8 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
           bytes: report.bytes,
           warning: report.lostCharacters
               ? 'Some characters could not be rendered in the PDF and were '
-                  'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
-                  'for full Unicode, or export to Word instead.'
+                    'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
+                    'for full Unicode, or export to Word instead.'
               : null,
         );
       },
@@ -404,8 +407,10 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
           ],
         ),
         const Divider(height: 32),
-        Text('Inserted notes (${_entries.length})',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Inserted notes (${_entries.length})',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         if (_entries.isEmpty)
           const Center(child: Text('No notes yet.'))
@@ -426,15 +431,22 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
               ],
               rows: [
                 for (final e in _entries)
-                  DataRow(cells: [
-                    DataCell(Text(e.date)),
-                    DataCell(Text('${e.time} (${e.timezone})')),
-                    DataCell(ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: Text(e.notes,
-                          maxLines: 4, overflow: TextOverflow.ellipsis),
-                    )),
-                  ]),
+                  DataRow(
+                    cells: [
+                      DataCell(Text(e.date)),
+                      DataCell(Text('${e.time} (${e.timezone})')),
+                      DataCell(
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: Text(
+                            e.notes,
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -454,10 +466,12 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       body: Stepper(
         currentStep: _currentStep,
         onStepTapped: (i) => setState(() => _currentStep = i),
-        onStepContinue:
-            _currentStep < 1 ? () => setState(() => _currentStep += 1) : null,
-        onStepCancel:
-            _currentStep > 0 ? () => setState(() => _currentStep -= 1) : null,
+        onStepContinue: _currentStep < 1
+            ? () => setState(() => _currentStep += 1)
+            : null,
+        onStepCancel: _currentStep > 0
+            ? () => setState(() => _currentStep -= 1)
+            : null,
         controlsBuilder: (context, details) {
           return Padding(
             padding: const EdgeInsets.only(top: 12),

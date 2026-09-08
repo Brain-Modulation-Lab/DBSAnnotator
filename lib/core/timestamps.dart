@@ -39,6 +39,6 @@ String timeCell(DateTime dt) =>
 String timezoneCell(DateTime dt) =>
     '${dt.timeZoneName} ${offsetString(dt)}'.trim();
 
-/// The `acq_time` cell: ISO-8601 with offset, e.g. `2026-06-26T16:46:14+02:00`.
+/// The `acq_time` cell: ISO-8601 with offset, e.g. `2026-02-03T09:00:00+00:00`.
 String acqTimeCell(DateTime dt) =>
     '${dateCell(dt)}T${timeCell(dt)}${offsetString(dt)}';

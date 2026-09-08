@@ -7,9 +7,10 @@ import 'package:dbs_annotator/report/entry_charts.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
-          .readAsStringSync(),
-    );
+  File(
+    'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
+  ).readAsStringSync(),
+);
 
 void main() {
   group('buildEntryChartData over the committed example', () {
@@ -42,23 +43,26 @@ void main() {
     test('the scales panel carries one series per session scale', () {
       final scales = data.panels.first;
       expect(
-          scales.series.keys,
-          containsAll(
-              ['Obsessions', 'Compulsions', 'Anxiety', 'Mood', 'Energy']));
+        scales.series.keys,
+        containsAll(['Obsessions', 'Compulsions', 'Anxiety', 'Mood', 'Energy']),
+      );
     });
 
     test('amplitude sums split values instead of plotting the first part', () {
       final amp = data.panels[1];
-      // Block 1 left is "3.3_2.2" -> 5.5 mA total, which is the clinically
-      // meaningful number; plotting 3.3 would understate the dose.
-      expect(amp.series['Left']![1], closeTo(5.5, 0.001));
-      // Block 4 right is "1.67_1.67_1.67" -> ~5.01.
-      expect(amp.series['Right']![4], closeTo(5.01, 0.001));
+      // Block 1 left is "3.0_2.0" -> 5.0 mA total, which is the clinically
+      // meaningful number; plotting 3.0 would understate the dose.
+      expect(amp.series['Left']![1], closeTo(5.0, 0.001));
+      // Block 4 right splits three ways, "2.0_2.0_2.0" -> 6.0. Since v0.5.0
+      // encodeAmplitude distributes the rounding remainder so the parts sum
+      // exactly to the dose; amplitude_total_test.dart covers that directly,
+      // and the legacy fixture still carries independently-rounded parts.
+      expect(amp.series['Right']![4], closeTo(6.0, 0.001));
     });
 
     test('pulse width and frequency read through their unit suffixes', () {
-      expect(data.panels[2].series['Left']![1], 90);
-      expect(data.panels[3].series['Left']![1], 125);
+      expect(data.panels[2].series['Left']![1], 60);
+      expect(data.panels[3].series['Left']![1], 130);
     });
 
     test('y ranges are padded so a flat series still has an axis', () {
@@ -71,17 +75,27 @@ void main() {
   test('declared scale bounds win over the data range', () {
     const rows = [
       SessionRow(
-          date: '2026-01-01',
-          time: '09:00:00',
-          blockId: '1',
-          isInitial: '0',
-          scaleName: 'Tremor',
-          scaleValue: '4'),
+        date: '2026-01-01',
+        time: '09:00:00',
+        blockId: '1',
+        isInitial: '0',
+        scaleName: 'Tremor',
+        scaleValue: '4',
+      ),
     ];
     final auto = buildEntryChartData(rows);
-    final declared = buildEntryChartData(rows, scalePrefs: const [
-      (name: 'Tremor', min: 0.0, max: 10.0, mode: ScaleMode.min, custom: null),
-    ]);
+    final declared = buildEntryChartData(
+      rows,
+      scalePrefs: const [
+        (
+          name: 'Tremor',
+          min: 0.0,
+          max: 10.0,
+          mode: ScaleMode.min,
+          custom: null,
+        ),
+      ],
+    );
     expect(declared.panels.first.yMin, 0);
     expect(declared.panels.first.yMax, 10);
     expect(auto.panels.first.yMax, isNot(10));
@@ -93,17 +107,19 @@ void main() {
     // A TSV whose block ids do not ascend with the clock (e.g. re-opened file).
     const rows = [
       SessionRow(
-          date: '2026-01-01',
-          time: '10:00:00',
-          blockId: '7',
-          isInitial: '0',
-          leftStimFreq: '130'),
+        date: '2026-01-01',
+        time: '10:00:00',
+        blockId: '7',
+        isInitial: '0',
+        leftStimFreq: '130',
+      ),
       SessionRow(
-          date: '2026-01-01',
-          time: '09:00:00',
-          blockId: '3',
-          isInitial: '0',
-          leftStimFreq: '120'),
+        date: '2026-01-01',
+        time: '09:00:00',
+        blockId: '3',
+        isInitial: '0',
+        leftStimFreq: '120',
+      ),
     ];
     final data = buildEntryChartData(rows);
     expect(data.xs, [3, 7], reason: '09:00 must precede 10:00');

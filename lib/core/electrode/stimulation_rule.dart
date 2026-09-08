@@ -63,14 +63,17 @@ class ContactKey {
   }
 
   // Rule 3: At least one anodic contact must exist if any cathodic exists.
-  final hasCathodic =
-      contactStates.values.any((s) => s == ContactState.cathodic);
-  final hasAnodic = caseState == ContactState.anodic ||
+  final hasCathodic = contactStates.values.any(
+    (s) => s == ContactState.cathodic,
+  );
+  final hasAnodic =
+      caseState == ContactState.anodic ||
       contactStates.values.any((s) => s == ContactState.anodic);
   if (hasCathodic && !hasAnodic) {
     return (
       valid: false,
-      error: 'At least one anodic contact (or CASE) required when using '
+      error:
+          'At least one anodic contact (or CASE) required when using '
           'cathodic contacts',
     );
   }

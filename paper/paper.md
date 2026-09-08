@@ -1,5 +1,5 @@
 ---
-title: 'DBS Annotator: bedside recording of deep brain stimulation programming sessions in an analysis-ready format'
+title: 'DBS Annotator: recording deep brain stimulation programming visits in an analysis-ready format'
 tags:
   - deep brain stimulation
   - neuromodulation
@@ -21,17 +21,20 @@ bibliography: paper.bib
 
 # Summary
 
-Deep brain stimulation (DBS) therapy depends on *programming*: a clinician iterates
-through stimulation configurations - active contacts, amplitude, pulse width,
-frequency - and records how the patient responds to each. The scientific content of
-such a session is the relationship between what was delivered and what was observed.
+Deep brain stimulation (DBS) therapy depends on *programming*. Once the electrodes
+are implanted, the patient attends appointments with a neurologist or psychiatrist at
+which the clinician iterates through stimulation configurations - active contacts,
+amplitude, pulse width, frequency - and records how the patient responds to each.
+Reaching a good setting takes one visit or many, and the parameters go on being
+adapted over months or years. The scientific content of such a visit is the
+relationship between what was delivered and what was observed.
 In routine practice that relationship is largely lost. Clinical programming devices
 are built to configure hardware, not to export research-usable records, and the
 ratings, ordering and adverse events that give the parameters their meaning end up in
 free text or on paper.
 
 `DBS Annotator` is an offline, cross-platform application for recording a DBS
-programming session as it happens, and writing it to a documented, tab-separated,
+programming visit as it happens, and writing it to a documented, tab-separated,
 BIDS-compliant [@Gorgolewski2016] `_beh.tsv` file, with a JSON sidecar documenting
 every column, that is directly usable for analysis. It captures
 per-configuration stimulation parameters, including current-steered splits across
@@ -100,7 +103,8 @@ The software was developed against, and validated by comparison with, an earlier
 PySide6 implementation of the same file format, which is retained as a tagged
 reference. Correctness-critical numerical output is pinned rather than smoke-tested:
 the configuration-ranking index is asserted to specific values over a committed
-example session, so a changed weight, bound or clipping rule fails a test instead of
+synthetic example session, so a changed weight, bound or clipping rule fails a test
+instead of
 silently shifting a clinical ranking.
 
 # Acknowledgements

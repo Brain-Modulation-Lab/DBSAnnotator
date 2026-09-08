@@ -86,11 +86,7 @@ pw.Widget _fitWidth(Uint8List png, double width) {
   final image = pw.MemoryImage(png);
   final w = image.width ?? 0;
   final h = image.height ?? 0;
-  return pw.Image(
-    image,
-    width: width,
-    height: w > 0 ? width * h / w : null,
-  );
+  return pw.Image(image, width: width, height: w > 0 ? width * h / w : null);
 }
 
 /// One column of the electrode grid: a caption and, under it, that lead.
@@ -104,8 +100,13 @@ pw.Widget _fitWidth(Uint8List png, double width) {
 /// A missing lead still occupies its full cell. The old placeholder was a
 /// zero-height `SizedBox(width: 130)`, so one absent lead shifted the others
 /// sideways and shortened the row.
-pw.Widget _electrodeCell(String caption, Uint8List? png, double width,
-    {double? imageHeight, String detail = ''}) {
+pw.Widget _electrodeCell(
+  String caption,
+  Uint8List? png,
+  double width, {
+  double? imageHeight,
+  String detail = '',
+}) {
   return pw.SizedBox(
     width: width,
     child: pw.Column(
@@ -117,9 +118,11 @@ pw.Widget _electrodeCell(String caption, Uint8List? png, double width,
         // them, so `2b 60% / 2c 40%` and its reverse are the same picture -
         // and for current steering that split IS the configuration.
         if (detail.isNotEmpty)
-          pw.Text(detail,
-              textAlign: pw.TextAlign.center,
-              style: const pw.TextStyle(fontSize: 6.5)),
+          pw.Text(
+            detail,
+            textAlign: pw.TextAlign.center,
+            style: const pw.TextStyle(fontSize: 6.5),
+          ),
         pw.SizedBox(height: 2),
         if (png != null)
           _fitWidth(png, width)
@@ -127,9 +130,13 @@ pw.Widget _electrodeCell(String caption, Uint8List? png, double width,
           pw.SizedBox(
             height: imageHeight,
             child: pw.Center(
-              child: pw.Text('(not recorded)',
-                  style: const pw.TextStyle(
-                      fontSize: 7, color: PdfColors.grey600)),
+              child: pw.Text(
+                '(not recorded)',
+                style: const pw.TextStyle(
+                  fontSize: 7,
+                  color: PdfColors.grey600,
+                ),
+              ),
             ),
           ),
       ],
@@ -159,33 +166,42 @@ List<pw.Widget> _legendBlock(SessionReportData data, ReportTextSanitiser t) {
   if (!data.hasTargets) {
     return [
       pw.SizedBox(height: 4),
-      pw.Text(t(data.targetsText),
-          style:
-              const pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic)),
+      pw.Text(
+        t(data.targetsText),
+        style: const pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic),
+      ),
     ];
   }
   if (data.bestBlocks.isEmpty && data.secondBlocks.isEmpty) return const [];
   pw.Widget swatch(PdfColor fill, String label) => pw.Row(
-        mainAxisSize: pw.MainAxisSize.min,
-        children: [
-          pw.Container(width: 10, height: 8, color: fill),
-          pw.SizedBox(width: 4),
-          pw.Text(label, style: const pw.TextStyle(fontSize: 9)),
-        ],
-      );
+    mainAxisSize: pw.MainAxisSize.min,
+    children: [
+      pw.Container(width: 10, height: 8, color: fill),
+      pw.SizedBox(width: 4),
+      pw.Text(label, style: const pw.TextStyle(fontSize: 9)),
+    ],
+  );
   return [
     pw.SizedBox(height: 4),
-    pw.Row(children: [
-      pw.Text('Legend: ',
-          style:
-              const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-      swatch(_bestFill, 'Highest aggregate index (rank 1)'),
-      pw.SizedBox(width: 14),
-      swatch(_secondFill, 'Second highest (rank 2)'),
-    ]),
+    pw.Row(
+      children: [
+        pw.Text(
+          'Legend: ',
+          style: const pw.TextStyle(
+            fontSize: 9,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        swatch(_bestFill, 'Highest aggregate index (rank 1)'),
+        pw.SizedBox(width: 14),
+        swatch(_secondFill, 'Second highest (rank 2)'),
+      ],
+    ),
     if (data.targetsText.isNotEmpty)
-      pw.Text('Scale targets: ${t(data.targetsText)}',
-          style: const pw.TextStyle(fontSize: 9)),
+      pw.Text(
+        'Scale targets: ${t(data.targetsText)}',
+        style: const pw.TextStyle(fontSize: 9),
+      ),
     // The index averages only the scales rated AT that block, so blocks with
     // different rated sets are not comparable — one where a single low scale
     // was rated can outrank a fully-rated block.
@@ -196,14 +212,18 @@ List<pw.Widget> _legendBlock(SessionReportData data, ReportTextSanitiser t) {
     if (data.bestSettingText.isNotEmpty)
       pw.Text(data.bestSettingText, style: const pw.TextStyle(fontSize: 8)),
     if (data.rankingResolutionNote != null)
-      pw.Text(data.rankingResolutionNote!,
-          style: const pw.TextStyle(fontSize: 8)),
+      pw.Text(
+        data.rankingResolutionNote!,
+        style: const pw.TextStyle(fontSize: 8),
+      ),
     // State the method, not just the modes: the equal weighting across every
     // scale is a clinical judgement and was invisible.
     pw.Text(data.indexMethod, style: const pw.TextStyle(fontSize: 8)),
     pw.SizedBox(height: 2),
-    pw.Text(kRankingDisclaimer,
-        style: const pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic)),
+    pw.Text(
+      kRankingDisclaimer,
+      style: const pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic),
+    ),
   ];
 }
 
@@ -236,7 +256,8 @@ Future<ReportBytes> buildSessionPdf({
   // once the file is in a document system its filename was the only clue to
   // what it is.
   final ei = electrodeImages;
-  final hasElectrodeImages = ei != null &&
+  final hasElectrodeImages =
+      ei != null &&
       (ei.initLeft != null ||
           ei.initRight != null ||
           ei.finalLeft != null ||
@@ -335,13 +356,16 @@ Future<ReportBytes> buildSessionPdf({
             ),
           ),
         ),
-        pw.Text('Patient: sub-${t(subjectId)}    '
-            'Session: ${data.sessionStamp}'),
         pw.Text(
-            'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion'
-            '${data.sourceFile.isEmpty ? '' : '  |  Source: '
-                '${t(data.sourceFile)} (${data.rowCount} rows)'}',
-            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+          'Patient: sub-${t(subjectId)}    '
+          'Session: ${data.sessionStamp}',
+        ),
+        pw.Text(
+          'Generated on: ${data.generatedOn} by DBS Annotator v$appVersion'
+          '${data.sourceFile.isEmpty ? '' : '  |  Source: '
+                    '${t(data.sourceFile)} (${data.rowCount} rows)'}',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+        ),
         pw.SizedBox(height: 8),
 
         // The one thing the clinician looks for first: what the patient left
@@ -369,14 +393,19 @@ Future<ReportBytes> buildSessionPdf({
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
-                            pw.Text('At start of session',
-                                style: const pw.TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: pw.FontWeight.bold,
-                                    color: PdfColors.grey700)),
+                            pw.Text(
+                              'At start of session',
+                              style: const pw.TextStyle(
+                                fontSize: 9,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.grey700,
+                              ),
+                            ),
                             for (final e in data.firstConfig.entries)
-                              pw.Text('${e.key}:  ${t(e.value)}',
-                                  style: const pw.TextStyle(fontSize: 9)),
+                              pw.Text(
+                                '${e.key}:  ${t(e.value)}',
+                                style: const pw.TextStyle(fontSize: 9),
+                              ),
                           ],
                         ),
                       ),
@@ -384,13 +413,18 @@ Future<ReportBytes> buildSessionPdf({
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Last recorded configuration',
-                              style: const pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                            'Last recorded configuration',
+                            style: const pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
                           for (final e in data.lastConfig.entries)
-                            pw.Text('${e.key}:  ${t(e.value)}',
-                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text(
+                              '${e.key}:  ${t(e.value)}',
+                              style: const pw.TextStyle(fontSize: 10),
+                            ),
                         ],
                       ),
                     ),
@@ -399,8 +433,10 @@ Future<ReportBytes> buildSessionPdf({
                 if (data.configChanges.isNotEmpty) ...[
                   pw.SizedBox(height: 4),
                   for (final line in data.configChanges)
-                    pw.Text('Changed: ${t(line)}',
-                        style: const pw.TextStyle(fontSize: 9)),
+                    pw.Text(
+                      'Changed: ${t(line)}',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
                 ],
               ],
             ),
@@ -423,9 +459,12 @@ Future<ReportBytes> buildSessionPdf({
                 ],
                 cellStyle: const pw.TextStyle(fontSize: 9),
                 headerStyle: const pw.TextStyle(
-                    fontSize: 9, fontWeight: pw.FontWeight.bold),
-                headerDecoration:
-                    const pw.BoxDecoration(color: PdfColors.grey300),
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.grey300,
+                ),
                 cellAlignment: pw.Alignment.centerLeft,
                 columnWidths: const {
                   0: pw.FlexColumnWidth(4),
@@ -456,16 +495,21 @@ Future<ReportBytes> buildSessionPdf({
             _fitWidth(chartPng, format.availableWidth),
             // A real caption: subject, session, n, and what the green means.
             // Extracted from a .docx the figure travels alone.
-            pw.Text(t(data.figureCaption),
-                style: const pw.TextStyle(
-                    fontSize: 8, fontStyle: pw.FontStyle.italic)),
+            pw.Text(
+              t(data.figureCaption),
+              style: const pw.TextStyle(
+                fontSize: 8,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
             pw.SizedBox(height: 8),
           ] else if (wantsChart && !data.chart.isEmpty)
             // The screen didn't rasterise one (headless caller); say so rather
             // than silently omitting the section's main graphic.
-            pw.Text('(scales timeline chart unavailable)',
-                style:
-                    const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+            pw.Text(
+              '(scales timeline chart unavailable)',
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+            ),
           if (wantsTable && !data.hasRecording)
             pw.Text('No recording blocks in this session.')
           else if (wantsTable) ...[
@@ -474,8 +518,9 @@ Future<ReportBytes> buildSessionPdf({
                 fontSize: 8,
                 fontWeight: pw.FontWeight.bold,
               ),
-              headerDecoration:
-                  const pw.BoxDecoration(color: PdfColors.grey300),
+              headerDecoration: const pw.BoxDecoration(
+                color: PdfColors.grey300,
+              ),
               cellStyle: cellStyle,
               cellAlignment: pw.Alignment.centerLeft,
               headers: sessionTableHeaders,
@@ -500,8 +545,11 @@ Future<ReportBytes> buildSessionPdf({
                   color: fill,
                   border: isBoundary
                       ? const pw.Border(
-                          top:
-                              pw.BorderSide(width: 1.6, color: PdfColors.black))
+                          top: pw.BorderSide(
+                            width: 1.6,
+                            color: PdfColors.black,
+                          ),
+                        )
                       : null,
                 );
               },
@@ -519,78 +567,113 @@ Future<ReportBytes> buildSessionPdf({
         // sit at the foot of one page with its figures on the next, which reads
         // as a printing fault.
         if (sections.contains(ReportSection.electrodes))
-          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Header(level: 1, text: 'Electrode configuration'),
-            if (!data.hasElectrodeConfig)
-              pw.Text('No electrode configuration recorded.')
-            else ...[
-              if (data.electrodeModel.isNotEmpty)
-                pw.Text('Electrode model: ${t(data.electrodeModel)}'),
-              pw.SizedBox(height: 4),
-              if (hasElectrodeImages) ...[
-                // ONE row of four leads under a merged Initial/Final header, as
-                // Word and the desktop lay it out. Two stacked rows cost ~380 pt
-                // of height, which is why this section used to break across
-                // pages; 4 x ~114 pt of width fits in 482 pt and halves that.
-                pw.Row(children: [
-                  for (final title in ['Initial settings', 'Final settings'])
-                    pw.SizedBox(
-                      width: leadWidth * 2,
-                      child: pw.Text(title,
-                          textAlign: pw.TextAlign.center,
-                          style: const pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold)),
-                    ),
-                ]),
-                pw.SizedBox(height: 2),
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    _electrodeCell('Left', ei.initLeft, leadWidth,
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(level: 1, text: 'Electrode configuration'),
+              if (!data.hasElectrodeConfig)
+                pw.Text('No electrode configuration recorded.')
+              else ...[
+                if (data.electrodeModel.isNotEmpty)
+                  pw.Text('Electrode model: ${t(data.electrodeModel)}'),
+                pw.SizedBox(height: 4),
+                if (hasElectrodeImages) ...[
+                  // ONE row of four leads under a merged Initial/Final header, as
+                  // Word and the desktop lay it out. Two stacked rows cost ~380 pt
+                  // of height, which is why this section used to break across
+                  // pages; 4 x ~114 pt of width fits in 482 pt and halves that.
+                  pw.Row(
+                    children: [
+                      for (final title in [
+                        'Initial settings',
+                        'Final settings',
+                      ])
+                        pw.SizedBox(
+                          width: leadWidth * 2,
+                          child: pw.Text(
+                            title,
+                            textAlign: pw.TextAlign.center,
+                            style: const pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      _electrodeCell(
+                        'Left',
+                        ei.initLeft,
+                        leadWidth,
                         imageHeight: leadHeight,
-                        detail: t(_leadDetail(data.initialTokens, true))),
-                    _electrodeCell('Right', ei.initRight, leadWidth,
+                        detail: t(_leadDetail(data.initialTokens, true)),
+                      ),
+                      _electrodeCell(
+                        'Right',
+                        ei.initRight,
+                        leadWidth,
                         imageHeight: leadHeight,
-                        detail: t(_leadDetail(data.initialTokens, false))),
-                    _electrodeCell('Left', ei.finalLeft, leadWidth,
+                        detail: t(_leadDetail(data.initialTokens, false)),
+                      ),
+                      _electrodeCell(
+                        'Left',
+                        ei.finalLeft,
+                        leadWidth,
                         imageHeight: leadHeight,
-                        detail: t(_leadDetail(data.finalTokens, true))),
-                    _electrodeCell('Right', ei.finalRight, leadWidth,
+                        detail: t(_leadDetail(data.finalTokens, true)),
+                      ),
+                      _electrodeCell(
+                        'Right',
+                        ei.finalRight,
+                        leadWidth,
                         imageHeight: leadHeight,
-                        detail: t(_leadDetail(data.finalTokens, false))),
-                  ],
-                ),
-                // A key, because the drawing encodes polarity by COLOUR alone -
-                // useless on a mono printer or to a colour-blind reader.
-                pw.SizedBox(height: 3),
-                pw.Text(
+                        detail: t(_leadDetail(data.finalTokens, false)),
+                      ),
+                    ],
+                  ),
+                  // A key, because the drawing encodes polarity by COLOUR alone -
+                  // useless on a mono printer or to a colour-blind reader.
+                  pw.SizedBox(height: 3),
+                  pw.Text(
                     'Red = anode (+)   Blue = cathode (-)   Grey = inactive.   '
                     "A percentage is that contact's share of the total current.",
                     style: const pw.TextStyle(
-                        fontSize: 7, color: PdfColors.grey700)),
-              ] else ...[
-                // Text fallback (no rasteriser available). Vendor nomenclature
-                // here too — the raw `E2b_E2c` tokens are internal identifiers,
-                // and printing them in one place and `2b(3.3)` in another
-                // described the same lead two ways.
-                for (final pair in [
-                  ('Initial settings', data.initialTokens),
-                  ('Last recorded settings', data.finalTokens),
-                ])
-                  if (pair.$2 != null) ...[
-                    pw.SizedBox(height: 4),
-                    pw.Text(pair.$1,
-                        style:
-                            const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text(
-                        '  Left:   ${t(lateralText(pair.$2!, left: true))}'),
-                    pw.Text(
-                        '  Right:  ${t(lateralText(pair.$2!, left: false))}'),
-                  ],
+                      fontSize: 7,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                ] else ...[
+                  // Text fallback (no rasteriser available). Vendor nomenclature
+                  // here too — the raw `E2b_E2c` tokens are internal identifiers,
+                  // and printing them in one place and `2b(3.3)` in another
+                  // described the same lead two ways.
+                  for (final pair in [
+                    ('Initial settings', data.initialTokens),
+                    ('Last recorded settings', data.finalTokens),
+                  ])
+                    if (pair.$2 != null) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        pair.$1,
+                        style: const pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.Text(
+                        '  Left:   ${t(lateralText(pair.$2!, left: true))}',
+                      ),
+                      pw.Text(
+                        '  Right:  ${t(lateralText(pair.$2!, left: false))}',
+                      ),
+                    ],
+                ],
               ],
+              pw.SizedBox(height: 8),
             ],
-            pw.SizedBox(height: 8),
-          ]),
+          ),
 
         // (e) Programming summary (desktop _add_programming_summary math).
         if (sections.contains(ReportSection.summary)) ...[
@@ -609,52 +692,70 @@ Future<ReportBytes> buildSessionPdf({
             // the encounter appeared nowhere in the document.
             if (data.response.isNotEmpty) ...[
               pw.SizedBox(height: 6),
-              pw.Text('Response (first to last rated block)',
-                  style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'Response (first to last rated block)',
+                style: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
               for (final r in data.response)
-                pw.Text('  ${t(r.name)}: '
-                    '${_num(r.first)} -> ${_num(r.last)} '
-                    '(${_delta(r.last - r.first)})'),
+                pw.Text(
+                  '  ${t(r.name)}: '
+                  '${_num(r.first)} -> ${_num(r.last)} '
+                  '(${_delta(r.last - r.first)})',
+                ),
             ],
 
             // Anomalies the reader should not have to spot unaided.
             if (data.anomalies.isNotEmpty) ...[
               pw.SizedBox(height: 6),
-              pw.Text('Data notes',
-                  style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'Data notes',
+                style: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
               for (final line in data.anomalies)
                 pw.Bullet(
-                    text: t(line),
-                    style: const pw.TextStyle(fontSize: 9),
-                    bulletSize: 1.5),
+                  text: t(line),
+                  style: const pw.TextStyle(fontSize: 9),
+                  bulletSize: 1.5,
+                ),
             ],
 
             // The notes column holds the only adverse-event data the format
             // captures, and inside a fourteen-row table nobody reads it.
             // What the numbers are, and what the record cannot say about them.
             pw.SizedBox(height: 6),
-            pw.Text(data.instrumentNote,
-                style: const pw.TextStyle(
-                    fontSize: 8, fontStyle: pw.FontStyle.italic)),
+            pw.Text(
+              data.instrumentNote,
+              style: const pw.TextStyle(
+                fontSize: 8,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
 
             if (data.observations.isNotEmpty) ...[
               pw.SizedBox(height: 6),
-              pw.Text('Recorded observations',
-                  style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'Recorded observations',
+                style: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
               for (final line in data.observations)
                 pw.Bullet(
-                    text: t(line),
-                    style: const pw.TextStyle(fontSize: 9),
-                    bulletSize: 1.5),
+                  text: t(line),
+                  style: const pw.TextStyle(fontSize: 9),
+                  bulletSize: 1.5,
+                ),
             ],
           ],
         ],
         // Attestation. The document otherwise asserts that a machine produced
         // it and that no human stands behind it.
         pw.SizedBox(height: 18),
-        pw.Text('Attestation',
-            style: const pw.TextStyle(
-                fontSize: 10, fontWeight: pw.FontWeight.bold)),
+        pw.Text(
+          'Attestation',
+          style: const pw.TextStyle(
+            fontSize: 10,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
         pw.SizedBox(height: 10),
         pw.Row(
           children: [
@@ -668,9 +769,13 @@ Future<ReportBytes> buildSessionPdf({
                       top: pw.BorderSide(color: PdfColors.grey600, width: 0.8),
                     ),
                   ),
-                  child: pw.Text(label,
-                      style: const pw.TextStyle(
-                          fontSize: 8, color: PdfColors.grey700)),
+                  child: pw.Text(
+                    label,
+                    style: const pw.TextStyle(
+                      fontSize: 8,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
                 ),
               ),
           ],

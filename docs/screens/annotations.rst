@@ -21,7 +21,7 @@ Enter the patient ID and run number and choose where to save. The filename uses
 
 .. code-block:: text
 
-   sub-01_ses-20260626_task-notes_run-01_beh.tsv
+   sub-01_ses-20260203_task-notes_run-01_beh.tsv
 
 Step 1 — Notes
 --------------

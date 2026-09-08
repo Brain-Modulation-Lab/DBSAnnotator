@@ -44,8 +44,8 @@ replaced by ``_report``, so the two sort together in a directory listing:
 
 .. code-block:: text
 
-   sub-01_ses-20260626_task-programming_run-01_beh.tsv
-   sub-01_ses-20260626_task-programming_run-01_report.pdf
+   sub-01_ses-20260203_task-programming_run-01_beh.tsv
+   sub-01_ses-20260203_task-programming_run-01_report.pdf
 
 A file whose name carries no ``sub-`` entity keeps its own stem rather than
 having one invented for it — a wrong subject label on a clinical document is

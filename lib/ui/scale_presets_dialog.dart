@@ -153,9 +153,11 @@ class _ScalePresetsDialogState extends State<_ScalePresetsDialog> {
       for (final r in g.rows) {
         final n = r.name.text.trim();
         if (n.isEmpty) continue;
-        rows.add(widget.isSession
-            ? [n, r.min.text.trim(), r.max.text.trim(), r.mode]
-            : [n]);
+        rows.add(
+          widget.isSession
+              ? [n, r.min.text.trim(), r.max.text.trim(), r.mode]
+              : [n],
+        );
       }
       out[name] = rows;
     }
@@ -295,15 +297,18 @@ class _ScalePresetsDialogState extends State<_ScalePresetsDialog> {
   }
 
   Widget _numField(TextEditingController c, String label) => TextField(
-        controller: c,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(labelText: label, isDense: true),
-      );
+    controller: c,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    decoration: InputDecoration(labelText: label, isDense: true),
+  );
 }
 
 /// Small single-field text prompt (used for a new group name).
 Future<String?> _promptText(
-    BuildContext context, String title, String label) async {
+  BuildContext context,
+  String title,
+  String label,
+) async {
   final ctrl = TextEditingController();
   final result = await showDialog<String>(
     context: context,

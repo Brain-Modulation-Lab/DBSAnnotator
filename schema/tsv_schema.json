@@ -20,7 +20,7 @@
       {
         "name": "acq_time",
         "type": "string",
-        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-06-26T16:46:14+02:00``). The machine-readable timestamp."
+        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-02-03T09:00:00+00:00``). The machine-readable timestamp."
       },
       {
         "name": "block_id",
@@ -140,7 +140,7 @@
       {
         "name": "acq_time",
         "type": "string",
-        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-06-26T16:46:14+02:00``). The machine-readable timestamp."
+        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-02-03T09:00:00+00:00``). The machine-readable timestamp."
       },
       {
         "name": "notes",

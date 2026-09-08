@@ -233,8 +233,10 @@ double _leadWidthFor(
   double maxWidth,
   double stackHeight,
 ) {
-  final target =
-      (size.width * _widthOfPane).clamp(_minLeadWidth, _maxLeadWidth);
+  final target = (size.width * _widthOfPane).clamp(
+    _minLeadWidth,
+    _maxLeadWidth,
+  );
   final diameterRatio = model.leadDiameter / _referenceDiameterMm;
   final ceiling = math.min(maxWidth, stackHeight * _maxWidthOfLength);
 
@@ -363,8 +365,10 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
   // tops that up by claiming a slice off the TOP of the segments until it
   // reaches a comfortable touch height.
   final capFromGap = math.max(gapPx - _capClearancePx, 0.0);
-  final capTakeover = (_capTarget(contactHeight) - capFromGap)
-      .clamp(0.0, contactHeight * _maxSegmentTakeover);
+  final capTakeover = (_capTarget(contactHeight) - capFromGap).clamp(
+    0.0,
+    contactHeight * _maxSegmentTakeover,
+  );
 
   // --- Vertical placement, centred -----------------------------------------
   const caseHeight = _caseHeight;
@@ -372,8 +376,12 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
   final top = _topPad + math.max(0.0, (size.height - drawnHeight) / 2);
 
   final caseWidth = leadWidth * _caseWidthOfLead;
-  final caseRect =
-      Rect.fromLTWH(centerX - caseWidth / 2, top, caseWidth, caseHeight);
+  final caseRect = Rect.fromLTWH(
+    centerX - caseWidth / 2,
+    top,
+    caseWidth,
+    caseHeight,
+  );
 
   final leadTop = caseRect.bottom + _caseGapPx;
   var y = leadTop + _initialOffsetMm * scale;
@@ -395,14 +403,26 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
       // show the polymer body beneath — which is what the real gaps are.
       final contactRects = <ContactKey, Rect>{
         // Segment 'a' (left).
-        ContactKey(levelIdx, 0):
-            Rect.fromLTRB(left, segTop, left + segWidth, bottom),
+        ContactKey(levelIdx, 0): Rect.fromLTRB(
+          left,
+          segTop,
+          left + segWidth,
+          bottom,
+        ),
         // Segment 'b' (center).
-        ContactKey(levelIdx, 1): Rect.fromLTRB(left + segWidth + _segGap,
-            segTop, left + 2 * segWidth + _segGap, bottom),
+        ContactKey(levelIdx, 1): Rect.fromLTRB(
+          left + segWidth + _segGap,
+          segTop,
+          left + 2 * segWidth + _segGap,
+          bottom,
+        ),
         // Segment 'c' (right).
         ContactKey(levelIdx, 2): Rect.fromLTRB(
-            left + 2 * (segWidth + _segGap), segTop, left + leadWidth, bottom),
+          left + 2 * (segWidth + _segGap),
+          segTop,
+          left + leadWidth,
+          bottom,
+        ),
       };
       // Spans the level exactly, so `cap.left == a.left` and
       // `cap.right == c.right` are identities rather than coincidences, and
@@ -414,22 +434,30 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
         left + leadWidth,
         capBottom,
       );
-      levels.add(LevelLayout(
-        levelIdx: levelIdx,
-        isDirectional: true,
-        contactRects: contactRects,
-        ringCapRect: ringCapRect,
-      ));
+      levels.add(
+        LevelLayout(
+          levelIdx: levelIdx,
+          isDirectional: true,
+          contactRects: contactRects,
+          ringCapRect: ringCapRect,
+        ),
+      );
     } else {
-      levels.add(LevelLayout(
-        levelIdx: levelIdx,
-        isDirectional: false,
-        contactRects: <ContactKey, Rect>{
-          ContactKey(levelIdx, 0): Rect.fromLTWH(
-              centerX - leadWidth / 2, y, leadWidth, contactHeight),
-        },
-        isTip: isTip,
-      ));
+      levels.add(
+        LevelLayout(
+          levelIdx: levelIdx,
+          isDirectional: false,
+          contactRects: <ContactKey, Rect>{
+            ContactKey(levelIdx, 0): Rect.fromLTWH(
+              centerX - leadWidth / 2,
+              y,
+              leadWidth,
+              contactHeight,
+            ),
+          },
+          isTip: isTip,
+        ),
+      );
     }
     y += pitch;
   }

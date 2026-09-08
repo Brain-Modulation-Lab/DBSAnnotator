@@ -162,8 +162,11 @@ String _valuesText(
   if (byValue.isEmpty) return 'N/A';
   if (byValue.length == 1) return '${byValue.keys.first} $unit (unchanged)';
   return byValue.entries
-      .map((e) => '${e.key} $unit (block${e.value.length == 1 ? '' : 's'} '
-          '${_blockRuns(e.value)})')
+      .map(
+        (e) =>
+            '${e.key} $unit (block${e.value.length == 1 ? '' : 's'} '
+            '${_blockRuns(e.value)})',
+      )
       .join(', ');
 }
 
@@ -224,17 +227,17 @@ String _gapText(DateTime? previous, DateTime? current) {
 /// The stimulation columns that define a configuration. Two blocks with the
 /// same tuple were the same setting, however many times they were rated.
 List<String> _paramKey(SessionRow r) => [
-      r.leftStimFreq.trim(),
-      r.leftAmplitude.trim(),
-      r.leftPulseWidth.trim(),
-      r.leftAnode.trim(),
-      r.leftCathode.trim(),
-      r.rightStimFreq.trim(),
-      r.rightAmplitude.trim(),
-      r.rightPulseWidth.trim(),
-      r.rightAnode.trim(),
-      r.rightCathode.trim(),
-    ];
+  r.leftStimFreq.trim(),
+  r.leftAmplitude.trim(),
+  r.leftPulseWidth.trim(),
+  r.leftAnode.trim(),
+  r.leftCathode.trim(),
+  r.rightStimFreq.trim(),
+  r.rightAmplitude.trim(),
+  r.rightPulseWidth.trim(),
+  r.rightAnode.trim(),
+  r.rightCathode.trim(),
+];
 
 /// Table cell for an amplitude: always the TOTAL delivered current, at the
 /// device's own resolution of 0.1 mA.
@@ -290,9 +293,11 @@ String contactsWithCurrent(String tokens, String amplitude) {
       .split('_')
       .map((t) => t.trim())
       .where((t) => t.isNotEmpty)
-      .map((t) => t.toLowerCase() == 'case'
-          ? 'case'
-          : (t.startsWith('E') || t.startsWith('e') ? t.substring(1) : t))
+      .map(
+        (t) => t.toLowerCase() == 'case'
+            ? 'case'
+            : (t.startsWith('E') || t.startsWith('e') ? t.substring(1) : t),
+      )
       .toList();
   if (contacts.isEmpty) return '';
   if (contacts.length == 1) return contacts.first;
@@ -351,11 +356,14 @@ List<double>? _amplitudeParts(String amplitude) {
 /// text fallback and the Word captions each had their own wording, and one of
 /// them printed the raw `E2b_E2c` tokens.
 String lateralText(LateralTokens tokens, {required bool left}) {
-  final anodes =
-      contactsWithCurrent(left ? tokens.leftAnode : tokens.rightAnode, '');
+  final anodes = contactsWithCurrent(
+    left ? tokens.leftAnode : tokens.rightAnode,
+    '',
+  );
   final cathodes = contactsWithCurrent(
-      left ? tokens.leftCathode : tokens.rightCathode,
-      left ? tokens.leftAmplitude : tokens.rightAmplitude);
+    left ? tokens.leftCathode : tokens.rightCathode,
+    left ? tokens.leftAmplitude : tokens.rightAmplitude,
+  );
   if (anodes.isEmpty && cathodes.isEmpty) return 'not recorded';
   return [
     if (cathodes.isNotEmpty) '$cathodes-',
@@ -698,7 +706,7 @@ class SessionReportData {
   String get bestSettingText => bestBlocks.length <= 1
       ? ''
       : 'The highest-scoring setting was rated in blocks '
-          '${bestBlocks.join(', ')}.';
+            '${bestBlocks.join(', ')}.';
 
   /// The configuration in force at the START of the session, same shape as
   /// [lastConfig]. From the baseline row, which is the state the patient
@@ -723,9 +731,9 @@ class SessionReportData {
   /// One line per block that carries a note: block, time, parameters, note.
   ///
   /// The notes column holds the only adverse-event data the format captures —
-  /// "warm rush", "anxiety and sadness" — and buried in a 14 %-wide cell inside
-  /// a fourteen-row table nobody reads it. This is the safety content of the
-  /// session, so it also gets its own section.
+  /// a side effect, a tolerability remark — and buried in a 14 %-wide cell
+  /// inside a fourteen-row table nobody reads it. This is the safety content of
+  /// the session, so it also gets its own section.
   final List<String> observations;
 
   /// Per scale: its first and last recorded value and the delta.
@@ -753,8 +761,8 @@ class SessionReportData {
         '$scales scale${scales == 1 ? '' : 's'} '
         '($rated of ${chart.xs.length * scales} rated). '
         '${hasTargets ? 'Green bands: highest and second-highest aggregate '
-            'index (right axis, 0-1; 1 = best).' : 'No scale targets were set, '
-            'so no ranking is shown.'}';
+                  'index (right axis, 0-1; 1 = best).' : 'No scale targets were set, '
+                  'so no ranking is shown.'}';
   }
 
   /// What the scale numbers are, and what the record does not say about them.
@@ -812,7 +820,7 @@ class SessionReportData {
   String get sessionStamp => startTime.isEmpty
       ? sessionDate
       : '$sessionDate, $startTime-$endTime'
-          '${utcOffset.isEmpty ? '' : ' (UTC$utcOffset)'}';
+            '${utcOffset.isEmpty ? '' : ' (UTC$utcOffset)'}';
 }
 
 /// Build the scales-chart spec, applying the same target/index/ranking rules as
@@ -920,8 +928,9 @@ ScalesChartSpec buildScalesChartSpec({
     });
 
   final best = blocksOf[keys[order[0]]]!..sort();
-  final second =
-      order.length > 1 ? (blocksOf[keys[order[1]]]!..sort()) : const <int>[];
+  final second = order.length > 1
+      ? (blocksOf[keys[order[1]]]!..sort())
+      : const <int>[];
   return (best: best, second: second);
 }
 
@@ -941,7 +950,8 @@ double? replicateSpread(Map<int, double> index, Map<int, String> settingOf) {
   double? worst;
   for (final vals in byKey.values) {
     if (vals.length < 2) continue;
-    final spread = vals.reduce((a, b) => a > b ? a : b) -
+    final spread =
+        vals.reduce((a, b) => a > b ? a : b) -
         vals.reduce((a, b) => a < b ? a : b);
     if (worst == null || spread > worst) worst = spread;
   }
@@ -957,14 +967,18 @@ String _targetsText(List<ScalePref> prefs) {
       // The bounds travel with the mode: the index normalises into them, so a
       // reader cannot reproduce the score without knowing what they were.
       case ScaleMode.min:
-        parts
-            .add('${p.name}: min of ${_trimZeros(p.min)}-${_trimZeros(p.max)}');
+        parts.add(
+          '${p.name}: min of ${_trimZeros(p.min)}-${_trimZeros(p.max)}',
+        );
       case ScaleMode.max:
-        parts
-            .add('${p.name}: max of ${_trimZeros(p.min)}-${_trimZeros(p.max)}');
+        parts.add(
+          '${p.name}: max of ${_trimZeros(p.min)}-${_trimZeros(p.max)}',
+        );
       case ScaleMode.custom:
-        parts.add('${p.name}: ${_trimZeros(p.custom ?? 0)} '
-            'of ${_trimZeros(p.min)}-${_trimZeros(p.max)}');
+        parts.add(
+          '${p.name}: ${_trimZeros(p.custom ?? 0)} '
+          'of ${_trimZeros(p.min)}-${_trimZeros(p.max)}',
+        );
       case ScaleMode.ignore:
         break;
     }
@@ -1024,8 +1038,8 @@ List<String> _configChanges(SessionRow? from, SessionRow? to) {
 /// five, which was wrong about its own worked example.
 String configCountText(SessionReportData data) =>
     data.numDistinctConfigs > 0 && data.numDistinctConfigs != data.numConfigs
-        ? '${data.numConfigs} (${data.numDistinctConfigs} distinct settings)'
-        : '${data.numConfigs}';
+    ? '${data.numConfigs} (${data.numDistinctConfigs} distinct settings)'
+    : '${data.numConfigs}';
 
 /// One printable line per side for the last recorded configuration, plus the
 /// programme, for the page-1 summary box.
@@ -1036,7 +1050,12 @@ String configCountText(SessionReportData data) =>
 Map<String, String> _lastConfigLines(SessionRow? r) {
   if (r == null) return const {};
   String side(
-      String anode, String cathode, String amp, String freq, String pw) {
+    String anode,
+    String cathode,
+    String amp,
+    String freq,
+    String pw,
+  ) {
     final cathodes = contactsWithCurrent(cathode, amp);
     final anodes = contactsWithCurrent(anode, '');
     if (cathodes.isEmpty && anodes.isEmpty) return '';
@@ -1049,10 +1068,20 @@ Map<String, String> _lastConfigLines(SessionRow? r) {
   }
 
   final out = <String, String>{};
-  final left = side(r.leftAnode, r.leftCathode, r.leftAmplitude, r.leftStimFreq,
-      r.leftPulseWidth);
-  final right = side(r.rightAnode, r.rightCathode, r.rightAmplitude,
-      r.rightStimFreq, r.rightPulseWidth);
+  final left = side(
+    r.leftAnode,
+    r.leftCathode,
+    r.leftAmplitude,
+    r.leftStimFreq,
+    r.leftPulseWidth,
+  );
+  final right = side(
+    r.rightAnode,
+    r.rightCathode,
+    r.rightAmplitude,
+    r.rightStimFreq,
+    r.rightPulseWidth,
+  );
   if (left.isNotEmpty) out['Left'] = left;
   if (right.isNotEmpty) out['Right'] = right;
   if (r.programId.trim().isNotEmpty) out['Group'] = r.programId.trim();
@@ -1095,9 +1124,10 @@ SessionReportData buildSessionReportData({
   final initSessionRows = latestInit == null
       ? const <SessionRow>[]
       : initialRows
-          .where(
-              (r) => coerceInt(r.sessionId) == coerceInt(latestInit.sessionId))
-          .toList();
+            .where(
+              (r) => coerceInt(r.sessionId) == coerceInt(latestInit.sessionId),
+            )
+            .toList();
   final initScales = _collectScalePairs(initSessionRows);
   final initNotes = latestInit?.notes.trim() ?? '';
 
@@ -1111,14 +1141,28 @@ SessionReportData buildSessionReportData({
   // state the patient arrived in, not a configuration that was tested, and
   // including it both inflated the count and widened every "tested" range.
   final span = _spanText(rows);
-  final numConfigs =
-      recordingRows.map((r) => coerceInt(r.blockId)).toSet().length;
-  final numDistinctConfigs =
-      recordingRows.map((r) => _paramKey(r).join(_sep)).toSet().length;
-  final ampL =
-      _valuesText(blocks, (r) => r.leftAmplitude, 'mA', 1, splitSum: true);
-  final ampR =
-      _valuesText(blocks, (r) => r.rightAmplitude, 'mA', 1, splitSum: true);
+  final numConfigs = recordingRows
+      .map((r) => coerceInt(r.blockId))
+      .toSet()
+      .length;
+  final numDistinctConfigs = recordingRows
+      .map((r) => _paramKey(r).join(_sep))
+      .toSet()
+      .length;
+  final ampL = _valuesText(
+    blocks,
+    (r) => r.leftAmplitude,
+    'mA',
+    1,
+    splitSum: true,
+  );
+  final ampR = _valuesText(
+    blocks,
+    (r) => r.rightAmplitude,
+    'mA',
+    1,
+    splitSum: true,
+  );
   final freqL = _valuesText(blocks, (r) => r.leftStimFreq, 'Hz', 0);
   final freqR = _valuesText(blocks, (r) => r.rightStimFreq, 'Hz', 0);
   final pwL = _valuesText(blocks, (r) => r.leftPulseWidth, 'µs', 0);
@@ -1168,30 +1212,34 @@ SessionReportData buildSessionReportData({
   }
 
   final chart = buildScalesChartSpec(
-      timeline: timeline,
-      prefs: prefs,
-      settingOf: settingOf,
-      amplitude: amplitudeSeries);
+    timeline: timeline,
+    prefs: prefs,
+    settingOf: settingOf,
+    amplitude: amplitudeSeries,
+  );
 
   // Anomalies, from the groupings already computed.
   final anomalies = <String>[];
   {
     final blocksPerSetting = <String, List<int>>{};
-    settingOf
-        .forEach((block, key) => (blocksPerSetting[key] ??= []).add(block));
+    settingOf.forEach(
+      (block, key) => (blocksPerSetting[key] ??= []).add(block),
+    );
     for (final e in blocksPerSetting.entries) {
       if (e.value.length < 2) continue;
       final list = e.value..sort();
-      anomalies.add('Blocks ${list.join(', ')} record the same stimulation '
-          'setting, so their ratings are repeats rather than separate '
-          'configurations.');
+      anomalies.add(
+        'Blocks ${list.join(', ')} record the same stimulation '
+        'setting, so their ratings are repeats rather than separate '
+        'configurations.',
+      );
     }
     // The mirror image: same ratings, different stimulation.
     final byRatings = <String, List<int>>{};
     for (final entry in blocks.entries) {
-      final key = _collectScalePairs(entry.value)
-          .map((p) => '${p.name}=${p.value}')
-          .join('|');
+      final key = _collectScalePairs(
+        entry.value,
+      ).map((p) => '${p.name}=${p.value}').join('|');
       if (key.isEmpty) continue;
       (byRatings[key] ??= []).add(entry.key);
     }
@@ -1199,9 +1247,11 @@ SessionReportData buildSessionReportData({
       if (e.value.length < 2) continue;
       final list = e.value..sort();
       if (list.map((b) => settingOf[b]).toSet().length < 2) continue;
-      anomalies.add('Blocks ${list.join(', ')} carry identical ratings under '
-          'different stimulation settings; the record does not distinguish a '
-          're-rating from values carried forward.');
+      anomalies.add(
+        'Blocks ${list.join(', ')} carry identical ratings under '
+        'different stimulation settings; the record does not distinguish a '
+        're-rating from values carried forward.',
+      );
     }
   }
 
@@ -1235,8 +1285,10 @@ SessionReportData buildSessionReportData({
       if (first.rightAmplitude.trim().isNotEmpty)
         'R ${lateralText(tokensOf(first)!, left: false)}',
     ].join(', ');
-    observations.add('Block ${entry.key}'
-        '${where.isEmpty ? '' : ' ($where)'}: $note');
+    observations.add(
+      'Block ${entry.key}'
+      '${where.isEmpty ? '' : ' ($where)'}: $note',
+    );
   }
 
   // First-to-last delta per session scale, over the recording blocks in time
@@ -1255,8 +1307,11 @@ SessionReportData buildSessionReportData({
       }
     }
     for (final name in firstSeen.keys) {
-      response
-          .add((name: name, first: firstSeen[name]!, last: lastSeen[name]!));
+      response.add((
+        name: name,
+        first: firstSeen[name]!,
+        last: lastSeen[name]!,
+      ));
     }
   }
 
@@ -1283,22 +1338,22 @@ SessionReportData buildSessionReportData({
         ? ''
         : '${idx.toStringAsFixed(3)}\n(rank ${rankOf[entry.key]})';
     List<String> side(bool left) => [
-          '${entry.key}',
-          left
-              ? [first.time.trim(), if (gap.isNotEmpty) '($gap)'].join('\n')
-              : '',
-          left ? 'L' : 'R',
-          first.programId,
-          _numCell(left ? first.leftStimFreq : first.rightStimFreq),
-          contactsWithCurrent(left ? first.leftAnode : first.rightAnode, ''),
-          contactsWithCurrent(left ? first.leftCathode : first.rightCathode,
-              left ? first.leftAmplitude : first.rightAmplitude),
-          _amplitudeCell(left ? first.leftAmplitude : first.rightAmplitude),
-          _numCell(left ? first.leftPulseWidth : first.rightPulseWidth),
-          left ? scales : '',
-          left ? indexCell : '',
-          left ? first.notes : '',
-        ];
+      '${entry.key}',
+      left ? [first.time.trim(), if (gap.isNotEmpty) '($gap)'].join('\n') : '',
+      left ? 'L' : 'R',
+      first.programId,
+      _numCell(left ? first.leftStimFreq : first.rightStimFreq),
+      contactsWithCurrent(left ? first.leftAnode : first.rightAnode, ''),
+      contactsWithCurrent(
+        left ? first.leftCathode : first.rightCathode,
+        left ? first.leftAmplitude : first.rightAmplitude,
+      ),
+      _amplitudeCell(left ? first.leftAmplitude : first.rightAmplitude),
+      _numCell(left ? first.leftPulseWidth : first.rightPulseWidth),
+      left ? scales : '',
+      left ? indexCell : '',
+      left ? first.notes : '',
+    ];
     tableData.add(side(true));
     tableData.add(side(false));
   }

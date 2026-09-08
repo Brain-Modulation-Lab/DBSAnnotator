@@ -21,10 +21,12 @@ void main() {
       jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
 
   final catalog = ElectrodeCatalog.fromJson(
-      readJson('assets/schema/electrode_models.json'));
+    readJson('assets/schema/electrode_models.json'),
+  );
   final limits = StimLimits.fromJson(readJson('assets/schema/limits.json'));
-  final scalePresets =
-      ScalePresets.fromJson(readJson('assets/schema/scale_presets.json'));
+  final scalePresets = ScalePresets.fromJson(
+    readJson('assets/schema/scale_presets.json'),
+  );
 
   /// Tall surface so the current step's content is mostly on-screen (the
   /// Stepper is scrollable; taps still use ensureVisible), then pump the
@@ -35,14 +37,16 @@ void main() {
   }) async {
     await tester.binding.setSurfaceSize(const Size(1400, 2600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(MaterialApp(
-      home: SessionScreen(
-        catalog: catalog,
-        limits: limits,
-        scalePresets: scalePresets,
-        authoring: authoring,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SessionScreen(
+          catalog: catalog,
+          limits: limits,
+          scalePresets: scalePresets,
+          authoring: authoring,
+        ),
       ),
-    ));
+    );
     // Let the injected-contracts future resolve.
     await tester.pump();
     await tester.pump();
@@ -60,8 +64,7 @@ void main() {
     }
   }
 
-  testWidgets(
-      'wizard: file step, then baseline insert lands in the '
+  testWidgets('wizard: file step, then baseline insert lands in the '
       'recording-step blocks list', (tester) async {
     final authoring = SessionAuthoring();
     await pumpWizard(tester, authoring: authoring);
@@ -98,14 +101,18 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'OCD'));
     await tester.pump();
     expect(find.widgetWithText(TextField, 'Y-BOCS'), findsOneWidget);
-    expect(find.text('Score'),
-        findsNWidgets(scalePresets.clinical['OCD']!.length));
+    expect(
+      find.text('Score'),
+      findsNWidgets(scalePresets.clinical['OCD']!.length),
+    );
     await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'MDD'));
     await tester.tap(find.widgetWithText(ChoiceChip, 'MDD'));
     await tester.pump();
     expect(find.widgetWithText(TextField, 'Y-BOCS'), findsNothing);
-    expect(find.text('Score'),
-        findsNWidgets(scalePresets.clinical['MDD']!.length));
+    expect(
+      find.text('Score'),
+      findsNWidgets(scalePresets.clinical['MDD']!.length),
+    );
 
     // Type one score and insert the baseline: ONE is_initial=1 block, one
     // row per scored clinical scale (blank scores are dropped, desktop
@@ -140,24 +147,27 @@ void main() {
     expect(find.text('Paper size: A4'), findsOneWidget);
   });
 
-  testWidgets(
-      'stim - / + steppers move by step1 and the clear X empties '
+  testWidgets('stim - / + steppers move by step1 and the clear X empties '
       'the field', (tester) async {
     await pumpWizard(tester);
     await tapNext(tester); // Step 1.
 
     String leftFreqText() => tester
-        .widget<TextField>(find.descendant(
-          of: find.widgetWithText(TextFormField, 'Frequency').first,
-          matching: find.byType(TextField),
-        ))
+        .widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Frequency').first,
+            matching: find.byType(TextField),
+          ),
+        )
         .controller!
         .text;
     String leftAmpText() => tester
-        .widget<TextField>(find.descendant(
-          of: find.widgetWithText(TextFormField, 'Amplitude').first,
-          matching: find.byType(TextField),
-        ))
+        .widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Amplitude').first,
+            matching: find.byType(TextField),
+          ),
+        )
         .controller!
         .text;
 
@@ -170,7 +180,9 @@ void main() {
 
     // Frequency: step1 = 10.
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Frequency').first, '100');
+      find.widgetWithText(TextFormField, 'Frequency').first,
+      '100',
+    );
     await tapButton('Increase Frequency');
     expect(leftFreqText(), '110');
     await tapButton('Decrease Frequency');
@@ -178,7 +190,9 @@ void main() {
 
     // Amplitude: step1 = 1, keeping the contract decimals (1.5 -> 2.5).
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amplitude').first, '1.5');
+      find.widgetWithText(TextFormField, 'Amplitude').first,
+      '1.5',
+    );
     await tapButton('Increase Amplitude');
     expect(leftAmpText(), '2.5');
 
@@ -190,14 +204,16 @@ void main() {
 
     // Clamped at max: repeated + never exceeds the limit.
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Frequency').first,
-        presetLabel(limits.frequency.max));
+      find.widgetWithText(TextFormField, 'Frequency').first,
+      presetLabel(limits.frequency.max),
+    );
     await tapButton('Increase Frequency');
     expect(leftFreqText(), presetLabel(limits.frequency.max));
   });
 
-  testWidgets('out-of-range stimulation value blocks the baseline insert',
-      (tester) async {
+  testWidgets('out-of-range stimulation value blocks the baseline insert', (
+    tester,
+  ) async {
     final authoring = SessionAuthoring();
     await pumpWizard(tester, authoring: authoring);
     await tapNext(tester); // Step 1.
@@ -221,8 +237,9 @@ void main() {
     expect(authoring.rows, isEmpty);
   });
 
-  testWidgets('tapping a stimulation quick-pick chip fills the field',
-      (tester) async {
+  testWidgets('tapping a stimulation quick-pick chip fills the field', (
+    tester,
+  ) async {
     await pumpWizard(tester);
     await tapNext(tester); // Step 1.
 
@@ -232,17 +249,18 @@ void main() {
     await tester.tap(chip);
     await tester.pump();
 
-    final leftFreq = tester.widget<TextField>(find.descendant(
-      of: find.widgetWithText(TextFormField, 'Frequency').first,
-      matching: find.byType(TextField),
-    ));
+    final leftFreq = tester.widget<TextField>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Frequency').first,
+        matching: find.byType(TextField),
+      ),
+    );
     expect(leftFreq.controller!.text, '125');
     // In range, so the insert is not blocked by validation.
     expect(find.text('Not a number'), findsNothing);
   });
 
-  testWidgets(
-      'session scales defined in Step 2 become Step-3 rating rows; '
+  testWidgets('session scales defined in Step 2 become Step-3 rating rows; '
       'an omitted scale is inserted as "n/a"', (tester) async {
     final authoring = SessionAuthoring();
     await pumpWizard(tester, authoring: authoring);

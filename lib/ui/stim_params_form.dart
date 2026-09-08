@@ -28,10 +28,8 @@ class StimLimits {
   });
 
   factory StimLimits.fromJson(Map<String, dynamic> json) {
-    LimitRange range(Map<String, dynamic> m) => (
-          min: (m['min'] as num).toDouble(),
-          max: (m['max'] as num).toDouble(),
-        );
+    LimitRange range(Map<String, dynamic> m) =>
+        (min: (m['min'] as num).toDouble(), max: (m['max'] as num).toDouble());
     double step1(Map<String, dynamic> m, double fallback) =>
         ((m['step1'] as num?) ?? fallback).toDouble();
     double step2(Map<String, dynamic> m, double fallback) =>
@@ -229,12 +227,12 @@ class StimParamsForm extends StatelessWidget {
     // the fine column is marked "(fine)" so both are addressable.
     final suffix = coarse ? '' : ' (fine)';
     void bump(int direction) => stepField(
-          controller: controller,
-          range: range,
-          step: step,
-          decimals: decimals,
-          direction: direction,
-        );
+      controller: controller,
+      range: range,
+      step: step,
+      decimals: decimals,
+      direction: direction,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -271,8 +269,9 @@ class StimParamsForm extends StatelessWidget {
             Expanded(
               child: TextFormField(
                 controller: controller,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: (text) => rangeError(text ?? '', range),
                 decoration: InputDecoration(

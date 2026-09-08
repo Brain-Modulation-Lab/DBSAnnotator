@@ -138,6 +138,6 @@ class ReportTextSanitiser {
 
   /// Convenience for table data.
   List<List<String>> rows(List<List<String>> data) => [
-        for (final r in data) [for (final c in r) call(c)]
-      ];
+    for (final r in data) [for (final c in r) call(c)],
+  ];
 }

@@ -36,11 +36,10 @@ const Map<ScaleMode, String> _modeShort = {
 Future<List<ScalePref>?> showScaleTargetsDialog(
   BuildContext context,
   List<ScalePref> prefs,
-) =>
-    showDialog<List<ScalePref>>(
-      context: context,
-      builder: (_) => _ScaleTargetsDialog(prefs: prefs),
-    );
+) => showDialog<List<ScalePref>>(
+  context: context,
+  builder: (_) => _ScaleTargetsDialog(prefs: prefs),
+);
 
 class _ScaleTargetsDialog extends StatefulWidget {
   const _ScaleTargetsDialog({required this.prefs});
@@ -55,11 +54,12 @@ class _ScaleTargetsDialog extends StatefulWidget {
 /// so a half-typed "1." does not snap back under the cursor.
 class _Row {
   _Row(this.pref)
-      : min = TextEditingController(text: _fmt(pref.min)),
-        max = TextEditingController(text: _fmt(pref.max)),
-        custom = TextEditingController(
-            text: pref.custom == null ? '' : _fmt(pref.custom!)),
-        mode = pref.mode;
+    : min = TextEditingController(text: _fmt(pref.min)),
+      max = TextEditingController(text: _fmt(pref.max)),
+      custom = TextEditingController(
+        text: pref.custom == null ? '' : _fmt(pref.custom!),
+      ),
+      mode = pref.mode;
 
   final ScalePref pref;
   final TextEditingController min;
@@ -74,12 +74,12 @@ class _Row {
       double.tryParse(c.text.trim()) ?? fallback;
 
   ScalePref toPref() => (
-        name: pref.name,
-        min: _num(min, pref.min),
-        max: _num(max, pref.max),
-        mode: mode,
-        custom: mode == ScaleMode.custom ? _num(custom, 0) : null,
-      );
+    name: pref.name,
+    min: _num(min, pref.min),
+    max: _num(max, pref.max),
+    mode: mode,
+    custom: mode == ScaleMode.custom ? _num(custom, 0) : null,
+  );
 
   void dispose() {
     min.dispose();
@@ -89,8 +89,9 @@ class _Row {
 }
 
 class _ScaleTargetsDialogState extends State<_ScaleTargetsDialog> {
-  late final List<_Row> _rows =
-      widget.prefs.map((p) => _Row(p)).toList(growable: false);
+  late final List<_Row> _rows = widget.prefs
+      .map((p) => _Row(p))
+      .toList(growable: false);
 
   @override
   void dispose() {
@@ -103,10 +104,10 @@ class _ScaleTargetsDialogState extends State<_ScaleTargetsDialog> {
   /// Apply one mode to every scale — the common case (all Min, or all Max) in
   /// one tap instead of once per scale.
   void _setAll(ScaleMode mode) => setState(() {
-        for (final r in _rows) {
-          r.mode = mode;
-        }
-      });
+    for (final r in _rows) {
+      r.mode = mode;
+    }
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -167,64 +168,67 @@ class _ScaleTargetsDialogState extends State<_ScaleTargetsDialog> {
   }
 
   Widget _rowTile(_Row row, ThemeData theme) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          row.pref.name,
+          style: theme.textTheme.labelLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(row.pref.name,
-                style: theme.textTheme.labelLarge,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _numField(row.min, 'Min'),
-                _numField(row.max, 'Max'),
-                SizedBox(
-                  width: 150,
-                  child: DropdownButtonFormField<ScaleMode>(
-                    initialValue: row.mode,
-                    isDense: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Target', border: OutlineInputBorder()),
-                    items: [
-                      for (final m in ScaleMode.values)
-                        DropdownMenuItem(
-                          value: m,
-                          child: Tooltip(
-                            message: _modeLabels[m]!,
-                            child: Text(_modeShort[m]!),
-                          ),
-                        ),
-                    ],
-                    onChanged: (m) => setState(() => row.mode = m ?? row.mode),
-                  ),
+            _numField(row.min, 'Min'),
+            _numField(row.max, 'Max'),
+            SizedBox(
+              width: 150,
+              child: DropdownButtonFormField<ScaleMode>(
+                initialValue: row.mode,
+                isDense: true,
+                decoration: const InputDecoration(
+                  labelText: 'Target',
+                  border: OutlineInputBorder(),
                 ),
-                if (row.mode == ScaleMode.custom)
-                  _numField(row.custom, 'Value'),
-              ],
+                items: [
+                  for (final m in ScaleMode.values)
+                    DropdownMenuItem(
+                      value: m,
+                      child: Tooltip(
+                        message: _modeLabels[m]!,
+                        child: Text(_modeShort[m]!),
+                      ),
+                    ),
+                ],
+                onChanged: (m) => setState(() => row.mode = m ?? row.mode),
+              ),
             ),
+            if (row.mode == ScaleMode.custom) _numField(row.custom, 'Value'),
           ],
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _numField(TextEditingController c, String label) => SizedBox(
-        width: 88,
-        child: TextField(
-          controller: c,
-          keyboardType: const TextInputType.numberWithOptions(
-              decimal: true, signed: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]')),
-          ],
-          decoration: InputDecoration(
-            labelText: label,
-            isDense: true,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-      );
+    width: 88,
+    child: TextField(
+      controller: c,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+        signed: true,
+      ),
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]'))],
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+    ),
+  );
 }

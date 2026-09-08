@@ -135,15 +135,19 @@ void main() {
       // snake_case with the first letter in lower case." The `block_ID` /
       // `session_ID` / `program_ID` spellings this replaced were not.
       for (final column in sessionColumns) {
-        expect(column, matches(RegExp(r'^[a-z][a-z0-9_]*$')),
-            reason: '$column is not snake_case');
+        expect(
+          column,
+          matches(RegExp(r'^[a-z][a-z0-9_]*$')),
+          reason: '$column is not snake_case',
+        );
       }
     });
 
     test('a pre-0.5.0 file with block_ID / NaN still reads', () {
-      final legacy = File('test/fixtures/legacy_0.4_sub-01_ses-20260626_'
-              'task-programming_run-01_events.tsv')
-          .readAsStringSync();
+      final legacy = File(
+        'test/fixtures/legacy_0.4_sub-01_ses-20260203_'
+        'task-programming_run-01_events.tsv',
+      ).readAsStringSync();
       final rows = parseSessionTsv(legacy);
 
       expect(rows, isNotEmpty);
@@ -155,7 +159,7 @@ void main() {
       // No acq_time column existed then; it stays empty rather than inventing
       // an instant, and `timestamp` falls back to date + time.
       expect(rows.first.acqTime, '');
-      expect(rows.first.timestamp, DateTime(2026, 6, 26, 16, 46, 14));
+      expect(rows.first.timestamp, DateTime(2026, 2, 3, 9));
     });
   });
 }

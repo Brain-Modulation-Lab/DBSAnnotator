@@ -1,0 +1,43 @@
+name: pre-commit autoupdate
+
+# .pre-commit-config.yaml pins each hook repository to a rev, and there is no
+# Dependabot ecosystem for pre-commit - so without this the hook versions rot
+# indefinitely. Monthly, not weekly: the hooks are formatters, a linter and a
+# spellchecker, and a month of staleness costs nothing.
+on:
+  schedule:
+    - cron: "0 6 1 * *" # 06:00 UTC on the 1st
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uvx pre-commit autoupdate
+
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          # A fixed branch, so this reuses ONE pull request forever instead of
+          # piling up a new one every month.
+          branch: chore/pre-commit-autoupdate
+          delete-branch: true
+          title: "chore: update pre-commit hook revisions"
+          commit-message: "chore: pre-commit autoupdate"
+          labels: dependencies,ci
+          body: |
+            `uvx pre-commit autoupdate`, monthly.
+
+            The `checks` job runs these same hooks, so green here means the new
+            revisions agree with the tree. Red almost always means a new lint
+            or spelling rule: fix the code, or pin the rev back with a comment
+            saying why.
+
+            Merged by hand — a hook bump can require code changes, which is a
+            review rather than a rubber stamp.

@@ -16,25 +16,24 @@ ScalesChartSpec _spec({
   String title = 'Session scales',
   int scales = 5,
   bool withIndex = true,
-}) =>
-    ScalesChartSpec(
-      xs: const [1, 2, 3],
-      series: {
-        for (var i = 0; i < scales; i++)
-          'Scale number $i': const {1: 3.0, 2: 4.0, 3: 5.0},
-      },
-      aggregateIndex: withIndex ? const {1: 0.4, 2: 0.5, 3: 0.6} : const {},
-      amplitude: const {
-        'Left': {1: 2.0, 2: 3.0, 3: 3.5},
-      },
-      bestXs: withIndex ? const [3] : const [],
-      secondXs: withIndex ? const [2] : const [],
-      yMin: 0,
-      yMax: 10,
-      title: title,
-      xLabel: 'Block',
-      yLabel: 'Score',
-    );
+}) => ScalesChartSpec(
+  xs: const [1, 2, 3],
+  series: {
+    for (var i = 0; i < scales; i++)
+      'Scale number $i': const {1: 3.0, 2: 4.0, 3: 5.0},
+  },
+  aggregateIndex: withIndex ? const {1: 0.4, 2: 0.5, 3: 0.6} : const {},
+  amplitude: const {
+    'Left': {1: 2.0, 2: 3.0, 3: 3.5},
+  },
+  bestXs: withIndex ? const [3] : const [],
+  secondXs: withIndex ? const [2] : const [],
+  yMin: 0,
+  yMax: 10,
+  title: title,
+  xLabel: 'Block',
+  yLabel: 'Score',
+);
 
 void main() {
   ChartTopBand band(ScalesChartSpec spec, [Size size = const Size(800, 376)]) =>
@@ -43,11 +42,16 @@ void main() {
   test('the legend starts below the title, and the plot below the legend', () {
     final b = band(_spec());
     expect(b.titleHeight, greaterThan(0));
-    expect(b.legendTop, greaterThanOrEqualTo(b.titleTop + b.titleHeight),
-        reason: 'the legend box would paint over the title');
     expect(
-        b.padTop, greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
-        reason: 'the legend would overrun the plot');
+      b.legendTop,
+      greaterThanOrEqualTo(b.titleTop + b.titleHeight),
+      reason: 'the legend box would paint over the title',
+    );
+    expect(
+      b.padTop,
+      greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
+      reason: 'the legend would overrun the plot',
+    );
   });
 
   test('a title-less chart reserves no title space', () {
@@ -62,13 +66,21 @@ void main() {
     // than the canvas; it must never grow taller into the plot.
     for (final n in [1, 5, 12, 30]) {
       final b = band(_spec(scales: n));
-      expect(b.legendTop, greaterThanOrEqualTo(b.titleTop + b.titleHeight),
-          reason: '$n scales');
       expect(
-          b.padTop, greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
-          reason: '$n scales');
-      expect(b.padTop, lessThan(120),
-          reason: '$n scales must not eat the plot');
+        b.legendTop,
+        greaterThanOrEqualTo(b.titleTop + b.titleHeight),
+        reason: '$n scales',
+      );
+      expect(
+        b.padTop,
+        greaterThanOrEqualTo(b.legendTop + (b.legend?.height ?? 0)),
+        reason: '$n scales',
+      );
+      expect(
+        b.padTop,
+        lessThan(120),
+        reason: '$n scales must not eat the plot',
+      );
     }
   });
 

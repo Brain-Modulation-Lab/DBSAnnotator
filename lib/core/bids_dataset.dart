@@ -3,10 +3,10 @@
 /// A single file with BIDS entities in its name is not a BIDS dataset. The
 /// specification wants a tree — `sub-<label>/ses-<label>/beh/` — with a
 /// `dataset_description.json` at its root, a `README`, and a `participants.tsv`
-/// naming the subjects. The app records one file at a time, wherever the
-/// platform's picker puts it, which is the right behaviour at a bedside; this
-/// module is what turns a folder of those into something `bids-validator`
-/// accepts.
+/// naming the subjects. The app records one file per visit, wherever the
+/// platform's picker puts it, which is the right behaviour during an
+/// appointment; this module is what turns a folder of those into something
+/// `bids-validator` accepts.
 ///
 /// Derived documents — the PDF and Word reports — go under `derivatives/`,
 /// which is where BIDS puts anything computed from raw data. That is also what
@@ -71,15 +71,14 @@ List<DatasetFile> buildBidsDataset(
 
   final subjects = <String>{
     for (final e in entries) BidsName.label(e.name.subject),
-  }.toList()
-    ..sort();
+  }.toList()..sort();
 
   files.add((
     path: 'participants.tsv',
     content: writeTsvRecords(
       const ['participant_id'],
       [
-        for (final s in subjects) {'participant_id': 'sub-$s'}
+        for (final s in subjects) {'participant_id': 'sub-$s'},
       ],
     ),
   ));
@@ -87,7 +86,8 @@ List<DatasetFile> buildBidsDataset(
     path: 'participants.json',
     content: _json(<String, dynamic>{
       'participant_id': {
-        'Description': 'Pseudonymous subject label typed at the bedside. '
+        'Description':
+            'Pseudonymous subject label typed by the clinician. '
             'The dataset holds no other participant-level variables: the app '
             'records no demographics.',
       },
@@ -111,7 +111,8 @@ List<DatasetFile> buildBidsDataset(
     final group = scans[sessionDir]!;
     final first = group.first.name;
     files.add((
-      path: '$sessionDir/sub-${BidsName.label(first.subject)}'
+      path:
+          '$sessionDir/sub-${BidsName.label(first.subject)}'
           '_ses-${BidsName.label(first.session)}_scans.tsv',
       content: writeTsvRecords(
         const ['filename', 'acq_time'],
@@ -138,18 +139,17 @@ DatasetFile reportsDerivativeDescription({
   required String appName,
   required String appVersion,
   required String repoUrl,
-}) =>
-    (
-      path: '$reportsDerivativeDir/dataset_description.json',
-      content: _json(<String, dynamic>{
-        'Name': '$appName reports',
-        'BIDSVersion': bidsVersion,
-        'DatasetType': 'derivative',
-        'GeneratedBy': [
-          {'Name': appName, 'Version': appVersion, 'CodeURL': repoUrl},
-        ],
-      }),
-    );
+}) => (
+  path: '$reportsDerivativeDir/dataset_description.json',
+  content: _json(<String, dynamic>{
+    'Name': '$appName reports',
+    'BIDSVersion': bidsVersion,
+    'DatasetType': 'derivative',
+    'GeneratedBy': [
+      {'Name': appName, 'Version': appVersion, 'CodeURL': repoUrl},
+    ],
+  }),
+);
 
 /// Where clinician-readable reports live inside a dataset.
 const String reportsDerivativeDir = 'derivatives/dbs-annotator-reports';
@@ -157,7 +157,8 @@ const String reportsDerivativeDir = 'derivatives/dbs-annotator-reports';
 String _json(Object? value) =>
     '${const JsonEncoder.withIndent('  ').convert(value)}\n';
 
-String _readme(String appName, String appVersion, String repoUrl) => '''
+String _readme(String appName, String appVersion, String repoUrl) =>
+    '''
 # DBS programming sessions
 
 Recorded with $appName $appVersion ($repoUrl).
@@ -184,6 +185,6 @@ Annotations (`task-notes`): ${annotationColumns.join(', ')}.
 ## Provenance
 
 No demographics, identifiers or free-text beyond the clinical notes typed
-during the session are recorded. Subject labels are whatever was typed at the
-bedside; check them before sharing.
+during the visit are recorded. Subject labels are whatever the clinician typed;
+check them before sharing.
 ''';

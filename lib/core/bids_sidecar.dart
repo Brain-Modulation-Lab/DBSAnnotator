@@ -82,15 +82,13 @@ Map<String, dynamic> buildSidecar(
 String sessionSidecarJson(
   Map<String, dynamic> contract, {
   required String appVersion,
-}) =>
-    _encode(buildSidecar(contract, 'session_tsv', appVersion: appVersion));
+}) => _encode(buildSidecar(contract, 'session_tsv', appVersion: appVersion));
 
 /// The sidecar for an annotations file, pretty-printed.
 String annotationSidecarJson(
   Map<String, dynamic> contract, {
   required String appVersion,
-}) =>
-    _encode(buildSidecar(contract, 'annotation_tsv', appVersion: appVersion));
+}) => _encode(buildSidecar(contract, 'annotation_tsv', appVersion: appVersion));
 
 String _encode(Object? value) =>
     '${const JsonEncoder.withIndent('  ').convert(value)}\n';

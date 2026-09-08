@@ -149,7 +149,7 @@ Insert to record the block. Notes and side effects clear, ready for the next one
 the parameters stay, so a single amplitude change is one edit rather than a full
 re-entry.
 
-The same step in the dark theme, which is what a darkened theatre gets:
+The same step in the dark theme:
 
 .. figure:: ../_static/screenshots/session_step3_recording_dark.png
    :alt: The Recording step in dark theme

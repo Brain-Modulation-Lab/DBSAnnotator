@@ -52,9 +52,10 @@ void main() {
     expect(encoded.cathode, 'E2b');
 
     final encodedCathodicCase = encodeTokens(
-        {const ContactKey(0, 0): ContactState.anodic},
-        ContactState.cathodic,
-        directedModel);
+      {const ContactKey(0, 0): ContactState.anodic},
+      ContactState.cathodic,
+      directedModel,
+    );
     expect(encodedCathodicCase.anode, 'E0');
     expect(encodedCathodicCase.cathode, 'case');
   });

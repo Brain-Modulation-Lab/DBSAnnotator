@@ -32,7 +32,8 @@ import '../app_info.dart' show appVersion;
 String docxEsc(String s) {
   final out = StringBuffer();
   for (final rune in s.runes) {
-    final legal = rune == 0x09 ||
+    final legal =
+        rune == 0x09 ||
         rune == 0x0A ||
         rune == 0x0D ||
         (rune >= 0x20 && rune != 0xFFFE && rune != 0xFFFF);
@@ -51,10 +52,13 @@ String docxEsc(String s) {
 /// A run of text (size in half-points), with embedded newlines turned into
 /// `<w:br/>` so multi-line table cells / notes wrap inside one paragraph.
 String docxRun(String text, {bool bold = false, int size = 20}) {
-  final rPr = '<w:rPr>${bold ? '<w:b/>' : ''}'
+  final rPr =
+      '<w:rPr>${bold ? '<w:b/>' : ''}'
       '<w:sz w:val="$size"/><w:szCs w:val="$size"/></w:rPr>';
-  final lines =
-      text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+  final lines = text
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      .split('\n');
   final parts = <String>[];
   for (var i = 0; i < lines.length; i++) {
     if (i > 0) parts.add('<w:br/>');
@@ -74,12 +78,14 @@ String docxPara(String text, {bool bold = false, int size = 20}) =>
 /// generated, and assistive technology sees flat body text. The direct bold and
 /// size are kept alongside so the document still looks right if the style is
 /// missing from the consumer's template.
-String docxHeading(String text) => '<w:p><w:pPr><w:pStyle w:val="Heading1"/>'
+String docxHeading(String text) =>
+    '<w:p><w:pPr><w:pStyle w:val="Heading1"/>'
     '<w:spacing w:before="240" w:after="60"/></w:pPr>'
     '${docxRun(text, bold: true, size: 28)}</w:p>';
 
 /// A sub-heading (`Heading2`), for the blocks inside a section.
-String docxHeading2(String text) => '<w:p><w:pPr><w:pStyle w:val="Heading2"/>'
+String docxHeading2(String text) =>
+    '<w:p><w:pPr><w:pStyle w:val="Heading2"/>'
     '<w:spacing w:before="120" w:after="40"/></w:pPr>'
     '${docxRun(text, bold: true, size: 22)}</w:p>';
 
@@ -92,19 +98,21 @@ enum DocxVMerge { none, start, rest }
 /// [widthTwips] emits `<w:tcW w:type="dxa">`. Word's fixed layout needs it on
 /// EVERY cell, not just the header: the grid alone is a hint, and a row without
 /// per-cell widths falls back to auto-fitting.
-String docxCell(String text,
-    {bool bold = false,
-    String? fill,
-    bool topRule = false,
-    int? widthTwips,
-    DocxVMerge vMerge = DocxVMerge.none}) {
+String docxCell(
+  String text, {
+  bool bold = false,
+  String? fill,
+  bool topRule = false,
+  int? widthTwips,
+  DocxVMerge vMerge = DocxVMerge.none,
+}) {
   final shd = fill == null
       ? ''
       : '<w:shd w:val="clear" w:color="auto" w:fill="$fill"/>';
   // 3 pt (sz=24) top border, the desktop's block separator.
   final borders = topRule
       ? '<w:tcBorders><w:top w:val="single" w:sz="24" w:space="0" '
-          'w:color="auto"/></w:tcBorders>'
+            'w:color="auto"/></w:tcBorders>'
       : '';
   final w = widthTwips == null ? '' : '<w:tcW w:w="$widthTwips" w:type="dxa"/>';
   final merge = switch (vMerge) {
@@ -144,20 +152,15 @@ String docxTblGrid(List<int> widths) =>
 /// One table row. [fill] shades every cell (the green best/second-best
 /// highlight); [topRule] draws the 3 pt rule the desktop uses to separate
 /// blocks.
-String docxRow(List<String> cells,
-        {bool header = false,
-        String? fill,
-        bool topRule = false,
-        List<int> widths = const [],
-        Map<int, DocxVMerge> vMerges = const {}}) =>
-    '<w:tr>${cells.indexed.map((e) => docxCell(
-          e.$2,
-          bold: header,
-          fill: header ? 'D9D9D9' : fill,
-          topRule: topRule,
-          widthTwips: e.$1 < widths.length ? widths[e.$1] : null,
-          vMerge: vMerges[e.$1] ?? DocxVMerge.none,
-        )).join()}</w:tr>';
+String docxRow(
+  List<String> cells, {
+  bool header = false,
+  String? fill,
+  bool topRule = false,
+  List<int> widths = const [],
+  Map<int, DocxVMerge> vMerges = const {},
+}) =>
+    '<w:tr>${cells.indexed.map((e) => docxCell(e.$2, bold: header, fill: header ? 'D9D9D9' : fill, topRule: topRule, widthTwips: e.$1 < widths.length ? widths[e.$1] : null, vMerge: vMerges[e.$1] ?? DocxVMerge.none)).join()}</w:tr>';
 
 /// A bordered table with a shaded header row. [rowFills] and [rowRules] are
 /// keyed by data-row index.
@@ -171,9 +174,10 @@ String docxTable(
   required int contentTwips,
 }) {
   final widths = docxGridWidths(weights, contentTwips);
-  final b =
-      StringBuffer('<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
-          '<w:tblBorders>');
+  final b = StringBuffer(
+    '<w:tbl><w:tblPr><w:tblW w:w="$contentTwips" w:type="dxa"/>'
+    '<w:tblBorders>',
+  );
   for (final side in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) {
     b.write('<w:$side w:val="single" w:sz="4" w:space="0" w:color="auto"/>');
   }
@@ -186,14 +190,18 @@ String docxTable(
     // blank on the second, so without the merge Word shows an empty cell where
     // the desktop shows one tall one.
     final continues = i > 0 && rows[i].first == rows[i - 1].first;
-    b.write(docxRow(rows[i],
+    b.write(
+      docxRow(
+        rows[i],
         fill: rowFills[i],
         topRule: rowRules.contains(i),
         widths: widths,
         vMerges: {
           for (final c in mergeDownColumns)
             c: continues ? DocxVMerge.rest : DocxVMerge.start,
-        }));
+        },
+      ),
+    );
   }
   b.write('</w:tbl>');
   return b.toString();
@@ -230,7 +238,8 @@ const kDocxPackageRels =
 /// Minimal on purpose: `Heading1`/`Heading2` linked to Word's built-in outline
 /// levels, which is what populates the navigation pane and lets a table of
 /// contents be generated. Anything more would fight the consumer's template.
-const kDocxStyles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+const kDocxStyles =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<w:styles '
     'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
     '<w:style w:type="paragraph" w:styleId="Heading1">'
@@ -273,7 +282,8 @@ enum DocxPageSize {
 
   /// The section properties, referencing [footerRelId] so every page carries
   /// the footer. Without a `<w:footerReference>` the footer part is inert.
-  String sectPr(String footerRelId) => '<w:sectPr>'
+  String sectPr(String footerRelId) =>
+      '<w:sectPr>'
       '<w:footerReference w:type="default" r:id="$footerRelId"/>'
       '<w:pgSz w:w="$widthTwips" w:h="$heightTwips"/>'
       '<w:pgMar w:top="$_endMarginTwips" w:right="$_sideMarginTwips" '
@@ -311,8 +321,11 @@ class DocxMediaBag {
 
   /// An inline image run, drawn [widthPx] wide with the PNG's own aspect ratio
   /// preserved (read from its IHDR, so nothing is stretched).
-  String drawing(Uint8List png,
-      {required double widthPx, String description = ''}) {
+  String drawing(
+    Uint8List png, {
+    required double widthPx,
+    String description = '',
+  }) {
     final n = _next++;
     final id = 'rId$n';
     _bytes['image$n.png'] = png;
@@ -357,13 +370,16 @@ class DocxMediaBag {
   String? get relsXml {
     if (_relTargets.isEmpty) return null;
     final b = StringBuffer(
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">',
+    );
     for (final e in _relTargets.entries) {
-      b.write('<Relationship Id="${e.key}" '
-          'Type="http://schemas.openxmlformats.org/officeDocument/2006'
-          '/relationships/${e.value.$1}" '
-          'Target="${e.value.$2}"/>');
+      b.write(
+        '<Relationship Id="${e.key}" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006'
+        '/relationships/${e.value.$1}" '
+        'Target="${e.value.$2}"/>',
+      );
     }
     b.write('</Relationships>');
     return b.toString();
@@ -420,7 +436,8 @@ Uint8List packDocx({
   final footerRelId = bag.addRel('footer', 'footer1.xml');
   bag.addRel('styles', 'styles.xml');
 
-  final footer = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+  final footer =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<w:ftr '
       'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
       '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
@@ -437,7 +454,8 @@ Uint8List packDocx({
   // The drawing namespaces are declared even with no image embedded: harmless
   // then, required the moment one appears, and declaring them always keeps the
   // two code paths from diverging.
-  final document = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+  final document =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<w:document '
       'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
       'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
@@ -447,7 +465,8 @@ Uint8List packDocx({
       '<w:body>$body${pageSize.sectPr(footerRelId)}</w:body></w:document>';
 
   // docProps/core.xml - the Word twin of the PDF's /Info dictionary.
-  final coreProps = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+  final coreProps =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<cp:coreProperties '
       'xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
       'xmlns:dc="http://purl.org/dc/elements/1.1/" '
@@ -462,8 +481,9 @@ Uint8List packDocx({
       '</cp:coreProperties>';
 
   final archive = Archive()
-    ..addFile(ArchiveFile.bytes(
-        '[Content_Types].xml', utf8.encode(kDocxContentTypes)))
+    ..addFile(
+      ArchiveFile.bytes('[Content_Types].xml', utf8.encode(kDocxContentTypes)),
+    )
     ..addFile(ArchiveFile.bytes('_rels/.rels', utf8.encode(kDocxPackageRels)))
     ..addFile(ArchiveFile.bytes('word/document.xml', utf8.encode(document)))
     ..addFile(ArchiveFile.bytes('word/footer1.xml', utf8.encode(footer)))
@@ -475,7 +495,8 @@ Uint8List packDocx({
   final rels = bag.relsXml;
   if (rels != null) {
     archive.addFile(
-        ArchiveFile.bytes('word/_rels/document.xml.rels', utf8.encode(rels)));
+      ArchiveFile.bytes('word/_rels/document.xml.rels', utf8.encode(rels)),
+    );
   }
   for (final e in bag.media.entries) {
     archive.addFile(ArchiveFile.bytes('word/media/${e.key}', e.value));

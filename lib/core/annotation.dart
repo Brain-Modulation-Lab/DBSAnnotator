@@ -39,20 +39,20 @@ class Annotation {
   }
 
   factory Annotation.fromMap(Map<String, String> m) => Annotation(
-        date: readColumn(m, 'date'),
-        time: readColumn(m, 'time'),
-        timezone: readColumn(m, 'timezone'),
-        acqTime: readColumn(m, 'acq_time'),
-        notes: readColumn(m, 'notes'),
-      );
+    date: readColumn(m, 'date'),
+    time: readColumn(m, 'time'),
+    timezone: readColumn(m, 'timezone'),
+    acqTime: readColumn(m, 'acq_time'),
+    notes: readColumn(m, 'notes'),
+  );
 
   Map<String, String> toMap() => {
-        'date': date,
-        'time': time,
-        'timezone': timezone,
-        'acq_time': acqTime,
-        'notes': notes,
-      };
+    'date': date,
+    'time': time,
+    'timezone': timezone,
+    'acq_time': acqTime,
+    'notes': notes,
+  };
 }
 
 /// Parse an annotations-only TSV document into [Annotation]s.
@@ -60,7 +60,5 @@ List<Annotation> parseAnnotations(String content) =>
     parseTsvRecords(content).map(Annotation.fromMap).toList();
 
 /// Serialize [Annotation]s to a TSV document with the canonical header.
-String writeAnnotations(List<Annotation> items) => writeTsvRecords(
-      annotationColumns,
-      items.map((a) => a.toMap()).toList(),
-    );
+String writeAnnotations(List<Annotation> items) =>
+    writeTsvRecords(annotationColumns, items.map((a) => a.toMap()).toList());

@@ -35,26 +35,35 @@ void main() {
     expect(find.byType(AppLogo), findsWidgets);
   });
 
-  testWidgets('AppLogo degrades to an icon when the asset is missing',
-      (tester) async {
+  testWidgets('AppLogo degrades to an icon when the asset is missing', (
+    tester,
+  ) async {
     // A packaging slip must not put a red error box in the AppBar.
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: AppLogo(size: 24)),
-    ));
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: AppLogo(size: 24))),
+    );
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the logo asset is really bundled, not silently falling back',
-      (tester) async {
+  testWidgets('the logo asset is really bundled, not silently falling back', (
+    tester,
+  ) async {
     // AppLogo has an errorBuilder, which is right for robustness but would hide
     // a packaging mistake. Load the asset directly so a missing or undeclared
     // icon fails loudly here instead of shipping as a Material glyph.
     final data = await rootBundle.load(appIconAsset);
     final bytes = data.buffer.asUint8List();
-    expect(
-        bytes.sublist(0, 8), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
-        reason: 'not a PNG');
+    expect(bytes.sublist(0, 8), [
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+    ], reason: 'not a PNG');
     // The 1024x1024 master, read from the IHDR.
     int be32(int o) =>
         (bytes[o] << 24) |

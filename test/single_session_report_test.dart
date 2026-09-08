@@ -11,15 +11,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<ElectrodeCatalog> _catalog() async => ElectrodeCatalog.fromJson(
-    jsonDecode(File('assets/schema/electrode_models.json').readAsStringSync())
-        as Map<String, dynamic>);
+  jsonDecode(File('assets/schema/electrode_models.json').readAsStringSync())
+      as Map<String, dynamic>,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('home screen', () {
-    testWidgets('groups the four entries under Record and Reports',
-        (tester) async {
+    testWidgets('groups the four entries under Record and Reports', (
+      tester,
+    ) async {
       await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
 
       expect(find.text('RECORD'), findsOneWidget);
@@ -44,8 +46,9 @@ void main() {
       expect(y('REPORTS'), lessThan(y('Single session report')));
     });
 
-    testWidgets('both recording entries share the annotate icon',
-        (tester) async {
+    testWidgets('both recording entries share the annotate icon', (
+      tester,
+    ) async {
       await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
       // They differ by how much they capture, not by what kind of act they are.
       expect(find.byIcon(Icons.edit_note), findsNWidgets(2));
@@ -53,10 +56,12 @@ void main() {
   });
 
   group('single session report screen', () {
-    testWidgets('opens on a prompt, with no export offered yet',
-        (tester) async {
-      await tester.pumpWidget(MaterialApp(
-          home: SingleSessionReportScreen(catalog: await _catalog())));
+    testWidgets('opens on a prompt, with no export offered yet', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(home: SingleSessionReportScreen(catalog: await _catalog())),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Single session report'), findsOneWidget);
@@ -79,14 +84,25 @@ void main() {
       // for about ten minutes, and it was the worse of the two - no section
       // gating, four sequential awaits instead of concurrent, and its own idea
       // of which rows to draw. That is now renderReportGraphics, shared.
-      final src =
-          File('lib/ui/single_session_report_screen.dart').readAsLinesSync();
+      final src = File(
+        'lib/ui/single_session_report_screen.dart',
+      ).readAsLinesSync();
       final code = src.where((l) {
         final t = l.trim();
         return t.isNotEmpty && !t.startsWith('//') && !t.startsWith('///');
       }).length;
-      expect(code, lessThan(330),
-          reason: 'code lines excluding comments and blanks: $code');
+      // Generous, and deliberately not tight: `dart format` decides where lines
+      // wrap, so the count moves by a few whenever the formatter's style does -
+      // this bound went from 330 to 360 when the tree was formatted and the
+      // count rose 330 -> 332 with no code change at all. A limit that fails on
+      // a reformat teaches people to raise the limit, which is the opposite of
+      // the point. What this guards is a slide back into reimplementing shared
+      // code, which costs tens of lines, not two.
+      expect(
+        code,
+        lessThan(360),
+        reason: 'code lines excluding comments and blanks: $code',
+      );
 
       // The composition itself: these must come from elsewhere.
       final text = src.join(String.fromCharCode(10));

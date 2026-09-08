@@ -61,11 +61,26 @@ Google Play.
 Confirm which key a build actually used:
 
 ```bash
-keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
+# apksigner, NOT `keytool -printcert -jarfile`: keytool reads only the v1 JAR
+# signature and reports "Not a signed jar file" for the v2/v3-only APK that
+# Flutter produces. apksigner understands every scheme and ships in the
+# Android SDK build-tools.
+apksigner verify --verbose --print-certs \
+  build/app/outputs/flutter-apk/app-release.apk
 ```
 
 The debug key is issued to `CN=Android Debug`. Anything else means it is signed
-with yours.
+with yours. CI runs this on every build and prints the certificate DN and its
+SHA-256 to the run summary, so you can eyeball across releases that the upload
+key never changed; on a tag it *fails* if all four secrets are set and the APK
+still came out debug-signed.
+
+Two more layers stop a debug-signed APK reaching a Release: the android job
+fails when 1-3 of the 4 secrets are set (a partial set silently debug-signs),
+and on tags CI exports `ANDROID_REQUIRE_RELEASE_SIGNING=true`, which makes
+`android/app/build.gradle.kts` throw instead of falling back. Locally the
+variable is unset, so `flutter build apk --release` still gives you a runnable
+debug-signed APK for testing.
 
 ## 3. iOS / TestFlight (→ research distribution)
 
@@ -233,10 +248,41 @@ Package validation runs before review, so finding out costs nothing.
 git tag app-v0.5.1 && git push origin app-v0.5.1
 ```
 
-CI then: runs tests → builds+signs the APK (attached to the GitHub Release) →
-builds the Windows MSIX → uploads the iOS build to TestFlight. Link the
-TestFlight invite from the Release notes. Do a `app-v0.5.1-rc` tag first as a
-dry run.
+**CI publishes a draft, never a live release.** The tag runs static checks (which
+assert the tag matches `pubspec.yaml` before anything is built), the tests, and
+all five platform builds; each produces one named archive. A single `release`
+job then downloads them, checks a **manifest** of expected assets, and creates
+one draft. If any job fails, that job never runs — so no Release object is
+created at all and there is nothing to retract.
+
+You then read the asset list and click **Publish**. That is the whole point: the
+automation guarantees "every gate passed and nothing is missing"; the decision
+to publish is yours.
+
+**Do a dry run first**, and it is a real rehearsal now rather than a hazard:
+
+```bash
+git tag app-v0.5.1-rc && git push origin app-v0.5.1-rc
+```
+
+An `-rc` tag takes an identical path through every job and produces a draft
+*prerelease* titled "dry run, do not publish" — invisible to the public, never
+marked `latest`, no watcher notifications. Inspect it, then delete it. (Before
+this, `-rc` matched `startsWith(github.ref, 'refs/tags/app-v')` like any other
+tag and published for real.)
+
+What is and is not in a release:
+
+| Platform | Asset |
+|---|---|
+| Linux | `.tar.gz` of the bundle — `tar`, because artifact uploads drop the executable bit |
+| Windows | portable `.zip`, plus an `.msix` **only** when `MSIX_IDENTITY_NAME` or `WINDOWS_CERT_BASE64` is configured (otherwise the step is skipped, the job stays green, and the run summary says why) |
+| Android | signed `.apk` and `.aab` |
+| macOS, iOS | **nothing** — both are compile gates. An unsigned `.app` is Gatekeeper-quarantined with no documented way to open it, and iPadOS is TestFlight-only. |
+
+TestFlight upload still requires the Apple secrets; without them the iOS job
+compiles, warns in the run summary that nothing was shipped, and stays green.
+Link the TestFlight invite from the Release notes once it exists.
 
 ## Scale-up later (same artifacts, no rebuild)
 

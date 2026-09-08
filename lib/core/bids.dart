@@ -78,7 +78,8 @@ class BidsName {
   /// `sub-01_ses-20260724_task-notes_run-01`.
   ///
   /// Entity labels are sanitised, so this is always a safe path segment.
-  String get stem => 'sub-${label(subject)}_ses-${label(session)}'
+  String get stem =>
+      'sub-${label(subject)}_ses-${label(session)}'
       '_task-${label(task)}_run-${index(run)}';
 
   /// e.g. `sub-01_ses-20260724_task-notes_run-01_beh.tsv`
@@ -91,13 +92,13 @@ class BidsName {
   /// The same entities with a different suffix/extension — for the report
   /// derivatives, which would otherwise be hand-built strings per screen.
   BidsName withSuffix(String suffix, {String extension = 'tsv'}) => BidsName(
-        subject: subject,
-        session: session,
-        task: task,
-        run: run,
-        suffix: suffix,
-        extension: extension,
-      );
+    subject: subject,
+    session: session,
+    task: task,
+    run: run,
+    suffix: suffix,
+    extension: extension,
+  );
 
   /// `sub-<label>/ses-<label>/beh` — the directory a raw file belongs in.
   String get relativeDir =>

@@ -47,17 +47,23 @@ void main() {
     ]) {
       final root = File('schema/$name.json');
       final bundled = File('assets/schema/$name.json');
-      expect(root.existsSync(), isTrue,
-          reason: 'schema/$name.json is committed; restore it from git.');
-      expect(bundled.existsSync(), isTrue,
-          reason:
-              'assets/schema/$name.json is committed; restore it from git.');
+      expect(
+        root.existsSync(),
+        isTrue,
+        reason: 'schema/$name.json is committed; restore it from git.',
+      );
+      expect(
+        bundled.existsSync(),
+        isTrue,
+        reason: 'assets/schema/$name.json is committed; restore it from git.',
+      );
       // Compared as a bool rather than as two strings so a failure reads as the
       // instruction below instead of a diff of several thousand JSON lines.
       expect(
         bundled.readAsStringSync() == root.readAsStringSync(),
         isTrue,
-        reason: 'assets/schema/$name.json has drifted from schema/$name.json. '
+        reason:
+            'assets/schema/$name.json has drifted from schema/$name.json. '
             'The root copy is canonical: copy it over the bundled one.',
       );
     }

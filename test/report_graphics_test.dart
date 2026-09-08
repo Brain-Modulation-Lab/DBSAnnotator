@@ -19,9 +19,10 @@ import 'report_ranking_prefs.dart';
 /// against data we can compare with the reference figure in
 /// docs/_static/session_report_session_scales_figure.png.
 List<SessionRow> _exampleRows() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
-          .readAsStringSync(),
-    );
+  File(
+    'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
+  ).readAsStringSync(),
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -30,13 +31,20 @@ void main() {
     late SessionReportData data;
 
     setUp(() {
-      data =
-          rankedReportData(_exampleRows(), generatedAt: DateTime(2026, 6, 26));
+      data = rankedReportData(
+        _exampleRows(),
+        generatedAt: DateTime(2026, 6, 26),
+      );
     });
 
     test('plots the session scales over the recording blocks', () {
-      expect(data.chart.series.keys,
-          ['Obsessions', 'Compulsions', 'Anxiety', 'Mood', 'Energy']);
+      expect(data.chart.series.keys, [
+        'Obsessions',
+        'Compulsions',
+        'Anxiety',
+        'Mood',
+        'Energy',
+      ]);
       expect(data.chart.xs, [1, 2, 3, 4, 5, 6, 7]);
       expect(data.chart.isEmpty, isFalse);
     });
@@ -64,11 +72,11 @@ void main() {
 
     test('the replicate spread is reported as the ranking resolution', () {
       // The only estimate the session offers of how much the index moves when
-      // nothing changes: 0.075 between blocks 6 and 7. That is 7.5x the 0.010
+      // nothing changes: 0.070 between blocks 6 and 7. That is 7x the 0.010
       // separating blocks 2, 3 and 4, so a third-decimal margin is not a
       // finding and the document must say so.
-      expect(data.replicateSpread, closeTo(0.075, 5e-4));
-      expect(data.rankingResolutionNote, contains('0.075'));
+      expect(data.replicateSpread, closeTo(0.070, 5e-4));
+      expect(data.rankingResolutionNote, contains('0.070'));
       expect(data.rankingResolutionNote, contains('not distinguishable'));
       expect(data.bestSettingText, contains('blocks 6, 7'));
     });
@@ -80,12 +88,17 @@ void main() {
       expect(data.bestBlocks, isNot(equals(data.secondBlocks)));
     });
 
-    test('lists only the SESSION scales as targets, not clinical baselines',
-        () {
-      expect(data.targetsText, contains('Obsessions: min'));
-      expect(data.targetsText, isNot(contains('Y-BOCS')),
-          reason: 'clinical baseline scales are not session targets');
-    });
+    test(
+      'lists only the SESSION scales as targets, not clinical baselines',
+      () {
+        expect(data.targetsText, contains('Obsessions: min'));
+        expect(
+          data.targetsText,
+          isNot(contains('Y-BOCS')),
+          reason: 'clinical baseline scales are not session targets',
+        );
+      },
+    );
 
     test('resolves the electrode rows the text describes', () {
       expect(data.initialRow, isNotNull);
@@ -101,12 +114,14 @@ void main() {
           'Compulsions',
           'Anxiety',
           'Mood',
-          'Energy'
+          'Energy',
         ])
           (name: name, min: 0.0, max: 10.0, mode: ScaleMode.max, custom: null),
       ];
-      final flipped =
-          buildSessionReportData(rows: _exampleRows(), scalePrefs: maxPrefs);
+      final flipped = buildSessionReportData(
+        rows: _exampleRows(),
+        scalePrefs: maxPrefs,
+      );
       // Maximising instead of minimising must not pick the same best block.
       expect(flipped.chart.bestX, isNot(7));
     });
@@ -122,17 +137,19 @@ void main() {
       // shape a real session produces.)
       const rows = [
         SessionRow(
-            blockId: '1',
-            isInitial: '0',
-            scaleName: 'Tremor',
-            scaleValue: '3',
-            leftAmplitude: '2.0'),
+          blockId: '1',
+          isInitial: '0',
+          scaleName: 'Tremor',
+          scaleValue: '3',
+          leftAmplitude: '2.0',
+        ),
         SessionRow(
-            blockId: '2',
-            isInitial: '0',
-            scaleName: 'Tremor',
-            scaleValue: '1',
-            leftAmplitude: '3.0'),
+          blockId: '2',
+          isInitial: '0',
+          scaleName: 'Tremor',
+          scaleValue: '1',
+          leftAmplitude: '3.0',
+        ),
       ];
       final one = rankedReportData(rows);
       expect(one.chart.series, hasLength(1));
@@ -150,10 +167,16 @@ void main() {
     });
 
     test('no session scales -> an empty chart the builders can skip', () {
-      final none = buildSessionReportData(rows: const [
-        SessionRow(
-            blockId: '0', isInitial: '1', scaleName: 'UPDRS', scaleValue: '30'),
-      ]);
+      final none = buildSessionReportData(
+        rows: const [
+          SessionRow(
+            blockId: '0',
+            isInitial: '1',
+            scaleName: 'UPDRS',
+            scaleValue: '30',
+          ),
+        ],
+      );
       expect(none.chart.isEmpty, isTrue);
     });
   });
@@ -161,22 +184,28 @@ void main() {
   group('rasterisers', () {
     test('renderScalesChartPng produces a PNG at the requested size', () async {
       final data = buildSessionReportData(rows: _exampleRows());
-      final png = await renderScalesChartPng(data.chart,
-          size: const Size(400, 200), pixelRatio: 2);
+      final png = await renderScalesChartPng(
+        data.chart,
+        size: const Size(400, 200),
+        pixelRatio: 2,
+      );
       expect(png, isNotNull);
       expect(pngSize(png!), (800, 400));
     });
 
-    test('renderScalesChartPng returns null when there is nothing to plot',
-        () async {
-      final empty = buildSessionReportData(rows: const []);
-      expect(await renderScalesChartPng(empty.chart), isNull);
-    });
+    test(
+      'renderScalesChartPng returns null when there is nothing to plot',
+      () async {
+        final empty = buildSessionReportData(rows: const []);
+        expect(await renderScalesChartPng(empty.chart), isNull);
+      },
+    );
 
     test('renderElectrodePng produces a PNG at the requested size', () async {
       final catalog = ElectrodeCatalog.fromJson(
         jsonDecode(
-                File('assets/schema/electrode_models.json').readAsStringSync())
+              File('assets/schema/electrode_models.json').readAsStringSync(),
+            )
             as Map<String, dynamic>,
       );
       final png = await renderElectrodePng(

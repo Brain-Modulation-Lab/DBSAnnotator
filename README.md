@@ -1,13 +1,18 @@
 # DBS Annotator
 
-Record deep brain stimulation programming sessions at the bedside, and get
-analysis-ready data out.
+Record deep brain stimulation programming visits, and get analysis-ready data
+out.
 
-DBS Annotator captures what was actually done during a DBS programming session —
-the stimulation parameters tried on each contact, the clinical and session scale
-ratings at each configuration, side effects, and free-text notes — and writes it
-to **BIDS tab-separated files** that go straight into analysis. It also produces
-clinician-readable **PDF and Word reports** for the patient record.
+Once the electrodes are implanted, the patient comes back to see a neurologist or
+psychiatrist, who tries stimulation configurations and settles on one that works.
+That takes a visit or several, and the parameters go on being adapted over months
+or years.
+
+DBS Annotator documents those visits: the stimulation parameters tried on each
+contact, the clinical and session scale ratings at each configuration, side
+effects, and free-text notes — written to **BIDS tab-separated files** that go
+straight into analysis. It also produces clinician-readable **PDF and Word
+reports** for the patient record.
 
 It runs **fully offline**. No account, no server, no telemetry. Tablet-first
 (iPadOS and Android) with desktop builds for Linux, Windows and macOS.
@@ -40,7 +45,7 @@ paper/               JOSS paper
 ## Getting started
 
 Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
-(Dart 3.4+). From the repository root:
+**3.38.4 or later** (Dart 3.12+). From the repository root:
 
 ```bash
 flutter pub get

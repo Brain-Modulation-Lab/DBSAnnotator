@@ -65,16 +65,16 @@ class ElectrodePainter extends CustomPainter {
   // ---------------------------------------------------------------------------
 
   static Color _base(ContactState s) => switch (s) {
-        ContactState.anodic => DbsColors.anodicBase,
-        ContactState.cathodic => DbsColors.cathodicBase,
-        ContactState.off => DbsColors.offBase,
-      };
+    ContactState.anodic => DbsColors.anodicBase,
+    ContactState.cathodic => DbsColors.cathodicBase,
+    ContactState.off => DbsColors.offBase,
+  };
 
   static Color _border(ContactState s) => switch (s) {
-        ContactState.anodic => DbsColors.anodicBorder,
-        ContactState.cathodic => DbsColors.cathodicBorder,
-        ContactState.off => DbsColors.offBorder,
-      };
+    ContactState.anodic => DbsColors.anodicBorder,
+    ContactState.cathodic => DbsColors.cathodicBorder,
+    ContactState.off => DbsColors.offBorder,
+  };
 
   /// Blend toward white. Replaces the old HSV-value `lighter()` port, which
   /// desaturated unpredictably (`#ff6464` "lightened" to nearly white) and
@@ -89,54 +89,54 @@ class ElectrodePainter extends CustomPainter {
   /// edges, a narrow bright band at [_specular]. Applied with the shared lead
   /// rect so every contact is lit identically.
   Shader _metalShader(Color base, Rect span) => LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          _shade(base, 0.34),
-          _shade(base, 0.10),
-          _tint(base, 0.62),
-          _tint(base, 0.10),
-          _shade(base, 0.20),
-          _shade(base, 0.42),
-        ],
-        stops: const [
-          0.0,
-          _specular - 0.16,
-          _specular,
-          _specular + 0.26,
-          0.84,
-          1.0,
-        ],
-      ).createShader(span);
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      _shade(base, 0.34),
+      _shade(base, 0.10),
+      _tint(base, 0.62),
+      _tint(base, 0.10),
+      _shade(base, 0.20),
+      _shade(base, 0.42),
+    ],
+    stops: const [
+      0.0,
+      _specular - 0.16,
+      _specular,
+      _specular + 0.26,
+      0.84,
+      1.0,
+    ],
+  ).createShader(span);
 
   /// Matte polymer gradient: same light, far less contrast, no specular spike.
   Shader _polymerShader(Rect span) => LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          _shade(palette.polymer, 0.22),
-          _shade(palette.polymer, 0.04),
-          _tint(palette.polymer, 0.30),
-          palette.polymer,
-          _shade(palette.polymer, 0.26),
-        ],
-        stops: const [0.0, _specular - 0.14, _specular, 0.72, 1.0],
-      ).createShader(span);
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      _shade(palette.polymer, 0.22),
+      _shade(palette.polymer, 0.04),
+      _tint(palette.polymer, 0.30),
+      palette.polymer,
+      _shade(palette.polymer, 0.26),
+    ],
+    stops: const [0.0, _specular - 0.14, _specular, 0.72, 1.0],
+  ).createShader(span);
 
   /// Very subtle vertical darkening at a band's top and bottom edge, which
   /// seats the metal onto the cylinder. Cheap two-draw alternative to the old
   /// per-contact offset drop shadows.
   Shader _seatShader(Rect rect) => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0x26000000),
-          Color(0x00000000),
-          Color(0x00000000),
-          Color(0x1F000000),
-        ],
-        stops: [0.0, 0.22, 0.78, 1.0],
-      ).createShader(rect);
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x26000000),
+      Color(0x00000000),
+      Color(0x00000000),
+      Color(0x1F000000),
+    ],
+    stops: [0.0, 0.22, 0.78, 1.0],
+  ).createShader(rect);
 
   // ---------------------------------------------------------------------------
   // Elements
@@ -165,15 +165,21 @@ class ElectrodePainter extends CustomPainter {
   /// the lead width, so the cylinder silhouette stays one continuous line
   /// (the old rounded, over-wide contacts let the body show through at every
   /// corner). [shape] lets a directional segment taper.
-  void _paintContact(Canvas canvas, Rect rect, ContactState state,
-      {Path? shape, bool tip = false}) {
+  void _paintContact(
+    Canvas canvas,
+    Rect rect,
+    ContactState state, {
+    Path? shape,
+    bool tip = false,
+  }) {
     final span = layout.leadRect;
     final base = _base(state);
-    final path = shape ??
+    final path =
+        shape ??
         (tip
             ? (Path()
-              ..addRect(rect)
-              ..addArc(layout.domeRect, 0, math.pi))
+                ..addRect(rect)
+                ..addArc(layout.domeRect, 0, math.pi))
             : (Path()..addRect(rect)));
 
     canvas
@@ -260,8 +266,12 @@ class ElectrodePainter extends CustomPainter {
   /// per-element offset shadows that made the canvas look cluttered.
   void _paintAmbientShadow(Canvas canvas) {
     final silhouette = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          layout.caseRect, Radius.circular(layout.caseRect.width * 0.14)))
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          layout.caseRect,
+          Radius.circular(layout.caseRect.width * 0.14),
+        ),
+      )
       ..addRect(layout.leadRect)
       ..addArc(layout.domeRect, 0, math.pi);
     canvas.drawPath(
@@ -287,8 +297,13 @@ class ElectrodePainter extends CustomPainter {
       (layout.scale * perMm).clamp(lo, hi);
 
   void _paintTextCentered(
-      Canvas canvas, String text, Rect rect, Color color, double fontSize,
-      {bool halo = false}) {
+    Canvas canvas,
+    String text,
+    Rect rect,
+    Color color,
+    double fontSize, {
+    bool halo = false,
+  }) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -320,11 +335,12 @@ class ElectrodePainter extends CustomPainter {
   void _paintLevelLabel(Canvas canvas, LevelLayout level, double gutterRight) {
     final rect = level.contactRects.values.first;
     final polarity = _levelPolarity(level);
-    final text = 'E${level.levelIdx}${switch (polarity) {
-      ContactState.anodic => ' +',
-      ContactState.cathodic => ' −',
-      ContactState.off => '',
-    }}';
+    final text =
+        'E${level.levelIdx}${switch (polarity) {
+          ContactState.anodic => ' +',
+          ContactState.cathodic => ' −',
+          ContactState.off => '',
+        }}';
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -376,13 +392,20 @@ class ElectrodePainter extends CustomPainter {
     _paintLead(canvas);
 
     _paintCase(canvas, layout.caseRect, caseState);
-    _paintTextCentered(canvas, 'CASE', layout.caseRect, _labelOn(caseState),
-        _font(0.38, 9, 18));
+    _paintTextCentered(
+      canvas,
+      'CASE',
+      layout.caseRect,
+      _labelOn(caseState),
+      _font(0.38, 9, 18),
+    );
 
     // A single gutter column for every E-label, just left of the widest level.
-    final gutterRight = layout.levels
-            .map((l) =>
-                l.contactRects.values.map((r) => r.left).reduce(math.min))
+    final gutterRight =
+        layout.levels
+            .map(
+              (l) => l.contactRects.values.map((r) => r.left).reduce(math.min),
+            )
             .reduce(math.min) -
         8;
 
@@ -393,7 +416,12 @@ class ElectrodePainter extends CustomPainter {
         final ringState = _ringState(level.levelIdx);
         _paintCap(canvas, cap, ringState);
         _paintTextCentered(
-            canvas, 'Ring', cap, _labelOn(ringState), _font(0.28, 7, 13));
+          canvas,
+          'Ring',
+          cap,
+          _labelOn(ringState),
+          _font(0.28, 7, 13),
+        );
       }
 
       for (final entry in level.contactRects.entries) {
@@ -401,9 +429,14 @@ class ElectrodePainter extends CustomPainter {
         final rect = entry.value;
         if (level.isDirectional) {
           _paintContact(canvas, rect, state);
-          _paintTextCentered(canvas, _segmentLabels[entry.key.segmentIdx], rect,
-              _labelOn(state), _font(0.36, 8, 16),
-              halo: true);
+          _paintTextCentered(
+            canvas,
+            _segmentLabels[entry.key.segmentIdx],
+            rect,
+            _labelOn(state),
+            _font(0.36, 8, 16),
+            halo: true,
+          );
         } else {
           _paintContact(canvas, rect, state, tip: level.isTip);
         }

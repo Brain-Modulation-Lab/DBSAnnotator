@@ -36,13 +36,13 @@ class ScaleSlider extends StatelessWidget {
   void _bump(double delta) => onChanged(_snap(value + delta));
 
   Widget _chevron(IconData icon, String tip, VoidCallback onTap) => Tooltip(
-        message: tip,
-        child: InkResponse(
-          onTap: onTap,
-          radius: 18,
-          child: SizedBox(width: 26, height: 24, child: Icon(icon, size: 18)),
-        ),
-      );
+    message: tip,
+    child: InkResponse(
+      onTap: onTap,
+      radius: 18,
+      child: SizedBox(width: 26, height: 24, child: Icon(icon, size: 18)),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -111,8 +111,10 @@ class _BarPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect =
-        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8));
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(8),
+    );
 
     // Track (flat gray when omitted, else the theme surface).
     canvas.drawRRect(
@@ -131,8 +133,9 @@ class _BarPainter extends CustomPainter {
       canvas.drawRect(
         fillRect,
         Paint()
-          ..shader = LinearGradient(colors: DbsColors.scaleFill(dark))
-              .createShader(fillRect),
+          ..shader = LinearGradient(
+            colors: DbsColors.scaleFill(dark),
+          ).createShader(fillRect),
       );
       canvas.restore();
     }

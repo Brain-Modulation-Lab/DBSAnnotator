@@ -26,7 +26,7 @@ _OUT = _DOCS / "_generated"
 
 #: The fixture shown as a worked example, copied into ``_generated`` so the
 #: ``:download:`` link stays inside Sphinx's source dir.
-_FIXTURE = _ROOT / "test" / "fixtures" / ("sub-01_ses-20260626_task-programming_run-01_beh.tsv")
+_FIXTURE = _ROOT / "test" / "fixtures" / ("sub-01_ses-20260203_task-programming_run-01_beh.tsv")
 
 
 def _rst_table(columns: list[dict], title: str) -> str:

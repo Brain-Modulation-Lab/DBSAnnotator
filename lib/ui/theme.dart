@@ -116,8 +116,10 @@ class TextSizeButtons extends StatelessWidget {
   const TextSizeButtons({super.key});
 
   void _bump(double delta) {
-    final next =
-        (textScale.value + delta).clamp(_kMinTextScale, _kMaxTextScale);
+    final next = (textScale.value + delta).clamp(
+      _kMinTextScale,
+      _kMaxTextScale,
+    );
     // Round to the step grid so repeated taps stay clean (0.1 float noise).
     textScale.value = (next * 10).roundToDouble() / 10;
   }
@@ -125,11 +127,8 @@ class TextSizeButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final divider = Theme.of(context).colorScheme.outlineVariant;
-    Widget btn(IconData icon, String tip, VoidCallback onTap) => IconButton(
-          icon: Icon(icon, size: 26),
-          tooltip: tip,
-          onPressed: onTap,
-        );
+    Widget btn(IconData icon, String tip, VoidCallback onTap) =>
+        IconButton(icon: Icon(icon, size: 26), tooltip: tip, onPressed: onTap);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: DecoratedBox(
@@ -140,14 +139,20 @@ class TextSizeButtons extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            btn(Icons.text_decrease, 'Smaller text',
-                () => _bump(-_kTextScaleStep)),
+            btn(
+              Icons.text_decrease,
+              'Smaller text',
+              () => _bump(-_kTextScaleStep),
+            ),
             SizedBox(
               height: 28,
               child: VerticalDivider(width: 1, color: divider),
             ),
-            btn(Icons.text_increase, 'Larger text',
-                () => _bump(_kTextScaleStep)),
+            btn(
+              Icons.text_increase,
+              'Larger text',
+              () => _bump(_kTextScaleStep),
+            ),
           ],
         ),
       ),
@@ -184,8 +189,9 @@ class GroupCard extends StatelessWidget {
       // Warm light-orange fill + a thin outline (desktop QGroupBox look). The
       // translucent amber stays warm — not black — in dark mode; keeping
       // surfaceTintColor transparent avoids the Material-3 blue tint.
-      color:
-          DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
+      color: DbsColors.cardFill(
+        Theme.of(context).brightness == Brightness.dark,
+      ),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -203,9 +209,9 @@ class GroupCard extends StatelessWidget {
               child: Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: DbsColors.accent,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: DbsColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             child,

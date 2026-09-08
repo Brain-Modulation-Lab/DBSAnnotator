@@ -12,8 +12,9 @@ import 'report_ranking_prefs.dart';
 
 /// A 2x1 red PNG, so `pngSize` can read a real IHDR.
 Uint8List _tinyPng() => base64Decode(
-    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
-    'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC');
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
+  'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC',
+);
 
 /// Read a part's UTF-8 text from the docx (zip) bytes.
 String _part(List<int> bytes, String name) {
@@ -89,7 +90,9 @@ void main() {
   test('buildSessionDocx returns a valid PK zip with the OOXML parts', () {
     final bytes = buildSessionDocx(
       data: buildSessionReportData(
-          rows: rows, generatedAt: DateTime(2026, 7, 29)),
+        rows: rows,
+        generatedAt: DateTime(2026, 7, 29),
+      ),
       subjectId: '01',
     );
     expect(bytes, isNotEmpty);
@@ -98,18 +101,21 @@ void main() {
 
     final names = ZipDecoder().decodeBytes(bytes).files.map((f) => f.name);
     expect(
-        names,
-        containsAll(<String>[
-          '[Content_Types].xml',
-          '_rels/.rels',
-          'word/document.xml',
-        ]));
+      names,
+      containsAll(<String>[
+        '[Content_Types].xml',
+        '_rels/.rels',
+        'word/document.xml',
+      ]),
+    );
   });
 
   test('document.xml carries the report sections and escapes XML', () {
     final bytes = buildSessionDocx(
       data: buildSessionReportData(
-          rows: rows, generatedAt: DateTime(2026, 7, 29)),
+        rows: rows,
+        generatedAt: DateTime(2026, 7, 29),
+      ),
       subjectId: '01',
     );
     final doc = _part(bytes, 'word/document.xml');
@@ -130,7 +136,9 @@ void main() {
   test('empty rows still yield a valid docx', () {
     final bytes = buildSessionDocx(
       data: buildSessionReportData(
-          rows: const [], generatedAt: DateTime(2026, 7, 29)),
+        rows: const [],
+        generatedAt: DateTime(2026, 7, 29),
+      ),
       subjectId: 'unknown',
     );
     expect(bytes.sublist(0, 4), [0x50, 0x4B, 0x03, 0x04]);
@@ -142,27 +150,32 @@ void main() {
     final tinyPng = _tinyPng();
 
     Uint8List build() => buildSessionDocx(
-          data: rankedReportData(rows, generatedAt: DateTime(2026, 7, 29)),
-          subjectId: '01',
-          chartPng: tinyPng,
-          electrodeImages: (
-            initLeft: tinyPng,
-            initRight: tinyPng,
-            finalLeft: tinyPng,
-            finalRight: tinyPng,
-          ),
-        );
+      data: rankedReportData(rows, generatedAt: DateTime(2026, 7, 29)),
+      subjectId: '01',
+      chartPng: tinyPng,
+      electrodeImages: (
+        initLeft: tinyPng,
+        initRight: tinyPng,
+        finalLeft: tinyPng,
+        finalRight: tinyPng,
+      ),
+    );
 
     test('adds media parts, a rels part and a png content type', () {
       final bytes = build();
-      final names =
-          ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+      final names = ZipDecoder()
+          .decodeBytes(bytes)
+          .files
+          .map((f) => f.name)
+          .toList();
       expect(names, contains('word/_rels/document.xml.rels'));
       // Chart + 4 leads = 5 images.
       final media = names.where((n) => n.startsWith('word/media/')).toList();
       expect(media, hasLength(5));
-      expect(_part(bytes, '[Content_Types].xml'),
-          contains('Extension="png" ContentType="image/png"'));
+      expect(
+        _part(bytes, '[Content_Types].xml'),
+        contains('Extension="png" ContentType="image/png"'),
+      );
     });
 
     test('every drawing relationship resolves to a media part that exists', () {
@@ -172,22 +185,31 @@ void main() {
       final rels = _part(bytes, 'word/_rels/document.xml.rels');
       final doc = _part(bytes, 'word/document.xml');
 
-      final relIds =
-          RegExp(r'Id="(rId\d+)"\s+Type="[^"]*/image"\s+Target="([^"]+)"')
-              .allMatches(rels);
+      final relIds = RegExp(
+        r'Id="(rId\d+)"\s+Type="[^"]*/image"\s+Target="([^"]+)"',
+      ).allMatches(rels);
       expect(relIds, isNotEmpty);
       for (final m in relIds) {
         // Target must exist in the package...
-        expect(names, contains('word/${m.group(2)}'),
-            reason: 'dangling relationship target');
+        expect(
+          names,
+          contains('word/${m.group(2)}'),
+          reason: 'dangling relationship target',
+        );
         // ...and be referenced by a blip in the body.
-        expect(doc, contains('r:embed="${m.group(1)}"'),
-            reason: 'unused image relationship');
+        expect(
+          doc,
+          contains('r:embed="${m.group(1)}"'),
+          reason: 'unused image relationship',
+        );
       }
       // Conversely, every blip must have a relationship.
       for (final m in RegExp(r'r:embed="(rId\d+)"').allMatches(doc)) {
-        expect(rels, contains('Id="${m.group(1)}"'),
-            reason: 'blip references a missing relationship');
+        expect(
+          rels,
+          contains('Id="${m.group(1)}"'),
+          reason: 'blip references a missing relationship',
+        );
       }
     });
 
@@ -198,9 +220,9 @@ void main() {
       }
       expect(doc, contains('<w:drawing>'));
       // wp:extent and a:ext must agree and be non-zero, or Word offers to repair.
-      final extents = RegExp(r'<wp:extent cx="(\d+)" cy="(\d+)"/>')
-          .allMatches(doc)
-          .toList();
+      final extents = RegExp(
+        r'<wp:extent cx="(\d+)" cy="(\d+)"/>',
+      ).allMatches(doc).toList();
       expect(extents, hasLength(5));
       for (final m in extents) {
         expect(int.parse(m.group(1)!), greaterThan(0));
@@ -217,22 +239,30 @@ void main() {
       expect(doc, contains('w:sz="24"'), reason: '3pt block separator rule');
       expect(doc, contains('Highest aggregate index (rank 1)'));
       expect(doc, contains('Second highest (rank 2)'));
-      expect(doc, isNot(contains('Optimal')),
-          reason: 'a clinical superlative for a rank statistic');
+      expect(
+        doc,
+        isNot(contains('Optimal')),
+        reason: 'a clinical superlative for a rank statistic',
+      );
       expect(doc, contains('Scale targets: Tremor: min'));
       expect(doc, contains('does not constitute'), reason: 'disclaimer');
     });
 
     test('carries docProps and an attestation block', () {
       final bytes = build();
-      final names =
-          ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+      final names = ZipDecoder()
+          .decodeBytes(bytes)
+          .files
+          .map((f) => f.name)
+          .toList();
       // Without docProps the title, author and dates are blank in Word's info
       // pane and in anything that indexes the file.
       expect(names, contains('docProps/core.xml'));
       expect(_part(bytes, '_rels/.rels'), contains('docProps/core.xml'));
       expect(
-          _part(bytes, '[Content_Types].xml'), contains('core-properties+xml'));
+        _part(bytes, '[Content_Types].xml'),
+        contains('core-properties+xml'),
+      );
       final core = _part(bytes, 'docProps/core.xml');
       expect(core, contains('DBS session report - sub-01'));
       expect(core, contains('DBS Annotator v'));
@@ -251,9 +281,10 @@ void main() {
       expect(a4, contains('w:left="720"'));
       final letter = _part(
         buildSessionDocx(
-            data: buildSessionReportData(rows: rows),
-            subjectId: '01',
-            pageSize: DocxPageSize.letter),
+          data: buildSessionReportData(rows: rows),
+          subjectId: '01',
+          pageSize: DocxPageSize.letter,
+        ),
         'word/document.xml',
       );
       expect(letter, contains('<w:pgSz w:w="12240" w:h="15840"/>'));
@@ -261,27 +292,40 @@ void main() {
 
     test('without images there is no media and no drawing', () {
       final bytes = buildSessionDocx(
-          data: buildSessionReportData(rows: rows), subjectId: '01');
-      final names =
-          ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+        data: buildSessionReportData(rows: rows),
+        subjectId: '01',
+      );
+      final names = ZipDecoder()
+          .decodeBytes(bytes)
+          .files
+          .map((f) => f.name)
+          .toList();
       expect(names.where((n) => n.startsWith('word/media/')), isEmpty);
       expect(_part(bytes, 'word/document.xml'), isNot(contains('<w:drawing>')));
       // The rels part IS still present: the footer registers a relationship
       // whether or not anything was embedded.
       expect(names, contains('word/_rels/document.xml.rels'));
-      expect(_part(bytes, 'word/_rels/document.xml.rels'),
-          isNot(contains('/relationships/image')));
+      expect(
+        _part(bytes, 'word/_rels/document.xml.rels'),
+        isNot(contains('/relationships/image')),
+      );
     });
 
     test('every page is attributable: a real footer part, referenced', () {
       // A continuation page that escapes the staple must still name the
       // patient, the encounter and the tool. The .docx had no footer at all.
       final bytes = buildSessionDocx(
-          data: buildSessionReportData(
-              rows: rows, generatedAt: DateTime(2026, 6, 26)),
-          subjectId: '01');
-      final names =
-          ZipDecoder().decodeBytes(bytes).files.map((f) => f.name).toList();
+        data: buildSessionReportData(
+          rows: rows,
+          generatedAt: DateTime(2026, 6, 26),
+        ),
+        subjectId: '01',
+      );
+      final names = ZipDecoder()
+          .decodeBytes(bytes)
+          .files
+          .map((f) => f.name)
+          .toList();
       expect(names, contains('word/footer1.xml'));
 
       final footer = _part(bytes, 'word/footer1.xml');
@@ -294,30 +338,36 @@ void main() {
       // Declared in [Content_Types], related from the document, and referenced
       // by the section — miss any one and Word shows a repair prompt or an
       // inert footer.
-      expect(_part(bytes, '[Content_Types].xml'),
-          contains('wordprocessingml.footer+xml'));
+      expect(
+        _part(bytes, '[Content_Types].xml'),
+        contains('wordprocessingml.footer+xml'),
+      );
       final rels = _part(bytes, 'word/_rels/document.xml.rels');
-      final match =
-          RegExp(r'Id="(rId\d+)"[^>]*/relationships/footer"').firstMatch(rels);
+      final match = RegExp(
+        r'Id="(rId\d+)"[^>]*/relationships/footer"',
+      ).firstMatch(rels);
       expect(match, isNotNull, reason: 'the footer needs a relationship');
       expect(
-          _part(bytes, 'word/document.xml'),
-          contains('<w:footerReference w:type="default" '
-              'r:id="${match!.group(1)}"/>'));
+        _part(bytes, 'word/document.xml'),
+        contains(
+          '<w:footerReference w:type="default" '
+          'r:id="${match!.group(1)}"/>',
+        ),
+      );
     });
   });
 
   test('pngSize reads the IHDR, and rejects non-PNG bytes', () {
     final tiny = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
-        'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC');
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEklEQVR4AWP8z8'
+      'Dwn4GBgYEBAA1TAv0Q2FSJAAAAAElFTkSuQmCC',
+    );
     expect(pngSize(tiny), (2, 1));
     expect(pngSize(Uint8List.fromList([1, 2, 3])), isNull);
     expect(pngSize(Uint8List.fromList(List.filled(40, 0))), isNull);
   });
 
-  test('drops XML-illegal control characters instead of corrupting the file',
-      () {
+  test('drops XML-illegal control characters instead of corrupting the file', () {
     // U+000B and U+0000 have NO legal XML 1.0 representation. Emitting one
     // makes Word reject the whole document as unreadable, losing the entire
     // report - and such characters arrive easily from pasted PDF or hospital
@@ -335,9 +385,12 @@ void main() {
       ),
     ];
     final bytes = buildSessionDocx(
-        data: buildSessionReportData(
-            rows: rows, generatedAt: DateTime(2026, 7, 29)),
-        subjectId: '01');
+      data: buildSessionReportData(
+        rows: rows,
+        generatedAt: DateTime(2026, 7, 29),
+      ),
+      subjectId: '01',
+    );
     final doc = _part(bytes, 'word/document.xml');
 
     // The illegal codepoints are gone; surrounding text and the tab remain.
@@ -350,8 +403,10 @@ void main() {
   });
 
   group('sections gate the document', () {
-    final data =
-        buildSessionReportData(rows: rows, generatedAt: DateTime(2026, 7, 29));
+    final data = buildSessionReportData(
+      rows: rows,
+      generatedAt: DateTime(2026, 7, 29),
+    );
     // Two named headings per section, so a section's absence is greppable.
     const headings = {
       ReportSection.baseline: 'Baseline assessment (pre-session)',
@@ -361,8 +416,9 @@ void main() {
     };
 
     String docFor(Set<ReportSection> sections) => _part(
-        buildSessionDocx(data: data, subjectId: '01', sections: sections),
-        'word/document.xml');
+      buildSessionDocx(data: data, subjectId: '01', sections: sections),
+      'word/document.xml',
+    );
 
     test('everything on by default', () {
       final doc = docFor(kAllReportSections);
@@ -378,13 +434,20 @@ void main() {
             ? {ReportSection.chart, ReportSection.table}
             : {entry.key};
         final doc = docFor(kAllReportSections.difference(off));
-        expect(doc, isNot(contains(entry.value)),
-            reason: '${entry.key.name} was excluded but its heading remains');
+        expect(
+          doc,
+          isNot(contains(entry.value)),
+          reason: '${entry.key.name} was excluded but its heading remains',
+        );
         for (final other in headings.entries) {
           if (other.key == entry.key) continue;
-          expect(doc, contains(other.value),
-              reason: 'excluding ${entry.key.name} also removed '
-                  '${other.key.name}');
+          expect(
+            doc,
+            contains(other.value),
+            reason:
+                'excluding ${entry.key.name} also removed '
+                '${other.key.name}',
+          );
         }
       }
     });
@@ -411,65 +474,79 @@ void main() {
     List<List<int>> gridsIn(String doc) =>
         RegExp(r'<w:tblGrid>(.*?)</w:tblGrid>')
             .allMatches(doc)
-            .map((m) => RegExp(r'w:w="(\d+)"')
-                .allMatches(m.group(1)!)
-                .map((g) => int.parse(g.group(1)!))
-                .toList())
+            .map(
+              (m) => RegExp(r'w:w="(\d+)"')
+                  .allMatches(m.group(1)!)
+                  .map((g) => int.parse(g.group(1)!))
+                  .toList(),
+            )
             .toList();
 
     for (final size in DocxPageSize.values) {
       test('${size.name}: every grid sums to the content width', () {
         final doc = _part(
-            buildSessionDocx(
-              data: buildSessionReportData(
-                  rows: rows, generatedAt: DateTime(2026, 7, 29)),
-              subjectId: '01',
-              chartPng: _tinyPng(),
-              electrodeImages: (
-                initLeft: _tinyPng(),
-                initRight: _tinyPng(),
-                finalLeft: _tinyPng(),
-                finalRight: _tinyPng(),
-              ),
-              pageSize: size,
+          buildSessionDocx(
+            data: buildSessionReportData(
+              rows: rows,
+              generatedAt: DateTime(2026, 7, 29),
             ),
-            'word/document.xml');
+            subjectId: '01',
+            chartPng: _tinyPng(),
+            electrodeImages: (
+              initLeft: _tinyPng(),
+              initRight: _tinyPng(),
+              finalLeft: _tinyPng(),
+              finalRight: _tinyPng(),
+            ),
+            pageSize: size,
+          ),
+          'word/document.xml',
+        );
 
         // The invariant Word actually cares about: each table's grid sums to
         // that table's OWN declared `tblW`, or Word rescales the whole table.
         // NOT to the page width, and NOT a fixed table count - the document
         // grew a page-1 configuration box and a baseline scale table since this
         // was written, and a census is not the property under test.
-        final declared = RegExp(r'<w:tblW w:w="(\d+)" w:type="dxa"/>')
-            .allMatches(doc)
-            .map((m) => int.parse(m.group(1)!))
-            .toList();
+        final declared = RegExp(
+          r'<w:tblW w:w="(\d+)" w:type="dxa"/>',
+        ).allMatches(doc).map((m) => int.parse(m.group(1)!)).toList();
         final grids = gridsIn(doc);
         expect(grids, isNotEmpty);
         expect(declared, hasLength(grids.length));
         for (var i = 0; i < grids.length; i++) {
-          expect(grids[i].fold(0, (a, b) => a + b), declared[i],
-              reason: 'grid $i must sum to its own declared width');
+          expect(
+            grids[i].fold(0, (a, b) => a + b),
+            declared[i],
+            reason: 'grid $i must sum to its own declared width',
+          );
         }
 
         // The session data table, found by its column count rather than its
         // position, is full width and has one grid column per header.
-        final dataIdx =
-            grids.indexWhere((g) => g.length == sessionTableHeaders.length);
-        expect(dataIdx, greaterThanOrEqualTo(0),
-            reason: 'the session data table must be present');
+        final dataIdx = grids.indexWhere(
+          (g) => g.length == sessionTableHeaders.length,
+        );
+        expect(
+          dataIdx,
+          greaterThanOrEqualTo(0),
+          reason: 'the session data table must be present',
+        );
         expect(declared[dataIdx], size.contentWidthTwips);
 
         // The electrode grid: four evenly quartered columns.
-        final leadIdx =
-            grids.indexWhere((g) => g.length == 4 && g.toSet().length <= 2);
+        final leadIdx = grids.indexWhere(
+          (g) => g.length == 4 && g.toSet().length <= 2,
+        );
         expect(leadIdx, greaterThanOrEqualTo(0));
         expect(declared[leadIdx], size.contentWidthTwips);
 
         // Fixed layout on every table, and a width on every cell - the grid
         // alone is only a hint, so a row without per-cell widths auto-fits.
-        expect(RegExp('w:tblLayout w:type="fixed"').allMatches(doc).length,
-            grids.length);
+        expect(
+          RegExp('w:tblLayout w:type="fixed"').allMatches(doc).length,
+          grids.length,
+        );
         expect(RegExp('<w:tcW ').allMatches(doc), isNotEmpty);
         expect(doc, isNot(contains('w:tblW w:w="0" w:type="auto"')));
       });

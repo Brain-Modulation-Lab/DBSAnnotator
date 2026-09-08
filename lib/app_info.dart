@@ -16,8 +16,8 @@ const String issuesUrl = '$repoUrl/issues';
 const String contactEmail = 'lucia.poma@wysscenter.ch';
 const String publisher = 'Wyss Center for Bio and Neuroengineering';
 const String copyrightHolders =
-    'Wyss Center for Bio and Neuroengineering, Massachusetts General Hospital, '
-    'and Charité Universitätsmedizin Berlin';
+    'Massachusetts General Hospital, Harvard Medical School, and the Wyss '
+    'Center for Bio and Neuroengineering';
 
 /// The app mark, bundled from `icons/logosimple/`. Declared in pubspec assets.
 const String appIconAsset = 'assets/icon/app_icon.png';
@@ -34,13 +34,12 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.asset(
-        appIconAsset,
-        width: size,
-        height: size,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) =>
-            Icon(Icons.psychology_outlined, size: size),
-      );
+    appIconAsset,
+    width: size,
+    height: size,
+    filterQuality: FilterQuality.medium,
+    errorBuilder: (_, __, ___) => Icon(Icons.psychology_outlined, size: size),
+  );
 }
 
 /// Desktop-style Help/About dialog: name + version, workflow overview,
@@ -54,13 +53,18 @@ void showAppAbout(BuildContext context) {
     applicationIcon: const AppLogo(size: 48),
     children: const [
       SizedBox(height: 8),
-      Text('Annotate DBS programming sessions: file setup → initial '
-          'configuration → session-scales configuration → active recording. '
-          'Writes BIDS behavioural TSV with a JSON sidecar documenting every '
-          'column, and exports PDF and Word reports.'),
+      Text(
+        'Document DBS programming visits — the appointments at which '
+        'stimulation configurations are tested and optimised: file setup → '
+        'initial configuration → session-scales configuration → active '
+        'recording. Writes BIDS behavioural TSV with a JSON sidecar '
+        'documenting every column, and exports PDF and Word reports.',
+      ),
       SizedBox(height: 12),
-      Text('Links (select to copy):',
-          style: TextStyle(fontWeight: FontWeight.w600)),
+      Text(
+        'Links (select to copy):',
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
       SelectableText('Repository: $repoUrl'),
       SelectableText('Issues: $issuesUrl'),
       SelectableText('Contact: $contactEmail'),
@@ -77,9 +81,9 @@ class HelpButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        icon: const Icon(Icons.help_outline),
-        iconSize: 28,
-        tooltip: 'Help / about',
-        onPressed: () => showAppAbout(context),
-      );
+    icon: const Icon(Icons.help_outline),
+    iconSize: 28,
+    tooltip: 'Help / about',
+    onPressed: () => showAppAbout(context),
+  );
 }

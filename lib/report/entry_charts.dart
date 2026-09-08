@@ -67,7 +67,7 @@ const List<String> kEntryPanelIds = [
   'scales',
   'amplitude',
   'pulseWidth',
-  'freq'
+  'freq',
 ];
 
 /// Human titles per panel id, for a persisted order that no longer matches the
@@ -137,10 +137,10 @@ List<String> _coincidentSeries(Map<String, Map<int, double>> series) {
   final out = <String>[];
   final seen = <String, String>{};
   for (final e in series.entries) {
-    final key = (e.value.entries.toList()
-          ..sort((a, b) => a.key.compareTo(b.key)))
-        .map((p) => '${p.key}:${p.value}')
-        .join(',');
+    final key =
+        (e.value.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))
+            .map((p) => '${p.key}:${p.value}')
+            .join(',');
     if (key.isEmpty) continue;
     final first = seen[key];
     if (first != null) {
@@ -234,8 +234,10 @@ EntryChartData buildEntryChartData(
   };
 
   /// y range over every series in a panel.
-  (double, double) rangeOf(Iterable<Map<int, double>> maps,
-      {bool zeroBased = false}) {
+  (double, double) rangeOf(
+    Iterable<Map<int, double>> maps, {
+    bool zeroBased = false,
+  }) {
     var lo = double.infinity;
     var hi = double.negativeInfinity;
     for (final m in maps) {
@@ -257,12 +259,16 @@ EntryChartData buildEntryChartData(
     if (bounds.$1 < scalesLo) scalesLo = bounds.$1;
     if (bounds.$2 > scalesHi) scalesHi = bounds.$2;
   }
-  final scalesRange =
-      scalesHi > scalesLo ? (scalesLo, scalesHi) : rangeOf(scales.values);
+  final scalesRange = scalesHi > scalesLo
+      ? (scalesLo, scalesHi)
+      : rangeOf(scales.values);
 
   ParamPanel panel(
-      String id, Map<String, Map<int, double>> series, (double, double) range,
-      {String unit = ''}) {
+    String id,
+    Map<String, Map<int, double>> series,
+    (double, double) range, {
+    String unit = '',
+  }) {
     // Drop empty series so an unused side does not claim a legend slot.
     final used = <String, Map<int, double>>{
       for (final e in series.entries)
@@ -278,13 +284,14 @@ EntryChartData buildEntryChartData(
       constantLabel: constant == null || used.isEmpty
           ? null
           : '${_trim(constant)}${unit.isEmpty ? '' : ' $unit'}, unchanged'
-              '${used.length > 1 ? ' (both sides)' : ''}',
+                '${used.length > 1 ? ' (both sides)' : ''}',
       coincident: _coincidentSeries(used),
     );
   }
 
-  final (bestX, secondX) =
-      findBestAndSecond(computeAggregateIndex(scales, blockOrder, targets));
+  final (bestX, secondX) = findBestAndSecond(
+    computeAggregateIndex(scales, blockOrder, targets),
+  );
 
   return (
     xs: blockOrder,
@@ -295,13 +302,24 @@ EntryChartData buildEntryChartData(
       panel('scales', scales, scalesRange),
       // Dose is a magnitude, so its axis starts at zero: an amplitude panel
       // spanning 4.4-7.4 makes 5.5 -> 4.5 mA look like a collapse.
-      panel('amplitude', {'Left': ampL, 'Right': ampR},
-          rangeOf([ampL, ampR], zeroBased: true),
-          unit: 'mA'),
-      panel('pulseWidth', {'Left': pwL, 'Right': pwR}, rangeOf([pwL, pwR]),
-          unit: 'µs'),
-      panel('freq', {'Left': freqL, 'Right': freqR}, rangeOf([freqL, freqR]),
-          unit: 'Hz'),
+      panel(
+        'amplitude',
+        {'Left': ampL, 'Right': ampR},
+        rangeOf([ampL, ampR], zeroBased: true),
+        unit: 'mA',
+      ),
+      panel(
+        'pulseWidth',
+        {'Left': pwL, 'Right': pwR},
+        rangeOf([pwL, pwR]),
+        unit: 'µs',
+      ),
+      panel(
+        'freq',
+        {'Left': freqL, 'Right': freqR},
+        rangeOf([freqL, freqR]),
+        unit: 'Hz',
+      ),
     ],
   );
 }

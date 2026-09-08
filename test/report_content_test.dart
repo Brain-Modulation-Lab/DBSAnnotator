@@ -13,9 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'report_ranking_prefs.dart';
 
 List<SessionRow> _example() => parseSessionTsv(
-      File('test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv')
-          .readAsStringSync(),
-    );
+  File(
+    'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
+  ).readAsStringSync(),
+);
 
 void main() {
   group('over the committed example', () {
@@ -32,9 +33,12 @@ void main() {
       // the L row.
       final first = data.tableData.first;
       expect(first[time], matches(RegExp(r'^\d{2}:\d{2}:\d{2}$')));
-      expect(first[index], contains('0.430'));
-      expect(first[index], contains('rank 6'),
-          reason: 'block 1 is the 6th best of 7');
+      expect(first[index], contains('0.380'));
+      expect(
+        first[index],
+        contains('rank 6'),
+        reason: 'block 1 is the 6th best of 7',
+      );
       // The R row leaves them blank rather than repeating them.
       expect(data.tableData[1][time], isEmpty);
       expect(data.tableData[1][index], isEmpty);
@@ -48,18 +52,22 @@ void main() {
     test('a note becomes a line in Recorded observations', () {
       // The notes column is the only adverse-event data the format captures.
       expect(data.observations, isNotEmpty);
-      final warm = data.observations.firstWhere((o) => o.contains('warm rush'));
+      final warm = data.observations.firstWhere(
+        (o) => o.contains('transient warmth'),
+      );
       expect(warm, startsWith('Block 4'));
-      expect(warm, contains('16:47:11'), reason: 'when it happened');
+      expect(warm, contains('09:09:15'), reason: 'when it happened');
       expect(warm, contains('%'), reason: 'and under what stimulation');
     });
 
     test('response reports first -> last per scale', () {
       final byName = {for (final r in data.response) r.name: r};
-      expect(byName.keys,
-          containsAll(['Obsessions', 'Compulsions', 'Anxiety', 'Mood']));
-      expect(byName['Obsessions']!.first, 7.25);
-      expect(byName['Obsessions']!.last, 2.25);
+      expect(
+        byName.keys,
+        containsAll(['Obsessions', 'Compulsions', 'Anxiety', 'Mood']),
+      );
+      expect(byName['Obsessions']!.first, 8.00);
+      expect(byName['Obsessions']!.last, 2.75);
     });
 
     test('n scales rated per block, so the index is interpretable', () {
@@ -69,28 +77,33 @@ void main() {
 
     test('the Time cell carries the gap from the previous block', () {
       final time = sessionTableHeaders.indexOf('Time');
-      // Block 1 is the first, so no gap; block 2 follows it by 8 s. The gap is
-      // what makes the 9 s between blocks 6 and 7 - identical stimulation,
-      // ranked 1 and 2 - visible without doing arithmetic.
-      expect(data.tableData[0][time], '16:46:37');
+      // Block 1 is the first, so no gap; the settings that follow are one to
+      // three minutes apart, which is what taking five ratings costs. The gap
+      // column is what makes the NINE SECONDS between blocks 6 and 7 -
+      // identical stimulation, ranked 1 and 2 - visible without arithmetic.
+      expect(data.tableData[0][time], '09:03:20');
       final second = data.tableData[2][time];
-      expect(second, startsWith('16:46:45'));
-      expect(second, contains('(+8 s)'));
+      expect(second, startsWith('09:05:05'));
+      expect(second, contains('(+2 min)'));
       expect(
-          data.tableData[data.tableData.length - 2][time], contains('(+9 s)'));
+        data.tableData[data.tableData.length - 2][time],
+        contains('(+9 s)'),
+      );
     });
 
-    test('parameters list their distinct values and the blocks that used them',
-        () {
-      // "5.0 - 7.0 mA" hid that the right side went 5.0 -> 6.0 -> 7.0 -> 5.0 ->
-      // 7.0 -> 6.0, and implied a titration that never happened.
-      expect(data.ampL, '5.5 mA (blocks 1-5), 4.5 mA (blocks 6-7)');
-      expect(data.ampR, contains('7.0 mA (blocks 3, 5)'));
-    });
+    test(
+      'parameters list their distinct values and the blocks that used them',
+      () {
+        // "5.0 - 7.0 mA" hid that the right side went 5.0 -> 6.0 -> 7.0 -> 5.0 ->
+        // 7.0 -> 6.0, and implied a titration that never happened.
+        expect(data.ampL, '5.0 mA (blocks 1-5), 4.0 mA (blocks 6-7)');
+        expect(data.ampR, contains('5.0 mA (blocks 2, 6-7)'));
+      },
+    );
 
     test('an unchanged parameter says so instead of a degenerate range', () {
-      expect(data.freqL, '125 Hz (unchanged)');
-      expect(data.pwR, '90 µs (unchanged)');
+      expect(data.freqL, '130 Hz (unchanged)');
+      expect(data.pwR, '60 µs (unchanged)');
     });
 
     test('the figure caption names the subject, the n and the green', () {
@@ -115,8 +128,10 @@ void main() {
     test('a split is shown as percentages that sum to 100', () {
       // Three equal contacts rounded independently print 33/33/33 = 99 %, which
       // reads as a missing share.
-      expect(contactsWithCurrent('E2a_E2b_E2c', '1.67_1.67_1.67'),
-          '2a(34%) 2b(33%) 2c(33%)');
+      expect(
+        contactsWithCurrent('E2a_E2b_E2c', '1.67_1.67_1.67'),
+        '2a(34%) 2b(33%) 2c(33%)',
+      );
       expect(contactsWithCurrent('E2b_E2c', '3.3_2.2'), '2b(60%) 2c(40%)');
     });
 
@@ -159,7 +174,7 @@ void main() {
             min: 0,
             max: 10,
             mode: ScaleMode.ignore,
-            custom: null
+            custom: null,
           ),
         ],
       );
@@ -170,21 +185,30 @@ void main() {
 
   group('provenance and honesty', () {
     test('the session stamp carries the UTC offset', () {
-      // The `timezone` column holds a Windows display name plus an offset
-      // ("W. Europe Daylight Time +0200"); only the offset half is portable,
-      // and a clinical timestamp with no zone is ambiguous across DST.
+      // The `timezone` column holds a platform zone name plus an offset
+      // ("CEST +02:00"); only the offset half is portable, and a clinical
+      // timestamp with no zone is ambiguous across DST. The synthetic example
+      // is generated in UTC, so its offset is +00:00 - which still exercises
+      // the extraction, since the parser must find and render an offset rather
+      // than assume one.
       final data = rankedReportData(_example());
-      expect(data.utcOffset, '+02:00');
-      expect(data.sessionStamp, contains('(UTC+02:00)'));
+      expect(data.utcOffset, '+00:00');
+      expect(data.sessionStamp, contains('(UTC+00:00)'));
       // Still ASCII, so the PDF's Latin-1 fallback can draw it.
       expect(data.sessionStamp.runes.every((r) => r < 0x80), isTrue);
     });
 
     test('rows with no timezone yield no offset rather than a wrong one', () {
-      final data = buildSessionReportData(rows: const [
-        SessionRow(
-            blockId: '1', isInitial: '0', date: '2026-01-01', time: '09:00:00'),
-      ]);
+      final data = buildSessionReportData(
+        rows: const [
+          SessionRow(
+            blockId: '1',
+            isInitial: '0',
+            date: '2026-01-01',
+            time: '09:00:00',
+          ),
+        ],
+      );
       expect(data.utcOffset, isEmpty);
       expect(data.sessionStamp, isNot(contains('UTC')));
     });
@@ -199,8 +223,10 @@ void main() {
     test('targets print the bounds the index normalised into', () {
       // Without them a reader cannot reproduce a score, and the ranking turns
       // on the third decimal.
-      expect(rankedReportData(_example()).targetsText,
-          contains('Obsessions: min of 0-10'));
+      expect(
+        rankedReportData(_example()).targetsText,
+        contains('Obsessions: min of 0-10'),
+      );
     });
 
     test('the instrument note says what the record cannot support', () {

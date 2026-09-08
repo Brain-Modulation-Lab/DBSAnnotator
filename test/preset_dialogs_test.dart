@@ -15,22 +15,25 @@ void main() {
   ) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () => open(context),
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => open(context),
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('setting presets dialog sorts + de-dupes and returns lists',
-      (tester) async {
+  testWidgets('setting presets dialog sorts + de-dupes and returns lists', (
+    tester,
+  ) async {
     const limits = StimLimits(
       frequency: (min: 10, max: 200),
       amplitude: (min: 0, max: 15),
@@ -58,13 +61,17 @@ void main() {
     expect(result!.pulseWidths, [60]);
   });
 
-  testWidgets('clinical presets dialog returns group -> name lists',
-      (tester) async {
+  testWidgets('clinical presets dialog returns group -> name lists', (
+    tester,
+  ) async {
     Map<String, List<String>>? result;
     await pumpHost(tester, (context) async {
-      result = await showClinicalPresetsDialog(context, presets: const {
-        'OCD': ['Y-BOCS', 'MADRS'],
-      });
+      result = await showClinicalPresetsDialog(
+        context,
+        presets: const {
+          'OCD': ['Y-BOCS', 'MADRS'],
+        },
+      );
     });
 
     expect(find.text('Clinical scales settings'), findsOneWidget);
@@ -78,13 +85,17 @@ void main() {
     });
   });
 
-  testWidgets('session presets dialog preserves [name,min,max,mode] on save',
-      (tester) async {
+  testWidgets('session presets dialog preserves [name,min,max,mode] on save', (
+    tester,
+  ) async {
     Map<String, List<List<String>>>? result;
     await pumpHost(tester, (context) async {
-      result = await showSessionPresetsDialog(context, presets: const {
-        'PD': [(name: 'Tremor', min: '0', max: '10', mode: 'max')],
-      });
+      result = await showSessionPresetsDialog(
+        context,
+        presets: const {
+          'PD': [(name: 'Tremor', min: '0', max: '10', mode: 'max')],
+        },
+      );
     });
 
     expect(find.text('Session scales settings'), findsOneWidget);

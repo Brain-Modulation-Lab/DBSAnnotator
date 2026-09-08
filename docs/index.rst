@@ -8,15 +8,20 @@ DBS Annotator
 
 |
 
-**Record deep brain stimulation programming sessions at the bedside, and get
-analysis-ready data out.**
+**Record deep brain stimulation programming visits, and get analysis-ready data
+out.**
 
-DBS Annotator captures what actually happened during a DBS programming session —
-the stimulation parameters tried on each contact, the clinical and session scale
-ratings at every configuration, side effects, and free-text notes — and writes it
-to :doc:`BIDS tab-separated files <output_format>` that go straight into
-analysis. It also produces clinician-readable :doc:`PDF and Word reports
-<reports>` for the patient record.
+Once the electrodes are implanted, the patient comes back to see a neurologist or
+psychiatrist, who tries stimulation configurations and settles on one that works.
+That takes a visit or several, and the parameters go on being adapted over months
+or years.
+
+DBS Annotator documents those visits: the stimulation parameters tried on each
+contact, the clinical and session scale ratings at every configuration, side
+effects, and free-text notes — written to :doc:`BIDS tab-separated files
+<output_format>` that go straight into analysis. It also produces
+clinician-readable :doc:`PDF and Word reports <reports>` for the patient
+record.
 
 It runs **fully offline**: no account, no server, no telemetry. Tablet-first for
 iPadOS and Android, with desktop builds for Linux, Windows and macOS.

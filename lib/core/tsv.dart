@@ -34,11 +34,7 @@ List<List<String>> parseTsv(String content) {
 /// exports runs the last row of the first into the header of the second.
 String writeTsv(List<List<String>> rows) {
   if (rows.isEmpty) return '';
-  return '${const ListToCsvConverter(
-    fieldDelimiter: '\t',
-    textDelimiter: '"',
-    eol: '\n',
-  ).convert(rows)}\n';
+  return '${const ListToCsvConverter(fieldDelimiter: '\t', textDelimiter: '"', eol: '\n').convert(rows)}\n';
 }
 
 /// What BIDS requires in a cell that has no value: "Missing and non-applicable
@@ -76,10 +72,12 @@ String writeTsvRecords(
 ) {
   final rows = <List<String>>[columns];
   for (final record in records) {
-    rows.add(columns.map((col) {
-      final value = record[col] ?? '';
-      return value.isEmpty ? naCell : value;
-    }).toList());
+    rows.add(
+      columns.map((col) {
+        final value = record[col] ?? '';
+        return value.isEmpty ? naCell : value;
+      }).toList(),
+    );
   }
   return writeTsv(rows);
 }

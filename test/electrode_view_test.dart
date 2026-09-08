@@ -29,8 +29,9 @@ void main() {
     return catalog.models[name]!;
   }
 
-  testWidgets('taps drive the OFF/ANODIC/CATHODIC cycle and callbacks',
-      (tester) async {
+  testWidgets('taps drive the OFF/ANODIC/CATHODIC cycle and callbacks', (
+    tester,
+  ) async {
     final model = loadModel('Boston Scientific Vercise Directed');
 
     Map<ContactKey, ContactState>? lastStates;
@@ -98,10 +99,7 @@ void main() {
 
     // Ring-cap tap again: all ANODIC -> all CATHODIC.
     await tapLocal(level2.ringCapRect!.center);
-    expect(
-      lastStates!.values.every((s) => s == ContactState.cathodic),
-      isTrue,
-    );
+    expect(lastStates!.values.every((s) => s == ContactState.cathodic), isTrue);
 
     // Ring-cap tap again: uniform CATHODIC (not all-OFF/all-ANODIC) -> OFF.
     await tapLocal(level2.ringCapRect!.center);

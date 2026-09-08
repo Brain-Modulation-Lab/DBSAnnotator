@@ -30,8 +30,9 @@ void main() {
       await writeStringAtomic(path, 'x');
       await writeStringAtomic(path, 'y');
       expect(File('$path.tmp').existsSync(), isFalse);
-      expect(dir.listSync().map((e) => e.path.split(RegExp(r'[\\/]')).last),
-          ['session.tsv']);
+      expect(dir.listSync().map((e) => e.path.split(RegExp(r'[\\/]')).last), [
+        'session.tsv',
+      ]);
     });
 
     test('round-trips content with CRLF and embedded quotes', () async {
@@ -70,8 +71,11 @@ void main() {
         try {
           final seen = File(path).readAsStringSync();
           reads++;
-          expect(seen == long || seen == 'short', isTrue,
-              reason: 'observed a partial file (${seen.length} chars)');
+          expect(
+            seen == long || seen == 'short',
+            isTrue,
+            reason: 'observed a partial file (${seen.length} chars)',
+          );
         } on FileSystemException {
           // Transient lock during the atomic replace — allowed.
         }
@@ -86,7 +90,9 @@ void main() {
       final w = SafeFileWriter();
       // A path inside a non-existent directory fails.
       await expectLater(
-          w.write('${dir.path}/nope/deeper/x.tsv', 'boom'), throwsA(anything));
+        w.write('${dir.path}/nope/deeper/x.tsv', 'boom'),
+        throwsA(anything),
+      );
       await w.write(path, 'recovered');
       await w.settled;
       expect(File(path).readAsStringSync(), 'recovered');

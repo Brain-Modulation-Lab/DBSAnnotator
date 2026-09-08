@@ -245,8 +245,10 @@ class _SessionScreenState extends State<SessionScreen> {
     // caching on rows alone left the figure stale after editing either.
     if (_entryChartsCache == null || !listEquals(_entryChartsPrefs, prefs)) {
       _entryChartsPrefs = prefs;
-      _entryChartsCache =
-          buildEntryChartData(_authoring.rows, scalePrefs: prefs);
+      _entryChartsCache = buildEntryChartData(
+        _authoring.rows,
+        scalePrefs: prefs,
+      );
     }
     return _entryChartsCache!;
   }
@@ -258,16 +260,16 @@ class _SessionScreenState extends State<SessionScreen> {
   /// to both the on-screen ranking and the report's, so the green bands on the
   /// charts and in the document can never point at different blocks.
   List<ScalePref> _scalePrefs() => [
-        for (final s in _sessionScales)
-          if (s.name.text.trim().isNotEmpty)
-            (
-              name: s.name.text.trim(),
-              min: s.minOr(0),
-              max: s.maxOr(10),
-              mode: s.mode,
-              custom: s.custom,
-            ),
-      ];
+    for (final s in _sessionScales)
+      if (s.name.text.trim().isNotEmpty)
+        (
+          name: s.name.text.trim(),
+          min: s.minOr(0),
+          max: s.maxOr(10),
+          mode: s.mode,
+          custom: s.custom,
+        ),
+  ];
 
   /// Edit the targets, then push them back onto the Step-2 rows so Step 2, the
   /// figure and the report all stay in agreement.
@@ -296,14 +298,14 @@ class _SessionScreenState extends State<SessionScreen> {
   /// 0-10 default: the chart's y-axis clamp and the whole best/second-best
   /// ranking ignored what the user actually typed.
   SessionReportData _reportData() => buildSessionReportData(
-        rows: _authoring.rows,
-        scalePrefs: _scalePrefs(),
-        // Provenance: the report prints which file it came from, so it can be
-        // tied back to one run among several of the same session.
-        sourceFile: _savePath == null
-            ? ''
-            : _savePath!.replaceAll(r'', '/').split('/').last,
-      );
+    rows: _authoring.rows,
+    scalePrefs: _scalePrefs(),
+    // Provenance: the report prints which file it came from, so it can be
+    // tied back to one run among several of the same session.
+    sourceFile: _savePath == null
+        ? ''
+        : _savePath!.replaceAll(r'', '/').split('/').last,
+  );
 
   /// Report paper size from the user preference, applied to BOTH formats so the
   /// PDF and the Word document always agree.
@@ -383,7 +385,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// The 10 stimulation TSV cells from the given L/R inputs (initial or
   /// recording pair).
   Map<String, String> _stimCells(
-      ElectrodeCatalog catalog, _SideInputs left, _SideInputs right) {
+    ElectrodeCatalog catalog,
+    _SideInputs left,
+    _SideInputs right,
+  ) {
     final model = _modelName == null ? null : catalog.models[_modelName];
     var leftTokens = (anode: '', cathode: '');
     var rightTokens = (anode: '', cathode: '');
@@ -408,7 +413,9 @@ class _SessionScreenState extends State<SessionScreen> {
   /// Serialize a side's amplitude: an "a_b" split across cathodes when >= 2 are
   /// active (using the amplitude-split percentages), else the plain total.
   String _amplitudeFor(
-      _SideInputs side, ({String anode, String cathode}) tokens) {
+    _SideInputs side,
+    ({String anode, String cathode}) tokens,
+  ) {
     final cathodes = tokens.cathode
         .split('_')
         .where((t) => t.isNotEmpty && t != 'case')
@@ -465,8 +472,10 @@ class _SessionScreenState extends State<SessionScreen> {
     // Initial notes are intentionally NOT cleared, so the user can keep
     // refining the initial-config notes without losing earlier text.
     _autosave();
-    _snack('Inserted baseline block ${inserted.first.blockId} '
-        '(${inserted.length} row${inserted.length == 1 ? '' : 's'}).');
+    _snack(
+      'Inserted baseline block ${inserted.first.blockId} '
+      '(${inserted.length} row${inserted.length == 1 ? '' : 's'}).',
+    );
   }
 
   /// Step 3: one recording block (is_initial=0). Omitted scales write the
@@ -482,8 +491,9 @@ class _SessionScreenState extends State<SessionScreen> {
         for (final s in _sessionScales)
           (
             name: s.name.text.trim(),
-            value:
-                s.omitted ? limits.sessionScaleOmittedTsv : _fmtValue(s.value),
+            value: s.omitted
+                ? limits.sessionScaleOmittedTsv
+                : _fmtValue(s.value),
           ),
       ],
       programId: _selectedProgram ?? '',
@@ -495,8 +505,10 @@ class _SessionScreenState extends State<SessionScreen> {
       _sideEffectsCtrl.clear();
     });
     _autosave();
-    _snack('Inserted recording block ${inserted.first.blockId} '
-        '(${inserted.length} row${inserted.length == 1 ? '' : 's'}).');
+    _snack(
+      'Inserted recording block ${inserted.first.blockId} '
+      '(${inserted.length} row${inserted.length == 1 ? '' : 's'}).',
+    );
   }
 
   /// If a save path was chosen (New/Open), rewrite the TSV to it after each
@@ -526,8 +538,9 @@ class _SessionScreenState extends State<SessionScreen> {
       final json = tsvPath.replaceFirst(RegExp(r'\.tsv$'), '.json');
       if (json == tsvPath || File(json).existsSync()) return;
       final contract = await loadTsvContract();
-      await File(json)
-          .writeAsString(sessionSidecarJson(contract, appVersion: appVersion));
+      await File(
+        json,
+      ).writeAsString(sessionSidecarJson(contract, appVersion: appVersion));
     } catch (_) {
       // No sidecar is a documentation loss, not a data loss.
     }
@@ -536,8 +549,9 @@ class _SessionScreenState extends State<SessionScreen> {
   // ---- Open / Export (offline pattern from annotations_screen.dart) ----
 
   Future<void> _newSession() async {
-    final subject =
-        _subjectCtrl.text.trim().isEmpty ? '01' : _subjectCtrl.text.trim();
+    final subject = _subjectCtrl.text.trim().isEmpty
+        ? '01'
+        : _subjectCtrl.text.trim();
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
     final name = _bidsName((subject: subject, run: run)).filename;
     // Desktop parity: choose where to create the BIDS TSV before continuing.
@@ -640,13 +654,16 @@ class _SessionScreenState extends State<SessionScreen> {
       }
       if (named.isNotEmpty && !unknownModel) _modelName = named;
     });
-    final opened = 'Opened ${picked.name} (${_authoring.rows.length} rows, '
+    final opened =
+        'Opened ${picked.name} (${_authoring.rows.length} rows, '
         'next block ${_authoring.blockId}, session ${_authoring.sessionId}).';
     _snack(_savePathIsSandboxCopy ? '$opened $sandboxCopyNotice' : opened);
     if (unknownModel) {
-      _snack('This file names electrode model "$named", which is not in the '
-          'catalogue. The diagrams show ${_modelName ?? 'the selected model'} '
-          'instead.');
+      _snack(
+        'This file names electrode model "$named", which is not in the '
+        'catalogue. The diagrams show ${_modelName ?? 'the selected model'} '
+        'instead.',
+      );
     }
   }
 
@@ -661,11 +678,11 @@ class _SessionScreenState extends State<SessionScreen> {
   /// The BIDS entities for everything this screen writes — the session TSV, its
   /// sidecar, and the report derivative — so all three carry the same ones.
   BidsName _bidsName(({String subject, String run}) labels) => BidsName(
-        subject: labels.subject,
-        session: BidsName.sessionStamp(DateTime.now()),
-        task: 'programming',
-        run: labels.run,
-      );
+    subject: labels.subject,
+    session: BidsName.sessionStamp(DateTime.now()),
+    task: 'programming',
+    run: labels.run,
+  );
 
   /// Report sections the user last chose (all of them, by default).
   Set<ReportSection> get _sections {
@@ -747,8 +764,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// Build the session report in [format] and share it (mobile) or save it
   /// (desktop). Both formats are built from ONE [SessionReportData] and one
   /// section selection, so they cannot disagree about content.
-  Future<void> _exportReport(ElectrodeModel? model,
-      {required bool docx}) async {
+  Future<void> _exportReport(
+    ElectrodeModel? model, {
+    required bool docx,
+  }) async {
     if (_authoring.rows.isEmpty) {
       _snack('Insert at least one block before exporting a report.');
       return;
@@ -760,9 +779,9 @@ class _SessionScreenState extends State<SessionScreen> {
     // A report is a derivative, not raw data — `_report` is not a BIDS suffix
     // and never will be. Built from the same entities as the TSV so the two
     // files sort together, through the one builder so they cannot drift.
-    final filename = _bidsName(l)
-        .withSuffix('report', extension: docx ? 'docx' : 'pdf')
-        .filename;
+    final filename = _bidsName(
+      l,
+    ).withSuffix('report', extension: docx ? 'docx' : 'pdf').filename;
 
     await exportFile(
       context,
@@ -799,8 +818,8 @@ class _SessionScreenState extends State<SessionScreen> {
           // Silently altering a clinical note is worse than saying so.
           warning: report.lostCharacters
               ? 'Some characters could not be rendered in the PDF and were '
-                  'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
-                  'for full Unicode, or export to Word instead.'
+                    'replaced with "?". Add the IBM Plex fonts to assets/fonts/ '
+                    'for full Unicode, or export to Word instead.'
               : null,
         );
       },
@@ -813,79 +832,86 @@ class _SessionScreenState extends State<SessionScreen> {
   /// "export WHAT, as WHICH format, on WHICH paper", which is a menu, not a row
   /// of buttons that grows every time a format is added.
   Widget _exportMenu(ElectrodeModel? model) => MenuAnchor(
-        builder: (context, controller, child) => FilledButton.icon(
-          key: _exportKey,
-          onPressed: () =>
-              controller.isOpen ? controller.close() : controller.open(),
-          icon: const Icon(Icons.ios_share),
-          label: const Text('Export'),
-        ),
+    builder: (context, controller, child) => FilledButton.icon(
+      key: _exportKey,
+      onPressed: () =>
+          controller.isOpen ? controller.close() : controller.open(),
+      icon: const Icon(Icons.ios_share),
+      label: const Text('Export'),
+    ),
+    menuChildren: [
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.picture_as_pdf),
+        onPressed: () => _exportReport(model, docx: false),
+        child: const Text('Export report (PDF)'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.description_outlined),
+        onPressed: () => _exportReport(model, docx: true),
+        child: const Text('Export report (Word)'),
+      ),
+      const Divider(height: 8),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.table_chart_outlined),
+        onPressed: _export,
+        child: const Text('Export TSV'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.folder_zip_outlined),
+        onPressed: _exportBids,
+        child: const Text('Export BIDS dataset (zip)'),
+      ),
+      const Divider(height: 8),
+      SubmenuButton(
+        leadingIcon: const Icon(Icons.description),
         menuChildren: [
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.picture_as_pdf),
-            onPressed: () => _exportReport(model, docx: false),
-            child: const Text('Export report (PDF)'),
-          ),
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.description_outlined),
-            onPressed: () => _exportReport(model, docx: true),
-            child: const Text('Export report (Word)'),
-          ),
-          const Divider(height: 8),
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.table_chart_outlined),
-            onPressed: _export,
-            child: const Text('Export TSV'),
-          ),
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.folder_zip_outlined),
-            onPressed: _exportBids,
-            child: const Text('Export BIDS dataset (zip)'),
-          ),
-          const Divider(height: 8),
-          SubmenuButton(
-            leadingIcon: const Icon(Icons.description),
-            menuChildren: [
-              for (final size in kReportPageSizes)
-                MenuItemButton(
-                  leadingIcon: Icon(
-                      (_prefs.reportPageSize ?? kDefaultReportPageSize) == size
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked),
-                  onPressed: () {
-                    setState(() => _prefs.reportPageSize = size);
-                    saveUserPrefs(_prefs);
-                  },
-                  child: Text(size == 'letter' ? 'US Letter' : 'A4'),
-                ),
-            ],
-            child: Text('Paper size: '
-                '${(_prefs.reportPageSize ?? kDefaultReportPageSize) == 'letter' ? 'US Letter' : 'A4'}'),
-          ),
+          for (final size in kReportPageSizes)
+            MenuItemButton(
+              leadingIcon: Icon(
+                (_prefs.reportPageSize ?? kDefaultReportPageSize) == size
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+              ),
+              onPressed: () {
+                setState(() => _prefs.reportPageSize = size);
+                saveUserPrefs(_prefs);
+              },
+              child: Text(size == 'letter' ? 'US Letter' : 'A4'),
+            ),
         ],
-      );
+        child: Text(
+          'Paper size: '
+          '${(_prefs.reportPageSize ?? kDefaultReportPageSize) == 'letter' ? 'US Letter' : 'A4'}',
+        ),
+      ),
+    ],
+  );
 
   // ---- Shared UI pieces ----
 
   List<DropdownMenuItem<String>> _modelItems(ElectrodeCatalog catalog) {
     final items = <DropdownMenuItem<String>>[];
     for (final entry in catalog.manufacturers.entries) {
-      items.add(DropdownMenuItem<String>(
-        value: null,
-        enabled: false,
-        child: Text(
-          entry.key,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ));
-      for (final name in entry.value) {
-        items.add(DropdownMenuItem<String>(
-          value: name,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: Text(name),
+      items.add(
+        DropdownMenuItem<String>(
+          value: null,
+          enabled: false,
+          child: Text(
+            entry.key,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-        ));
+        ),
+      );
+      for (final name in entry.value) {
+        items.add(
+          DropdownMenuItem<String>(
+            value: name,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(name),
+            ),
+          ),
+        );
       }
     }
     return items;
@@ -908,9 +934,13 @@ class _SessionScreenState extends State<SessionScreen> {
   ///
   /// Portrait/narrow keeps the single stacked column; the rows only appear once
   /// there is width to split.
-  Widget _stepBody(Widget params, Widget electrodes, Widget scalesCard,
-      TextEditingController notesCtrl,
-      {TextEditingController? sideEffectsCtrl}) {
+  Widget _stepBody(
+    Widget params,
+    Widget electrodes,
+    Widget scalesCard,
+    TextEditingController notesCtrl, {
+    TextEditingController? sideEffectsCtrl,
+  }) {
     return LayoutBuilder(
       builder: (context, c) {
         // The free-text half of row 2, built once and placed by either branch.
@@ -1065,8 +1095,12 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   /// Column 1 item: one side's stim params + its amplitude split.
-  Widget _paramsCard(String title, _SideInputs side, ElectrodeModel? model,
-      StimLimits limits) {
+  Widget _paramsCard(
+    String title,
+    _SideInputs side,
+    ElectrodeModel? model,
+    StimLimits limits,
+  ) {
     final card = GroupCard(
       title: side.enabled ? title : '$title (off)',
       child: Column(
@@ -1117,8 +1151,10 @@ class _SessionScreenState extends State<SessionScreen> {
         Row(
           children: [
             Expanded(
-              child: Text('Parameters',
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Parameters',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.settings, size: 18),
@@ -1212,8 +1248,10 @@ class _SessionScreenState extends State<SessionScreen> {
         SizedBox(
           // Grow with the window so maximizing enlarges the canvas (and its
           // contacts / ring caps, easing taps); floored for small screens.
-          height:
-              (MediaQuery.sizeOf(context).height * 0.55).clamp(320.0, 900.0),
+          height: (MediaQuery.sizeOf(context).height * 0.55).clamp(
+            320.0,
+            900.0,
+          ),
           child: model == null
               ? const Center(child: Text('Select an electrode model'))
               : Opacity(
@@ -1230,7 +1268,8 @@ class _SessionScreenState extends State<SessionScreen> {
                         side.caseState = caseState;
                       }),
                       onValidation: (valid, error) => setState(
-                          () => side.validationError = valid ? '' : error),
+                        () => side.validationError = valid ? '' : error,
+                      ),
                     ),
                   ),
                 ),
@@ -1242,18 +1281,20 @@ class _SessionScreenState extends State<SessionScreen> {
 
   Widget _legend() {
     Widget swatch(Color base, Color border, String label) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 16,
-              height: 12,
-              decoration:
-                  BoxDecoration(color: base, border: Border.all(color: border)),
-            ),
-            const SizedBox(width: 6),
-            Text(label),
-          ],
-        );
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 12,
+          decoration: BoxDecoration(
+            color: base,
+            border: Border.all(color: border),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label),
+      ],
+    );
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 18,
@@ -1262,14 +1303,20 @@ class _SessionScreenState extends State<SessionScreen> {
         swatch(DbsColors.offBase, DbsColors.offBorder, 'Off'),
         swatch(DbsColors.anodicBase, DbsColors.anodicBorder, 'Anodic (+)'),
         swatch(
-            DbsColors.cathodicBase, DbsColors.cathodicBorder, 'Cathodic (−)'),
+          DbsColors.cathodicBase,
+          DbsColors.cathodicBorder,
+          'Cathodic (−)',
+        ),
       ],
     );
   }
 
   /// Column 2: the two electrode canvases side by side + legend.
   Widget _electrodesColumn(
-      ElectrodeModel? model, _SideInputs left, _SideInputs right) {
+    ElectrodeModel? model,
+    _SideInputs left,
+    _SideInputs right,
+  ) {
     return GroupCard(
       title: 'Electrodes',
       child: Column(
@@ -1401,7 +1448,7 @@ class _SessionScreenState extends State<SessionScreen> {
           _authoring.rows.isEmpty
               ? 'Empty session — the first insert is block 0.'
               : '${_authoring.rows.length} rows loaded; next block '
-                  '${_authoring.blockId}, session ${_authoring.sessionId}.',
+                    '${_authoring.blockId}, session ${_authoring.sessionId}.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -1415,7 +1462,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// also preselect + load it so Step 2 arrives already configured (the user
   /// asked for clinical->session category sync).
   void _applyClinicalPreset(
-      String preset, ScalePresets presets, StimLimits limits) {
+    String preset,
+    ScalePresets presets,
+    StimLimits limits,
+  ) {
     setState(() {
       _selectedClinicalPreset = preset;
       _removedClinical.addAll(_clinicalScales);
@@ -1434,8 +1484,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// (defaults + overrides) set; the result replaces `UserPrefs.clinical` and
   /// is merged live via mergeScalePresets in build().
   Future<void> _editClinicalPresets(ScalePresets presets) async {
-    final edited =
-        await showClinicalPresetsDialog(context, presets: presets.clinical);
+    final edited = await showClinicalPresetsDialog(
+      context,
+      presets: presets.clinical,
+    );
     if (edited == null) return;
     setState(() => _prefs.clinical = edited);
     await saveUserPrefs(_prefs);
@@ -1445,8 +1497,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// Edit + persist the session scale presets via the desktop-style group
   /// editor (all disease groups → (name,min,max) rows; report mode preserved).
   Future<void> _editSessionPresets(ScalePresets presets) async {
-    final edited =
-        await showSessionPresetsDialog(context, presets: presets.session);
+    final edited = await showSessionPresetsDialog(
+      context,
+      presets: presets.session,
+    );
     if (edited == null) return;
     setState(() => _prefs.session = edited);
     await saveUserPrefs(_prefs);
@@ -1464,8 +1518,9 @@ class _SessionScreenState extends State<SessionScreen> {
       showCheckmark: false,
       onSelected: (_) => onTap(),
       selectedColor: DbsColors.accent.withValues(alpha: 0.2),
-      side:
-          selected ? const BorderSide(color: DbsColors.accent, width: 2) : null,
+      side: selected
+          ? const BorderSide(color: DbsColors.accent, width: 2)
+          : null,
       labelStyle: TextStyle(
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
       ),
@@ -1475,8 +1530,9 @@ class _SessionScreenState extends State<SessionScreen> {
   Widget _clinicalScalesCard(ScalePresets presets, StimLimits limits) {
     return Card(
       // Warm fill + outline to match GroupCard (dark-safe; no M3 blue).
-      color:
-          DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
+      color: DbsColors.cardFill(
+        Theme.of(context).brightness == Brightness.dark,
+      ),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -1491,8 +1547,10 @@ class _SessionScreenState extends State<SessionScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text('Clinical scales',
-                      style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    'Clinical scales',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings),
@@ -1545,7 +1603,8 @@ class _SessionScreenState extends State<SessionScreen> {
                       child: TextField(
                         controller: scale.score,
                         keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
+                          decimal: true,
+                        ),
                         decoration: const InputDecoration(
                           labelText: 'Score',
                           isDense: true,
@@ -1566,8 +1625,10 @@ class _SessionScreenState extends State<SessionScreen> {
             if (_clinicalScales.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 4),
-                child: Text('No scales — the insert writes one scale-less '
-                    'row (like the desktop).'),
+                child: Text(
+                  'No scales — the insert writes one scale-less '
+                  'row (like the desktop).',
+                ),
               ),
           ],
         ),
@@ -1585,8 +1646,14 @@ class _SessionScreenState extends State<SessionScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _stepBody(
-          _paramsColumn(catalog, model, limits,
-              withModel: true, left: _leftInit, right: _rightInit),
+          _paramsColumn(
+            catalog,
+            model,
+            limits,
+            withModel: true,
+            left: _leftInit,
+            right: _rightInit,
+          ),
           _electrodesColumn(model, _leftInit, _rightInit),
           _clinicalScalesCard(presets, limits),
           _notesInitCtrl,
@@ -1616,18 +1683,23 @@ class _SessionScreenState extends State<SessionScreen> {
   /// Mutating helper (call inside a setState): swap the session scale set to a
   /// preset's rows. Shared by the Step-2 pills and the clinical->session sync.
   void _loadSessionPresetRows(
-      String preset, ScalePresets presets, StimLimits limits) {
+    String preset,
+    ScalePresets presets,
+    StimLimits limits,
+  ) {
     final fallback = limits.sessionScale;
     _selectedSessionPreset = preset;
     _removedSession.addAll(_sessionScales);
     _sessionScales.clear();
     for (final row in sessionRows(presets, preset)) {
-      _sessionScales.add(_SessionScaleEdit(
-        min: double.tryParse(row.min) ?? fallback.min,
-        max: double.tryParse(row.max) ?? fallback.max,
-        name: row.name,
-        mode: scaleModeFromString(row.mode),
-      ));
+      _sessionScales.add(
+        _SessionScaleEdit(
+          min: double.tryParse(row.min) ?? fallback.min,
+          max: double.tryParse(row.max) ?? fallback.max,
+          name: row.name,
+          mode: scaleModeFromString(row.mode),
+        ),
+      );
     }
   }
 
@@ -1639,8 +1711,10 @@ class _SessionScreenState extends State<SessionScreen> {
         Row(
           children: [
             Expanded(
-              child: Text('Session scales configuration',
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Session scales configuration',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.settings),
@@ -1650,8 +1724,11 @@ class _SessionScreenState extends State<SessionScreen> {
             IconButton(
               icon: const Icon(Icons.add),
               tooltip: 'Add session scale',
-              onPressed: () => setState(() => _sessionScales
-                  .add(_SessionScaleEdit(min: range.min, max: range.max))),
+              onPressed: () => setState(
+                () => _sessionScales.add(
+                  _SessionScaleEdit(min: range.min, max: range.max),
+                ),
+              ),
             ),
           ],
         ),
@@ -1690,8 +1767,9 @@ class _SessionScreenState extends State<SessionScreen> {
                 width: 80,
                 child: TextField(
                   controller: scale.minCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Min',
                     isDense: true,
@@ -1703,8 +1781,9 @@ class _SessionScreenState extends State<SessionScreen> {
                 width: 80,
                 child: TextField(
                   controller: scale.maxCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Max',
                     isDense: true,
@@ -1726,9 +1805,9 @@ class _SessionScreenState extends State<SessionScreen> {
           child: Text(
             _sessionScales.isEmpty
                 ? 'No session scales — recording inserts write one '
-                    'scale-less row (like the desktop).'
+                      'scale-less row (like the desktop).'
                 : 'These scales are rated in the Recording step; nothing is '
-                    'written to the TSV here.',
+                      'written to the TSV here.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
@@ -1779,8 +1858,9 @@ class _SessionScreenState extends State<SessionScreen> {
   Widget _ratingsCard(StimLimits limits) {
     return Card(
       // Warm fill + outline to match GroupCard (dark-safe; no M3 blue).
-      color:
-          DbsColors.cardFill(Theme.of(context).brightness == Brightness.dark),
+      color: DbsColors.cardFill(
+        Theme.of(context).brightness == Brightness.dark,
+      ),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -1792,12 +1872,16 @@ class _SessionScreenState extends State<SessionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Session scale ratings',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Session scale ratings',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             if (_sessionScales.isEmpty)
-              const Text('No session scales defined — add them in the '
-                  'Session scales step.')
+              const Text(
+                'No session scales defined — add them in the '
+                'Session scales step.',
+              )
             else
               for (final scale in _sessionScales) _ratingRow(scale, limits),
           ],
@@ -1817,8 +1901,14 @@ class _SessionScreenState extends State<SessionScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _stepBody(
-          _paramsColumn(catalog, model, limits,
-              withModel: false, left: _leftRec, right: _rightRec),
+          _paramsColumn(
+            catalog,
+            model,
+            limits,
+            withModel: false,
+            left: _leftRec,
+            right: _rightRec,
+          ),
           _electrodesColumn(model, _leftRec, _rightRec),
           _ratingsCard(limits),
           _notesRecCtrl,
@@ -1844,8 +1934,10 @@ class _SessionScreenState extends State<SessionScreen> {
         Row(
           children: [
             Expanded(
-              child: Text('Inserted entries (session ${_authoring.sessionId})',
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Inserted entries (session ${_authoring.sessionId})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             OutlinedButton.icon(
               onPressed: _editScaleTargets,
@@ -1888,9 +1980,10 @@ class _SessionScreenState extends State<SessionScreen> {
               saveUserPrefs(_prefs);
             },
             title: Text(
-                'Table of all entries '
-                '(${blockCount(_authoring.rows)} blocks)',
-                style: Theme.of(context).textTheme.bodyMedium),
+              'Table of all entries '
+              '(${blockCount(_authoring.rows)} blocks)',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             childrenPadding: const EdgeInsets.only(bottom: 8),
             children: [SessionEntriesTable(rows: _authoring.rows)],
           ),
@@ -1913,8 +2006,11 @@ class _SessionScreenState extends State<SessionScreen> {
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
-                child: Text('Could not load schema contracts: '
-                    '${snapshot.error}'));
+              child: Text(
+                'Could not load schema contracts: '
+                '${snapshot.error}',
+              ),
+            );
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -1978,22 +2074,27 @@ class _SessionScreenState extends State<SessionScreen> {
               Step(
                 title: const Text('Initial configuration'),
                 subtitle: const Text(
-                    'Baseline stimulation + clinical scales (is_initial 1)'),
+                  'Baseline stimulation + clinical scales (is_initial 1)',
+                ),
                 isActive: _currentStep == 1,
                 content: when(
-                    1, () => _initialStep(catalog, limits, presets, model)),
+                  1,
+                  () => _initialStep(catalog, limits, presets, model),
+                ),
               ),
               Step(
                 title: const Text('Session scales configuration'),
-                subtitle:
-                    const Text('Define the scale set rated during recording'),
+                subtitle: const Text(
+                  'Define the scale set rated during recording',
+                ),
                 isActive: _currentStep == 2,
                 content: when(2, () => _scalesStep(limits, presets)),
               ),
               Step(
                 title: const Text('Recording'),
-                subtitle:
-                    const Text('Stimulation + ratings (is_initial 0), export'),
+                subtitle: const Text(
+                  'Stimulation + ratings (is_initial 0), export',
+                ),
                 isActive: _currentStep == 3,
                 content: when(3, () => _recordingStep(catalog, limits, model)),
               ),

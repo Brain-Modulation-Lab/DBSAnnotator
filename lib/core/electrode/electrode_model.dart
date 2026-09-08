@@ -119,7 +119,8 @@ class ElectrodeCatalog {
 /// generated one (source of truth: the Python desktop app). Tests read the
 /// repo-root file directly via `dart:io` instead.
 Future<ElectrodeCatalog> loadElectrodeCatalog() async {
-  final raw =
-      await rootBundle.loadString('assets/schema/electrode_models.json');
+  final raw = await rootBundle.loadString(
+    'assets/schema/electrode_models.json',
+  );
   return ElectrodeCatalog.fromJson(jsonDecode(raw) as Map<String, dynamic>);
 }

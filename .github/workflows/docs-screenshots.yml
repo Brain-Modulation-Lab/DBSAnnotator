@@ -28,17 +28,31 @@ on:
       - "schema/**"
       - ".github/workflows/docs-screenshots.yml"
 
+# Read-only: this job renders images and uploads them, and writes nothing back.
+permissions:
+  contents: read
+
+env:
+  # Duplicated from ci.yml because `env` is per-workflow and a workflow cannot
+  # read another's. Bump both together - or the screenshots are rendered by a
+  # different Flutter than the one CI builds with, which is precisely the drift
+  # this pin exists to prevent.
+  FLUTTER_VERSION: "3.47.1"
+
 jobs:
   screenshots:
     name: Generate docs screenshots
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
 
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
 
       # The harness fails loudly rather than emitting boxes-for-glyphs if it
       # finds no text font, so a missing assets/fonts/IBMPlexSans-*.ttf is a

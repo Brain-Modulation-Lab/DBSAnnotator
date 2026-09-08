@@ -69,8 +69,8 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
   /// Report the current split after the frame (avoids setState-in-build when
   /// this fires from initState/didUpdateWidget).
   void _notifyLater() => WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onChanged(List<double>.of(_pct));
-      });
+    if (mounted) widget.onChanged(List<double>.of(_pct));
+  });
 
   String _fmtPct(double v) {
     var s = v.toStringAsFixed(1);
@@ -127,11 +127,12 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Amplitude split',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: muted)),
+          Text(
+            'Amplitude split',
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: muted),
+          ),
           for (var i = 0; i < widget.cathodes.length; i++)
             Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -139,8 +140,10 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
                 children: [
                   SizedBox(
                     width: 44,
-                    child: Text(widget.cathodes[i],
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      widget.cathodes[i],
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   SizedBox(
                     width: 60,
@@ -148,11 +151,14 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
                       controller: _ctrls[i],
                       // The last row is the read-only remainder.
                       enabled: i != last,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       textAlign: TextAlign.right,
-                      decoration:
-                          const InputDecoration(isDense: true, suffixText: '%'),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        suffixText: '%',
+                      ),
                       onChanged: (t) => _edit(i, t),
                     ),
                   ),

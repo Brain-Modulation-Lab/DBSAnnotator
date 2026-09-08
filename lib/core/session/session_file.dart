@@ -107,38 +107,39 @@ List<SessionRow> buildInsertRows({
   final acqTime = acqTimeCell(dt);
 
   SessionRow row({String scaleName = '', String scaleValue = ''}) => SessionRow(
-        date: date,
-        time: time,
-        timezone: timezone,
-        acqTime: acqTime,
-        blockId: '$blockId',
-        sessionId: '$sessionId',
-        // 1 for Step-1 baseline (write_clinical_scales), 0 for Step-3
-        // recording (write_session_scales).
-        isInitial: isInitial ? '1' : '0',
-        scaleName: scaleName,
-        scaleValue: scaleValue,
-        electrodeModel: electrodeModel,
-        programId: programId,
-        leftStimFreq: leftStimFreq,
-        leftAnode: leftAnode,
-        leftCathode: leftCathode,
-        leftAmplitude: leftAmplitude,
-        leftPulseWidth: leftPulseWidth,
-        rightStimFreq: rightStimFreq,
-        rightAnode: rightAnode,
-        rightCathode: rightCathode,
-        rightAmplitude: rightAmplitude,
-        rightPulseWidth: rightPulseWidth,
-        notes: notes,
-      );
+    date: date,
+    time: time,
+    timezone: timezone,
+    acqTime: acqTime,
+    blockId: '$blockId',
+    sessionId: '$sessionId',
+    // 1 for Step-1 baseline (write_clinical_scales), 0 for Step-3
+    // recording (write_session_scales).
+    isInitial: isInitial ? '1' : '0',
+    scaleName: scaleName,
+    scaleValue: scaleValue,
+    electrodeModel: electrodeModel,
+    programId: programId,
+    leftStimFreq: leftStimFreq,
+    leftAnode: leftAnode,
+    leftCathode: leftCathode,
+    leftAmplitude: leftAmplitude,
+    leftPulseWidth: leftPulseWidth,
+    rightStimFreq: rightStimFreq,
+    rightAnode: rightAnode,
+    rightCathode: rightCathode,
+    rightAmplitude: rightAmplitude,
+    rightPulseWidth: rightPulseWidth,
+    notes: notes,
+  );
 
   final valid = scales
-      .where((s) =>
-          s.value.trim().isNotEmpty && (!isInitial || s.name.trim().isNotEmpty))
+      .where(
+        (s) =>
+            s.value.trim().isNotEmpty &&
+            (!isInitial || s.name.trim().isNotEmpty),
+      )
       .toList();
   if (valid.isEmpty) return [row()];
-  return [
-    for (final s in valid) row(scaleName: s.name, scaleValue: s.value),
-  ];
+  return [for (final s in valid) row(scaleName: s.name, scaleValue: s.value)];
 }

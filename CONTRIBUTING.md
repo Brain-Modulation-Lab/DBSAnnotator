@@ -19,7 +19,8 @@ code is on the `qt-legacy` branch. Several of those comments record a
 ## Quick start
 
 Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
-(Dart 3.4+). From the repository root:
+**3.38.4 or later** (Dart 3.12+) — the floor `pubspec.lock` resolves against, so
+an older SDK fails at `pub get`. From the repository root:
 
 ```bash
 flutter pub get
@@ -71,8 +72,11 @@ is not a local hook), and a **docs build with `-W`**, because Read the Docs
 publishes with `fail_on_warning` and a warning there breaks publishing after
 merge rather than before.
 
-CI is the authority: `git commit --no-verify` skips the hooks, and CI cannot be
-skipped. If you change one, change the other.
+CI is the authority — `git commit --no-verify` skips the hooks, and CI cannot be
+skipped — but it runs the checks by invoking **these same hooks**
+(`uvx pre-commit run --all-files`), so there is one definition of each rule and
+nothing to keep in step. `pyproject.toml` holds the ruff, doc8 and codespell
+settings for the same reason. Change a rule in one place and both follow.
 
 Not enforced, deliberately: `trailing-whitespace` and `end-of-file-fixer`. With
 `core.autocrlf` on Windows and only `*.sh` pinned in `.gitattributes`, they

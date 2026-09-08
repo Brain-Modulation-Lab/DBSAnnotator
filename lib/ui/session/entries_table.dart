@@ -54,8 +54,9 @@ class SessionEntriesTable extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final rule = theme.dividerColor;
-    final tint =
-        theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5);
+    final tint = theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: .5,
+    );
 
     String triple(String f, String a, String pw) =>
         [f, a, pw].map((s) => s.trim().isEmpty ? '–' : s.trim()).join(' / ');
@@ -103,29 +104,37 @@ class SessionEntriesTable extends StatelessWidget {
       // cells that actually differ. Blanking rather than merging keeps every
       // column aligned, so the block's values still read straight down.
       final isInitial = coerceInt(r.isInitial) == 1;
-      tableRows.add(TableRow(
-        decoration: BoxDecoration(
-          color: blockIndex.isOdd ? tint : null,
-          border: isNewBlock && tableRows.length > 1
-              ? Border(top: BorderSide(color: rule, width: _blockRule))
-              : null,
+      tableRows.add(
+        TableRow(
+          decoration: BoxDecoration(
+            color: blockIndex.isOdd ? tint : null,
+            border: isNewBlock && tableRows.length > 1
+                ? Border(
+                    top: BorderSide(color: rule, width: _blockRule),
+                  )
+                : null,
+          ),
+          children: [
+            _cell(isNewBlock ? r.blockId : '', bold: isNewBlock),
+            _cell(isNewBlock ? (isInitial ? 'Initial' : 'Rec') : ''),
+            _cell(isNewBlock ? stamp(r, isInitial, blockIndex == 0) : ''),
+            _cell(isNewBlock ? r.programId : ''),
+            _cell(r.scaleName),
+            _cell(r.scaleValue),
+            _cell(
+              isNewBlock
+                  ? triple(r.leftStimFreq, r.leftAmplitude, r.leftPulseWidth)
+                  : '',
+            ),
+            _cell(
+              isNewBlock
+                  ? triple(r.rightStimFreq, r.rightAmplitude, r.rightPulseWidth)
+                  : '',
+            ),
+            _cell(isNewBlock ? r.notes : '', maxLines: 3),
+          ],
         ),
-        children: [
-          _cell(isNewBlock ? r.blockId : '', bold: isNewBlock),
-          _cell(isNewBlock ? (isInitial ? 'Initial' : 'Rec') : ''),
-          _cell(isNewBlock ? stamp(r, isInitial, blockIndex == 0) : ''),
-          _cell(isNewBlock ? r.programId : ''),
-          _cell(r.scaleName),
-          _cell(r.scaleValue),
-          _cell(isNewBlock
-              ? triple(r.leftStimFreq, r.leftAmplitude, r.leftPulseWidth)
-              : ''),
-          _cell(isNewBlock
-              ? triple(r.rightStimFreq, r.rightAmplitude, r.rightPulseWidth)
-              : ''),
-          _cell(isNewBlock ? r.notes : '', maxLines: 3),
-        ],
-      ));
+      );
     }
 
     return Table(
@@ -137,8 +146,12 @@ class SessionEntriesTable extends StatelessWidget {
     );
   }
 
-  Widget _cell(String text,
-      {bool bold = false, TextStyle? style, int maxLines = 2}) {
+  Widget _cell(
+    String text, {
+    bool bold = false,
+    TextStyle? style,
+    int maxLines = 2,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
       child: Text(

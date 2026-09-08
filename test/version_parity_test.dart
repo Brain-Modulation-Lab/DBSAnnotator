@@ -34,9 +34,12 @@ void main() {
       RegExp(pattern, multiLine: true).firstMatch(text)?.group(1);
 
   test('pubspec declares a parseable version', () {
-    expect(firstMatch(pubspec, r'^version:\s*([0-9][^\s+#]*)'), isNotNull,
-        reason:
-            'pubspec.yaml must declare `version: <major.minor.patch>+<build>`.');
+    expect(
+      firstMatch(pubspec, r'^version:\s*([0-9][^\s+#]*)'),
+      isNotNull,
+      reason:
+          'pubspec.yaml must declare `version: <major.minor.patch>+<build>`.',
+    );
   });
 
   final version = firstMatch(pubspec, r'^version:\s*([0-9][^\s+#]*)')!;
@@ -46,7 +49,8 @@ void main() {
     expect(
       firstMatch(appInfo, r"""^const String appVersion = '([^']+)';"""),
       version,
-      reason: 'appVersion in lib/app_info.dart must equal `version:` in '
+      reason:
+          'appVersion in lib/app_info.dart must equal `version:` in '
           'pubspec.yaml ($version). It is printed on every report.',
     );
   });
@@ -58,24 +62,31 @@ void main() {
     expect(
       firstMatch(citation, r'^version:\s*(\S+)'),
       version,
-      reason: 'version: in CITATION.cff must equal `version:` in '
+      reason:
+          'version: in CITATION.cff must equal `version:` in '
           'pubspec.yaml ($version).',
     );
   });
 
-  test('msix_version matches the pubspec, with the Store-reserved 0 revision',
-      () {
-    final msixVersion = firstMatch(pubspec, r'^\s+msix_version:\s*(\S+)');
-    expect(msixVersion, isNotNull,
-        reason: 'msix_config in pubspec.yaml must declare msix_version.');
-    expect(
-      msixVersion,
-      '$version.0',
-      reason: 'msix_version must be `<pubspec version>.0`: four components, '
-          'with the fourth left 0 because Microsoft reserves the revision '
-          'field for Store use. Expected $version.0.',
-    );
-  });
+  test(
+    'msix_version matches the pubspec, with the Store-reserved 0 revision',
+    () {
+      final msixVersion = firstMatch(pubspec, r'^\s+msix_version:\s*(\S+)');
+      expect(
+        msixVersion,
+        isNotNull,
+        reason: 'msix_config in pubspec.yaml must declare msix_version.',
+      );
+      expect(
+        msixVersion,
+        '$version.0',
+        reason:
+            'msix_version must be `<pubspec version>.0`: four components, '
+            'with the fourth left 0 because Microsoft reserves the revision '
+            'field for Store use. Expected $version.0.',
+      );
+    },
+  );
 
   // NOT asserted here, deliberately: Microsoft's package-requirements page says
   // "The other sections must be set to an integer between 0 and 65535 (except

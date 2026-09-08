@@ -15,13 +15,14 @@ void main() {
   // A note whose characters neither Helvetica nor IBM Plex Sans can draw.
   const rows = [
     SessionRow(
-        blockId: '1',
-        isInitial: '0',
-        date: '2026-01-01',
-        time: '09:00:00',
-        scaleName: 'Tremor',
-        scaleValue: '3',
-        notes: '中文 note'),
+      blockId: '1',
+      isInitial: '0',
+      date: '2026-01-01',
+      time: '09:00:00',
+      scaleName: 'Tremor',
+      scaleValue: '3',
+      notes: '中文 note',
+    ),
   ];
 
   test('a PDF is always produced, with or without the Unicode fonts', () async {
@@ -36,7 +37,9 @@ void main() {
     // "Unable to find the hmtx table" halfway through building the document, so
     // every export failed instead of falling back to Helvetica.
     final report = await buildSessionPdf(
-        data: buildSessionReportData(rows: rows), subjectId: '01');
+      data: buildSessionReportData(rows: rows),
+      subjectId: '01',
+    );
     expect(report.bytes, isNotEmpty);
     expect(report.bytes.sublist(0, 4), '%PDF'.codeUnits);
 
@@ -44,8 +47,11 @@ void main() {
     // lost either way. This is the case that regressed when the fonts were
     // bundled: the sanitiser used to switch off whenever any theme loaded, and
     // the note was then drawn as nothing at all, with no warning.
-    expect(report.lostCharacters, isTrue,
-        reason: 'neither font can draw CJK, so the loss must be reported');
+    expect(
+      report.lostCharacters,
+      isTrue,
+      reason: 'neither font can draw CJK, so the loss must be reported',
+    );
   });
 
   test('the bundled font covers Latin, and reports what it does not', () async {
@@ -94,10 +100,9 @@ void main() {
     // A character in the coverage set and not in the table is drawn as itself,
     // whatever it is — this is the case the old boolean could not express, and
     // the reason a CJK note used to vanish silently.
-    final t = ReportTextSanitiser(coverage: {
-      for (var r = 0x20; r < 0x7f; r++) r,
-      ...'中文'.runes,
-    });
+    final t = ReportTextSanitiser(
+      coverage: {for (var r = 0x20; r < 0x7f; r++) r, ...'中文'.runes},
+    );
     expect(t('中文'), '中文');
     expect(t.lostCharacters, isFalse);
 

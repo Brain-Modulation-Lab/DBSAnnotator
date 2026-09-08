@@ -34,8 +34,8 @@ open against a file you care about.
 The top bar
 -----------
 
-Present on every screen, at the same place, because both of these matter at a
-bedside and neither should need hunting for.
+Present on every screen, at the same place, because both of these matter during
+an appointment and neither should need hunting for.
 
 **Theme.** The moon / sun control switches between light and dark.
 
@@ -43,7 +43,7 @@ bedside and neither should need hunting for.
    :alt: The same home screen in dark theme
    :width: 100%
 
-   Dark theme, for a darkened theatre.
+   Dark theme, for a dimly lit consulting room.
 
 **Text size.** The **A− / A+** pill scales all text between 0.8× and 1.6×.
 

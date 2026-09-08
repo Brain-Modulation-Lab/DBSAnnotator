@@ -107,11 +107,9 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
   final recording = rows.where((r) => coerceInt(r.isInitial) != 1).toList();
 
   // The visit's date is the earliest stamp in the file.
-  final dates = rows
-      .map((r) => r.date.trim())
-      .where((d) => d.isNotEmpty)
-      .toList()
-    ..sort();
+  final dates =
+      rows.map((r) => r.date.trim()).where((d) => d.isNotEmpty).toList()
+        ..sort();
   final date = dates.isEmpty ? '' : dates.first;
 
   double? value(String raw) {
@@ -174,18 +172,18 @@ LongitudinalReportData buildLongitudinalReportData({
   String two(int n) => n.toString().padLeft(2, '0');
   final generatedOn = '${dt.year}-${two(dt.month)}-${two(dt.day)}';
 
-  final visits = [
-    for (final e in files.entries) _visitOf(e.key, e.value),
-  ]..sort((a, b) => a.date.compareTo(b.date));
+  final visits = [for (final e in files.entries) _visitOf(e.key, e.value)]
+    ..sort((a, b) => a.date.compareTo(b.date));
 
   // Patient identity. Mixing two people into one longitudinal report is a
   // safety problem, so it is surfaced rather than silently merged.
-  final ids = files.keys
-      .map(extractPatientId)
-      .where((id) => id.isNotEmpty)
-      .toSet()
-      .toList()
-    ..sort();
+  final ids =
+      files.keys
+          .map(extractPatientId)
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
   final patientId = ids.isEmpty ? 'unknown' : ids.first;
 
   // ---- Figure 1: clinical scales, one point per visit ---------------------
@@ -296,10 +294,18 @@ LongitudinalReportData buildLongitudinalReportData({
     patientId: patientId,
     generatedOn: generatedOn,
     visits: visits,
-    clinicalChart: spec(clinicalSeries, clinicalLabels,
-        'Clinical scales by visit', 'Visit (date_run)'),
-    sessionChart: spec(sessionSeries, sessionLabels,
-        'Session scales by visit and block', 'Visit and block'),
+    clinicalChart: spec(
+      clinicalSeries,
+      clinicalLabels,
+      'Clinical scales by visit',
+      'Visit (date_run)',
+    ),
+    sessionChart: spec(
+      sessionSeries,
+      sessionLabels,
+      'Session scales by visit and block',
+      'Visit and block',
+    ),
     visitTable: table,
     mismatchedPatients: ids.length <= 1 ? const [] : ids.skip(1).toList(),
   );

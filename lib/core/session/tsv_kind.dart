@@ -78,11 +78,11 @@ TsvKind sniffTsvKind(String content) {
 /// workflow the file belongs to.
 String tsvKindMismatch(String filename, TsvKind found, TsvKind wanted) {
   String describe(TsvKind k) => switch (k) {
-        TsvKind.programming => 'a programming session',
-        TsvKind.notes => 'an annotations (notes) file',
-        TsvKind.unknown => 'an unrecognised TSV',
-        TsvKind.unreadable => 'not a readable TSV',
-      };
+    TsvKind.programming => 'a programming session',
+    TsvKind.notes => 'an annotations (notes) file',
+    TsvKind.unknown => 'an unrecognised TSV',
+    TsvKind.unreadable => 'not a readable TSV',
+  };
   return '$filename is ${describe(found)}; this view needs '
       '${describe(wanted)}.';
 }

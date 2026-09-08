@@ -112,7 +112,7 @@ const int _trimMargin = 32;
 // ---------------------------------------------------------------------------
 
 const _fixture =
-    'test/fixtures/sub-01_ses-20260626_task-programming_run-01_beh.tsv';
+    'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv';
 const _defaultModel = 'Medtronic SenSight B33005';
 const _subjectId = '01';
 const _runId = '01';
@@ -190,11 +190,11 @@ Future<String?> _loadTextFont() async {
     ['C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arialbd.ttf'],
     [
       '/System/Library/Fonts/Supplemental/Arial.ttf',
-      '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
+      '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
     ],
     [
       '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-      '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+      '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     ],
   ];
   for (final pair in candidates) {
@@ -202,7 +202,8 @@ Future<String?> _loadTextFont() async {
     final loader = FontLoader('DocsText');
     for (final path in pair.where((p) => File(p).existsSync())) {
       loader.addFont(
-          Future.value(ByteData.view(File(path).readAsBytesSync().buffer)));
+        Future.value(ByteData.view(File(path).readAsBytesSync().buffer)),
+      );
     }
     await loader.load();
     return 'DocsText';
@@ -235,21 +236,23 @@ Future<void> _pump(
   debugDisableShadows = false;
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    // The app's real theme, with a text font substituted in — see
-    // [_loadTextFont] for why one has to be supplied explicitly.
-    theme: _withFont(dbsTheme(brightness)),
-    builder: (context, child) => RepaintBoundary(
-      key: _boundary,
-      child: MediaQuery.withClampedTextScaling(
-        minScaleFactor: textScale,
-        maxScaleFactor: textScale,
-        child: child!,
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      // The app's real theme, with a text font substituted in — see
+      // [_loadTextFont] for why one has to be supplied explicitly.
+      theme: _withFont(dbsTheme(brightness)),
+      builder: (context, child) => RepaintBoundary(
+        key: _boundary,
+        child: MediaQuery.withClampedTextScaling(
+          minScaleFactor: textScale,
+          maxScaleFactor: textScale,
+          child: child!,
+        ),
       ),
+      home: home,
     ),
-    home: home,
-  ));
+  );
   await tester.pumpAndSettle();
 }
 
@@ -300,8 +303,9 @@ Future<void> _shoot(
   });
   await tester.pumpAndSettle();
 
-  final boundary =
-      tester.renderObject<RenderRepaintBoundary>(find.byKey(_boundary));
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(_boundary),
+  );
   final bytes = await tester.runAsync(() async {
     var image = await boundary.toImage(pixelRatio: 2);
 
@@ -312,11 +316,17 @@ Future<void> _shoot(
           : _lastPaintedRow(raw, image.width, image.height) + 1 + _trimMargin;
       if (keep < image.height) {
         final recorder = ui.PictureRecorder();
-        final rect =
-            Rect.fromLTWH(0, 0, image.width.toDouble(), keep.toDouble());
+        final rect = Rect.fromLTWH(
+          0,
+          0,
+          image.width.toDouble(),
+          keep.toDouble(),
+        );
         Canvas(recorder).drawImageRect(image, rect, rect, Paint());
-        final cropped =
-            await recorder.endRecording().toImage(image.width, keep);
+        final cropped = await recorder.endRecording().toImage(
+          image.width,
+          keep,
+        );
         image.dispose();
         image = cropped;
       }
@@ -432,8 +442,11 @@ Future<void> _shootRegion(
 }) async {
   Future<void> alignTop() async {
     if (_pageScroll(tester) == null) return;
-    await Scrollable.ensureVisible(tester.element(from),
-        alignment: 0, duration: Duration.zero);
+    await Scrollable.ensureVisible(
+      tester.element(from),
+      alignment: 0,
+      duration: Duration.zero,
+    );
     await tester.pumpAndSettle();
   }
 
@@ -486,10 +499,12 @@ Future<void> _shootDialog(
   // measurement is of the size it will actually be captured at.
   for (var pass = 0; pass < 2; pass++) {
     final rect = tester.getRect(surface);
-    await tester.binding.setSurfaceSize(Size(
-      (rect.width + margin * 2).ceilToDouble().clamp(320.0, _wide),
-      (rect.height + margin * 2).ceilToDouble().clamp(240.0, _maxHeight),
-    ));
+    await tester.binding.setSurfaceSize(
+      Size(
+        (rect.width + margin * 2).ceilToDouble().clamp(320.0, _wide),
+        (rect.height + margin * 2).ceilToDouble().clamp(240.0, _maxHeight),
+      ),
+    );
     await tester.pumpAndSettle();
   }
   await _shoot(tester, name);
@@ -504,16 +519,19 @@ Future<void> _shootDialog(
 /// Contracts loaded from the committed schema, so the wizard renders with real
 /// electrode models and limits instead of empty dropdowns.
 Future<(ElectrodeCatalog, StimLimits, ScalePresets)> _contracts() async => (
-      ElectrodeCatalog.fromJson(
-          json.decode(File('schema/electrode_models.json').readAsStringSync())
-              as Map<String, dynamic>),
-      StimLimits.fromJson(
-          json.decode(File('schema/limits.json').readAsStringSync())
-              as Map<String, dynamic>),
-      ScalePresets.fromJson(
-          json.decode(File('schema/scale_presets.json').readAsStringSync())
-              as Map<String, dynamic>),
-    );
+  ElectrodeCatalog.fromJson(
+    json.decode(File('schema/electrode_models.json').readAsStringSync())
+        as Map<String, dynamic>,
+  ),
+  StimLimits.fromJson(
+    json.decode(File('schema/limits.json').readAsStringSync())
+        as Map<String, dynamic>,
+  ),
+  ScalePresets.fromJson(
+    json.decode(File('schema/scale_presets.json').readAsStringSync())
+        as Map<String, dynamic>,
+  ),
+);
 
 /// The committed example session, so the charts and the entries table have real
 /// content instead of empty-state placeholders.
@@ -637,20 +655,43 @@ Future<void> _seedConfiguration(
   bool invalid = false,
 }) async {
   await _selectProgram(tester);
-  await _tapElectrode(tester, model,
-      index: 0, taps: 2, target: (l) => _contact(l, 2, 1));
-  await _tapElectrode(tester, model,
-      index: 0, taps: 2, target: (l) => _contact(l, 2, 2));
+  await _tapElectrode(
+    tester,
+    model,
+    index: 0,
+    taps: 2,
+    target: (l) => _contact(l, 2, 1),
+  );
+  await _tapElectrode(
+    tester,
+    model,
+    index: 0,
+    taps: 2,
+    target: (l) => _contact(l, 2, 2),
+  );
   if (!invalid) {
-    await _tapElectrode(tester, model,
-        index: 0, target: (l) => l.caseRect.center);
+    await _tapElectrode(
+      tester,
+      model,
+      index: 0,
+      target: (l) => l.caseRect.center,
+    );
   }
 
   // Right lead: a plain ring cathode against the case.
-  await _tapElectrode(tester, model,
-      index: 1, taps: 2, target: (l) => _contact(l, 3, 0));
-  await _tapElectrode(tester, model,
-      index: 1, target: (l) => l.caseRect.center);
+  await _tapElectrode(
+    tester,
+    model,
+    index: 1,
+    taps: 2,
+    target: (l) => _contact(l, 3, 0),
+  );
+  await _tapElectrode(
+    tester,
+    model,
+    index: 1,
+    target: (l) => l.caseRect.center,
+  );
 
   for (var side = 0; side < 2; side++) {
     await _type(tester, 'Frequency', _frequency, at: side);
@@ -678,15 +719,19 @@ Future<void> _seedRatings(WidgetTester tester) async {
     }
     // Tapping the bar sets the value from the x fraction, which is how a
     // clinician sets it too.
-    final bar =
-        find.descendant(of: sliders.at(i), matching: find.byType(CustomPaint));
+    final bar = find.descendant(
+      of: sliders.at(i),
+      matching: find.byType(CustomPaint),
+    );
     if (bar.evaluate().isEmpty) continue;
     await tester.ensureVisible(sliders.at(i));
     final rect = tester.getRect(bar.first);
-    await tester.tapAt(Offset(
-      rect.left + rect.width * _ratings[i % _ratings.length],
-      rect.center.dy,
-    ));
+    await tester.tapAt(
+      Offset(
+        rect.left + rect.width * _ratings[i % _ratings.length],
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
   }
 }
@@ -699,7 +744,7 @@ List<ImportedSessionFile> _visits({bool mismatchedPatients = false}) {
   final source = File(_fixture).readAsStringSync();
   return [
     ImportedSessionFile(
-      name: 'sub-01_ses-20260626_task-programming_run-01_beh.tsv',
+      name: 'sub-01_ses-20260203_task-programming_run-01_beh.tsv',
       rows: parseSessionTsv(source),
     ),
     ImportedSessionFile(
@@ -715,8 +760,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   if (_outDir == null) {
-    test('docs screenshots', () {},
-        skip: 'set DOCS_SCREENSHOT_DIR to generate');
+    test(
+      'docs screenshots',
+      () {},
+      skip: 'set DOCS_SCREENSHOT_DIR to generate',
+    );
     return;
   }
 
@@ -730,9 +778,11 @@ void main() {
     if (_textFont == null) {
       // Failing here beats emitting thirty files full of black rectangles that
       // look like a rendering bug in the app.
-      fail('No text font available, so every glyph would render as a filled '
-          'box. Restore assets/fonts/IBMPlexSans-{Regular,Bold}.ttf or run on '
-          'a host with system fonts.');
+      fail(
+        'No text font available, so every glyph would render as a filled '
+        'box. Restore assets/fonts/IBMPlexSans-{Regular,Bold}.ttf or run on '
+        'a host with system fonts.',
+      );
     }
   });
 
@@ -750,10 +800,15 @@ void main() {
 
   testWidgets('home (large text)', (tester) async {
     // The text-size control in the top bar goes to 1.6; this is what the docs
-    // point at when they say the app stays legible at a bedside.
+    // point at when they say the app stays legible on a tablet held in a
+    // consulting room.
     await _pump(tester, const HomeScreen(), textScale: 1.4);
-    await _shootFitted(tester, 'home_large_text',
-        width: _narrow, fallback: 800);
+    await _shootFitted(
+      tester,
+      'home_large_text',
+      width: _narrow,
+      fallback: 800,
+    );
   });
 
   // ---- Complete workflow ------------------------------------------------
@@ -799,8 +854,12 @@ void main() {
     await _seedFileStep(tester);
     await _next(tester);
     await _tapText(tester, _preset);
-    await _shootFitted(tester, 'session_step1_narrow',
-        width: _narrow, max: 4400);
+    await _shootFitted(
+      tester,
+      'session_step1_narrow',
+      width: _narrow,
+      max: 4400,
+    );
   });
 
   testWidgets('session: electrodes, valid and invalid', (tester) async {
@@ -813,14 +872,26 @@ void main() {
     await _next(tester);
 
     await _seedConfiguration(tester, model, invalid: true);
-    await _shootRegion(tester, 'session_electrodes_invalid',
-        from: find.text('Electrodes'), to: find.text('Cathodic (−)'));
+    await _shootRegion(
+      tester,
+      'session_electrodes_invalid',
+      from: find.text('Electrodes'),
+      to: find.text('Cathodic (−)'),
+    );
 
     // Completing the circuit with the case turns the pane green.
-    await _tapElectrode(tester, model,
-        index: 0, target: (l) => l.caseRect.center);
-    await _shootRegion(tester, 'session_electrodes',
-        from: find.text('Electrodes'), to: find.text('Cathodic (−)'));
+    await _tapElectrode(
+      tester,
+      model,
+      index: 0,
+      target: (l) => l.caseRect.center,
+    );
+    await _shootRegion(
+      tester,
+      'session_electrodes',
+      from: find.text('Electrodes'),
+      to: find.text('Cathodic (−)'),
+    );
   });
 
   testWidgets('session: session scales configuration', (tester) async {
@@ -859,11 +930,18 @@ void main() {
 
     // The step is ~4800 px tall, so it is documented in the two parts the
     // pages actually describe rather than shrunk into one unreadable image.
-    await _shootRegion(tester, 'session_step3_recording',
-        from: find.text('Program'), to: find.text('Insert recording block'));
-    await _shootRegion(tester, 'session_step3_charts',
-        from: find.textContaining('Inserted entries'),
-        to: find.byType(EntryChartsView));
+    await _shootRegion(
+      tester,
+      'session_step3_recording',
+      from: find.text('Program'),
+      to: find.text('Insert recording block'),
+    );
+    await _shootRegion(
+      tester,
+      'session_step3_charts',
+      from: find.textContaining('Inserted entries'),
+      to: find.byType(EntryChartsView),
+    );
   });
 
   testWidgets('session: recording (dark)', (tester) async {
@@ -884,8 +962,12 @@ void main() {
     await _tapText(tester, _preset);
     await _next(tester);
     await _seedRatings(tester);
-    await _shootRegion(tester, 'session_step3_recording_dark',
-        from: find.text('Program'), to: find.text('Insert recording block'));
+    await _shootRegion(
+      tester,
+      'session_step3_recording_dark',
+      from: find.text('Program'),
+      to: find.text('Insert recording block'),
+    );
   });
 
   // ---- Menus ------------------------------------------------------------
@@ -913,8 +995,11 @@ void main() {
     await tester.pumpAndSettle();
     // Put the Export button just below the AppBar so the menu opens into the
     // frame rather than off the bottom of it.
-    await Scrollable.ensureVisible(tester.element(find.text('Export')),
-        alignment: 0.05, duration: Duration.zero);
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Export')),
+      alignment: 0.05,
+      duration: Duration.zero,
+    );
     await tester.pumpAndSettle();
 
     // Only the submenu shot is kept: it shows the whole menu as well, so a
@@ -926,8 +1011,9 @@ void main() {
 
   // ---- Dialogs ----------------------------------------------------------
 
-  testWidgets('dialogs: programs, parameter presets, clinical scales',
-      (tester) async {
+  testWidgets('dialogs: programs, parameter presets, clinical scales', (
+    tester,
+  ) async {
     final (catalog, limits, presets) = await _contracts();
     await _pump(
       tester,
@@ -985,8 +1071,12 @@ void main() {
     // Reached through Export in the app, which needs the share and file-picker
     // channels a widget test has no answer for. The dialog itself is a plain
     // function, so it is opened directly over the same screen.
-    unawaited(showReportSectionsDialog(
-        tester.element(find.byType(SessionScreen)), kAllReportSections));
+    unawaited(
+      showReportSectionsDialog(
+        tester.element(find.byType(SessionScreen)),
+        kAllReportSections,
+      ),
+    );
     await tester.pumpAndSettle();
     await _shootDialog(tester, 'dialog_report_sections');
   });
@@ -1024,18 +1114,28 @@ void main() {
 
   testWidgets('single session report: empty', (tester) async {
     final contracts = await _contracts();
-    await _pump(tester, SingleSessionReportScreen(catalog: contracts.$1),
-        size: const Size(_narrow, 1000));
+    await _pump(
+      tester,
+      SingleSessionReportScreen(catalog: contracts.$1),
+      size: const Size(_narrow, 1000),
+    );
     await _shootFitted(tester, 'report_empty', width: _narrow, height: 520);
   });
 
   // ---- Longitudinal -----------------------------------------------------
 
   testWidgets('longitudinal: empty', (tester) async {
-    await _pump(tester, const LongitudinalScreen(),
-        size: const Size(_narrow, 1000));
-    await _shootFitted(tester, 'longitudinal_empty',
-        width: _narrow, fallback: 420);
+    await _pump(
+      tester,
+      const LongitudinalScreen(),
+      size: const Size(_narrow, 1000),
+    );
+    await _shootFitted(
+      tester,
+      'longitudinal_empty',
+      width: _narrow,
+      fallback: 420,
+    );
   });
 
   testWidgets('longitudinal: populated', (tester) async {

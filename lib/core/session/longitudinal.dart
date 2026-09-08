@@ -90,7 +90,9 @@ String extractPatientId(String filename) {
 /// _validate_patient_ids: files without a sub- entity are ignored, and
 /// fewer than two identified files always match).
 bool patientIdsMatch(List<String> filenames) {
-  final ids =
-      filenames.map(extractPatientId).where((id) => id.isNotEmpty).toSet();
+  final ids = filenames
+      .map(extractPatientId)
+      .where((id) => id.isNotEmpty)
+      .toSet();
   return ids.length <= 1;
 }

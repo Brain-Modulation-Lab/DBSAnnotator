@@ -60,7 +60,8 @@ class _ListEditorDialogState extends State<ListEditorDialog> {
                           controller: _ctrls[i],
                           keyboardType: widget.numeric
                               ? const TextInputType.numberWithOptions(
-                                  decimal: true)
+                                  decimal: true,
+                                )
                               : null,
                           decoration: InputDecoration(
                             isDense: true,

@@ -72,20 +72,25 @@ void main() {
   group('patient IDs', () {
     test('extractPatientId uses sub-([^_]+) on the basename', () {
       expect(
-        extractPatientId('sub-01_ses-20260724_task-programming_run-01'
-            '_beh.tsv'),
+        extractPatientId(
+          'sub-01_ses-20260724_task-programming_run-01'
+          '_beh.tsv',
+        ),
         '01',
       );
       // Pre-0.5.0 `_events` names still resolve: the suffix is not part of the
       // subject entity, and a longitudinal review mixes old and new files.
       expect(
-        extractPatientId('sub-01_ses-20260724_task-programming_run-01'
-            '_events.tsv'),
+        extractPatientId(
+          'sub-01_ses-20260724_task-programming_run-01'
+          '_events.tsv',
+        ),
         '01',
       );
       expect(
         extractPatientId(
-            r'C:\data\sub-P07x_ses-20260101_task-programming_events.tsv'),
+          r'C:\data\sub-P07x_ses-20260101_task-programming_events.tsv',
+        ),
         'P07x',
       );
       expect(extractPatientId('session_notes.tsv'), '');

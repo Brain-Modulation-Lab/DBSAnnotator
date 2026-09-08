@@ -52,9 +52,11 @@ void main() {
     test('a user override wins over the default for that group only', () {
       final m = mergeScalePresets(
         base,
-        UserPrefs(clinical: {
-          'OCD': ['Y-BOCS', 'HAM-A'],
-        }),
+        UserPrefs(
+          clinical: {
+            'OCD': ['Y-BOCS', 'HAM-A'],
+          },
+        ),
       );
       expect(m.clinical['OCD'], ['Y-BOCS', 'HAM-A']); // overridden
       expect(m.clinical['PD'], ['UPDRS']); // untouched default
@@ -77,8 +79,12 @@ void main() {
       expect(m.buttons, ['OCD', 'PD', 'ET']); // contract order, then new
       expect(m.clinical['ET'], ['TETRAS']);
       // A 3-cell override row predates the optimization-mode field.
-      expect(m.session['ET']!.single,
-          (name: 'Tremor', min: '0', max: '4', mode: 'min'));
+      expect(m.session['ET']!.single, (
+        name: 'Tremor',
+        min: '0',
+        max: '4',
+        mode: 'min',
+      ));
     });
 
     test('an override row carries its optimization mode through the merge', () {
@@ -92,8 +98,12 @@ void main() {
           },
         ),
       );
-      expect(m.session['PD']!.single,
-          (name: 'Mood', min: '0', max: '10', mode: 'max'));
+      expect(m.session['PD']!.single, (
+        name: 'Mood',
+        min: '0',
+        max: '10',
+        mode: 'max',
+      ));
     });
 
     test('an override row with a bogus mode falls back to the default', () {

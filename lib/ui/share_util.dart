@@ -75,12 +75,16 @@ Future<void> shareOrSaveFile(
       // Confirm on mobile too: previously the happy path returned silently, so
       // a dismissed sheet was indistinguishable from a completed share.
       if (result.status != ShareResultStatus.unavailable) {
-        messenger.showSnackBar(SnackBar(
-          duration: const Duration(seconds: 3),
-          content: Text(result.status == ShareResultStatus.success
-              ? 'Shared $filename'
-              : 'Export ready: $filename'),
-        ));
+        messenger.showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 3),
+            content: Text(
+              result.status == ShareResultStatus.success
+                  ? 'Shared $filename'
+                  : 'Export ready: $filename',
+            ),
+          ),
+        );
         return;
       }
     } catch (e) {
@@ -130,14 +134,18 @@ Future<void> exportFile(
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$filename');
     await file.writeAsBytes(payload.bytes);
-    await shareOrSaveFile(messenger, file, filename,
-        origin: origin, screen: screen);
+    await shareOrSaveFile(
+      messenger,
+      file,
+      filename,
+      origin: origin,
+      screen: screen,
+    );
     final warning = payload.warning;
     if (warning != null) {
-      messenger.showSnackBar(SnackBar(
-        duration: const Duration(seconds: 6),
-        content: Text(warning),
-      ));
+      messenger.showSnackBar(
+        SnackBar(duration: const Duration(seconds: 6), content: Text(warning)),
+      );
     }
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('$failureLabel: $e')));

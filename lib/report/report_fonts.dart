@@ -32,8 +32,9 @@ const ReportFonts noReportFonts = (theme: null, coverage: <int>{});
 /// Load the bundled IBM Plex Sans TTFs, with the character map they provide.
 Future<ReportFonts> loadReportFonts() async {
   try {
-    final regular =
-        await rootBundle.load('assets/fonts/IBMPlexSans-Regular.ttf');
+    final regular = await rootBundle.load(
+      'assets/fonts/IBMPlexSans-Regular.ttf',
+    );
     final base = pw.Font.ttf(regular);
     final bold = pw.Font.ttf(
       await rootBundle.load('assets/fonts/IBMPlexSans-Bold.ttf'),
@@ -51,8 +52,11 @@ Future<ReportFonts> loadReportFonts() async {
     // a bad file fails now, here, where the catch can do its job.
     if (base.fontName.isEmpty || bold.fontName.isEmpty) return noReportFonts;
     return (
-      theme:
-          pw.ThemeData.withFont(base: base, bold: bold, fontFallback: [base]),
+      theme: pw.ThemeData.withFont(
+        base: base,
+        bold: bold,
+        fontFallback: [base],
+      ),
       // The regular face's cmap. Bold is the same family and the same coverage,
       // and a character present in one but not the other would be a broken
       // font, not a case worth splitting the set for.
