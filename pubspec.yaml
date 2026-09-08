@@ -35,7 +35,7 @@ dependencies:
   csv: ^6.0.0
   path_provider: ^2.1.4
   file_picker: ^8.1.2
-  share_plus: ^10.1.2
+  share_plus: ^12.0.2
   # Report export: native PDF, no MS Word needed.
   #
   # Two chart-related packages are deliberately NOT dependencies:
