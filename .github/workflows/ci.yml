@@ -104,7 +104,7 @@ jobs:
       # moving branch and is unchecksummed, and this workflow holds a token that
       # can write to the repository - so piping it into a shell would be remote
       # code execution with push access, on a clinical tool.
-      - uses: rhysd/actionlint@v1.7.7
+      - uses: rhysd/actionlint@v1.7.12
 
       # `python` on PATH for the generate-docs-includes hook, which is
       # `language: system`.
