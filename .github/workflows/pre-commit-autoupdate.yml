@@ -22,7 +22,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - run: uvx pre-commit autoupdate
 
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         with:
           # A fixed branch, so this reuses ONE pull request forever instead of
           # piling up a new one every month.
