@@ -67,10 +67,18 @@ Future<void> shareOrSaveFile(
 }) async {
   if (_isMobile) {
     try {
-      final result = await Share.shareXFiles(
-        [XFile(file.path, mimeType: mimeTypeFor(filename))],
-        subject: filename,
-        sharePositionOrigin: _safeOrigin(origin, screen),
+      // share_plus 12 retired the static `Share.shareXFiles`; the single entry
+      // point is now `SharePlus.instance.share(ShareParams(...))`. Field names
+      // and `ShareResultStatus` are unchanged, so the behaviour below is the
+      // same. `share` throws ArgumentError for empty or conflicting params -
+      // none of which can happen here (always exactly one non-empty file), and
+      // the catch below would degrade to a disk save anyway.
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: mimeTypeFor(filename))],
+          subject: filename,
+          sharePositionOrigin: _safeOrigin(origin, screen),
+        ),
       );
       // Confirm on mobile too: previously the happy path returned silently, so
       // a dismissed sheet was indistinguishable from a completed share.

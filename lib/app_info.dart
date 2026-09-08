@@ -38,7 +38,7 @@ class AppLogo extends StatelessWidget {
     width: size,
     height: size,
     filterQuality: FilterQuality.medium,
-    errorBuilder: (_, __, ___) => Icon(Icons.psychology_outlined, size: size),
+    errorBuilder: (_, _, _) => Icon(Icons.psychology_outlined, size: size),
   );
 }
 
