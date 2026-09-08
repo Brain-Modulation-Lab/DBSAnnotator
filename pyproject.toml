@@ -18,6 +18,14 @@ select = ["E", "W", "F", "I", "UP", "B", "RUF"]
 
 [tool.doc8]
 max-line-length = 100
+# D004 (literal carriage return) is disabled deliberately. `core.autocrlf` is
+# true on the maintainer's Windows checkout, so git hands over CRLF in the
+# working tree while storing LF in the repository - which means D004 fails
+# locally on any file an editor has touched and passes in CI, where the
+# checkout is LF. It flags something git already guarantees, so all it can
+# produce here is a false failure that blocks a commit. Line endings are
+# enforced by .gitattributes, not by a docs linter.
+ignore = ["D004"]
 # Sphinx build output, rendered from schema/ at build time and written with
 # CRLF on Windows, which doc8 reports as a literal carriage return.
 ignore-path = ["docs/_generated", "docs/_build"]

@@ -62,27 +62,33 @@ jobs:
           DOCS_SCREENSHOT_DIR: build/docs-screenshots
         run: flutter test test/docs/screenshots_test.dart
 
+      # One grouped redirect rather than a dozen `>>` (shellcheck SC2129):
+      # cheaper, and it cannot half-write the table if a `stat` fails midway.
       - name: Report what changed
+        shell: bash
         run: |
-          echo "### Screenshot render" >> "$GITHUB_STEP_SUMMARY"
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo '| File | Committed | Rendered |' >> "$GITHUB_STEP_SUMMARY"
-          echo '|---|---|---|' >> "$GITHUB_STEP_SUMMARY"
-          for f in build/docs-screenshots/*.png; do
-            name="$(basename "$f")"
-            old="docs/_static/screenshots/$name"
-            committed="missing"
-            [ -f "$old" ] && committed="$(stat -c%s "$old") B"
-            echo "| $name | $committed | $(stat -c%s "$f") B |" >> "$GITHUB_STEP_SUMMARY"
-          done
-          # A capture that exists on disk but is no longer rendered is a stale
-          # image the documentation may still be pointing at.
-          for f in docs/_static/screenshots/*.png; do
-            name="$(basename "$f")"
-            if [ ! -f "build/docs-screenshots/$name" ]; then
-              echo "| $name | committed | **no longer rendered** |" >> "$GITHUB_STEP_SUMMARY"
-            fi
-          done
+          set -uo pipefail
+          {
+            echo "### Screenshot render"
+            echo ''
+            echo '| File | Committed | Rendered |'
+            echo '|---|---|---|'
+            for f in build/docs-screenshots/*.png; do
+              name="$(basename "$f")"
+              old="docs/_static/screenshots/$name"
+              committed="missing"
+              [ -f "$old" ] && committed="$(stat -c%s "$old") B"
+              echo "| $name | $committed | $(stat -c%s "$f") B |"
+            done
+            # A capture that exists on disk but is no longer rendered is a stale
+            # image the documentation may still be pointing at.
+            for f in docs/_static/screenshots/*.png; do
+              name="$(basename "$f")"
+              if [ ! -f "build/docs-screenshots/$name" ]; then
+                echo "| $name | committed | **no longer rendered** |"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:

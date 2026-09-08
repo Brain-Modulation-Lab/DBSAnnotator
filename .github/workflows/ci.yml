@@ -419,7 +419,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n1)
+          # `find`, not `ls` over a glob (shellcheck SC2012): the runner ships
+          # several build-tools versions and we want the newest, so sort -V over
+          # the found paths. Fails loudly if the SDK layout ever changes.
+          apksigner=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -n1)
+          if [ -z "$apksigner" ]; then
+            echo "::error::no apksigner found under $ANDROID_HOME/build-tools"
+            exit 1
+          fi
           "$apksigner" verify --verbose --print-certs \
             build/app/outputs/flutter-apk/app-release.apk | tee signer.txt
           {
