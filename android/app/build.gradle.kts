@@ -62,11 +62,15 @@ if (!releaseSigningReady) {
 
 android {
     namespace = "ch.wysscenter.dbs_annotator"
-    // Pinned, NOT `flutter.compileSdkVersion` (which resolves to 34 here): `:app` is
-    // itself a consumer of flutter_plugin_android_lifecycle, which requires API 36+.
-    // Necessary but NOT sufficient - the plugin subprojects need the same treatment,
-    // which is what the `subprojects` block in ../build.gradle.kts does, and where the
-    // full explanation lives. Only compileSdk moves; minSdk and targetSdk do not.
+    // Pinned, NOT `flutter.compileSdkVersion`, which still resolves to 34 here.
+    //
+    // Originally forced by a dependency conflict that file_picker 12 has since
+    // removed (see ../build.gradle.kts for that history). Kept deliberately: it
+    // compiles the app against a current SDK instead of whatever floor the
+    // bundled Flutter happens to ship, and it is the value CI has been building
+    // green against. Raising compileSdk only widens which APIs the code MAY
+    // call - minSdk (device eligibility) and targetSdk (opt-in to new runtime
+    // behaviour) stay on the Flutter defaults, so no device behaviour changes.
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 

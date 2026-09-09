@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'save_target.dart';
+
 /// Global bounds of the widget at [context], for [shareOrSaveFile]'s `origin`.
 ///
 /// Attach a [GlobalKey] to the button that triggers the export and pass its
@@ -40,7 +42,7 @@ String? mimeTypeFor(String filename) {
 /// is null or empty (`FPPSharePlusPlugin.m`), which used to send the export down
 /// the disk-save path and into the app container. A centred fallback keeps the
 /// sheet presentable even when the triggering button is not laid out.
-Rect _safeOrigin(Rect? origin, Size screen) {
+Rect safeOrigin(Rect? origin, Size screen) {
   if (origin != null && !origin.isEmpty) return origin;
   return Rect.fromCenter(
     center: Offset(screen.width / 2, screen.height / 2),
@@ -77,7 +79,7 @@ Future<void> shareOrSaveFile(
         ShareParams(
           files: [XFile(file.path, mimeType: mimeTypeFor(filename))],
           subject: filename,
-          sharePositionOrigin: _safeOrigin(origin, screen),
+          sharePositionOrigin: safeOrigin(origin, screen),
         ),
       );
       // Confirm on mobile too: previously the happy path returned silently, so
@@ -166,17 +168,21 @@ Future<void> exportFile(
 Future<String?> _saveToDisk(File file, String filename) async {
   // 1) Native Save-As dialog (desktop with zenity/kdialog; a document picker on
   //    mobile). Absent on a bare Linux box → the auto-save below runs instead.
+  //
+  // file_picker 12 requires the bytes and does the write itself, returning a
+  // Uri. That removes the `file.copy(dest)` and the extension-appending this
+  // used to do - `fileName` is passed, so honouring it is the platform's job.
+  // A non-`file` Uri (content://, blob:) has no path to report, so fall through
+  // to the auto-save rather than naming a location the user cannot open.
   try {
-    final picked = await FilePicker.platform.saveFile(
+    final uri = await FilePicker.saveFile(
       dialogTitle: 'Save $filename',
       fileName: filename,
+      bytes: await file.readAsBytes(),
+      mimeType: mimeTypeFor(filename) ?? 'application/octet-stream',
     );
-    if (picked != null) {
-      final ext = _ext(filename);
-      final dest = picked.endsWith(ext) ? picked : '$picked$ext';
-      await file.copy(dest);
-      return dest;
-    }
+    final saved = pickerUriToPath(uri);
+    if (saved != null) return saved;
   } catch (_) {
     // No dialog available — auto-save below.
   }

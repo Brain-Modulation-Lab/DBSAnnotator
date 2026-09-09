@@ -3,16 +3,17 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
 import '../core/annotation.dart';
 import '../core/bids.dart';
 import '../core/bids_sidecar.dart';
 import '../core/safe_file.dart';
+import '../core/session/tsv_kind.dart';
 import '../report/annotations_report.dart';
 import '../report/session_docx.dart' show DocxPageSize;
 import 'bids_export.dart';
+import 'save_target.dart';
 import 'share_util.dart';
 import 'theme.dart';
 
@@ -95,31 +96,23 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         : _subjectCtrl.text.trim();
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
     final name = _bidsName(subject: subject, run: run).filename;
-    String? path;
+    final NewTsvTarget? target;
     try {
-      path = await FilePicker.platform.saveFile(
+      target = await createNewTsv(
         dialogTitle: 'Create new notes TSV',
         fileName: name,
-        type: FileType.custom,
-        allowedExtensions: ['tsv'],
+        header: writeAnnotations(const []), // header only
       );
-    } catch (_) {
-      // Linux desktop opens dialogs via zenity/kdialog; fall back to the app
-      // documents dir when it's absent (a real dialog appears on a tablet).
-      final dir = await getApplicationDocumentsDirectory();
-      await Directory(dir.path).create(recursive: true);
-      path = '${dir.path}/$name';
-      if (mounted) _snack('No file dialog available; saving to $path');
-    }
-    if (path == null) return; // dialog shown but cancelled
-    final p = path.endsWith('.tsv') ? path : '$path.tsv';
-    try {
-      await File(p).writeAsString(writeAnnotations(const [])); // header only
     } catch (e) {
-      if (mounted) _snack('Could not create $p: $e');
+      if (mounted) _snack('Could not create $name: $e');
       return;
     }
-    await _writeSidecar(p);
+    if (target == null) return; // dialog shown but cancelled
+    if (target.fellBack && mounted) {
+      _snack('No file dialog available; saved to ${target.location}');
+    }
+    final p = target.path;
+    if (p != null) await _writeSidecar(p);
     if (!mounted) return;
     setState(() {
       _entries.clear();
@@ -128,33 +121,51 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       _runCtrl.text = run;
       _currentStep = 1;
     });
-    _snack('New notes file: $p');
+    _snack('New notes file: ${target.location}');
   }
 
   Future<void> _open() async {
-    FilePickerResult? result;
+    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
+    // default TRUE, so the old call would have silently started accepting a
+    // multi-selection here while still compiling and passing CI.
+    final PlatformFile? chosen;
     try {
-      result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        withData: true,
-      );
+      chosen = await FilePicker.pickFile(type: FileType.any);
     } catch (e) {
       if (mounted) {
         _snack('Open dialog unavailable — on Linux install "zenity". ($e)');
       }
       return;
     }
-    if (result == null || result.files.isEmpty) return;
-    final picked = result.files.first;
-    String content;
-    try {
-      content = picked.bytes != null
-          ? utf8.decode(picked.bytes!)
-          : await File(picked.path!).readAsString();
-    } catch (_) {
+    if (chosen == null) return;
+    final picked = chosen; // non-nullable, so the setState closure can use it
+    final content = await readPickedText(picked);
+    if (content == null) {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }
+    // Refuse the wrong workflow's file BEFORE anything sets `_savePath`.
+    //
+    // This guard is load-bearing, not defensive. `parseAnnotations` is total and
+    // `sessionColumns` is a superset of `annotationColumns`, so a programming
+    // TSV parses here *successfully* - one "note" per session row - and reports
+    // a plausible count. `_savePath` would then point at the clinician's real
+    // session file (on desktop it is the real path, not a sandbox copy), and the
+    // first note autosaved `writeAnnotations`, which emits only the five
+    // annotation columns. That atomically replaced every block, stimulation
+    // parameter, amplitude, scale rating and program with a notes-only file, with
+    // no error and no `.tmp` to recover from - SafeFileWriter faithfully
+    // guaranteeing the overwrite completed.
+    //
+    // The three sibling readers (session_screen, single_session_report_screen,
+    // longitudinal_screen) all had this check; this screen was the only one that
+    // did not, and it is also the only one that writes back to the file it opened.
+    final kind = sniffTsvKind(content);
+    if (kind != TsvKind.notes) {
+      if (mounted) _snack(tsvKindMismatch(picked.name, kind, TsvKind.notes));
+      return;
+    }
+
     final loaded = parseAnnotations(content);
     final bids = BidsName.parse(picked.name);
     if (!mounted) return;
@@ -331,9 +342,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         final data = buildAnnotationsReportData(
           entries: _entries,
           subjectId: subject,
-          sourceFile: _savePath == null
-              ? ''
-              : _savePath!.replaceAll(r'', '/').split('/').last,
+          sourceFile: _savePath == null ? '' : pickedBasename(_savePath!),
         );
         if (docx) {
           return (

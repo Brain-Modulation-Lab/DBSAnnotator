@@ -12,9 +12,6 @@
 /// being written here instead.
 library;
 
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart' show PdfPageFormat;
@@ -38,6 +35,7 @@ import 'report_images.dart';
 import 'report_sections_dialog.dart';
 import 'scale_targets_dialog.dart';
 import 'session/entries_table.dart';
+import 'save_target.dart';
 import 'session/entry_charts_view.dart';
 import 'share_util.dart';
 import 'theme.dart';
@@ -86,24 +84,19 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
   bool get _hasFile => _rows.isNotEmpty || _notes.isNotEmpty;
 
   Future<void> _open() async {
-    FilePickerResult? result;
+    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
+    // default TRUE, so the old call would silently accept a multi-selection.
+    final PlatformFile? chosen;
     try {
-      result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        withData: true,
-      );
+      chosen = await FilePicker.pickFile(type: FileType.any);
     } catch (e) {
       if (mounted) _snack('Could not open the file picker. ($e)');
       return;
     }
-    if (result == null || result.files.isEmpty) return;
-    final picked = result.files.first;
-    String content;
-    try {
-      content = picked.bytes != null
-          ? utf8.decode(picked.bytes!)
-          : await File(picked.path!).readAsString();
-    } catch (_) {
+    if (chosen == null) return;
+    final picked = chosen; // non-nullable, so the setState closure can use it
+    final content = await readPickedText(picked);
+    if (content == null) {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }
