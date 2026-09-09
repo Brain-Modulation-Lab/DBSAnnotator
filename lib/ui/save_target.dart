@@ -17,3 +17,20 @@ bool pickedPathAutosavesToOriginal(String? path) =>
 const String sandboxCopyNotice =
     'Autosave keeps edits inside the app only — the file you opened is not '
     'updated. Use Export to save your changes.';
+
+/// The final segment of [path], handling both separators.
+///
+/// Named and shared because the two call sites that needed it both had the same
+/// broken copy: `path.replaceAll(r'', '/').split('/').last`. That `r''` is an
+/// EMPTY raw string - very likely a `r'\'` that could not compile, since a raw
+/// string may not end in a backslash - so `replaceAll` inserted a `/` between
+/// every character and `.last` was therefore *always* the empty string.
+///
+/// It failed silently and invisibly: this feeds `sourceFile` on
+/// `SessionReportData`, and all four report builders render the provenance line
+/// as `sourceFile.isEmpty ? '' : ' | Source: ...'`. So every PDF and Word report
+/// exported from the session and annotations screens was filed into a patient
+/// record with no record of which file produced it. Only
+/// single_session_report_screen escaped, because it passes its own filename.
+String pickedBasename(String path) =>
+    path.replaceAll('\\', '/').split('/').last;

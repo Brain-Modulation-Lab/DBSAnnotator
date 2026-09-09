@@ -302,9 +302,7 @@ class _SessionScreenState extends State<SessionScreen> {
     scalePrefs: _scalePrefs(),
     // Provenance: the report prints which file it came from, so it can be
     // tied back to one run among several of the same session.
-    sourceFile: _savePath == null
-        ? ''
-        : _savePath!.replaceAll(r'', '/').split('/').last,
+    sourceFile: _savePath == null ? '' : pickedBasename(_savePath!),
   );
 
   /// Report paper size from the user preference, applied to BOTH formats so the

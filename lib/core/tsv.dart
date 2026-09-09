@@ -8,10 +8,26 @@ import 'package:csv/csv.dart';
 /// hand-rolling a parser so that quoting/escaping stays compatible.
 
 /// Parse a TSV document into rows of string cells. Auto-detects `\r\n` vs `\n`
-/// line endings (the desktop app writes `\r\n`, but be lenient on read).
+/// line endings (pre-0.5.0 files were written with `\r\n`; see [writeTsv]).
+///
+/// Detection reads the FIRST line ending only, deliberately. It used to be
+/// `content.contains('\r\n')`, which scans the whole document including quoted
+/// cell content - and a `notes` field can legitimately contain a `\r\n`, pasted
+/// from a Windows app or an EHR page. One such cell in an LF-terminated file
+/// made the parser take `\r\n` as the row terminator; the quoted `\r\n` is not a
+/// row break (the parser only matches the terminator outside quotes) and the
+/// real LF terminators no longer matched, so the entire document collapsed to a
+/// single row and `parseTsvRecords` - which skips the header - returned ZERO
+/// records. `sniffTsvKind` still recognised the file, because the header cells
+/// were intact, so the session opened reporting "0 rows" and the next insert
+/// autosaved a one-row file over it.
+///
+/// The header row cannot contain a quoted newline, so the first terminator in
+/// the document is always a real one.
 List<List<String>> parseTsv(String content) {
   if (content.isEmpty) return <List<String>>[];
-  final eol = content.contains('\r\n') ? '\r\n' : '\n';
+  final firstLf = content.indexOf('\n');
+  final eol = firstLf > 0 && content[firstLf - 1] == '\r' ? '\r\n' : '\n';
   final rows = CsvToListConverter(
     fieldDelimiter: '\t',
     textDelimiter: '"',

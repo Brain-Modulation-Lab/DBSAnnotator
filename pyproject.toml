@@ -34,4 +34,5 @@ ignore-path = ["docs/_generated", "docs/_build"]
 skip = "./build,./.git,./.dart_tool,./pubspec.lock,./docs/_build,./docs/_generated,./assets,./ios,./macos,./android,./windows/flutter,./linux/flutter,*.png,*.ttf,*.ico,*.msix"
 # Bloc/bloc: report_data.dart quotes the broken column heading "Bloc k" while
 # explaining the arithmetic that produced it. vas: the VAS rating scale.
-ignore-words-list = "Bloc,bloc,vas,ist,nd,te,ba"
+# EHR: Electronic Health Record - codespell reads it as "her".
+ignore-words-list = "Bloc,bloc,vas,ist,nd,te,ba,EHR"

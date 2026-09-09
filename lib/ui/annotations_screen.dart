@@ -10,9 +10,11 @@ import '../core/annotation.dart';
 import '../core/bids.dart';
 import '../core/bids_sidecar.dart';
 import '../core/safe_file.dart';
+import '../core/session/tsv_kind.dart';
 import '../report/annotations_report.dart';
 import '../report/session_docx.dart' show DocxPageSize;
 import 'bids_export.dart';
+import 'save_target.dart';
 import 'share_util.dart';
 import 'theme.dart';
 
@@ -155,6 +157,28 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }
+    // Refuse the wrong workflow's file BEFORE anything sets `_savePath`.
+    //
+    // This guard is load-bearing, not defensive. `parseAnnotations` is total and
+    // `sessionColumns` is a superset of `annotationColumns`, so a programming
+    // TSV parses here *successfully* - one "note" per session row - and reports
+    // a plausible count. `_savePath` would then point at the clinician's real
+    // session file (on desktop it is the real path, not a sandbox copy), and the
+    // first note autosaved `writeAnnotations`, which emits only the five
+    // annotation columns. That atomically replaced every block, stimulation
+    // parameter, amplitude, scale rating and program with a notes-only file, with
+    // no error and no `.tmp` to recover from - SafeFileWriter faithfully
+    // guaranteeing the overwrite completed.
+    //
+    // The three sibling readers (session_screen, single_session_report_screen,
+    // longitudinal_screen) all had this check; this screen was the only one that
+    // did not, and it is also the only one that writes back to the file it opened.
+    final kind = sniffTsvKind(content);
+    if (kind != TsvKind.notes) {
+      if (mounted) _snack(tsvKindMismatch(picked.name, kind, TsvKind.notes));
+      return;
+    }
+
     final loaded = parseAnnotations(content);
     final bids = BidsName.parse(picked.name);
     if (!mounted) return;
@@ -331,9 +355,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         final data = buildAnnotationsReportData(
           entries: _entries,
           subjectId: subject,
-          sourceFile: _savePath == null
-              ? ''
-              : _savePath!.replaceAll(r'', '/').split('/').last,
+          sourceFile: _savePath == null ? '' : pickedBasename(_savePath!),
         );
         if (docx) {
           return (
