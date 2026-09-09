@@ -56,7 +56,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   # App icon generation (run: dart run flutter_launcher_icons). See MOBILE_RELEASE.md.
   flutter_launcher_icons: ^0.14.1
   # Windows MSIX packaging (run: dart run msix:create). See msix_config below
