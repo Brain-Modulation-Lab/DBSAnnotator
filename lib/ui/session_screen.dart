@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart' show PdfPageFormat;
 
 import '../core/bids.dart';
@@ -557,33 +556,24 @@ class _SessionScreenState extends State<SessionScreen> {
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
     final name = _bidsName((subject: subject, run: run)).filename;
     // Desktop parity: choose where to create the BIDS TSV before continuing.
-    String? path;
+    final authoring = SessionAuthoring();
+    final NewTsvTarget? target;
     try {
-      path = await FilePicker.platform.saveFile(
+      target = await createNewTsv(
         dialogTitle: 'Create new session TSV',
         fileName: name,
-        type: FileType.custom,
-        allowedExtensions: ['tsv'],
+        header: authoring.serialize(), // header only
       );
-    } catch (_) {
-      // Linux desktop opens native dialogs via zenity/kdialog. If it's absent,
-      // fall back to the app documents dir so New still creates the file
-      // (a real save dialog appears once zenity is installed, or on a tablet).
-      final dir = await getApplicationDocumentsDirectory();
-      await Directory(dir.path).create(recursive: true);
-      path = '${dir.path}/$name';
-      if (mounted) _snack('No file dialog available; saving to $path');
-    }
-    if (path == null) return; // dialog shown but cancelled
-    final p = path.endsWith('.tsv') ? path : '$path.tsv';
-    final authoring = SessionAuthoring();
-    try {
-      await File(p).writeAsString(authoring.serialize()); // header only
     } catch (e) {
-      if (mounted) _snack('Could not create $p: $e');
+      if (mounted) _snack('Could not create $name: $e');
       return;
     }
-    await _writeSidecar(p);
+    if (target == null) return; // dialog shown but cancelled
+    if (target.fellBack && mounted) {
+      _snack('No file dialog available; saved to ${target.location}');
+    }
+    final p = target.path;
+    if (p != null) await _writeSidecar(p);
     if (!mounted) return;
     setState(() {
       _authoring = authoring;
@@ -593,16 +583,15 @@ class _SessionScreenState extends State<SessionScreen> {
       _runCtrl.text = run;
       _currentStep = 1;
     });
-    _snack('New session: $p');
+    _snack('New session: ${target.location}');
   }
 
   Future<void> _open() async {
-    FilePickerResult? result;
+    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
+    // default TRUE, so the old call would silently accept a multi-selection.
+    final PlatformFile? chosen;
     try {
-      result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        withData: true,
-      );
+      chosen = await FilePicker.pickFile(type: FileType.any);
     } catch (e) {
       if (mounted) {
         // On Linux desktop this usually means zenity/kdialog is missing.
@@ -610,14 +599,10 @@ class _SessionScreenState extends State<SessionScreen> {
       }
       return;
     }
-    if (result == null || result.files.isEmpty) return;
-    final picked = result.files.first;
-    String content;
-    try {
-      content = picked.bytes != null
-          ? utf8.decode(picked.bytes!)
-          : await File(picked.path!).readAsString();
-    } catch (_) {
+    if (chosen == null) return;
+    final picked = chosen; // non-nullable, so the setState closure can use it
+    final content = await readPickedText(picked);
+    if (content == null) {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }

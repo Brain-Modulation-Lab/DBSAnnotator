@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
 import '../core/annotation.dart';
@@ -97,31 +96,23 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         : _subjectCtrl.text.trim();
     final run = _runCtrl.text.trim().isEmpty ? '01' : _runCtrl.text.trim();
     final name = _bidsName(subject: subject, run: run).filename;
-    String? path;
+    final NewTsvTarget? target;
     try {
-      path = await FilePicker.platform.saveFile(
+      target = await createNewTsv(
         dialogTitle: 'Create new notes TSV',
         fileName: name,
-        type: FileType.custom,
-        allowedExtensions: ['tsv'],
+        header: writeAnnotations(const []), // header only
       );
-    } catch (_) {
-      // Linux desktop opens dialogs via zenity/kdialog; fall back to the app
-      // documents dir when it's absent (a real dialog appears on a tablet).
-      final dir = await getApplicationDocumentsDirectory();
-      await Directory(dir.path).create(recursive: true);
-      path = '${dir.path}/$name';
-      if (mounted) _snack('No file dialog available; saving to $path');
-    }
-    if (path == null) return; // dialog shown but cancelled
-    final p = path.endsWith('.tsv') ? path : '$path.tsv';
-    try {
-      await File(p).writeAsString(writeAnnotations(const [])); // header only
     } catch (e) {
-      if (mounted) _snack('Could not create $p: $e');
+      if (mounted) _snack('Could not create $name: $e');
       return;
     }
-    await _writeSidecar(p);
+    if (target == null) return; // dialog shown but cancelled
+    if (target.fellBack && mounted) {
+      _snack('No file dialog available; saved to ${target.location}');
+    }
+    final p = target.path;
+    if (p != null) await _writeSidecar(p);
     if (!mounted) return;
     setState(() {
       _entries.clear();
@@ -130,30 +121,26 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       _runCtrl.text = run;
       _currentStep = 1;
     });
-    _snack('New notes file: $p');
+    _snack('New notes file: ${target.location}');
   }
 
   Future<void> _open() async {
-    FilePickerResult? result;
+    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
+    // default TRUE, so the old call would have silently started accepting a
+    // multi-selection here while still compiling and passing CI.
+    final PlatformFile? chosen;
     try {
-      result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        withData: true,
-      );
+      chosen = await FilePicker.pickFile(type: FileType.any);
     } catch (e) {
       if (mounted) {
         _snack('Open dialog unavailable — on Linux install "zenity". ($e)');
       }
       return;
     }
-    if (result == null || result.files.isEmpty) return;
-    final picked = result.files.first;
-    String content;
-    try {
-      content = picked.bytes != null
-          ? utf8.decode(picked.bytes!)
-          : await File(picked.path!).readAsString();
-    } catch (_) {
+    if (chosen == null) return;
+    final picked = chosen; // non-nullable, so the setState closure can use it
+    final content = await readPickedText(picked);
+    if (content == null) {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }

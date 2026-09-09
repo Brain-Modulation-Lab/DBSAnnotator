@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +16,7 @@ import '../report/longitudinal_pdf.dart';
 import '../report/session_docx.dart' show DocxPageSize;
 import '../report/report_data.dart' show ScalesChartSpec, buildScalesChartSpec;
 import 'bids_export.dart';
+import 'save_target.dart';
 import 'scales_chart_painter.dart';
 import 'share_util.dart';
 import 'theme.dart';
@@ -92,31 +91,38 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _import() async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.any,
-      withData: true,
-    );
-    if (result == null) return;
+    // This is the genuine multi-file case, so `pickFiles` is right here -
+    // `allowMultiple` is now file_picker 12's default and no longer passed.
+    // The try/catch is new: this was the one screen of four without it, so on a
+    // Linux box lacking zenity/kdialog the future rejected into an unhandled
+    // async error and Import was an inert button with no message at all.
+    final List<PlatformFile> files;
+    try {
+      files = await FilePicker.pickFiles(type: FileType.any);
+    } catch (e) {
+      if (mounted) _snack('Could not open the file picker. ($e)');
+      return;
+    }
+    if (files.isEmpty) return; // v12 returns an empty list, never null
     final added = <ImportedSessionFile>[];
     final failed = <String>[];
     final wrongKind = <String>[];
-    for (final picked in result.files) {
+    for (final picked in files) {
+      final content = await readPickedText(picked);
+      if (content == null) {
+        failed.add(picked.name);
+        continue;
+      }
+      // Check the kind BEFORE parsing. `SessionRow.fromMap` is total: every
+      // column it cannot find becomes '', so a notes TSV parsed as a session
+      // yields one all-empty row per line and imported "successfully" — this
+      // screen then showed a review with no data in it and no explanation.
+      final kind = sniffTsvKind(content);
+      if (kind != TsvKind.programming) {
+        wrongKind.add(tsvKindMismatch(picked.name, kind, TsvKind.programming));
+        continue;
+      }
       try {
-        final content = picked.bytes != null
-            ? utf8.decode(picked.bytes!)
-            : await File(picked.path!).readAsString();
-        // Check the kind BEFORE parsing. `SessionRow.fromMap` is total: every
-        // column it cannot find becomes '', so a notes TSV parsed as a session
-        // yields one all-empty row per line and imported "successfully" — this
-        // screen then showed a review with no data in it and no explanation.
-        final kind = sniffTsvKind(content);
-        if (kind != TsvKind.programming) {
-          wrongKind.add(
-            tsvKindMismatch(picked.name, kind, TsvKind.programming),
-          );
-          continue;
-        }
         added.add(
           ImportedSessionFile(
             name: picked.name,
