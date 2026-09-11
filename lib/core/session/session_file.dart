@@ -3,7 +3,7 @@
 /// Mirrors dbs_annotator/models/session_data.py:
 /// - `buildInsertRows` = the row-shaping half of `write_session_scales`
 ///   (Step 3: one row per valid scale, or one scale-less row).
-/// - `nextBlockId` / `nextSessionId` = the max-scan half of
+/// - `nextBlockId` / `nextAppendId` = the max-scan half of
 ///   `open_file_append`.
 ///
 /// MOBILE PERSISTENCE NOTE: the desktop app keeps an open append handle
@@ -11,8 +11,12 @@
 /// incrementally. On the tablet there is no long-lived file handle: callers
 /// read the whole TSV with [parseSessionTsv], append the rows from
 /// [buildInsertRows] in memory, and rewrite the entire file with
-/// [serializeSessionTsv] (writeTsvRecords over sessionColumns). The result
-/// on disk is byte-compatible with what the desktop appender produces.
+/// [serializeSessionTsv] (writeTsvRecords over sessionColumns).
+///
+/// The output is **no longer byte-compatible with the desktop appender** — that
+/// claim outlived the CRLF-to-LF change and then the v0.5.0 schema cleanup.
+/// Compatibility runs one way now: this app reads what the 0.4.x desktop app
+/// wrote, not the reverse. See `lib/core/schema_columns.dart`.
 library;
 
 import '../schema_columns.dart';
@@ -52,15 +56,19 @@ int nextBlockId(List<SessionRow> existing) {
   return maxBlock + 1;
 }
 
-/// Next session ID for an append: max(session_id) + 1, or 1 for an
-/// empty/new file. Mirrors open_file_append (max_session starts at 0).
-int nextSessionId(List<SessionRow> existing) {
-  var maxSession = 0;
+/// Next append ID: max(append_id) + 1, or 1 for an empty/new file.
+///
+/// Counts data-entry episodes in ONE file — it advances each time that file is
+/// reopened to add rows — so it is file-scoped by design, and equal values in
+/// two different files are unrelated. Mirrors open_file_append (max_session
+/// starts at 0).
+int nextAppendId(List<SessionRow> existing) {
+  var maxAppend = 0;
   for (final row in existing) {
-    final v = _asInt(row.sessionId);
-    if (v != null && v > maxSession) maxSession = v;
+    final v = _asInt(row.appendId);
+    if (v != null && v > maxAppend) maxAppend = v;
   }
-  return maxSession + 1;
+  return maxAppend + 1;
 }
 
 /// Build the NEW rows for one insert, mirroring write_session_scales
@@ -73,7 +81,7 @@ int nextSessionId(List<SessionRow> existing) {
 ///
 /// If no scale survives the filter, ONE row is written with empty
 /// scale_name/scale_value; otherwise one row PER valid scale. Every row of
-/// the insert shares the same block/session IDs, is_initial, timestamp,
+/// the insert shares the same block/append IDs, is_initial, timestamp,
 /// stimulation columns, [programId] (the desktop's `group`),
 /// [electrodeModel], and [notes].
 ///
@@ -82,7 +90,7 @@ int nextSessionId(List<SessionRow> existing) {
 /// [nextBlockId] after appending.
 List<SessionRow> buildInsertRows({
   required int blockId,
-  required int sessionId,
+  required int appendId,
   bool isInitial = false,
   List<ScaleEntry> scales = const [],
   String programId = '',
@@ -100,22 +108,17 @@ List<SessionRow> buildInsertRows({
   String rightPulseWidth = '',
   DateTime? at,
 }) {
-  final dt = at ?? DateTime.now();
-  final date = dateCell(dt);
-  final time = timeCell(dt);
-  final timezone = timezoneCell(dt);
-  final acqTime = acqTimeCell(dt);
+  final acqTime = acqTimeCell(at ?? DateTime.now());
 
   SessionRow row({String scaleName = '', String scaleValue = ''}) => SessionRow(
-    date: date,
-    time: time,
-    timezone: timezone,
     acqTime: acqTime,
     blockId: '$blockId',
-    sessionId: '$sessionId',
+    appendId: '$appendId',
     // 1 for Step-1 baseline (write_clinical_scales), 0 for Step-3
-    // recording (write_session_scales).
-    isInitial: isInitial ? '1' : '0',
+    // recording (write_session_scales). Via `initialCell` so the "exactly 0 or
+    // 1, never 0.0" guarantee has one owner - see its doc comment for the
+    // `astype(bool)` footgun that motivates it.
+    isInitial: initialCell(isInitial),
     scaleName: scaleName,
     scaleValue: scaleValue,
     electrodeModel: electrodeModel,

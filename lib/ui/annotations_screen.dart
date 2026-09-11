@@ -9,6 +9,7 @@ import '../core/annotation.dart';
 import '../core/bids.dart';
 import '../core/bids_sidecar.dart';
 import '../core/safe_file.dart';
+import '../core/timestamps.dart';
 import '../core/session/tsv_kind.dart';
 import '../report/annotations_report.dart';
 import '../report/session_docx.dart' show DocxPageSize;
@@ -442,8 +443,8 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
                 for (final e in _entries)
                   DataRow(
                     cells: [
-                      DataCell(Text(e.date)),
-                      DataCell(Text('${e.time} (${e.timezone})')),
+                      DataCell(Text(_noteDate(e))),
+                      DataCell(Text(_noteTime(e))),
                       DataCell(
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 420),
@@ -520,4 +521,21 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       ),
     );
   }
+}
+
+/// A note's date for the entries table, or '' when it has no usable instant.
+///
+/// Date and clock time are display forms of the note's single `acq_time` now,
+/// not stored cells. Pre-0.5.0 notes files were the worst case: their
+/// `timezone` cell held a zone NAME with no offset, so those rows could not be
+/// resolved to an instant at all until `Annotation.fromMap` began backfilling
+/// them from `date` + `time`.
+String _noteDate(Annotation e) => recordedDate(e.acqTime);
+
+/// A note's clock time, with the recorded UTC offset when the row carries one.
+String _noteTime(Annotation e) {
+  final time = recordedTime(e.acqTime);
+  if (time.isEmpty) return '';
+  final offset = offsetFromTimezoneCell(e.acqTime);
+  return offset.isEmpty ? time : '$time (UTC$offset)';
 }

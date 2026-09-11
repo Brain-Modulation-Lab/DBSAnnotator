@@ -31,6 +31,7 @@ import '../report/report_sections.dart';
 import '../report/session_docx.dart';
 import '../report/session_pdf.dart';
 import '../core/annotation.dart';
+import '../core/timestamps.dart';
 import 'report_images.dart';
 import 'report_sections_dialog.dart';
 import 'scale_targets_dialog.dart';
@@ -320,7 +321,12 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
     Text('${_notes.length} notes'),
     const SizedBox(height: 8),
     for (final n in _notes.take(50))
-      ListTile(dense: true, leading: Text(n.time), title: Text(n.notes)),
+      ListTile(
+        dense: true,
+        // Clock time formatted from the note's single `acq_time` instant.
+        leading: Text(recordedTime(n.acqTime)),
+        title: Text(n.notes),
+      ),
   ];
 
   List<Widget> _sessionPreview(ThemeData theme) {

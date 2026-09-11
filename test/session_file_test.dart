@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dbs_annotator/core/schema_columns.dart';
 import 'package:dbs_annotator/core/session/session_file.dart';
+import 'package:dbs_annotator/core/timestamps.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,7 +13,7 @@ void main() {
     test('one row per valid scale, sharing insert-level fields', () {
       final rows = buildInsertRows(
         blockId: 3,
-        sessionId: 2,
+        appendId: 2,
         scales: const [
           (name: 'Mood', value: '7'),
           (name: 'Anxiety', value: ''), // blank value -> dropped
@@ -35,11 +36,13 @@ void main() {
       expect(rows.map((r) => r.scaleValue), ['7', '2.5']);
       for (final row in rows) {
         expect(row.blockId, '3');
-        expect(row.sessionId, '2');
+        expect(row.appendId, '2');
         expect(row.isInitial, '0');
-        expect(row.date, '2026-07-27');
-        expect(row.time, '10:30:05');
-        expect(row.timezone, isNotEmpty);
+        // One instant, offset included, instead of three cells that could
+        // disagree. The offset is the recording machine's, so only its shape
+        // is asserted.
+        expect(row.acqTime, startsWith('2026-07-27T10:30:05'));
+        expect(row.acqTime, matches(RegExp(r'[+-][0-9][0-9]:[0-9][0-9]$')));
         expect(row.programId, 'B');
         expect(row.electrodeModel, 'SenSight B33005');
         expect(row.notes, 'felt better');
@@ -53,7 +56,7 @@ void main() {
     test('no valid scales -> a single row with empty scale fields', () {
       final rows = buildInsertRows(
         blockId: 0,
-        sessionId: 1,
+        appendId: 1,
         scales: const [(name: 'Mood', value: '   ')],
         notes: 'stim only',
         at: stamp,
@@ -67,21 +70,21 @@ void main() {
     });
   });
 
-  group('nextBlockId / nextSessionId', () {
+  group('nextBlockId / nextAppendId', () {
     test('continue numbering from the max, like open_file_append', () {
       const existing = [
-        SessionRow(blockId: '0', sessionId: '1'),
-        SessionRow(blockId: '2.0', sessionId: '1'), // float-style cell
-        SessionRow(blockId: 'junk', sessionId: ''), // malformed -> skipped
-        SessionRow(blockId: '1', sessionId: '3'),
+        SessionRow(blockId: '0', appendId: '1'),
+        SessionRow(blockId: '2.0', appendId: '1'), // float-style cell
+        SessionRow(blockId: 'junk', appendId: ''), // malformed -> skipped
+        SessionRow(blockId: '1', appendId: '3'),
       ];
       expect(nextBlockId(existing), 3);
-      expect(nextSessionId(existing), 4);
+      expect(nextAppendId(existing), 4);
     });
 
     test('empty file -> block 0, session 1', () {
       expect(nextBlockId(const []), 0);
-      expect(nextSessionId(const []), 1);
+      expect(nextAppendId(const []), 1);
     });
   });
 
@@ -89,7 +92,7 @@ void main() {
     test('parse -> serialize -> parse preserves every cell', () {
       final original = buildInsertRows(
         blockId: 5,
-        sessionId: 2,
+        appendId: 2,
         scales: const [(name: 'Mood', value: '4')],
         programId: 'A',
         electrodeModel: 'Cartesia X',
@@ -122,7 +125,7 @@ void main() {
       // and not first in someone's analysis script.
       expect(
         serializeSessionTsv(const []).trimRight(),
-        'date\ttime\ttimezone\tacq_time\tblock_id\tsession_id\tis_initial\t'
+        'acq_time\tblock_id\tappend_id\tis_initial\t'
         'scale_name\tscale_value\telectrode_model\tprogram_id\t'
         'left_stim_freq\tleft_anode\tleft_cathode\tleft_amplitude\t'
         'left_pulse_width\tright_stim_freq\tright_anode\tright_cathode\t'
@@ -153,13 +156,26 @@ void main() {
       expect(rows, isNotEmpty);
       // The pre-rename spellings resolve through `readColumn`.
       expect(rows.first.blockId, '0');
-      expect(rows.first.sessionId, '1');
+      expect(rows.first.appendId, '1');
       expect(rows.first.programId, 'B');
       expect(rows.first.electrodeModel, 'Medtronic SenSight B33005');
-      // No acq_time column existed then; it stays empty rather than inventing
-      // an instant, and `timestamp` falls back to date + time.
-      expect(rows.first.acqTime, '');
-      expect(rows.first.timestamp, DateTime(2026, 2, 3, 9));
+      // The point of this fixture, and of the whole v0.5.0 timestamp cleanup:
+      // the file has NO `acq_time` column at all — only `date`, `time` and a
+      // free-text `timezone` — and reading it produces a complete instant
+      // anyway, offset included. Every consumer downstream (reports, exports,
+      // the aggregate) therefore sees one populated timestamp column without
+      // knowing the source predates it.
+      expect(
+        rows.first.acqTime,
+        '2026-02-03T09:00:00+00:00',
+        reason: 'backfilled from date + time + the offset in the timezone cell',
+      );
+      // The offset is the RECORDING machine's, taken from the file, never this
+      // machine's — so the instant is the same wherever the file is read.
+      expect(rows.first.timestamp, DateTime.utc(2026, 2, 3, 9).toLocal());
+      // Display reads the wall clock as recorded, with no zone conversion.
+      expect(recordedDate(rows.first.acqTime), '2026-02-03');
+      expect(recordedTime(rows.first.acqTime), '09:00:00');
     });
   });
 }

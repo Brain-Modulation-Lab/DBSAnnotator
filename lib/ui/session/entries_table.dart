@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/timestamps.dart';
 import '../../core/session/session_row.dart';
 import '../../report/report_data.dart' show coerceInt;
 
@@ -67,10 +68,17 @@ class SessionEntriesTable extends StatelessWidget {
     // baseline at all keeps date+time on its first block, so the day is never
     // lost from the table.
     final hasInitial = rows.any((r) => coerceInt(r.isInitial) == 1);
+    // Read as the WALL CLOCK recorded in `acq_time`, never converted: the
+    // clinician wants the time the block happened at the clinic, and parsing
+    // the instant would render it in whatever zone this device is in — 09:00 in
+    // Geneva showing as 03:00 in Chicago. See `recordedDate`.
     String stamp(SessionRow r, bool initial, bool isFirstBlock) {
-      if (initial) return r.date.trim();
-      if (isFirstBlock && !hasInitial) return '${r.date} ${r.time}'.trim();
-      return r.time.trim();
+      final date = recordedDate(r.acqTime);
+      final time = recordedTime(r.acqTime);
+      if (date.isEmpty) return '';
+      if (initial) return date;
+      if (isFirstBlock && !hasInitial) return '$date $time';
+      return time;
     }
 
     // Walk the rows, tracking where each block starts so the rule can be drawn

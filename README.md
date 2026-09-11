@@ -77,7 +77,7 @@ one row per (block, scale), so it pivots directly:
 
 ```python
 df = pd.read_csv(path, sep="\t", na_values=["n/a"])
-df.pivot_table(index=["session_id", "block_id"], columns="scale_name", values="scale_value")
+df.pivot_table(index=["append_id", "block_id"], columns="scale_name", values="scale_value")
 ```
 
 `_beh` rather than `_events`: the BIDS specification reserves `_events.tsv` for

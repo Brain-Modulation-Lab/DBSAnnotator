@@ -76,7 +76,7 @@ reshaping:
 
    df = pd.read_csv(path, sep="\t", na_values=["n/a"])
    wide = df.pivot_table(
-       index=["session_id", "block_id"],
+       index=["append_id", "block_id"],
        columns="scale_name",
        values="scale_value",
    )
@@ -116,28 +116,62 @@ BIDS requires for a missing or non-applicable value. Read it with:
 Timestamps
 ----------
 
-Every row carries four time cells. Parse ``acq_time`` and ignore the rest:
+Every row carries **one** time cell:
 
 .. code-block:: python
 
-   df["when"] = pd.to_datetime(df.acq_time)   # tz-aware, ISO-8601
+   df["when"] = pd.to_datetime(df.acq_time)   # tz-aware, ISO-8601, one line
 
 ``acq_time`` is the whole instant with its UTC offset
-(``2026-02-03T09:00:00+00:00``). ``date`` and ``time`` are the same instant split
-in two, for reading in a spreadsheet, and ``timezone`` is the zone name and
-offset for a human (``CEST +02:00``).
+(``2026-02-03T09:00:00+00:00``) — and it is BIDS' own name for a timestamp
+column, used in ``scans.tsv`` and ``sessions.tsv``.
+
+Earlier drafts also wrote ``date``, ``time`` and ``timezone`` beside it: four
+cells for one instant. They were removed in v0.5.0 because four cells can
+disagree and nothing asserted they agreed, because ``timezone`` was *not
+reproducible* — Dart reports the zone name as ``W. Europe Daylight Time`` on
+Windows and ``CEST`` on Linux, so one clinic produced different cells per
+platform — and because its only machine-usable half, the offset, is already
+inside ``acq_time``.
 
 .. note::
 
-   Files written before v0.5.0 have no ``acq_time``, and their ``timezone`` cell
-   holds a platform-supplied display name — on Windows,
-   ``W. Europe Daylight Time +0200``, which no date parser accepts. For those,
-   combine ``date`` and ``time`` and extract the offset:
+   Files written before v0.5.0 stored the timestamp as ``date`` + ``time`` plus
+   a ``timezone`` cell holding a platform-supplied display name — on Windows,
+   ``W. Europe Daylight Time +0200``, which no date parser accepts. **You do not
+   need to handle that.** Open such a file in DBS Annotator and export it, and
+   the app composes ``acq_time`` from those cells on read, offset included; the
+   three retired columns are not written back.
+
+   If you are reading an old file directly with pandas rather than through the
+   app, the equivalent is:
 
    .. code-block:: python
 
       when = pd.to_datetime(df.date + " " + df.time)
       offset = df.timezone.str.extract(r"([+-]\d{4})")[0]
+
+   which is precisely the two-line, regex-requiring reconstruction that having a
+   single ``acq_time`` column removes.
+
+.. warning::
+
+   ``acq_time`` is an *instant*, and rendering an instant picks a timezone. A
+   block recorded at ``09:00:00+01:00`` in Geneva is ``03:00`` in Chicago —
+   the same moment, a different clock. If you want the time the event happened
+   **at the clinic**, read the wall clock out of the string rather than
+   localising it:
+
+   .. code-block:: python
+
+      # the clinic's own clock, whatever timezone you are reading in
+      clinic_time = df.acq_time.str.slice(11, 19)
+
+      # the instant, for ordering and for measuring intervals
+      when = pd.to_datetime(df.acq_time)
+
+   The app makes the same distinction internally: reports and tables print the
+   recorded wall clock, while sorting and interval arithmetic use the instant.
 
 Amplitudes and current steering
 -------------------------------
@@ -220,9 +254,26 @@ suffix the specification points at for exactly this shape of file. Versions up
 to 0.4.0 wrote ``_events.tsv``, which no validator would have accepted.
 
 The same release moved ``block_ID``, ``session_ID`` and ``program_ID`` to
-``block_id``, ``session_id`` and ``program_id`` (BIDS recommends snake_case
-throughout), replaced ``NaN`` with ``n/a``, added ``acq_time``, and switched line
-endings from CRLF to LF.
+``block_id``, ``append_id`` and ``program_id`` (BIDS recommends snake_case
+throughout), replaced ``NaN`` with ``n/a``, collapsed ``date`` + ``time`` +
+``timezone`` into a single ``acq_time``, and switched line endings from CRLF to
+LF.
+
+``session_ID`` became ``append_id`` rather than ``session_id`` deliberately. The
+column counts **data-entry episodes within one file** — it advances each time
+that file is reopened to add more rows — and it is file-scoped, so ``append_id``
+1 in two different files are unrelated. BIDS uses ``session_id`` for the
+``ses-`` label in ``sessions.tsv``, and one name meaning both things would
+mislead anyone reading a table that combines several sessions.
+
+.. note::
+
+   Compatibility runs **one way**. This app reads files written by the 0.4.x
+   desktop application, including all of the spellings above. Files it *writes*
+   are for this app and for analysis: they no longer carry ``session_ID``,
+   ``date``, ``time`` or ``timezone``, so the frozen desktop app cannot read
+   them in full. That was a deliberate trade for a retired implementation —
+   stating it plainly is better than implying a symmetry that does not hold.
 
 .. _bids-dataset-export:
 

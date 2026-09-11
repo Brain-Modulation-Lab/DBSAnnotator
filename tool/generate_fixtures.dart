@@ -56,11 +56,12 @@ import 'dart:io';
 import 'package:dbs_annotator/core/schema_columns.dart';
 import 'package:dbs_annotator/core/session/session_file.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
+import 'package:dbs_annotator/core/timestamps.dart';
 import 'package:dbs_annotator/core/tsv.dart';
 
 /// A fictional instant, in UTC. UTC on purpose: the data is invented, and a
 /// non-zero offset would invite a reader to infer a recording site that does
-/// not exist. `timezoneCell` renders this as `UTC +00:00`.
+/// not exist, and it makes `acq_time` end in `+00:00`.
 final DateTime _start = DateTime.utc(2026, 2, 3, 9);
 
 const String _model = 'Medtronic SenSight B33005';
@@ -179,7 +180,7 @@ String _fmt(double v) => v.toStringAsFixed(2);
 List<SessionRow> _rows() => [
   ...buildInsertRows(
     blockId: 0,
-    sessionId: 1,
+    appendId: 1,
     isInitial: true,
     scales: _clinicalScales,
     programId: _program,
@@ -200,7 +201,7 @@ List<SessionRow> _rows() => [
   for (var i = 0; i < _blocks.length; i++)
     ...buildInsertRows(
       blockId: i + 1,
-      sessionId: 1,
+      appendId: 1,
       scales: [
         for (var s = 0; s < _sessionScales.length; s++)
           (name: _sessionScales[s], value: _fmt(_blocks[i].ratings[s])),
@@ -251,17 +252,32 @@ String _legacyDocument(List<SessionRow> rows) {
   ];
   const rename = {
     'block_id': 'block_ID',
-    'session_id': 'session_ID',
+    'append_id': 'session_ID',
     'program_id': 'program_ID',
   };
-  final records = [
-    for (final row in rows.map((r) => r.toMap()))
-      {
-        for (final entry in row.entries)
-          if (entry.key != 'acq_time')
-            rename[entry.key] ?? entry.key: entry.value,
-      },
-  ];
+  // A 0.4.x file has NO `acq_time` — it stored the instant as `date` + `time`
+  // plus a free-text `timezone`. So the instant is decomposed back into those
+  // three cells here, which is what makes this fixture a real regression test
+  // for `backfillAcqTime`: reading it back must reconstruct the same instant,
+  // offset included, from nothing but these.
+  //
+  // The fixture is generated at a UTC instant, so the zone cell says so. The
+  // harder Windows form (`W. Europe Daylight Time +0200`) is covered by unit
+  // tests instead — a fixture should not try to be every input format at once.
+  final records = <Map<String, String>>[];
+  for (final row in rows) {
+    final at = DateTime.parse(row.acqTime);
+    final mapped = <String, String>{
+      'date': dateCell(at),
+      'time': timeCell(at),
+      'timezone': 'UTC ${offsetString(at)}',
+    };
+    for (final entry in row.toMap().entries) {
+      if (entry.key == 'acq_time') continue;
+      mapped[rename[entry.key] ?? entry.key] = entry.value;
+    }
+    records.add(mapped);
+  }
   return writeTsvRecords(legacyColumns, records);
 }
 

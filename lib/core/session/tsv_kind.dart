@@ -40,10 +40,19 @@ enum TsvKind {
 const _blockMarkers = {'block_id', 'block_ID'};
 const _programmingMarkers = {'is_initial'};
 
-/// The annotation columns present in every version of the format. `acq_time`
-/// was added in v0.5.0 and is deliberately not required here, so a 0.4.x notes
-/// file still classifies.
-const _notesMarkers = {'date', 'time', 'timezone', 'notes'};
+/// A notes file is `notes` plus a timestamp, in either era's spelling.
+///
+/// The timestamp is what distinguishes a notes TSV from any other one-column
+/// text file, but which column carries it changed: v0.5.0 and later write only
+/// `acq_time`, while 0.4.x and the Qt desktop wrote `date` + `time` (+ a
+/// free-text `timezone`). Requiring one fixed set would misclassify one era or
+/// the other — and misclassifying is not cosmetic here, because the notes
+/// screen refuses to open anything it does not recognise.
+const _notesRequired = {'notes'};
+const _notesTimestampAlternatives = [
+  {'acq_time'},
+  {'date', 'time'},
+];
 
 /// Classify [content] by its header row.
 ///
@@ -66,9 +75,12 @@ TsvKind sniffTsvKind(String content) {
       _blockMarkers.any(header.contains)) {
     return TsvKind.programming;
   }
-  // `acq_time` only exists from v0.5.0, so match on the columns every version
-  // of an annotations file has had.
-  if (_notesMarkers.every(header.contains)) return TsvKind.notes;
+  // `notes` plus a timestamp in either era's spelling — see the marker
+  // declarations for why this cannot be one fixed set.
+  if (_notesRequired.every(header.contains) &&
+      _notesTimestampAlternatives.any((set) => set.every(header.contains))) {
+    return TsvKind.notes;
+  }
   return TsvKind.unknown;
 }
 

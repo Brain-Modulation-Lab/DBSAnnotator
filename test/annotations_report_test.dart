@@ -22,18 +22,8 @@ void main() {
   const entries = [
     // Deliberately out of order: the UI lists newest first, and a report has to
     // read back in the order the session happened.
-    Annotation(
-      date: '2026-06-26',
-      time: '10:40:00',
-      timezone: 'W. Europe Daylight Time +0200',
-      notes: 'second note',
-    ),
-    Annotation(
-      date: '2026-06-26',
-      time: '09:15:00',
-      timezone: 'W. Europe Daylight Time +0200',
-      notes: 'first note',
-    ),
+    Annotation(acqTime: '2026-06-26T10:40:00+02:00', notes: 'second note'),
+    Annotation(acqTime: '2026-06-26T09:15:00+02:00', notes: 'first note'),
   ];
 
   AnnotationsReportData build([List<Annotation> e = entries]) =>
@@ -115,9 +105,7 @@ void main() {
     final bytes = buildAnnotationsDocx(
       build(const [
         Annotation(
-          date: '2026-06-26',
-          time: '09:00:00',
-          timezone: '+0200',
+          acqTime: '2026-06-26T09:00:00+02:00',
           notes: 'paraesthesia & tingling <30 s',
         ),
       ]),

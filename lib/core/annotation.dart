@@ -4,55 +4,41 @@ import 'tsv.dart';
 
 /// One timestamped note row of an annotations-only (`task-notes`) TSV.
 class Annotation {
-  const Annotation({
-    required this.date,
-    required this.time,
-    required this.timezone,
-    this.acqTime = '',
-    required this.notes,
-  });
+  const Annotation({required this.acqTime, required this.notes});
 
-  final String date;
-  final String time;
-  final String timezone;
-
-  /// The same instant as [date] + [time] + [timezone] in ISO-8601 with its
-  /// offset. Empty on rows written before v0.5.0.
+  /// The whole instant in ISO-8601 with its offset, and the only timestamp a
+  /// note carries.
+  ///
+  /// Before v0.5.0 a note stored `date` + `time` + a `timezone` cell holding a
+  /// bare `DateTime.timeZoneName` with **no offset** — so an annotation row
+  /// could not be resolved to an instant at all, where the session writer at
+  /// least included one. [Annotation.fromMap] backfills those rows, so an old
+  /// notes file now reads as a real instant for the first time.
   final String acqTime;
   final String notes;
 
   /// Build an entry stamped with the current local date and time.
-  ///
-  /// Before v0.5.0 the `timezone` cell held a bare `DateTime.timeZoneName` with
-  /// **no offset**, so an annotation row could not be resolved to an instant at
-  /// all — the session writer included the offset but this one did not. Both now
-  /// go through [timestamps.dart].
-  factory Annotation.now(String notes, {DateTime? at}) {
-    final dt = at ?? DateTime.now();
+  factory Annotation.now(String notes, {DateTime? at}) =>
+      Annotation(acqTime: acqTimeCell(at ?? DateTime.now()), notes: notes);
+
+  factory Annotation.fromMap(Map<String, String> m) {
+    final iso = readColumn(m, 'acq_time').trim();
     return Annotation(
-      date: dateCell(dt),
-      time: timeCell(dt),
-      timezone: timezoneCell(dt),
-      acqTime: acqTimeCell(dt),
-      notes: notes,
+      acqTime: iso.isNotEmpty
+          ? iso
+          : backfillAcqTime(
+              date: readColumn(m, 'date'),
+              time: readColumn(m, 'time'),
+              timezone: readColumn(m, 'timezone'),
+            ),
+      notes: readColumn(m, 'notes'),
     );
   }
 
-  factory Annotation.fromMap(Map<String, String> m) => Annotation(
-    date: readColumn(m, 'date'),
-    time: readColumn(m, 'time'),
-    timezone: readColumn(m, 'timezone'),
-    acqTime: readColumn(m, 'acq_time'),
-    notes: readColumn(m, 'notes'),
-  );
+  Map<String, String> toMap() => {'acq_time': acqTime, 'notes': notes};
 
-  Map<String, String> toMap() => {
-    'date': date,
-    'time': time,
-    'timezone': timezone,
-    'acq_time': acqTime,
-    'notes': notes,
-  };
+  /// The note's instant as a local [DateTime], or null if unparsable.
+  DateTime? get timestamp => DateTime.tryParse(acqTime.trim())?.toLocal();
 }
 
 /// Parse an annotations-only TSV document into [Annotation]s.

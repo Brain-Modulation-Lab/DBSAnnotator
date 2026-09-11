@@ -75,8 +75,7 @@ void main() {
   test('declared scale bounds win over the data range', () {
     const rows = [
       SessionRow(
-        date: '2026-01-01',
-        time: '09:00:00',
+        acqTime: '2026-01-01T09:00:00',
         blockId: '1',
         isInitial: '0',
         scaleName: 'Tremor',
@@ -107,15 +106,13 @@ void main() {
     // A TSV whose block ids do not ascend with the clock (e.g. re-opened file).
     const rows = [
       SessionRow(
-        date: '2026-01-01',
-        time: '10:00:00',
+        acqTime: '2026-01-01T10:00:00',
         blockId: '7',
         isInitial: '0',
         leftStimFreq: '130',
       ),
       SessionRow(
-        date: '2026-01-01',
-        time: '09:00:00',
+        acqTime: '2026-01-01T09:00:00',
         blockId: '3',
         isInitial: '0',
         leftStimFreq: '120',

@@ -21,10 +21,9 @@ void main() {
     final rows = [
       // Baseline (is_initial = 1) with clinical scales + initial notes.
       const SessionRow(
-        date: '2026-07-29',
-        time: '09:00:00',
+        acqTime: '2026-07-29T09:00:00',
         blockId: '0',
-        sessionId: '1',
+        appendId: '1',
         isInitial: '1',
         scaleName: 'UPDRS-III',
         scaleValue: '32',
@@ -38,10 +37,9 @@ void main() {
       // Recording block with a split amplitude ("1.5_1" sums to 2.5 in the
       // programming summary), a unit-bearing pulse width (µs), and a note.
       const SessionRow(
-        date: '2026-07-29',
-        time: '09:30:00',
+        acqTime: '2026-07-29T09:30:00',
         blockId: '1',
-        sessionId: '1',
+        appendId: '1',
         isInitial: '0',
         scaleName: 'Tremor',
         scaleValue: '2',
@@ -61,10 +59,9 @@ void main() {
       ),
       // Second recording block; omitted scale value ("NaN") must be skipped.
       const SessionRow(
-        date: '2026-07-29',
-        time: '10:15:00',
+        acqTime: '2026-07-29T10:15:00',
         blockId: '2',
-        sessionId: '1',
+        appendId: '1',
         isInitial: '0',
         scaleName: 'Tremor',
         scaleValue: 'NaN',

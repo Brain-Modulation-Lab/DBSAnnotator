@@ -8,8 +8,7 @@ const _rows = [
   SessionRow(
     blockId: '1',
     isInitial: '0',
-    date: '2026-01-01',
-    time: '09:00:00',
+    acqTime: '2026-01-01T09:00:00',
     programId: 'A',
     leftStimFreq: '130',
     leftAmplitude: '2.5',
@@ -21,8 +20,7 @@ const _rows = [
   SessionRow(
     blockId: '1',
     isInitial: '0',
-    date: '2026-01-01',
-    time: '09:00:00',
+    acqTime: '2026-01-01T09:00:00',
     programId: 'A',
     leftStimFreq: '130',
     leftAmplitude: '2.5',
@@ -34,8 +32,7 @@ const _rows = [
   SessionRow(
     blockId: '2',
     isInitial: '0',
-    date: '2026-01-01',
-    time: '09:12:00',
+    acqTime: '2026-01-01T09:12:00',
     programId: 'A',
     leftStimFreq: '130',
     leftAmplitude: '3.5',
@@ -92,8 +89,7 @@ void main() {
       const SessionRow(
         blockId: '0',
         isInitial: '1',
-        date: '2026-01-01',
-        time: '08:55:00',
+        acqTime: '2026-01-01T08:55:00',
         scaleName: 'Y-BOCS',
         scaleValue: '30',
       ),

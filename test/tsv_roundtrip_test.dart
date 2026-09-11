@@ -6,16 +6,9 @@ void main() {
   group('annotations TSV', () {
     test('round-trips, preserving embedded newlines in notes', () {
       final items = <Annotation>[
+        const Annotation(acqTime: '2026-07-24T10:00:00', notes: 'first note'),
         const Annotation(
-          date: '2026-07-24',
-          time: '10:00:00',
-          timezone: 'CEST',
-          notes: 'first note',
-        ),
-        const Annotation(
-          date: '2026-07-24',
-          time: '10:05:00',
-          timezone: 'CEST',
+          acqTime: '2026-07-24T10:05:00',
           notes: 'multi\nline note with a\ttab',
         ),
       ];
@@ -24,13 +17,13 @@ void main() {
       final parsed = parseAnnotations(tsv);
 
       expect(parsed.length, 2);
-      expect(parsed[0].date, '2026-07-24');
+      expect(parsed[0].acqTime, startsWith('2026-07-24T'));
       expect(parsed[1].notes, 'multi\nline note with a\ttab');
     });
 
     test('header is the canonical column order', () {
       final tsv = writeAnnotations(const []);
-      expect(tsv.trimRight(), 'date\ttime\ttimezone\tacq_time\tnotes');
+      expect(tsv.trimRight(), 'acq_time\tnotes');
     });
 
     test('an empty cell is written as n/a and read back as empty', () {
@@ -38,12 +31,7 @@ void main() {
       // blank cell is not allowed. The marker must not leak into the UI, so the
       // reader has to undo it.
       final tsv = writeAnnotations(const [
-        Annotation(
-          date: '2026-07-24',
-          time: '10:00:00',
-          timezone: 'CEST +02:00',
-          notes: '',
-        ),
+        Annotation(acqTime: '2026-07-24T10:00:00+02:00', notes: ''),
       ]);
       expect(tsv, contains('\tn/a'));
       expect(parseAnnotations(tsv).single.notes, '');
@@ -51,12 +39,7 @@ void main() {
 
     test('is written with LF, and CRLF is still read', () {
       final tsv = writeAnnotations(const [
-        Annotation(
-          date: '2026-07-24',
-          time: '10:00:00',
-          timezone: 'CEST +02:00',
-          notes: 'a note',
-        ),
+        Annotation(acqTime: '2026-07-24T10:00:00+02:00', notes: 'a note'),
       ]);
       expect(tsv, isNot(contains('\r')));
       expect(

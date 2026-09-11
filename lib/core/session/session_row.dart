@@ -2,6 +2,7 @@
 library;
 
 import '../schema_columns.dart';
+import '../timestamps.dart';
 
 /// One row of a programming-session (`task-programming`) TSV.
 ///
@@ -13,12 +14,9 @@ import '../schema_columns.dart';
 /// scale_name/scale_value cells with embedded newlines).
 class SessionRow {
   const SessionRow({
-    this.date = '',
-    this.time = '',
-    this.timezone = '',
     this.acqTime = '',
     this.blockId = '',
-    this.sessionId = '',
+    this.appendId = '',
     this.isInitial = '',
     this.scaleName = '',
     this.scaleValue = '',
@@ -37,15 +35,20 @@ class SessionRow {
     this.notes = '',
   });
 
-  final String date;
-  final String time;
-  final String timezone;
-
-  /// The same instant as [date] + [time] + [timezone], as one ISO-8601 string
-  /// (`2026-02-03T09:00:00+00:00`). Empty on rows written before v0.5.0.
+  /// The whole instant as one ISO-8601 string (`2026-02-03T09:00:00+00:00`).
+  ///
+  /// The only timestamp a row carries. For a file written before this became so,
+  /// [SessionRow.fromMap] composes it from the retired `date` / `time` /
+  /// `timezone` cells, so it is populated whatever wrote the source — see
+  /// `backfillAcqTime`. Empty only when the source had nothing parseable.
   final String acqTime;
   final String blockId;
-  final String sessionId;
+
+  /// Data-entry episode within one file: increments each time that file was
+  /// reopened to add rows. **File-scoped** — `append_id` 1 in two different
+  /// files are unrelated. Was called `session_id`, which BIDS uses for the
+  /// `ses-` label; see `schema_columns.dart`.
+  final String appendId;
   final String isInitial;
   final String scaleName;
   final String scaleValue;
@@ -66,16 +69,20 @@ class SessionRow {
   /// Build from a TSV record keyed by the column names in
   /// schema_columns.dart `sessionColumns`. Missing columns become ''.
   ///
-  /// Goes through [readColumn], so the pre-0.5.0 `block_ID` / `session_ID` /
-  /// `program_ID` spellings are read as well as the current ones — an older
-  /// file opens with no conversion step.
+  /// Goes through [readColumn], so every superseded spelling is read as well as
+  /// the current one — `block_ID`, `program_ID`, and both ancestors of
+  /// `append_id`. An older file opens with no conversion step.
+  ///
+  /// **This is where a legacy row gains its instant.** A file written before
+  /// `acq_time` became the only timestamp has `date` / `time` / `timezone`
+  /// instead, and [backfillAcqTime] composes them — offset included when the
+  /// `timezone` cell carried one. Doing it here, at the single parse boundary,
+  /// means reports, the aggregate and every export see one populated column and
+  /// none of them needs to know the source was older.
   factory SessionRow.fromMap(Map<String, String> m) => SessionRow(
-    date: readColumn(m, 'date'),
-    time: readColumn(m, 'time'),
-    timezone: readColumn(m, 'timezone'),
-    acqTime: readColumn(m, 'acq_time'),
+    acqTime: _acqTimeOf(m),
     blockId: readColumn(m, 'block_id'),
-    sessionId: readColumn(m, 'session_id'),
+    appendId: readColumn(m, 'append_id'),
     isInitial: readColumn(m, 'is_initial'),
     scaleName: readColumn(m, 'scale_name'),
     scaleValue: readColumn(m, 'scale_value'),
@@ -94,38 +101,39 @@ class SessionRow {
     notes: readColumn(m, 'notes'),
   );
 
-  /// The row's `date` + `time` as a local [DateTime], or null when either cell
-  /// is missing or unparsable.
+  /// The row's instant as a local [DateTime], or null when [acqTime] is empty
+  /// or unparsable.
   ///
-  /// Rows written by this app are `yyyy-MM-dd` + `HH:mm:ss`
-  /// (`session_file.dart`), which `DateTime.tryParse` accepts as
-  /// ISO-8601-with-a-space. An externally-authored TSV can carry anything, hence
-  /// the nullable result — callers skip rows they cannot place in time rather
-  /// than guessing. The separate `timezone` cell is deliberately not folded in:
-  /// every timestamp in one file is local to the same session.
+  /// An externally-authored TSV can carry anything, hence the nullable result —
+  /// callers skip rows they cannot place in time rather than guessing.
+  /// `.toLocal()` so results from files recorded in different offsets are
+  /// directly comparable.
+  ///
+  /// This is now a one-line read because [SessionRow.fromMap] already resolved
+  /// the legacy two-cell form; the fallback that used to live here moved to the
+  /// parse boundary, where it runs once instead of on every access.
   DateTime? get timestamp {
-    // v0.5.0+ writes the whole instant, offset included, in one cell; prefer it
-    // when present and fall back for older files. `.toLocal()` keeps the result
-    // comparable with the dates parsed from the two-cell form below.
-    final iso = acqTime.trim();
-    if (iso.isNotEmpty) {
-      final parsed = DateTime.tryParse(iso);
-      if (parsed != null) return parsed.toLocal();
-    }
-    final d = date.trim();
-    final t = time.trim();
-    if (d.isEmpty || t.isEmpty) return null;
-    return DateTime.tryParse('$d $t');
+    final parsed = DateTime.tryParse(acqTime.trim());
+    return parsed?.toLocal();
+  }
+
+  /// [acqTime] as written, or composed from the retired `date` / `time` /
+  /// `timezone` cells when the source predates it.
+  static String _acqTimeOf(Map<String, String> m) {
+    final iso = readColumn(m, 'acq_time').trim();
+    if (iso.isNotEmpty) return iso;
+    return backfillAcqTime(
+      date: readColumn(m, 'date'),
+      time: readColumn(m, 'time'),
+      timezone: readColumn(m, 'timezone'),
+    );
   }
 
   /// Convert to a TSV record keyed by the exact column names.
   Map<String, String> toMap() => {
-    'date': date,
-    'time': time,
-    'timezone': timezone,
     'acq_time': acqTime,
     'block_id': blockId,
-    'session_id': sessionId,
+    'append_id': appendId,
     'is_initial': isInitial,
     'scale_name': scaleName,
     'scale_value': scaleValue,

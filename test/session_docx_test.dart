@@ -26,10 +26,9 @@ String _part(List<int> bytes, String name) {
 void main() {
   const rows = [
     SessionRow(
-      date: '2026-07-29',
-      time: '09:00:00',
+      acqTime: '2026-07-29T09:00:00',
       blockId: '0',
-      sessionId: '1',
+      appendId: '1',
       isInitial: '1',
       scaleName: 'UPDRS-III',
       scaleValue: '32',
@@ -41,10 +40,9 @@ void main() {
       notes: 'Baseline assessment before titration',
     ),
     SessionRow(
-      date: '2026-07-29',
-      time: '09:30:00',
+      acqTime: '2026-07-29T09:30:00',
       blockId: '1',
-      sessionId: '1',
+      appendId: '1',
       isInitial: '0',
       scaleName: 'Tremor',
       scaleValue: '2',
@@ -65,10 +63,9 @@ void main() {
     // A second recording block, so the table has a block BOUNDARY (separator
     // rule) and two distinct scores to rank (best vs second-best shading).
     SessionRow(
-      date: '2026-07-29',
-      time: '10:15:00',
+      acqTime: '2026-07-29T10:15:00',
       blockId: '2',
-      sessionId: '1',
+      appendId: '1',
       isInitial: '0',
       scaleName: 'Tremor',
       scaleValue: '5',

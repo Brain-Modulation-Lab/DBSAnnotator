@@ -15,23 +15,23 @@ class SessionAuthoring {
   final List<SessionRow> rows = [];
 
   int _blockId = 0;
-  int _sessionId = 1;
+  int _appendId = 1;
 
   /// Block ID the NEXT insert will use.
   int get blockId => _blockId;
 
-  /// Session ID every insert of this app session uses.
-  int get sessionId => _sessionId;
+  /// Append ID every insert of this app session uses - see `nextAppendId`.
+  int get appendId => _appendId;
 
   /// Load an existing TSV and continue numbering, mirroring
   /// open_file_append: next block = max(block_id)+1, this session =
-  /// max(session_id)+1 (malformed cells are skipped).
+  /// max(append_id)+1 (malformed cells are skipped).
   void loadExisting(String tsv) {
     rows
       ..clear()
       ..addAll(parseSessionTsv(tsv));
     _blockId = nextBlockId(rows);
-    _sessionId = nextSessionId(rows);
+    _appendId = nextAppendId(rows);
   }
 
   /// Append one insert (one block). [stim] carries the 10 stimulation
@@ -50,7 +50,7 @@ class SessionAuthoring {
   }) {
     final inserted = buildInsertRows(
       blockId: _blockId,
-      sessionId: _sessionId,
+      appendId: _appendId,
       isInitial: isInitial,
       scales: scales,
       programId: programId,

@@ -643,7 +643,7 @@ class _SessionScreenState extends State<SessionScreen> {
     });
     final opened =
         'Opened ${picked.name} (${_authoring.rows.length} rows, '
-        'next block ${_authoring.blockId}, session ${_authoring.sessionId}).';
+        'next block ${_authoring.blockId}, append ${_authoring.appendId}).';
     _snack(_savePathIsSandboxCopy ? '$opened $sandboxCopyNotice' : opened);
     if (unknownModel) {
       _snack(
@@ -1435,7 +1435,7 @@ class _SessionScreenState extends State<SessionScreen> {
           _authoring.rows.isEmpty
               ? 'Empty session — the first insert is block 0.'
               : '${_authoring.rows.length} rows loaded; next block '
-                    '${_authoring.blockId}, session ${_authoring.sessionId}.',
+                    '${_authoring.blockId}, append ${_authoring.appendId}.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -1922,7 +1922,7 @@ class _SessionScreenState extends State<SessionScreen> {
           children: [
             Expanded(
               child: Text(
-                'Inserted entries (session ${_authoring.sessionId})',
+                'Inserted entries (append ${_authoring.appendId})',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),

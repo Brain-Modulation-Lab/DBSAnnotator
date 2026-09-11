@@ -24,6 +24,7 @@ library;
 import '../core/session/longitudinal.dart'
     show extractPatientId, isScaleValueOmitted, splitScalePairs;
 import '../core/session/session_row.dart';
+import '../core/timestamps.dart';
 import 'report_data.dart' show ScalesChartSpec, coerceInt, trimZeros;
 
 /// One imported file: a visit.
@@ -106,9 +107,14 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
   final initial = rows.where((r) => coerceInt(r.isInitial) == 1).toList();
   final recording = rows.where((r) => coerceInt(r.isInitial) != 1).toList();
 
-  // The visit's date is the earliest stamp in the file.
+  // The visit's date is the earliest stamp in the file, formatted from the
+  // row's single `acq_time` instant. Rows whose instant will not parse are
+  // skipped rather than sorted as empty strings.
   final dates =
-      rows.map((r) => r.date.trim()).where((d) => d.isNotEmpty).toList()
+      rows
+          .map((r) => recordedDate(r.acqTime))
+          .where((d) => d.isNotEmpty)
+          .toList()
         ..sort();
   final date = dates.isEmpty ? '' : dates.first;
 

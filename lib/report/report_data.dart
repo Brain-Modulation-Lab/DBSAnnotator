@@ -14,6 +14,7 @@ import '../core/session/longitudinal.dart'
     show isScaleValueOmitted, scaleTimeline, splitScalePairs;
 import '../core/session/scale_scoring.dart';
 import '../core/session/session_row.dart';
+import '../core/timestamps.dart';
 
 typedef ScalePair = ({String name, String value});
 
@@ -63,7 +64,7 @@ SessionRow? _latestRow(List<SessionRow> rows) {
   if (rows.isEmpty) return null;
   var best = rows.first;
   for (final row in rows.skip(1)) {
-    final s = coerceInt(row.sessionId).compareTo(coerceInt(best.sessionId));
+    final s = coerceInt(row.appendId).compareTo(coerceInt(best.appendId));
     if (s > 0 ||
         (s == 0 && coerceInt(row.blockId) >= coerceInt(best.blockId))) {
       best = row;
@@ -177,16 +178,23 @@ String _valuesText(
       .join(', ');
 }
 
+/// A row's clock time for display, `HH:MM:SS`, or '' when it has no instant.
+String _clock(SessionRow row) => recordedTime(row.acqTime);
+
 /// The UTC offset the rows were recorded at, e.g. "+02:00", or ''.
 ///
-/// The `timezone` column holds a Windows display name followed by an offset —
-/// `W. Europe Daylight Time +0200` — so only the offset half is portable. A
-/// clinical timestamp with no zone is ambiguous by up to a day either side of
-/// midnight, and across a DST boundary two sessions cannot be ordered.
+/// A clinical timestamp with no zone is ambiguous by up to a day either side of
+/// midnight, and across a DST boundary two sessions cannot be ordered — which
+/// is why `acq_time` carries its offset and the report prints it.
 String _utcOffset(Iterable<SessionRow> rows) {
   for (final row in rows) {
-    final m = RegExp(r'([+-])(\d{2}):?(\d{2})').firstMatch(row.timezone);
-    if (m != null) return '${m.group(1)}${m.group(2)}:${m.group(3)}';
+    // Read straight off `acq_time`, which is ISO-8601 and therefore carries its
+    // own offset. This used to regex the retired free-text `timezone` cell;
+    // `offsetFromTimezoneCell` still exists for reading such a cell out of a
+    // pre-0.5.0 file, but by the time a row reaches here `SessionRow.fromMap`
+    // has already folded that into `acq_time`.
+    final offset = offsetFromTimezoneCell(row.acqTime);
+    if (offset.isNotEmpty) return offset;
   }
   return '';
 }
@@ -198,7 +206,7 @@ String _utcOffset(Iterable<SessionRow> rows) {
 List<DateTime> _stamps(Iterable<SessionRow> rows) {
   final out = <DateTime>[];
   for (final row in rows) {
-    final dt = DateTime.tryParse('${row.date.trim()} ${row.time.trim()}');
+    final dt = row.timestamp;
     if (dt != null) out.add(dt);
   }
   out.sort();
@@ -1124,7 +1132,7 @@ SessionReportData buildSessionReportData({
       ? const <SessionRow>[]
       : initialRows
             .where(
-              (r) => coerceInt(r.sessionId) == coerceInt(latestInit.sessionId),
+              (r) => coerceInt(r.appendId) == coerceInt(latestInit.appendId),
             )
             .toList();
   final initScales = _collectScalePairs(initSessionRows);
@@ -1278,7 +1286,7 @@ SessionReportData buildSessionReportData({
     final note = first.notes.trim();
     if (note.isEmpty) continue;
     final where = [
-      if (first.time.trim().isNotEmpty) first.time.trim(),
+      if (_clock(first).isNotEmpty) _clock(first),
       if (first.leftAmplitude.trim().isNotEmpty)
         'L ${lateralText(tokensOf(first)!, left: true)}',
       if (first.rightAmplitude.trim().isNotEmpty)
@@ -1338,7 +1346,7 @@ SessionReportData buildSessionReportData({
         : '${idx.toStringAsFixed(3)}\n(rank ${rankOf[entry.key]})';
     List<String> side(bool left) => [
       '${entry.key}',
-      left ? [first.time.trim(), if (gap.isNotEmpty) '($gap)'].join('\n') : '',
+      left ? [_clock(first), if (gap.isNotEmpty) '($gap)'].join('\n') : '',
       left ? 'L' : 'R',
       first.programId,
       _numCell(left ? first.leftStimFreq : first.rightStimFreq),

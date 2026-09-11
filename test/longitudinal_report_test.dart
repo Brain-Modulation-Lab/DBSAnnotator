@@ -25,16 +25,14 @@ String _part(List<int> bytes, String name) => utf8.decode(
 Map<String, List<SessionRow>> _twoVisits() => {
   'sub-07_ses-20260101_task-programming_run-01_beh.tsv': const [
     SessionRow(
-      date: '2026-01-01',
-      time: '09:00:00',
+      acqTime: '2026-01-01T09:00:00',
       blockId: '0',
       isInitial: '1',
       scaleName: 'UPDRS-III',
       scaleValue: '40',
     ),
     SessionRow(
-      date: '2026-01-01',
-      time: '09:10:00',
+      acqTime: '2026-01-01T09:10:00',
       blockId: '1',
       isInitial: '0',
       scaleName: 'Tremor',
@@ -45,8 +43,7 @@ Map<String, List<SessionRow>> _twoVisits() => {
       programId: 'A',
     ),
     SessionRow(
-      date: '2026-01-01',
-      time: '09:20:00',
+      acqTime: '2026-01-01T09:20:00',
       blockId: '2',
       isInitial: '0',
       scaleName: 'Tremor',
@@ -59,16 +56,14 @@ Map<String, List<SessionRow>> _twoVisits() => {
   ],
   'sub-07_ses-20260615_task-programming_run-02_events.tsv': const [
     SessionRow(
-      date: '2026-06-15',
-      time: '10:00:00',
+      acqTime: '2026-06-15T10:00:00',
       blockId: '0',
       isInitial: '1',
       scaleName: 'UPDRS-III',
       scaleValue: '28',
     ),
     SessionRow(
-      date: '2026-06-15',
-      time: '10:10:00',
+      acqTime: '2026-06-15T10:10:00',
       blockId: '1',
       isInitial: '0',
       scaleName: 'Tremor',
@@ -157,8 +152,7 @@ void main() {
       files: {
         'sub-07_ses-20260101_task-programming_run-01_beh.tsv': const [
           SessionRow(
-            date: '2026-01-01',
-            time: '09:00:00',
+            acqTime: '2026-01-01T09:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',
@@ -167,8 +161,7 @@ void main() {
         ],
         'sub-07_ses-20260615_task-programming_run-01_beh.tsv': const [
           SessionRow(
-            date: '2026-06-15',
-            time: '09:00:00',
+            acqTime: '2026-06-15T09:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',
@@ -200,8 +193,7 @@ void main() {
         ..._twoVisits(),
         'sub-99_ses-20260701_task-programming_run-01_beh.tsv': const [
           SessionRow(
-            date: '2026-07-01',
-            time: '11:00:00',
+            acqTime: '2026-07-01T11:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',

@@ -17,8 +17,7 @@ void main() {
     SessionRow(
       blockId: '1',
       isInitial: '0',
-      date: '2026-01-01',
-      time: '09:00:00',
+      acqTime: '2026-01-01T09:00:00',
       scaleName: 'Tremor',
       scaleValue: '3',
       notes: '中文 note',
