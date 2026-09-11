@@ -1,14 +1,9 @@
 /// Report for an annotations-only (`task-notes`) session, in PDF and Word.
 ///
-/// The home screen has promised "Notes -> report" for this workflow since it was
-/// written, and the screen only ever wrote a TSV. This is the report.
-///
-/// It shares **nothing** with `SessionReportData` by design: a notes session has
-/// no blocks, no stimulation, no scales and no ranking, so there is no common
-/// content to factor out and a shared data class would be an abstraction over
-/// two things that are not alike. What it does share is the *packaging* — the
-/// sanitiser, the fonts, the page geometry, the footer, the OOXML plumbing —
-/// because that is where the failure modes live.
+/// Shares no data class with `SessionReportData`: a notes session has no
+/// blocks, no stimulation, no scales and no ranking. What it does share is the
+/// packaging (sanitiser, fonts, page geometry, footer, OOXML plumbing), which
+/// is where the failure modes live.
 library;
 
 import 'dart:typed_data';
@@ -18,6 +13,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../app_info.dart' show appVersion;
 import '../core/annotation.dart';
+import '../core/timestamps.dart';
 import 'docx_ooxml.dart';
 import 'report_data.dart' show ReportBytes;
 import 'report_fonts.dart';
@@ -36,17 +32,16 @@ class AnnotationsReportData {
 
   final String subjectId;
 
-  /// The date the notes were TAKEN, from the entries themselves — not the
-  /// export clock, which is the mistake the session report used to make.
+  /// The date the notes were TAKEN, from the entries themselves, never the
+  /// export clock.
   final String sessionDate;
   final String generatedOn;
 
   /// e.g. "+02:00", or '' when the entries carry no parseable offset.
   final String utcOffset;
 
-  /// Oldest first: the order the session happened in, which is the order it has
-  /// to be read back in. (The entry UI lists newest first, which is right for
-  /// typing and wrong for reading.)
+  /// Oldest first, the order the session happened in. The entry UI lists
+  /// newest first, which is right for typing and wrong for reading.
   final List<Annotation> entries;
 
   final String sourceFile;
@@ -60,12 +55,8 @@ class AnnotationsReportData {
   /// The span from the first note to the last, or '' when it cannot be derived.
   String get span {
     if (entries.length < 2) return '';
-    final first = DateTime.tryParse(
-      '${entries.first.date.trim()} ${entries.first.time.trim()}',
-    );
-    final last = DateTime.tryParse(
-      '${entries.last.date.trim()} ${entries.last.time.trim()}',
-    );
+    final first = entries.first.timestamp;
+    final last = entries.last.timestamp;
     if (first == null || last == null) return '';
     final mins = last.difference(first).inMinutes;
     if (mins <= 0) return '';
@@ -84,22 +75,29 @@ AnnotationsReportData buildAnnotationsReportData({
   String two(int n) => n.toString().padLeft(2, '0');
   final generatedOn = '${dt.year}-${two(dt.month)}-${two(dt.day)}';
 
+  // `acq_time` is ISO-8601, so a lexical sort is also a chronological one,
+  // which a date-plus-time concatenation would only be by accident.
   final sorted = entries.toList()
-    ..sort((a, b) => '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}'));
+    ..sort((a, b) => a.acqTime.compareTo(b.acqTime));
 
-  // The `timezone` column holds a display name followed by an offset
-  // ("W. Europe Daylight Time +0200"); only the offset half is portable.
+  /// The offset the notes were recorded at, read off `acq_time` itself.
   String offset() {
     for (final e in sorted) {
-      final m = RegExp(r'([+-])(\d{2}):?(\d{2})').firstMatch(e.timezone);
-      if (m != null) return '${m.group(1)}${m.group(2)}:${m.group(3)}';
+      final found = offsetFromTimezoneCell(e.acqTime);
+      if (found.isNotEmpty) return found;
     }
     return '';
   }
 
   return AnnotationsReportData(
     subjectId: subjectId,
-    sessionDate: sorted.isEmpty ? generatedOn : sorted.first.date.trim(),
+    // Recorded wall-clock date, not a converted instant: a note taken at
+    // 23:30 must not be dated the next day by a report generated further east.
+    sessionDate: sorted.isEmpty
+        ? generatedOn
+        : (recordedDate(sorted.first.acqTime).isEmpty
+              ? generatedOn
+              : recordedDate(sorted.first.acqTime)),
     generatedOn: generatedOn,
     utcOffset: offset(),
     entries: sorted,
@@ -203,14 +201,12 @@ Future<ReportBytes> buildAnnotationsPdf(
         if (data.entries.isEmpty)
           pw.Text('No notes recorded.')
         else
-          // A fixed time column beside the text, rather than the timestamp inline:
-          // the reading task is "what happened, in order", and a column lets the
-          // eye run down it.
+          // A fixed time column rather than an inline timestamp, so the eye
+          // can run down it in order.
           pw.TableHelper.fromTextArray(
             headers: const ['Time', 'Note'],
             data: [
-              for (final e in data.entries)
-                [t(e.time.trim()), t(e.notes.trim())],
+              for (final e in data.entries) [t(_clock(e)), t(e.notes.trim())],
             ],
             cellStyle: const pw.TextStyle(fontSize: 9),
             headerStyle: const pw.TextStyle(
@@ -265,7 +261,7 @@ Uint8List buildAnnotationsDocx(
       docxTable(
         const ['Time', 'Note'],
         [
-          for (final e in data.entries) [e.time.trim(), e.notes.trim()],
+          for (final e in data.entries) [_clock(e), e.notes.trim()],
         ],
         weights: const [1, 7],
         contentTwips: pageSize.contentWidthTwips,
@@ -293,3 +289,8 @@ Uint8List buildAnnotationsDocx(
         'DBS Annotator v$appVersion  |  Page ',
   );
 }
+
+/// A note's clock time for display, `HH:MM:SS`, or '' when it has no instant.
+/// Derived from `acq_time`; files whose `timezone` cell carries a zone name
+/// instead of an offset depend on `Annotation.fromMap` backfilling it.
+String _clock(Annotation e) => recordedTime(e.acqTime);

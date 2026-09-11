@@ -1,27 +1,18 @@
 /// Pure layout math for the interactive electrode viewer.
 ///
-/// Mirrors the desktop canvas in `dbs_annotator/models/electrode_viewer.py`
-/// (`calculate_scale` + `paintEvent`) and, like it, is **mm-accurate**: every
-/// vertical dimension derives from the model's real `contactHeight` /
-/// `contactSpacing` / `leadDiameter` in millimetres times a single `scale`
-/// (px per mm). That is what makes physically different leads look different —
-/// e.g. Medtronic 3387 (1.5/1.5 mm), 3389 (1.5/0.5) and 3391 (3.0/4.0) all
-/// rendered identically before this was mm-based.
+/// Vertically mm-accurate, mirroring the desktop canvas in
+/// `dbs_annotator/models/electrode_viewer.py`: every vertical dimension derives
+/// from the model's real contact height, spacing and diameter in millimetres
+/// times a single `scale` (px per mm). Before it was mm-based, Medtronic 3387
+/// (1.5/1.5 mm), 3389 (1.5/0.5) and 3391 (3.0/4.0) all rendered identically.
 ///
-/// Structure:
-/// - The CASE (ground) rect sits at the very top.
-/// - Contact levels stack below it with E(numContacts-1) at the TOP and E0 at
-///   the BOTTOM (the desktop reverses display order the same way).
-/// - A ring (non-directional) level is one full-lead-width rect.
-/// - A directional level is three side-by-side cells (left/center/right =
-///   segments a/b/c, planar like the desktop) plus a "ring cap" strip just
-///   above the segments that cycles all three together.
-/// - The lead ends in a hemispherical tip: an insulating polymer dome, or —
-///   for `tipContact` models (Boston) — the distal contact itself.
+/// The CASE rect sits at the top, then contact levels with E(numContacts-1)
+/// first and E0 last, then a hemispherical tip (insulating polymer, or the
+/// distal contact itself on `tipContact` models). A ring level is one
+/// full-width rect; a directional level is three segment cells (a/b/c) plus a
+/// "ring cap" strip above them that cycles all three together.
 ///
-/// No Flutter widgets here — only `dart:ui` geometry types — so everything is
-/// unit-testable headlessly. Shapes needed only for painting (segment
-/// trapezoids, the dome) are exposed alongside the plain `Rect`s that drive
+/// Paint-only shapes are exposed alongside the plain `Rect`s that drive
 /// hit-testing, so the two never disagree.
 library;
 
@@ -31,16 +22,14 @@ import 'dart:ui' show Offset, Rect, Size;
 import 'electrode_model.dart';
 import 'stimulation_rule.dart';
 
-/// Default extra padding (px) applied around shapes during [hitTest], mirrors
-/// the desktop's expanded clickable areas (QPainterPathStroker / ring pad).
+/// Default extra padding (px) applied around shapes during [hitTest].
 const double kElectrodeTapPadding = 12.0;
 
 /// Ring caps are thin strips; give them extra tap slack on top of the default.
 const double kRingCapExtraTapPadding = 8.0;
 
-/// Upper bound on `scale` (px per mm) so a huge canvas doesn't render a
-/// cartoonishly large lead. The desktop caps at 24 interactive / 80 export
-/// (`electrode_viewer.py:108`); we allow more because the Flutter panes are
+/// Upper bound on `scale` (px per mm) so a huge canvas does not render a
+/// cartoonishly large lead. Higher than the desktop's 24, as these panes are
 /// often taller.
 const double kMaxScale = 44.0;
 
@@ -52,47 +41,32 @@ const double _minSegmentWidth = 24.0;
 /// [_minSegmentWidth].
 const double _minDirectionalWidth = 3 * _minSegmentWidth + 2 * _segGap;
 
-/// Fixed (unscaled) pixel overhead, mirroring the desktop's `top_padding` and
-/// `lead_gap` (`electrode_viewer.py:95-99`).
+/// Fixed (unscaled) pixel overhead above the case and below it.
 const double _topPad = 8.0;
 const double _caseGapPx = 14.0;
 
 /// Left gutter reserved for the `E{idx}` labels, which sit outside the lead.
 const double _labelGutter = 46.0;
 
-/// Millimetre gap between the lead's top and its first contact
-/// (`electrode_viewer.py:101-103`).
+/// Millimetre gap between the lead's top and its first contact.
 const double _initialOffsetMm = 2.0;
 
-/// The CASE (IPG can) is a schematic marker for "stimulate against the can",
-/// not a scale drawing of a 50 mm generator, so it gets a **fixed** height.
-///
-/// It used to be `1.75 x` the drawn lead width, which on a 300x600 pane made it
-/// **137 px — 23 % of the canvas** — and, worse, grew with the lead: a wide
-/// lead pushed the case taller, which stole the height the contacts needed. On a
-/// six-level Cartesia that left 36 px contacts carrying 11 px labels.
-///
-/// Fixed height means the vertical budget no longer depends on the horizontal
-/// one, so the contacts get the room instead. The WIDTH still tracks the lead,
-/// so the can still reads as attached to it.
+/// A schematic marker for "stimulate against the can", not a scale drawing of a
+/// 50 mm generator, so its height is FIXED: at 1.75 x the lead width it grew
+/// with the lead and stole the height the contacts needed, leaving 36 px
+/// contacts carrying 11 px labels. The width still tracks the lead.
 const double _caseHeight = 34.0;
 const double _caseWidthOfLead = 0.95;
 
 /// Smallest drawn gap (px) between two metal bands, so a tightly-spaced lead
-/// (Medtronic 3389: 0.5 mm) still shows daylight between its contacts.
-///
-/// This replaces the desktop's trick of adding a flat 1 mm to EVERY gap
-/// (`electrode_viewer.py:792`). That inflation distorts proportions, and badly:
-/// it makes 3387 (1.5/1.5 mm) and 3391 (3.0/4.0 mm) come out at an identical
-/// contact:gap ratio of 1:1.667, so two very different leads render the same
-/// shape — exactly the flaw this round set out to remove. A pixel floor keeps
-/// generously-spaced models perfectly true and only intervenes where a gap
-/// would otherwise vanish.
+/// (Medtronic 3389: 0.5 mm) still shows daylight between its contacts. A pixel
+/// floor, not the desktop's flat 1 mm added to EVERY gap: that inflation gives
+/// 3387 (1.5/1.5 mm) and 3391 (3.0/4.0 mm) an identical 1:1.667 contact-to-gap
+/// ratio, so two very different leads render as the same shape.
 const double _minGapPx = 3.0;
 
-/// Directional leads need a roomier minimum gap, because the gap also hosts the
-/// "Ring" cap strip plus [_capClearancePx] of clearance beneath the contact
-/// above it.
+/// Directional leads need a roomier gap, because it also hosts the "Ring" cap
+/// strip plus [_capClearancePx] of clearance under the contact above.
 const double _minGapDirectionalPx = 10.0;
 
 /// Clearance kept between a ring cap and the contact above it. Without it the
@@ -100,20 +74,17 @@ const double _minGapDirectionalPx = 10.0;
 /// so a tap just under a segment selects the next level's cap instead.
 const double _capClearancePx = 6.0;
 
-/// Never draw a ring cap thinner than this, so it stays a visible, pressable
-/// strip even on a cramped pane.
+/// Never draw a ring cap thinner than this, so it stays pressable on a cramped
+/// pane.
 const double _minCapHeight = 6.0;
 
-/// Most of the segments' height the ring cap may claim. The inter-level gap
-/// alone cannot give the cap a comfortable touch target, so it also takes a
-/// slice off the TOP of the segments — capped here so the segments always keep
-/// the clear majority of the level and stay the dominant shapes.
+/// Most of the segments' height the ring cap may claim. The gap alone cannot
+/// give the cap a comfortable touch target, so it also takes a slice off the
+/// TOP of the segments, capped here so the segments stay dominant.
 const double _maxSegmentTakeover = 0.34;
 
-/// Comfortable touch height for the "Ring" strip, tablet-first (the platform
-/// guidance is ~44 px for a touch target, and [kElectrodeTapPadding] adds more
-/// on top of the drawn strip). Grows with the lead so it stays proportionate on
-/// a large desktop canvas instead of looking like a hairline.
+/// Comfortable touch height for the "Ring" strip, tablet-first. Grows with the
+/// lead so it stays proportionate on a large canvas instead of a hairline.
 double _capTarget(double contactHeight) =>
     (contactHeight * 0.55).clamp(26.0, 42.0);
 
@@ -130,28 +101,24 @@ class LevelLayout {
   /// Contact index (the `idx` in the `E{idx}` label), NOT the display row.
   final int levelIdx;
 
-  /// Whether this level is segmented (three cells) or a ring (one rect).
   final bool isDirectional;
 
-  /// One rect per contact: `{ContactKey(levelIdx, 0)}` for ring levels,
-  /// `{ContactKey(levelIdx, 0|1|2)}` (a/b/c) for directional levels.
-  ///
-  /// These are the plain bounding rects that drive [hitTest]; the painter may
-  /// draw a tapered shape inside them (see [segmentInset]).
+  /// One rect per contact, keyed `ContactKey(levelIdx, 0)` for a ring level and
+  /// `ContactKey(levelIdx, 0|1|2)` (a/b/c) for a directional one. Plain
+  /// bounding rects: the painter may draw a tapered shape inside them.
   final Map<ContactKey, Rect> contactRects;
 
-  /// Tap zone above the segments of a directional level that cycles all
-  /// three segments together. `null` for ring levels.
+  /// Tap zone above the segments that cycles all three together, null on a ring
+  /// level.
   final Rect? ringCapRect;
 
   /// True when this level's contact IS the hemispherical lead tip (Boston
-  /// `tipContact` models): the painter draws a metal dome below the rect.
+  /// `tipContact` models), so the painter draws a metal dome below the rect.
   final bool isTip;
 }
 
-/// Full electrode layout: the case rect plus levels in display order
-/// (top row first, i.e. `levels.first.levelIdx == numContacts - 1` and
-/// `levels.last.levelIdx == 0`).
+/// Full electrode layout: the case rect plus levels in display order, so
+/// `levels.first.levelIdx == numContacts - 1` and `levels.last.levelIdx == 0`.
 class ElectrodeLayout {
   const ElectrodeLayout({
     required this.caseRect,
@@ -162,16 +129,13 @@ class ElectrodeLayout {
     required this.isTipContact,
   });
 
-  /// CASE (ground) rect at the very top.
   final Rect caseRect;
 
-  /// Lead body behind the contacts (painting only, never hit). Exactly the
-  /// lead silhouette, so contacts sit flush with it — and the single rect the
-  /// painter builds its shared cylinder shader from, so body, contacts and
-  /// dome are all lit by one light.
+  /// Lead body behind the contacts, painting only, never hit. Exactly the lead
+  /// silhouette, so contacts sit flush with it, and the one rect the painter
+  /// builds its cylinder shader from so body, contacts and dome share a light.
   final Rect leadRect;
 
-  /// Levels in display order, top to bottom.
   final List<LevelLayout> levels;
 
   /// Pixels per millimetre. Font sizes and stroke widths derive from this so
@@ -182,51 +146,40 @@ class ElectrodeLayout {
   /// half-height is the dome. Insulating polymer, unless [isTipContact].
   final Rect domeRect;
 
-  /// True when the distal contact IS the tip (Boston models): the dome is
-  /// metal and takes E0's state, rather than being insulation.
+  /// True when the distal contact IS the tip (Boston models), so the dome is
+  /// metal and takes E0's state rather than being insulation.
   final bool isTipContact;
 }
 
-/// Result of [hitTest]: which interactive shape (if any) contains a point.
+/// Result of [hitTest]: which interactive shape, if any, contains a point.
 sealed class ElectrodeHit {
   const ElectrodeHit();
 }
 
-/// The CASE (ground) rect was hit.
 class CaseHit extends ElectrodeHit {
   const CaseHit();
 }
 
-/// A contact (ring level or one directional segment) was hit.
+/// A ring level or one directional segment.
 class ContactHit extends ElectrodeHit {
   const ContactHit(this.key);
 
   final ContactKey key;
 }
 
-/// The ring cap of directional level [levelIdx] was hit.
 class RingCapHit extends ElectrodeHit {
   const RingCapHit(this.levelIdx);
 
   final int levelIdx;
 }
 
-/// Lead width (px).
+/// Lead width (px), deliberately decoupled from the vertical mm scale.
 ///
-/// Deliberately **decoupled from the vertical mm scale**. Every lead in the
-/// catalogue is 1.27-1.30 mm across — physically the same — so tying width to
-/// the height-fitted scale made a widely-spaced model (3391, 4 mm spacing, small
-/// scale) render as a visibly *thinner product* than a tightly-spaced one
-/// (3389), which is simply wrong. Width therefore comes from the pane, and only
-/// the vertical dimensions (contact height, spacing, tip) stay mm-accurate.
-///
-/// The residual diameter differences are still honoured, scaled off
-/// [_referenceDiameterMm] — a 1.30 mm Boston lead comes out ~2 % fatter than a
-/// 1.27 mm Medtronic one, which is exactly how much it should be.
-///
-/// [maxWidth] is what the canvas can spare horizontally; [stackHeight] is the
-/// drawn length of the contact stack, which caps the width proportionally so a
-/// short lead never reads as a fat stub.
+/// Every lead in the catalogue is 1.27-1.30 mm across, so tying width to the
+/// height-fitted scale made a widely-spaced model (3391) render as a visibly
+/// thinner product than a tightly-spaced one (3389). Width comes from the pane
+/// instead, with residual diameter differences honoured off
+/// [_referenceDiameterMm]; [stackHeight] caps it so a short lead is not a stub.
 double _leadWidthFor(
   ElectrodeModel model,
   Size size,
@@ -240,17 +193,11 @@ double _leadWidthFor(
   final diameterRatio = model.leadDiameter / _referenceDiameterMm;
   final ceiling = math.min(maxWidth, stackHeight * _maxWidthOfLength);
 
-  // Two floors, both about legibility rather than proportion.
-  //
-  // Directional segments must stay tappable; an untappable segment is useless,
-  // so that floor outranks the proportional ceiling.
-  //
-  // And a lead with many levels must be WIDER. The levels share a fixed pane
-  // height, so each contact gets shorter as their number grows, and a short
-  // contact cannot hold its label at a readable size. Height cannot grow, so
-  // width does: the contact stays roughly as legible on a six-level Cartesia as
-  // on a four-level SenSight. This is deliberately a mild ramp — the lead must
-  // still read as a slender probe, not a paddle.
+  // Two floors, both about legibility rather than proportion. Directional
+  // segments must stay tappable, so that floor outranks the proportional
+  // ceiling. And a lead with many levels must be WIDER: the levels share a
+  // fixed pane height, so each contact gets shorter as their number grows and
+  // cannot hold a readable label. Height cannot grow, so width does.
   final crowding = ((model.numContacts - _widthRampFrom) * _widthPerExtraLevel)
       .clamp(0.0, _maxCrowdingWidth);
   final floor = math.min(
@@ -268,11 +215,10 @@ const double _widthOfPane = 0.26;
 const double _minLeadWidth = 34.0;
 const double _maxLeadWidth = 104.0;
 
-/// The diameter that [_widthOfPane] is calibrated for; other leads scale off it.
+/// The diameter [_widthOfPane] is calibrated for; other leads scale off it.
 const double _referenceDiameterMm = 1.27;
 
-/// Lead width may not exceed this fraction of the contact stack's drawn length,
-/// so the lead always reads as a slender probe.
+/// Cap on lead width as a fraction of the contact stack's drawn length.
 const double _maxWidthOfLength = 0.55;
 
 /// Contact count at which the crowding width bonus starts. Four levels is the
@@ -280,10 +226,8 @@ const double _maxWidthOfLength = 0.55;
 const int _widthRampFrom = 4;
 
 /// Extra width per level beyond [_widthRampFrom], and the cap on that bonus.
-///
-/// A six-level Cartesia gains 2 x 9 = 18 px and a Vercise (8 rings) the full
-/// 30 px, which is what keeps a 10 px label inside a contact that the vertical
-/// budget has squeezed.
+/// This is what keeps a 10 px label inside a contact the vertical budget has
+/// squeezed: a six-level Cartesia gains 18 px, an eight-ring Vercise all 30.
 const double _widthPerExtraLevel = 9.0;
 const double _maxCrowdingWidth = 30.0;
 
@@ -291,44 +235,32 @@ const double _segGap = 2.0;
 
 /// Computes the electrode layout for [model] inside a canvas of [size].
 ///
-/// Vertical spacing is mm-accurate — `scale` (px per mm) comes from the model's
-/// real contact height and spacing, capped at [kMaxScale], and the drawing is
-/// centred vertically so a capped scale doesn't strand it at the top. Lead
-/// WIDTH is deliberately pane-driven instead (see [_leadWidthFor]).
+/// Vertical spacing is mm-accurate, capped at [kMaxScale], and centred so a
+/// capped scale does not strand the drawing at the top. Lead WIDTH is
+/// deliberately pane-driven instead (see [_leadWidthFor]).
 ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
   final n = model.numContacts;
 
-  // --- Widths (independent of the vertical scale) ---------------------------
   final availW = math.max(1.0, size.width - _labelGutter - 8);
   final maxLeadWidth = availW;
-  // Provisional width, used only to reserve the dome's pixel height before the
-  // scale is known. The final width can only shrink from here (the proportional
-  // ceiling), and a smaller lead means a shorter dome, so the reservation below
-  // can never be too small — which is exactly the overflow the desktop has
-  // (it reserves 0.3 mm of tail but draws a leadWidth/2 tip:
-  // electrode_viewer.py:101-103 vs :660).
+  // Reserves the dome's pixel height before the scale is known. The final width
+  // can only shrink from here (the proportional ceiling) and a smaller lead
+  // means a shorter dome, so the reservation below can never be too small.
   final provisionalWidth = _leadWidthFor(model, size, maxLeadWidth, 1e9);
 
-  // --- Vertical budget ------------------------------------------------------
-  // Only the LEAD is mm-scaled: initial offset + n contacts + (n-1) inflated
-  // gaps. The CASE and the tip dome are sized off the lead width instead, and
-  // so are reserved as fixed pixels.
-  //
-  // The case is schematic — a real IPG is ~50 mm, nothing like the 4 mm the
-  // desktop scales it by — so tying it to the drawn lead width keeps the can a
-  // constant, recognisable shape. Scaling it by mm made it shrink to a stub on
-  // a short pane (where the lead width has a tappability floor) while the lead
-  // stayed full width.
+  // Only the LEAD is mm-scaled: initial offset, n contacts, n-1 inflated gaps.
+  // The case and the tip dome are sized off the lead width and so reserved as
+  // fixed pixels. Scaling the case by mm shrank it to a stub on a short pane,
+  // where the lead width has a tappability floor and stayed full width.
   final gaps = n - 1;
   final bandsMm = _initialOffsetMm + n * model.contactHeight;
 
   final fixedPx = _topPad + _caseHeight + _caseGapPx + provisionalWidth / 2;
   final availH = math.max(1.0, size.height - fixedPx - 2);
 
-  // Fit true millimetres first. If that would squeeze a gap below
-  // [_minGapPx], re-fit with the gaps pinned at that floor instead — the
-  // contacts then take the remaining height, and only the tightly-spaced
-  // models are affected.
+  // Fit true millimetres first. If that squeezes a gap below the floor, re-fit
+  // with the gaps pinned there instead and let the contacts take the remaining
+  // height; only tightly-spaced models are affected.
   final minGap = model.isDirectional ? _minGapDirectionalPx : _minGapPx;
   final trueScale = availH / (bandsMm + gaps * model.contactSpacing);
   final scale = math.min(
@@ -344,33 +276,24 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
   final stackHeight = n * contactHeight + gaps * gapPx;
 
   final leadWidth = _leadWidthFor(model, size, maxLeadWidth, stackHeight);
-  // Segments are FLUSH with the lead: real segmented contacts are the same
-  // diameter as the lead, separated by thin bands of the same insulating
-  // polymer. The desktop instead flares them 0.22 lead-widths past the
-  // silhouette (electrode_viewer.py:453, :562-603) to keep the side segments
-  // visible — but with a pane-driven width all three already clear
-  // [_minSegmentWidth], so the flare buys nothing and costs the clean
-  // cylinder: it renders as a bolted-on collar at every segmented level.
+  // Segments are FLUSH with the lead, as real segmented contacts are. The
+  // desktop flares them 0.22 lead-widths past the silhouette to keep the side
+  // segments visible, but with a pane-driven width all three already clear
+  // [_minSegmentWidth], so the flare only costs the clean cylinder.
   final segWidth = (leadWidth - 2 * _segGap) / 3;
   final centerX = _labelGutter + (size.width - _labelGutter) / 2;
   final domeHeight = leadWidth / 2;
 
-  // Ring cap: a slim strip in the gap above the segments. Kept deliberately
-  // shorter than the desktop's 0.8 contact-heights so the CONTACTS stay the
-  // dominant shapes — on a Cartesia (five segmented levels) a tall cap turns
-  // the lead into a stack of buttons. Derived from the gap, not a fixed px
-  // floor that could exceed it and paint over the level above.
-  // Ring-cap sizing, tablet-first: the strip takes whatever the inter-level gap
-  // can spare (keeping [_capClearancePx] free under the contact above), and
-  // tops that up by claiming a slice off the TOP of the segments until it
-  // reaches a comfortable touch height.
+  // The cap takes whatever the gap can spare, keeping [_capClearancePx] free
+  // under the contact above, then tops that up from the TOP of the segments.
+  // Derived from the gap rather than a fixed floor that could exceed it and
+  // paint over the level above, and kept short so the CONTACTS stay dominant.
   final capFromGap = math.max(gapPx - _capClearancePx, 0.0);
   final capTakeover = (_capTarget(contactHeight) - capFromGap).clamp(
     0.0,
     contactHeight * _maxSegmentTakeover,
   );
 
-  // --- Vertical placement, centred -----------------------------------------
   const caseHeight = _caseHeight;
   final drawnHeight = fixedPx + _initialOffsetMm * scale + stackHeight;
   final top = _topPad + math.max(0.0, (size.height - drawnHeight) / 2);
@@ -397,26 +320,22 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
     if (directional) {
       final left = centerX - leadWidth / 2;
       final bottom = y + contactHeight;
-      // Segments start below the slice the ring cap claims.
       final segTop = y + capTakeover;
-      // Three equal segments across the lead, parted by insulation gaps that
-      // show the polymer body beneath — which is what the real gaps are.
+      // Three equal segments, parted by gaps that show the polymer body
+      // beneath, which is what the real gaps are.
       final contactRects = <ContactKey, Rect>{
-        // Segment 'a' (left).
         ContactKey(levelIdx, 0): Rect.fromLTRB(
           left,
           segTop,
           left + segWidth,
           bottom,
         ),
-        // Segment 'b' (center).
         ContactKey(levelIdx, 1): Rect.fromLTRB(
           left + segWidth + _segGap,
           segTop,
           left + 2 * segWidth + _segGap,
           bottom,
         ),
-        // Segment 'c' (right).
         ContactKey(levelIdx, 2): Rect.fromLTRB(
           left + 2 * (segWidth + _segGap),
           segTop,
@@ -425,8 +344,8 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
         ),
       };
       // Spans the level exactly, so `cap.left == a.left` and
-      // `cap.right == c.right` are identities rather than coincidences, and
-      // ends a hairline above the segments so `cap.bottom <= a.top` holds.
+      // `cap.right == c.right` are identities, and ends a hairline above the
+      // segments so `cap.bottom <= a.top` holds.
       final capBottom = segTop - 1;
       final ringCapRect = Rect.fromLTRB(
         left,
@@ -462,9 +381,9 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
     y += pitch;
   }
 
-  // Lead body = the exact silhouette, so contacts sit flush with it. For
-  // tipContact models the body stops at the distal contact's top, because the
-  // contact plus its dome finishes the lead (desktop: electrode_viewer.py:386).
+  // The exact silhouette, so contacts sit flush with it. On tipContact models
+  // the body stops at the distal contact's top, because that contact plus its
+  // dome finishes the lead.
   final distal = levels.last.contactRects.values.first;
   final leadBottom = model.tipContact ? distal.top : distal.bottom;
   final leadRect = Rect.fromLTRB(
@@ -474,8 +393,8 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
     leadBottom,
   );
 
-  // The dome hangs below the distal contact; a square box whose lower half is
-  // the visible hemisphere of radius leadWidth/2.
+  // A square box whose lower half is the visible hemisphere, radius
+  // leadWidth/2.
   final domeRect = Rect.fromLTWH(
     centerX - leadWidth / 2,
     distal.bottom - domeHeight,
@@ -495,31 +414,25 @@ ElectrodeLayout computeLayout(ElectrodeModel model, Size size) {
 
 /// Returns the interactive shape containing [pos], or `null`.
 ///
-/// Precedence follows the desktop `mousePressEvent` (contacts, ring caps, then
-/// case) but is evaluated **level by level, top to bottom**, and within a level
+/// Precedence is evaluated level by level, top to bottom, and within a level
 /// the ring cap is tested before that level's own segments.
 ///
-/// Why: with mm-accurate spacing a ring cap can be only a few pixels tall (a
+/// With mm-accurate spacing a ring cap can be only a few pixels tall (a
 /// 6-contact lead in a 320 px pane), and the desktop's "all contacts anywhere
 /// first" order let a neighbouring level's inflated rect swallow the cap band
-/// entirely — the "cycle all three segments" affordance became unreachable, and
-/// silently, since the tap still landed on *a* contact. Two rules make it
-/// robust for every catalogue model:
-///
-///  * the cap's generous tap zone never extends **below** its own bottom edge,
-///    so it cannot steal taps aimed at the segments underneath it;
-///  * levels are walked top-down, so the level above always wins the space
-///    between it and the cap.
+/// entirely, making the cycle-all-three affordance unreachable, and silently,
+/// since the tap still landed on *a* contact. Two rules prevent that: a cap's
+/// tap zone never extends below its own bottom edge, so it cannot steal taps
+/// aimed at the segments under it, and levels are walked top-down, so the level
+/// above always wins the space between it and the cap.
 ElectrodeHit? hitTest(
   ElectrodeLayout layout,
   Offset pos, {
   double tapPadding = kElectrodeTapPadding,
 }) {
-  // Pass 1 — EXACT hits, no padding. Contacts and caps never overlap (a cap's
-  // bottom is above its level's top), so a point inside a drawn shape is
-  // unambiguous: tapping a pixel always does what that pixel looks like it
-  // does. Padding below only ever rescues near-misses, and can no longer let a
-  // neighbouring level's slack swallow a shape outright.
+  // Pass 1: exact hits, no padding. Contacts and caps never overlap, so a point
+  // inside a drawn shape is unambiguous and tapping a pixel does what that
+  // pixel looks like it does. Pass 2 then only rescues near-misses.
   for (final level in layout.levels) {
     for (final entry in level.contactRects.entries) {
       if (entry.value.contains(pos)) return ContactHit(entry.key);
@@ -530,7 +443,7 @@ ElectrodeHit? hitTest(
     }
   }
 
-  // Pass 2 — padded, generous touch targets.
+  // Pass 2: padded, generous touch targets.
   for (final level in layout.levels) {
     final cap = level.ringCapRect;
     if (cap != null) {
@@ -544,11 +457,10 @@ ElectrodeHit? hitTest(
       );
       if (zone.contains(pos)) return RingCapHit(level.levelIdx);
     }
-    // Generous tap zones on adjacent segments overlap, so pick the NEAREST
-    // shape rather than the first one iterated. Distance is measured to the
-    // un-inflated rect, so a point inside a real contact always wins (distance
-    // 0) and a tap in the seam between two segments goes to the closer one —
-    // the old first-match order silently biased every seam tap leftwards.
+    // Padded zones on adjacent segments overlap, so pick the NEAREST shape
+    // rather than the first iterated; first-match biased every seam tap
+    // leftwards. Distance is to the un-inflated rect, so a point inside a real
+    // contact always wins at 0.
     ContactKey? best;
     var bestDist = double.infinity;
     for (final entry in level.contactRects.entries) {

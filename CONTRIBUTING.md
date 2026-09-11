@@ -2,14 +2,14 @@
 
 Contributions are welcome. This is research software for deep brain stimulation
 programming, so correctness and honesty about what the data supports matter more
-here than most places — see *Clinical care* below.
+here than most places; see *Clinical care* below.
 
 ## Scope
 
 Everything here is the Flutter app: `lib/` for source, `test/` for tests.
 
 If you change the TSV format, change `schema/*.json` and `assets/schema/*.json`
-together — both are committed so that a clone builds with nothing generated.
+together. Both are committed so that a clone builds with nothing generated.
 
 Some doc comments in `lib/` cite a Python module as `dbs_annotator/<module>.py`.
 Those name the reference implementation each algorithm was checked against; the
@@ -19,7 +19,7 @@ code is on the `qt-legacy` branch. Several of those comments record a
 ## Quick start
 
 Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
-**3.38.4 or later** (Dart 3.12+) — the floor `pubspec.lock` resolves against, so
+**3.38.4 or later** (Dart 3.12+), the floor `pubspec.lock` resolves against, so
 an older SDK fails at `pub get`. From the repository root:
 
 ```bash
@@ -53,7 +53,7 @@ To have it run on each commit:
 uvx pre-commit install
 ```
 
-`uvx` needs no virtualenv. Python is not the application — the app is Dart — but
+`uvx` needs no virtualenv. Python is not the application (the app is Dart), but
 Sphinx already needs it to build the docs, so this adds no new toolchain.
 
 | Check | Why it is here |
@@ -72,8 +72,8 @@ is not a local hook), and a **docs build with `-W`**, because Read the Docs
 publishes with `fail_on_warning` and a warning there breaks publishing after
 merge rather than before.
 
-CI is the authority — `git commit --no-verify` skips the hooks, and CI cannot be
-skipped — but it runs the checks by invoking **these same hooks**
+CI is the authority, since `git commit --no-verify` skips the hooks and CI
+cannot be skipped, but it runs the checks by invoking **these same hooks**
 (`uvx pre-commit run --all-files`), so there is one definition of each rule and
 nothing to keep in step. `pyproject.toml` holds the ruff, doc8 and codespell
 settings for the same reason. Change a rule in one place and both follow.
@@ -116,9 +116,9 @@ tables and the sidecar example in `output_format` are rendered from
 
 ### Screenshots
 
-The 28 images under `docs/_static/screenshots/` are generated from widget tests
-— do not edit them by hand — and committed, because Read the Docs cannot run a
-Flutter SDK inside its build limits. To regenerate after a UI change:
+The 28 images under `docs/_static/screenshots/` are generated from widget tests,
+never edited by hand, and committed, because Read the Docs cannot run a Flutter
+SDK inside its build limits. To regenerate after a UI change:
 
 ```powershell
 $env:DOCS_SCREENSHOT_DIR = "docs/_static/screenshots"
@@ -141,8 +141,8 @@ Two rules the harness enforces, both of which had regressed before it did:
 `lib/ui/**` and uploads the result as an artifact. It deliberately does **not**
 diff against the committed PNGs: Skia and text shaping differ enough between a
 runner and a developer machine that a byte comparison fails on visually
-identical renders. What it does catch is a capture that no longer *generates* —
-a finder that stopped matching, a dialog that moved.
+identical renders. What it does catch is a capture that no longer *generates*:
+a finder that stopped matching, or a dialog that moved.
 
 ## Getting help
 

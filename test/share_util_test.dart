@@ -1,10 +1,8 @@
 /// The export delivery path's pure functions.
 ///
-/// `lib/ui/share_util.dart` had zero test coverage while carrying the code that
-/// decides where every exported report goes. Delivery itself needs a device -
-/// the share sheet and the Save-As dialog are native - but the two decisions
-/// made *before* the platform is asked are pure, and both have already been the
-/// site of a real bug.
+/// Delivery itself needs a device (the share sheet and the Save-As dialog are
+/// native), but the two decisions made before the platform is asked are pure,
+/// and both have been the site of a real bug.
 library;
 
 import 'dart:ui';
@@ -49,11 +47,10 @@ void main() {
   group('safeOrigin', () {
     const screen = Size(1024, 768);
 
-    // The bug this exists to prevent, from Round 11: share_plus's iOS plugin
-    // THROWS when a popover is required and the origin is null or empty. The
-    // throw sent the export down the disk-save path and into the app container,
-    // while the snackbar still claimed success. So an empty rect must be
-    // treated exactly like a null one - it is not merely "unusual input".
+    // share_plus's iOS plugin throws when a popover is required and the
+    // origin is null or empty, which sent the export into the app container
+    // while the snackbar still claimed success. An empty rect is not merely
+    // "unusual input"; it must be treated exactly like a null one.
     test('an empty rect is replaced, not passed through', () {
       final origin = safeOrigin(Rect.zero, screen);
       expect(origin.isEmpty, isFalse);

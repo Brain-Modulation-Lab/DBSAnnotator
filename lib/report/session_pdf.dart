@@ -12,10 +12,9 @@
 ///
 /// Graphics come in as PNG bytes the caller rasterised: the scales-timeline
 /// chart (ui/scales_chart_painter.dart) and the electrode leads
-/// (ui/report_images.dart). The desktop does the same — its chart is a
-/// matplotlib PNG embedded in the DOCX its PDF is converted from — so the PDF
-/// and Word reports here are guaranteed to show the identical graphic, and the
-/// builder stays a pure function that needs no Flutter engine.
+/// (ui/report_images.dart). The PDF and Word reports therefore show the
+/// identical graphic, and the builder stays a pure function that needs no
+/// Flutter engine.
 library;
 
 import 'dart:typed_data';
@@ -32,11 +31,11 @@ import 'report_text.dart';
 /// Page margins, matching the desktop report's document (0.5 in sides,
 /// 0.75 in top/bottom) rather than dart_pdf's 2 cm default.
 ///
-/// This is not cosmetic: the Word builder uses the desktop's margins, so with
+/// Not cosmetic: the Word builder uses the desktop's margins, so with
 /// dart_pdf's the same "a quarter of the content width" formula produced
 /// 114.5 pt leads in the PDF and 126.3 pt in Word for identical data. Matching
-/// the geometry is what actually makes the two documents agree — and it gives
-/// the ten-column table 523 pt instead of 482 pt.
+/// the geometry is what makes the two documents agree, and it gives the
+/// ten-column table 523 pt instead of 482 pt.
 const _marginSide = 36.0; // 0.5 in
 const _marginEnd = 54.0; // 0.75 in
 
@@ -63,7 +62,7 @@ String? _ratedNote(SessionReportData data) {
 String _leadDetail(LateralTokens? tokens, bool left) =>
     tokens == null ? '' : lateralText(tokens, left: left);
 
-/// One decimal unless the value is whole — so a delta reads "-5" not "-5.0".
+/// One decimal unless the value is whole, so a delta reads "-5", not "-5.0".
 String _num(double v) {
   if (v == v.roundToDouble()) return v.toStringAsFixed(0);
   var out = v.toStringAsFixed(2);
@@ -73,7 +72,7 @@ String _num(double v) {
   return out;
 }
 
-/// A signed delta: "-5", "+0.25", or "0" for no change — never "+0".
+/// A signed delta: "-5", "+0.25", or "0" for no change, never "+0".
 String _delta(double v) => v == 0 ? '0' : '${v > 0 ? '+' : ''}${_num(v)}';
 
 /// A PNG scaled to exactly [width] points, height following its aspect ratio.
@@ -92,14 +91,13 @@ pw.Widget _fitWidth(Uint8List png, double width) {
 /// One column of the electrode grid: a caption and, under it, that lead.
 ///
 /// [width] is a fixed quarter of the content area, so all four leads come out
-/// the same size — and the same size as the Word document's, which quarters the
-/// content area too. Sizing by HEIGHT (as this used to) makes the drawn width
-/// depend on the raster's aspect ratio, which is why the PDF's leads were 80 pt
-/// wide against Word's 126 pt for identical data.
+/// the same size as each other and as the Word document's, which quarters the
+/// content area too. Sizing by HEIGHT instead makes the drawn width depend on
+/// the raster's aspect ratio, which put the PDF's leads at 80 pt against Word's
+/// 126 pt for identical data.
 ///
-/// A missing lead still occupies its full cell. The old placeholder was a
-/// zero-height `SizedBox(width: 130)`, so one absent lead shifted the others
-/// sideways and shortened the row.
+/// A missing lead still occupies its full cell: a zero-height placeholder lets
+/// one absent lead shift the others sideways and shorten the row.
 pw.Widget _electrodeCell(
   String caption,
   Uint8List? png,
@@ -113,10 +111,9 @@ pw.Widget _electrodeCell(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Text(caption, style: const pw.TextStyle(fontSize: 8)),
-        // The configuration in words, under its own lead. The drawing shows
-        // WHICH contacts are active but not how the current is shared between
-        // them, so `2b 60% / 2c 40%` and its reverse are the same picture -
-        // and for current steering that split IS the configuration.
+        // The drawing shows WHICH contacts are active but not how the current
+        // is shared between them, so `2b 60% / 2c 40%` and its reverse are the
+        // same picture; for current steering that split IS the configuration.
         if (detail.isNotEmpty)
           pw.Text(
             detail,
@@ -144,8 +141,8 @@ pw.Widget _electrodeCell(
   );
 }
 
-/// Optional pre-rendered electrode PNGs (Initial/Final × L/R) from the screen's
-/// `renderElectrodePng`. When absent (e.g. headless tests) the electrode
+/// Optional pre-rendered electrode PNGs, initial and final by side, from the
+/// screen's `renderElectrodePng`. When absent (headless tests) the electrode
 /// section falls back to anode/cathode token text.
 typedef ElectrodeReportImages = ({
   Uint8List? initLeft,
@@ -203,8 +200,8 @@ List<pw.Widget> _legendBlock(SessionReportData data, ReportTextSanitiser t) {
         style: const pw.TextStyle(fontSize: 9),
       ),
     // The index averages only the scales rated AT that block, so blocks with
-    // different rated sets are not comparable — one where a single low scale
-    // was rated can outrank a fully-rated block.
+    // different rated sets are not comparable: one where a single low scale was
+    // rated can outrank a fully-rated block.
     if (_ratedNote(data) != null)
       pw.Text(_ratedNote(data)!, style: const pw.TextStyle(fontSize: 8)),
     // Which blocks the top setting covers, and what a margin on this index is
@@ -229,19 +226,18 @@ List<pw.Widget> _legendBlock(SessionReportData data, ReportTextSanitiser t) {
 
 /// Build the session-report PDF.
 ///
-/// Takes the **already-computed** [data] rather than raw rows. The caller needs
-/// it anyway (to rasterise the chart and pick the electrode rows), and computing
-/// it twice meant `DateTime.now()` ran twice — so an export at 23:59:59.999 could
-/// print two different dates in one document. Passing it in also guarantees the
-/// PDF and the Word document are built from identical numbers and identical
-/// scale targets.
+/// Takes the already-computed [data] rather than raw rows. The caller needs it
+/// anyway, to rasterise the chart and pick the electrode rows, and computing it
+/// twice ran `DateTime.now()` twice, so an export at 23:59:59.999 could print
+/// two different dates in one document. Passing it in also guarantees the PDF
+/// and the Word document are built from identical numbers and targets.
 ///
 /// [subjectId] is the BIDS subject label (without the "sub-" prefix).
-/// [electrodeImages] and [chartPng], when supplied, render the electrode section
-/// as lead images and the session-data section as the shared timeline chart.
+/// [electrodeImages] and [chartPng], when supplied, render the electrode
+/// section as lead images and the session data as the shared timeline chart.
 ///
-/// [sections] gates each section; the title/patient header is always present, so
-/// the document is never anonymous.
+/// [sections] gates each section. The title and patient header are always
+/// present, so the document is never anonymous.
 Future<ReportBytes> buildSessionPdf({
   required SessionReportData data,
   required String subjectId,
@@ -251,10 +247,6 @@ Future<ReportBytes> buildSessionPdf({
   Set<ReportSection> sections = kAllReportSections,
 }) async {
   // Prefer rendered electrode images when the screen supplied them.
-  //
-  // Document properties first: the PDF carried no /Info dictionary at all, so
-  // once the file is in a document system its filename was the only clue to
-  // what it is.
   final ei = electrodeImages;
   final hasElectrodeImages =
       ei != null &&
@@ -263,9 +255,6 @@ Future<ReportBytes> buildSessionPdf({
           ei.finalLeft != null ||
           ei.finalRight != null);
 
-  // Row index -> fill, for the green best/second-best shading. tableData holds
-  // two rows (L then R) per block in block order, and TableHelper counts the
-  // header as row 0, hence the +1.
   // Data-row indices that begin a new block. TableHelper counts the header as
   // row 0, and `cellDecoration` is called with the same numbering.
   final blockStartRows = <int>{};
@@ -289,18 +278,17 @@ Future<ReportBytes> buildSessionPdf({
     }
   }
 
-  // Unicode theme when the IBM Plex assets are bundled; null -> built-in
+  // Unicode theme when the IBM Plex assets are bundled; null means built-in
   // Helvetica, which can only encode Latin-1. dart_pdf does not throw on an
-  // unsupported rune — it silently draws an empty placeholder box — so without
+  // unsupported rune, it silently draws an empty placeholder box, so without
   // the sanitiser a smart apostrophe from an iPad note would leave a blank
   // rectangle in a clinical document with no error. See report_text.dart.
   final fonts = await loadReportFonts();
   final theme = fonts.theme;
   final t = ReportTextSanitiser(coverage: fonts.coverage);
   final tableData = t.rows(data.tableData);
-  // Document properties. The PDF carried NO /Info dictionary at all, so once
-  // the file reached a document system its filename was the only clue to what
-  // it was, who made it or when.
+  // An /Info dictionary, so the file says what it is, who made it and when
+  // once it reaches a document system and its name is no longer the only clue.
   final title = 'DBS session report - sub-$subjectId - ${data.sessionDate}';
   final doc = pw.Document(
     theme: theme,
@@ -322,18 +310,17 @@ Future<ReportBytes> buildSessionPdf({
     marginBottom: _marginEnd,
   );
 
-  // A quarter of the content width per lead, less a little breathing room —
-  // the same budget the Word builder uses. The height is only needed for the
+  // A quarter of the content width per lead, less a little breathing room: the
+  // same budget the Word builder uses. The height is only needed for the
   // missing-lead placeholder, and follows the renderer's 900x1920 aspect.
   final leadWidth = format.availableWidth / 4 - kElectrodeCellGapPt;
   final leadHeight = leadWidth * 1920 / 900;
   doc.addPage(
     pw.MultiPage(
       pageFormat: format,
-      // Every page attributable on its own. Page numbers alone left a
-      // continuation page that escaped the staple with no patient, no date and
-      // no provenance — the .docx had no footer at all. Both formats now carry
-      // the same line.
+      // Every page attributable on its own: with page numbers alone, a
+      // continuation page that escapes the staple carries no patient, no date
+      // and no provenance. Both formats carry the same line.
       footer: (context) => pw.Container(
         alignment: pw.Alignment.center,
         margin: const pw.EdgeInsets.only(top: 6),
@@ -345,7 +332,6 @@ Future<ReportBytes> buildSessionPdf({
         ),
       ),
       build: (context) => [
-        // (a) Title + patient + generated-on.
         pw.Header(
           level: 0,
           child: pw.Text(
@@ -368,9 +354,8 @@ Future<ReportBytes> buildSessionPdf({
         ),
         pw.SizedBox(height: 8),
 
-        // The one thing the clinician looks for first: what the patient left
-        // on. Deliberately labelled "last recorded", not "final" — nothing in
-        // the TSV says a clinician confirmed it.
+        // What the patient left on. Labelled "last recorded", not "final":
+        // nothing in the TSV says a clinician confirmed it.
         if (data.lastConfig.isNotEmpty) ...[
           pw.Container(
             width: double.infinity,
@@ -385,9 +370,8 @@ Future<ReportBytes> buildSessionPdf({
                 pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // Arrived on | left on, side by side. The question the next
-                    // clinician asks first is what changed, and answering it
-                    // used to mean diffing block 1 against block 7 by eye.
+                    // Arrived on and left on, side by side, so what changed
+                    // does not have to be diffed out of the table by eye.
                     if (data.firstConfig.isNotEmpty)
                       pw.Expanded(
                         child: pw.Column(
@@ -433,10 +417,7 @@ Future<ReportBytes> buildSessionPdf({
                 if (data.configChanges.isNotEmpty) ...[
                   pw.SizedBox(height: 4),
                   for (final line in data.configChanges)
-                    pw.Text(
-                      'Changed: ${t(line)}',
-                      style: const pw.TextStyle(fontSize: 9),
-                    ),
+                    pw.Text(t(line), style: const pw.TextStyle(fontSize: 9)),
                 ],
               ],
             ),
@@ -444,7 +425,7 @@ Future<ReportBytes> buildSessionPdf({
           pw.SizedBox(height: 12),
         ],
 
-        // (b) Initial clinical notes (latest baseline session).
+        // Initial clinical notes, from the latest baseline session only.
         if (sections.contains(ReportSection.baseline)) ...[
           pw.Header(level: 1, text: 'Baseline assessment (pre-session)'),
           if (!data.hasInitial)
@@ -482,19 +463,18 @@ Future<ReportBytes> buildSessionPdf({
           pw.SizedBox(height: 8),
         ],
 
-        // (c) Session data: the scales-timeline graph, then the lateral table.
         // Graph and table are independent sections, so the heading appears only
         // when at least one of them does.
         if (wantsChart || wantsTable) ...[
           pw.Header(level: 1, text: 'Session data'),
           if (wantsChart && chartPng != null) ...[
             // Size explicitly to the content width, preserving the aspect
-            // ratio. A bare pw.Image lays the PNG out at its PIXEL size — the
-            // chart is rasterised at 3x for print, so that is ~1128 pt tall and
-            // dart_pdf throws "Widget won't fit into the page".
+            // ratio. A bare pw.Image lays the PNG out at its PIXEL size, and
+            // the chart is rasterised at 3x for print, so that is ~1128 pt tall
+            // and dart_pdf throws "Widget won't fit into the page".
             _fitWidth(chartPng, format.availableWidth),
-            // A real caption: subject, session, n, and what the green means.
-            // Extracted from a .docx the figure travels alone.
+            // Extracted from a .docx the figure travels alone, so the caption
+            // carries subject, session, n and what the green means.
             pw.Text(
               t(data.figureCaption),
               style: const pw.TextStyle(
@@ -530,11 +510,10 @@ Future<ReportBytes> buildSessionPdf({
                   i: pw.FlexColumnWidth(w),
               },
               // Green shading for the best / second-best blocks, plus a heavy
-              // rule where one BLOCK ends and the next begins. The rule used to
-              // be absent from the PDF entirely, so its inside borders drew an
-              // identical line between a block's own L and R rows as between
-              // two different blocks — nothing said where a configuration
-              // started. (Word has had this via `rowRules` all along.)
+              // rule where one BLOCK ends and the next begins. Without that
+              // rule the inside borders draw the same line between a block's
+              // own L and R rows as between two different blocks, so nothing
+              // says where a configuration starts.
               cellDecoration: (col, dynamic cell, row) {
                 final fill = rowFills[row];
                 final isBoundary = blockStartRows.contains(row);
@@ -559,13 +538,11 @@ Future<ReportBytes> buildSessionPdf({
           pw.SizedBox(height: 8),
         ],
 
-        // (d) Electrode configuration: rendered lead images (Initial/Final ×
+        // Electrode configuration: rendered lead images (Initial/Final ×
         // L/R) when the screen supplied them, else anode/cathode token text.
-        // Before the programming summary, matching the desktop section order.
         // Wrapped so the heading, the model line, the column captions and the
-        // four leads cannot be split: the merged Initial/Final header used to
-        // sit at the foot of one page with its figures on the next, which reads
-        // as a printing fault.
+        // four leads cannot be split: a merged Initial/Final header at the foot
+        // of one page with its figures on the next reads as a printing fault.
         if (sections.contains(ReportSection.electrodes))
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -578,10 +555,10 @@ Future<ReportBytes> buildSessionPdf({
                   pw.Text('Electrode model: ${t(data.electrodeModel)}'),
                 pw.SizedBox(height: 4),
                 if (hasElectrodeImages) ...[
-                  // ONE row of four leads under a merged Initial/Final header, as
-                  // Word and the desktop lay it out. Two stacked rows cost ~380 pt
-                  // of height, which is why this section used to break across
-                  // pages; 4 x ~114 pt of width fits in 482 pt and halves that.
+                  // ONE row of four leads under a merged Initial/Final
+                  // header, as Word lays it out. Two stacked rows cost ~380 pt
+                  // of height and break the section across pages; 4 x ~114 pt
+                  // of width fits in 482 pt.
                   pw.Row(
                     children: [
                       for (final title in [
@@ -634,8 +611,9 @@ Future<ReportBytes> buildSessionPdf({
                       ),
                     ],
                   ),
-                  // A key, because the drawing encodes polarity by COLOUR alone -
-                  // useless on a mono printer or to a colour-blind reader.
+                  // A key, because the drawing encodes polarity by COLOUR
+                  // alone: useless on a mono printer or to a colour-blind
+                  // reader.
                   pw.SizedBox(height: 3),
                   pw.Text(
                     'Red = anode (+)   Blue = cathode (-)   Grey = inactive.   '
@@ -646,10 +624,10 @@ Future<ReportBytes> buildSessionPdf({
                     ),
                   ),
                 ] else ...[
-                  // Text fallback (no rasteriser available). Vendor nomenclature
-                  // here too — the raw `E2b_E2c` tokens are internal identifiers,
-                  // and printing them in one place and `2b(3.3)` in another
-                  // described the same lead two ways.
+                  // Text fallback, no rasteriser available. Vendor nomenclature
+                  // here too: `E2b_E2c` is an internal identifier, and printing
+                  // it here and `2b(3.3)` elsewhere describes one lead two
+                  // ways.
                   for (final pair in [
                     ('Initial settings', data.initialTokens),
                     ('Last recorded settings', data.finalTokens),
@@ -675,7 +653,6 @@ Future<ReportBytes> buildSessionPdf({
             ],
           ),
 
-        // (e) Programming summary (desktop _add_programming_summary math).
         if (sections.contains(ReportSection.summary)) ...[
           pw.Header(level: 1, text: 'Programming summary'),
           if (!data.hasRows)
@@ -687,9 +664,8 @@ Future<ReportBytes> buildSessionPdf({
             pw.Text('Frequency:  L: ${data.freqL}  |  R: ${data.freqR}'),
             pw.Text('Pulse width:  L: ${data.pwL}  |  R: ${data.pwR}'),
 
-            // The response half of a dose-response record. Every parameter got
-            // a range above and no scale did, so the clinical bottom line of
-            // the encounter appeared nowhere in the document.
+            // The response half of a dose-response record: every parameter gets
+            // a range above, so without this no scale does.
             if (data.response.isNotEmpty) ...[
               pw.SizedBox(height: 6),
               pw.Text(
@@ -746,8 +722,8 @@ Future<ReportBytes> buildSessionPdf({
             ],
           ],
         ],
-        // Attestation. The document otherwise asserts that a machine produced
-        // it and that no human stands behind it.
+        // Without this the document asserts that a machine produced it and that
+        // no human stands behind it.
         pw.SizedBox(height: 18),
         pw.Text(
           'Attestation',

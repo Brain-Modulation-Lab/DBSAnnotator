@@ -1,0 +1,12 @@
+# Every change requests a review from the maintainer.
+#
+# This matters most for the paths where a mistake is not visible in a test: the
+# report builders write documents that are filed in a patient record, and the
+# schema is an interchange contract with files already on disk.
+*                       @Lucia-Poma
+
+/schema/                @Lucia-Poma
+/assets/schema/         @Lucia-Poma
+/lib/report/            @Lucia-Poma
+/lib/core/              @Lucia-Poma
+/.github/               @Lucia-Poma

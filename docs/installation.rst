@@ -6,8 +6,8 @@ install it depends on the platform, and the honest state of each is below.
 
 .. note::
 
-   Store distribution is in preparation — the Microsoft Store submission for
-   Windows first. Until a listing is live, the builds below are
+   Store distribution is in preparation, starting with the Microsoft Store
+   submission for Windows. Until a listing is live, the builds below are
    **research-grade**: signed with the project's own certificate or not at all,
    and installed deliberately rather than from a store. Every route produces the
    same application; only the trust and update mechanics differ.
@@ -39,7 +39,7 @@ Windows
 Two routes, depending on whether you want an installed application or just
 something you can run.
 
-**MSIX installer** — a real installation: Start-menu entry, proper uninstall,
+**MSIX installer.** A real installation: Start-menu entry, proper uninstall,
 per-user application data, and no SmartScreen prompt once it arrives from the
 Store. The Microsoft Store submission is in preparation; when the listing is
 live, installing from the Store is the whole procedure and there is nothing to
@@ -57,7 +57,7 @@ per-machine and needs administrator rights:
 
 .. warning::
 
-   Check whose certificate you are trusting before step 2 — the certificate
+   Check whose certificate you are trusting before step 2; the certificate
    details are on screen at that point. Trusting a certificate means Windows will
    silently accept **any** package signed with it, not just this one. Only trust a
    certificate you can attribute to a person or organisation you know.
@@ -72,7 +72,7 @@ one and attaches it to the workflow run: open the latest successful run of the
 *App CI/CD* workflow in the
 `Actions tab <https://github.com/Brain-Modulation-Lab/DBSAnnotator/actions>`_ and
 download ``windows-bundle``. Unzip it and run ``dbs_annotator.exe`` from inside
-the folder — it needs the DLLs and ``data\`` directory beside it. Being unsigned,
+the folder; it needs the DLLs and ``data\`` directory beside it. Being unsigned,
 SmartScreen will warn on first launch: *More info* → *Run anyway*.
 
 Linux and macOS
@@ -84,8 +84,8 @@ the report and export code is exercised on every platform. Download
 ``linux-bundle`` from the *Actions* tab as above. macOS is built in CI but not
 published as an artifact; build it from source (below).
 
-Both are unsigned, so macOS Gatekeeper will refuse an unsigned app on
-double-click — right-click → *Open* allows it once.
+Both are unsigned, so macOS Gatekeeper refuses an unsigned app on double-click;
+right-click → *Open* allows it once.
 
 Building from source
 --------------------
@@ -93,7 +93,7 @@ Building from source
 The most reliable route on any platform, and the one to use if you intend to
 modify anything. It needs only the
 `Flutter SDK <https://docs.flutter.dev/get-started/install>`_ **3.38.4 or later**
-(Dart 3.12 or later — that is the floor ``pubspec.lock`` resolves against, so an
+(Dart 3.12 or later, which is the floor ``pubspec.lock`` resolves against, so an
 older SDK fails at ``pub get``):
 
 .. code-block:: bash
@@ -124,13 +124,13 @@ No developer account and no store listing is needed to put a real, installable
 build on a Windows machine or an Android tablet today. This is the route to use
 for evaluation before store distribution exists.
 
-**Windows** — either run it out of the build folder, or build the installer:
+**Windows.** Either run it out of the build folder, or build the installer:
 
 .. code-block:: bash
 
    flutter build windows --release
    # run in place: build\windows\x64\runner\Release\dbs_annotator.exe
-   # (copy the WHOLE Release folder if you move it — the .exe needs the DLLs
+   # (copy the WHOLE Release folder if you move it: the .exe needs the DLLs
    #  and data\ beside it)
 
    dart run msix:create
@@ -142,8 +142,8 @@ install the MSIX, trust its certificate as described under **Windows** above.
 Running the loose executable needs no certificate, but SmartScreen shows "Windows
 protected your PC" on first launch: *More info* → *Run anyway*.
 
-**Android** — build an APK, copy it to the tablet (USB, or any file-sharing route)
-and open it there:
+**Android.** Build an APK, copy it to the tablet (USB, or any file-sharing
+route) and open it there:
 
 .. code-block:: bash
 
@@ -152,15 +152,15 @@ and open it there:
 
 Unless a signing key has been configured, this APK is signed with the debug key.
 It installs and runs normally, but it cannot later be replaced in place by a
-properly signed build — that needs an uninstall first, which takes the app's
+properly signed build: that needs an uninstall first, which takes the app's
 stored preferences with it. Fine for testing; not for handing to a site.
 
-**macOS** — ``flutter build macos --release`` produces a ``.app`` under
+**macOS.** ``flutter build macos --release`` produces a ``.app`` under
 ``build/macos/Build/Products/Release/``. Gatekeeper blocks an unsigned app on
 double-click; right-click → *Open* allows it once.
 
-**iPadOS** — the only target that genuinely needs a Mac: Xcode has to do the
-build. A free Apple ID is enough to run it on your own iPad through Xcode's
+**iPadOS.** The only target that genuinely needs a Mac, because Xcode has to do
+the build. A free Apple ID is enough to run it on your own iPad through Xcode's
 automatic provisioning, but the resulting build expires after seven days and has
 to be re-installed. A paid Apple Developer account is what removes that limit and
 enables TestFlight.
@@ -173,8 +173,9 @@ typed into a clinical note comes out as itself.
 
 If you are building from a source tree whose ``assets/fonts/`` is empty, the PDF
 exporter falls back to a built-in font that covers Latin-1 only, and those
-characters are replaced with ``?``. **The app tells you when this happens** — it
-is never silent. To fix it, restore the two OFL-licensed files:
+characters are replaced with ``?``. **The app tells you when this happens**, so
+the substitution is never silent. To fix it, restore the two OFL-licensed
+files:
 
 .. code-block:: text
 
@@ -190,5 +191,5 @@ Where your data goes
 
 Files are written where you choose to save them, via the platform's own file
 picker or share sheet. The app keeps no hidden database and uploads nothing.
-Application preferences — scale presets, paper size, panel order — are stored in
+Application preferences (scale presets, paper size, panel order) are stored in
 the OS application-support directory for the app.

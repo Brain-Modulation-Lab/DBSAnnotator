@@ -1,7 +1,7 @@
 # Repo-root ignores for the Flutter app, which lives here.
 #
 # Be careful adding anything that could match `lib/`: the Dart source is at
-# lib/, and an ignore rule covering it fails silently — already-tracked files
+# lib/, and an ignore rule covering it fails silently: already-tracked files
 # stay tracked, and only NEW files vanish from `git status`.
 # `git check-ignore -v lib/main.dart` must print nothing.
 
@@ -17,7 +17,7 @@ build/
 # Local report/preview artifacts from throwaway rasterisation tests.
 preview/
 
-# ---- Signing secrets — NEVER commit (see MOBILE_RELEASE.md) ----
+# ---- Signing secrets: NEVER commit (see MOBILE_RELEASE.md) ----
 android/key.properties
 *.jks
 *.keystore
@@ -27,7 +27,7 @@ ios/fastlane/*.mobileprovision
 **/*.p8
 # Windows code-signing. `dart run msix:create` generates a self-signed test
 # certificate next to the project when none is configured; it is a private key
-# like any other. No CA certificate is ever needed here — the Microsoft Store
+# like any other. No CA certificate is ever needed here; the Microsoft Store
 # re-signs MSIX packages itself.
 *.pfx
 *.cer

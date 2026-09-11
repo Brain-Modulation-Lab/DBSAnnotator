@@ -10,7 +10,7 @@
   --dbs-docs-content-bg: #fcfcfc;
 }
 
-/* Outer area — same dark grey as the left navigation column (standard RTD). */
+/* Outer area: the same dark grey as the left navigation column (standard RTD). */
 html,
 body.wy-body-for-nav,
 .wy-body-for-nav,
@@ -22,7 +22,7 @@ section.wy-nav-content-wrap,
 }
 
 /*
- * Main prose column — standard RTD light panel (not the app's dark theme).
+ * Main prose column: the standard RTD light panel (not the app's dark theme).
  *
  * The theme caps this at 800px and adds 3.236em of side padding; both are
  * overridden, and the outer gutter this file used to add is gone. A screenshot
@@ -43,7 +43,7 @@ section.wy-nav-content-wrap,
 }
 
 /*
- * Prose on the light panel — pin body colour so it does not inherit from the
+ * Prose on the light panel. Pin the body colour so it does not inherit from the
  * dark outer wrap (tables/list-tables were unreadable when text stayed pale).
  */
 .wy-nav-content .rst-content {
@@ -98,7 +98,7 @@ section.wy-nav-content-wrap,
  * every capture is generated at the width and height it should be seen at (see
  * test/docs/screenshots_test.dart), so nothing here scales anything.
  *
- * The selector matches what Sphinx actually emits — an <img> inside the
+ * The selector matches what Sphinx actually emits: an <img> inside the
  * <a class="reference internal image-reference"> it wraps every image in. The
  * rules this replaced were keyed on `img.screenshot-full` and `.figure img`,
  * neither of which any page has produced since the Qt-era docs: the frame,

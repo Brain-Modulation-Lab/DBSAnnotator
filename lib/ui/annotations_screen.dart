@@ -9,6 +9,7 @@ import '../core/annotation.dart';
 import '../core/bids.dart';
 import '../core/bids_sidecar.dart';
 import '../core/safe_file.dart';
+import '../core/timestamps.dart';
 import '../core/session/tsv_kind.dart';
 import '../report/annotations_report.dart';
 import '../report/session_docx.dart' show DocxPageSize;
@@ -17,11 +18,10 @@ import 'save_target.dart';
 import 'share_util.dart';
 import 'theme.dart';
 
-/// Annotations workflow, structured like the Complete-Workflow wizard but
-/// shorter: a common **File** step (patient / run, New or Open a BIDS
-/// `task-notes` TSV) followed by a **Notes** step (timestamped notes appended
-/// to an in-memory list, autosaved to the chosen file and exported via the OS
-/// share sheet). Fully offline; the TSV is drop-in for the desktop app.
+/// Annotations workflow: a File step (patient / run, New or Open a BIDS
+/// `task-notes` TSV) followed by a Notes step, structured like the
+/// Complete-Workflow wizard but shorter. Fully offline, and the TSV is
+/// drop-in for the desktop app.
 class AnnotationsScreen extends StatefulWidget {
   const AnnotationsScreen({super.key});
 
@@ -57,12 +57,11 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
-  /// The BIDS entities for everything this screen writes — the notes TSV, its
-  /// sidecar, and the report derivative — so all three carry the same ones.
+  /// The BIDS entities for the notes TSV, its sidecar and the report
+  /// derivative, so all three carry the same ones.
   ///
   /// [subject] and [run] are free text that ends up in a path, so they go
-  /// through the sanitisers; run is an *index* in BIDS, hence `index` rather
-  /// than `label`.
+  /// through the sanitisers; run is an index in BIDS, not a label.
   BidsName _bidsName({String? subject, String? run}) {
     final s = BidsName.label(subject ?? _subjectCtrl.text.trim());
     return BidsName(
@@ -87,8 +86,6 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       // No sidecar is a documentation loss, not a data loss.
     }
   }
-
-  // ---- Step 0: File (shared shape with the Complete-Workflow wizard) ----
 
   Future<void> _newSession() async {
     final subject = _subjectCtrl.text.trim().isEmpty
@@ -125,15 +122,14 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
   }
 
   Future<void> _open() async {
-    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
-    // default TRUE, so the old call would have silently started accepting a
-    // multi-selection here while still compiling and passing CI.
+    // `pickFile`, not `pickFiles`: file_picker 12 defaults `allowMultiple` to
+    // true, so the plural call would silently accept a multi-selection.
     final PlatformFile? chosen;
     try {
       chosen = await FilePicker.pickFile(type: FileType.any);
     } catch (e) {
       if (mounted) {
-        _snack('Open dialog unavailable — on Linux install "zenity". ($e)');
+        _snack('Open dialog unavailable. On Linux, install "zenity". ($e)');
       }
       return;
     }
@@ -144,22 +140,15 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       if (mounted) _snack('Could not read ${picked.name}.');
       return;
     }
-    // Refuse the wrong workflow's file BEFORE anything sets `_savePath`.
+    // Refuse the wrong workflow's file before anything sets `_savePath`.
     //
-    // This guard is load-bearing, not defensive. `parseAnnotations` is total and
-    // `sessionColumns` is a superset of `annotationColumns`, so a programming
-    // TSV parses here *successfully* - one "note" per session row - and reports
-    // a plausible count. `_savePath` would then point at the clinician's real
-    // session file (on desktop it is the real path, not a sandbox copy), and the
-    // first note autosaved `writeAnnotations`, which emits only the five
-    // annotation columns. That atomically replaced every block, stimulation
-    // parameter, amplitude, scale rating and program with a notes-only file, with
-    // no error and no `.tmp` to recover from - SafeFileWriter faithfully
-    // guaranteeing the overwrite completed.
-    //
-    // The three sibling readers (session_screen, single_session_report_screen,
-    // longitudinal_screen) all had this check; this screen was the only one that
-    // did not, and it is also the only one that writes back to the file it opened.
+    // `parseAnnotations` is total and `sessionColumns` is a superset of
+    // `annotationColumns`, so a session TSV parses here successfully, one
+    // "note" per row. `_savePath` would then point at the clinician's session
+    // file, and the first autosave would replace it with the five annotation
+    // columns: every block, parameter and rating gone, atomically and with no
+    // `.tmp` to recover from. This screen is the only one that writes back to
+    // the file it opened.
     final kind = sniffTsvKind(content);
     if (kind != TsvKind.notes) {
       if (mounted) _snack(tsvKindMismatch(picked.name, kind, TsvKind.notes));
@@ -174,7 +163,6 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         ..clear()
         // File is oldest-first; the UI shows newest-first.
         ..addAll(loaded.reversed);
-      // Autosave future notes back to the opened file (when a real path).
       _savePath = picked.path;
       if (bids != null) {
         _subjectCtrl.text = bids.subject;
@@ -233,15 +221,13 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         const SizedBox(height: 8),
         Text(
           _entries.isEmpty
-              ? 'Empty — add notes in the next step.'
+              ? 'Empty. Add notes in the next step.'
               : '${_entries.length} notes loaded.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
   }
-
-  // ---- Step 1: Notes ----
 
   void _addNote() {
     final text = _noteCtrl.text.trim();
@@ -253,16 +239,16 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     _autosave();
   }
 
-  /// Rewrite the TSV after each insert when a save path was chosen (desktop
-  /// autosaves every entry). No-op when there is no path.
+  /// Rewrite the TSV after each insert, as the desktop does. A no-op when no
+  /// save path was chosen.
   ///
-  /// Goes through [SafeFileWriter] so overlapping inserts cannot interleave and
-  /// a crash mid-write cannot truncate the user's notes file.
+  /// Goes through [SafeFileWriter] so overlapping inserts cannot interleave
+  /// and a crash mid-write cannot truncate the user's notes file.
   Future<void> _autosave() async {
     final path = _savePath;
     if (path == null) return;
     try {
-      // File is oldest-first; the UI list is newest-first.
+      // The file is oldest-first; the UI list is newest-first.
       await _writer.write(path, writeAnnotations(_entries.reversed.toList()));
     } catch (e) {
       if (mounted) _snack('Autosave failed: $e');
@@ -278,7 +264,6 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       context,
       filename: _bidsName().filename,
       anchor: _exportKey,
-      // Oldest-first in the file (the UI shows newest-first).
       build: () async => (
         bytes: utf8.encode(writeAnnotations(_entries.reversed.toList())),
         warning: null,
@@ -286,8 +271,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     );
   }
 
-  /// Export these notes as a one-subject BIDS dataset (zipped); see the session
-  /// screen's copy for what the tree contains and why it exists.
+  /// Export these notes as a zipped one-subject BIDS dataset.
   Future<void> _exportBids() async {
     if (_entries.isEmpty) {
       _snack('Add at least one note before exporting.');
@@ -317,8 +301,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     );
   }
 
-  /// Export the notes as a report. Until now this screen could only write a
-  /// TSV, while the home card promised "Notes -> report".
+  /// Export the notes as a PDF or Word report.
   Future<void> _exportReport({required bool docx}) async {
     if (_entries.isEmpty) {
       _snack('Add at least one note before exporting a report.');
@@ -326,7 +309,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
     }
     final name = _bidsName();
     final subject = name.subject;
-    // A report is a derivative, not raw data — `_report` is not a BIDS suffix.
+    // `_report` is not a BIDS suffix; a report is a derivative, not raw data.
     // Same entities as the TSV so the two files sort together.
     final filename = name
         .withSuffix('report', extension: docx ? 'docx' : 'pdf')
@@ -338,7 +321,6 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       anchor: _exportKey,
       failureLabel: 'Report export failed',
       build: () async {
-        // Oldest first is the builder's job; it sorts what it is given.
         final data = buildAnnotationsReportData(
           entries: _entries,
           subjectId: subject,
@@ -424,8 +406,6 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         if (_entries.isEmpty)
           const Center(child: Text('No notes yet.'))
         else
-          // Review table of the timestamped notes (newest first), so entries
-          // can be checked instead of relying on the insert snackbar.
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
@@ -442,8 +422,8 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
                 for (final e in _entries)
                   DataRow(
                     cells: [
-                      DataCell(Text(e.date)),
-                      DataCell(Text('${e.time} (${e.timezone})')),
+                      DataCell(Text(_noteDate(e))),
+                      DataCell(Text(_noteTime(e))),
                       DataCell(
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 420),
@@ -462,8 +442,6 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       ],
     );
   }
-
-  // ---- Wizard scaffold (mirrors session_screen.dart) ----
 
   @override
   Widget build(BuildContext context) {
@@ -506,7 +484,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
         steps: [
           Step(
             title: const Text('File'),
-            subtitle: const Text('Patient / run — new or open TSV'),
+            subtitle: const Text('Patient / run: new or open TSV'),
             isActive: _currentStep == 0,
             content: _fileStep(),
           ),
@@ -520,4 +498,19 @@ class _AnnotationsScreenState extends State<AnnotationsScreen> {
       ),
     );
   }
+}
+
+/// A note's date for the entries table, or '' when it has no usable instant.
+///
+/// Date and clock time are display forms of the note's `acq_time`, not stored
+/// cells. Pre-0.5.0 files held a zone name with no offset, so their rows
+/// resolve to an instant only via `Annotation.fromMap`'s backfill.
+String _noteDate(Annotation e) => recordedDate(e.acqTime);
+
+/// A note's clock time, with the recorded UTC offset when the row carries one.
+String _noteTime(Annotation e) {
+  final time = recordedTime(e.acqTime);
+  if (time.isEmpty) return '';
+  final offset = offsetFromTimezoneCell(e.acqTime);
+  return offset.isEmpty ? time : '$time (UTC$offset)';
 }

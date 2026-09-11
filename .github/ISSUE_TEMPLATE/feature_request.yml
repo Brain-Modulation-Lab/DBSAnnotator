@@ -1,0 +1,34 @@
+name: Feature request
+description: Something the app should do, or should say differently.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: |
+        The clinical or research task, not the implementation. "I need to know
+        which setting the patient left with" is more useful than "add a column",
+        because it leaves room for a better answer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today instead
+      description: The workaround, if there is one, including on paper.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Does this need a change to the data format?
+      description: |
+        The TSV is an interchange contract, so a new column is a bigger decision
+        than a new screen. Guessing is fine.
+      options:
+        - "No, it is about the app or a report"
+        - "Yes, it needs something the file does not record"
+        - "Not sure"
+    validations:
+      required: true

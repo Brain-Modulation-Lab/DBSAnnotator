@@ -1,22 +1,15 @@
-/// The scales-timeline chart, drawn once and embedded in BOTH reports.
+/// The scales-timeline chart, drawn once and embedded in both reports.
 ///
 /// Port of the desktop's matplotlib chart
-/// (`dbs_annotator/utils/report_chart_utils.py::build_scales_chart`), which
-/// the Qt app renders to a PNG and inserts into its DOCX (and therefore into its
-/// PDF, which is that DOCX converted). Doing the same here — one painter,
-/// rasterised once, embedded in both formats — is why the PDF and Word reports
+/// (`dbs_annotator/utils/report_chart_utils.py::build_scales_chart`). One
+/// painter rasterised once into both formats is why the PDF and Word reports
 /// cannot drift apart, and it is the only way to draw the two features
-/// `pw.Chart` fundamentally cannot: a second y-axis and shaded vertical bands.
+/// `pw.Chart` cannot: a second y-axis and shaded vertical bands.
 ///
-/// Matched to the desktop deliberately:
-/// - the **Dark2** 8-colour cycle, and a 5-way **dash cycle** on top of it, so
-///   series stay distinguishable in greyscale and for colour-blind readers;
-/// - a missing x value **breaks** the line rather than interpolating across it;
-/// - the left axis is clamped to the union of declared scale ranges when the
-///   optimisation prefs supply one;
-/// - the black **aggregate-index** line with diamond markers on its own right
-///   axis fixed to 0..1;
-/// - **green best / second-best bands** spanning +/- 0.35 of an x step.
+/// Deliberately matched to the desktop: the Dark2 colour cycle with a dash
+/// cycle on top, a missing x breaking the line rather than interpolating, the
+/// aggregate-index line on its own 0..1 axis, and the green best and
+/// second-best bands spanning +/- 0.35 of an x step.
 library;
 
 import 'dart:math' as math;
@@ -30,11 +23,9 @@ import 'chart_primitives.dart';
 
 /// Layout constants, in logical px at the painter's nominal size.
 ///
-/// There is deliberately NO `_padTop` constant. The top band holds a title and
-/// a legend of unknown height, and hard-coding it is exactly what put the
-/// legend's opaque box over the bottom third of every title glyph: the title
-/// occupied y 20..38 and the legend box y 30..50. The band is measured in
-/// [ChartTopBand] instead, so title, legend and plot each reserve their own space.
+/// There is deliberately no `_padTop`: the top band holds a title and a legend
+/// of unknown height, so hard-coding it overlaps the two. [ChartTopBand]
+/// measures it instead, and each element reserves its own space.
 const _padBottom = 52.0; // x tick labels + axis label
 const _padLeft = 62.0; // y tick labels + axis label
 
@@ -65,10 +56,10 @@ class _PanelSpec {
   final String label;
   final Map<String, Map<int, double>> series;
 
-  /// Horizontal guides and y ticks to draw (0 and max inclusive).
+  /// Horizontal guides and y ticks to draw, 0 and max inclusive.
   final int ticks;
 
-  /// Draw as one heavy black line with diamond markers (the aggregate index).
+  /// Draw as one heavy black line with diamond markers, for the index panel.
   final bool mono;
 }
 
@@ -99,20 +90,17 @@ class ScalesChartPainter extends CustomPainter {
     );
     if (area.width <= 10 || area.height <= 40) return;
 
-    // Half a step of margin at each end (the desktop's
-    // `set_xlim(min-0.5, max+0.5)`): it keeps the first/last markers and the
-    // +/-0.35 bands clear of the axes, and makes a single-x chart well defined
-    // instead of dividing by zero.
+    // Half a step of margin at each end, as the desktop's `set_xlim` does: it
+    // keeps the end markers and the bands clear of the axes, and makes a
+    // single-x chart well defined instead of dividing by zero.
     final xLo = spec.xs.first.toDouble() - 0.5;
     final xHi = spec.xs.last.toDouble() + 0.5;
     double xPos(num x) =>
         area.left + (xHi == xLo ? 0.5 : (x - xLo) / (xHi - xLo)) * area.width;
 
-    // Panels, top to bottom, sharing that x mapping. The scales panel keeps the
-    // lion's share; the index and dose strips only need enough height to show a
-    // shape. Each has its OWN y axis, which is the point: the index used to sit
-    // on a second axis inside the scales plot, so 0.43 was drawn at the height
-    // of 4.3 on a 0-10 rating scale.
+    // Panels share the x mapping but each has its own y axis. That separation
+    // is the point: on a shared axis an index of 0.43 would be drawn at the
+    // height of 4.3 on a 0..10 rating scale.
     final panels = <_PanelSpec>[
       _PanelSpec(
         weight: 3.0,
@@ -135,8 +123,7 @@ class ScalesChartPainter extends CustomPainter {
       if (spec.amplitude.values.any((m) => m.isNotEmpty))
         _PanelSpec(
           weight: 1.0,
-          // Dose is a magnitude: a non-zero-based axis makes 5.5 -> 4.5 mA look
-          // like a collapse.
+          // Dose is a magnitude; a non-zero-based axis exaggerates a change.
           yMin: 0,
           yMax: _niceMax(spec.amplitude),
           label: 'Amplitude (mA)',
@@ -156,9 +143,8 @@ class ScalesChartPainter extends CustomPainter {
       top += h + _panelGap;
     }
 
-    // Title and legend first: their fills are opaque, and painting them last is
-    // how the legend used to erase the title. They now occupy reserved space, so
-    // the order is belt and braces.
+    // Title and legend first: their fills are opaque, so painting them last
+    // would erase whatever they overlap.
     if (band.titleHeight > 0) {
       drawChartText(
         canvas,
@@ -171,8 +157,8 @@ class ScalesChartPainter extends CustomPainter {
     }
     _paintLegend(canvas, size, band);
 
-    // One band spanning every panel: the reader compares a scale dip against
-    // the dose that caused it, so the marker has to cross both.
+    // One band spanning every panel, so a scale dip can be read against the
+    // dose that caused it.
     _paintBands(
       canvas,
       Rect.fromLTRB(area.left, rects.first.top, area.right, rects.last.bottom),
@@ -182,12 +168,11 @@ class ScalesChartPainter extends CustomPainter {
     for (var i = 0; i < panels.length; i++) {
       _paintPanel(canvas, rects[i], panels[i], xPos);
     }
-    // The x axis belongs to the bottom panel only.
     _paintXAxis(canvas, rects.last, size, xPos);
   }
 
-  /// A round number at or above the largest value, so the dose axis has a
-  /// legible top tick instead of "7.43".
+  /// A round number at or above the largest value, so the dose axis gets a
+  /// legible top tick.
   static double _niceMax(Map<String, Map<int, double>> series) {
     var hi = 0.0;
     for (final m in series.values) {
@@ -229,7 +214,6 @@ class ScalesChartPainter extends CustomPainter {
 
     _paintPanelSeries(canvas, plot, panel, xPos, yPos);
 
-    // Frame: left and bottom, heavier than the grid.
     final axis = Paint()
       ..color = ink
       ..strokeWidth = 1.2;
@@ -259,8 +243,8 @@ class ScalesChartPainter extends CustomPainter {
     );
   }
 
-  /// A panel's series. [_PanelSpec.mono] draws one heavy black line with
-  /// diamond markers (the index); otherwise the Dark2 colour + dash cycle.
+  /// A panel's series, in the Dark2 colour and dash cycle unless
+  /// [_PanelSpec.mono] is set.
   void _paintPanelSeries(
     Canvas canvas,
     Rect plot,
@@ -303,8 +287,7 @@ class ScalesChartPainter extends CustomPainter {
     final axis = Paint()
       ..color = ink
       ..strokeWidth = 1.2;
-    // Long labels (the longitudinal figures' `20260626_01`) are drawn rotated,
-    // because horizontally they would overlap after three visits.
+    // Long labels are rotated; horizontally they overlap after three visits.
     final labelled = spec.xTickLabels.isNotEmpty;
     final rotate = labelled && spec.xTickLabels.values.any((l) => l.length > 4);
     for (final x in spec.xs) {
@@ -347,24 +330,23 @@ class ScalesChartPainter extends CustomPainter {
   }
 
   /// Green vertical bands behind everything, marking the best and second-best
-  /// block. `axvspan(x +/- 0.35)` in the desktop. Clipped to the plot, since a
+  /// block, the desktop's `axvspan(x +/- 0.35)`. Clipped to the plot, since a
   /// band on the first or last block would otherwise spill over the axis.
   void _paintBands(Canvas canvas, Rect plot, double Function(num) xPos) {
     canvas
       ..save()
       ..clipRect(plot);
 
-    // Contiguous blocks of one setting are drawn as ONE band, not one per
-    // block: the unit being marked is the configuration, and two rectangles
-    // with a white gap between them says "two things" when the whole point is
-    // that they are the same thing rated twice.
+    // Contiguous blocks of one setting are drawn as one band, because the unit
+    // being marked is the configuration: two rectangles with a gap between
+    // them would read as two settings rather than one rated twice.
     void bands(List<int> xs, int argb) {
       if (xs.isEmpty) return;
       final paint = Paint()..color = Color(argb).withValues(alpha: 0.62);
       final hatch = Paint()
         ..color = ink.withValues(alpha: 0.16)
         ..strokeWidth = 0.9;
-      // Denser for rank 1, so the order reads without colour at all.
+      // Denser for rank 1, so the order reads without colour.
       final step = argb == kBestFill ? 7.0 : 14.0;
       final sorted = xs.toList()..sort();
       var from = sorted.first;
@@ -408,9 +390,7 @@ class ScalesChartPainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// Single-row legend, boxed and centred in the space [band] reserved for it —
-  /// the desktop's `fig.legend(loc="upper center", ncol=len(handles),
-  /// frameon=True)`.
+  /// Single-row legend, boxed and centred in the space [band] reserved for it.
   void _paintLegend(Canvas canvas, Size size, ChartTopBand band) {
     final legend = band.legend;
     if (legend == null) return;
@@ -441,8 +421,8 @@ class ScalesChartPainter extends CustomPainter {
     for (var i = 0; i < legend.entries.length; i++) {
       final (_, color, dash, kind) = legend.entries[i];
       if (kind == ChartLegendKind.band) {
-        // A swatch, hatched: the two greens differ in lightness only, so in
-        // greyscale or on a mono printer the hatch is what tells them apart.
+        // The two greens differ in lightness only, so on a mono printer the
+        // hatch is what tells them apart.
         final swatch = Rect.fromLTWH(x, y - 5, legend.sample, 10);
         canvas
           ..drawRect(swatch, Paint()..color = color)
@@ -458,7 +438,7 @@ class ScalesChartPainter extends CustomPainter {
         final hatch = Paint()
           ..color = ink.withValues(alpha: 0.45)
           ..strokeWidth = 0.8;
-        // Rank 1 gets a denser hatch than rank 2, so the ORDER survives too.
+        // Rank 1 gets the denser hatch, so the order survives too.
         final step = color.toARGB32() == kBestFill ? 4.0 : 8.0;
         for (var hx = swatch.left - 10; hx < swatch.right + 10; hx += step) {
           canvas.drawLine(
@@ -504,18 +484,18 @@ class ScalesChartPainter extends CustomPainter {
 
 /// What kind of sample a legend entry draws.
 enum ChartLegendKind {
-  /// A dashed/solid line with a round marker: one session scale.
+  /// A dashed or solid line with a round marker: one session scale.
   series,
 
-  /// A heavy line with a diamond: the aggregate index. Not named `index` —
-  /// every Dart enum already has an `index` property.
+  /// A heavy line with a diamond: the aggregate index. Not named `index`,
+  /// which every Dart enum already declares.
   aggregate,
 
   /// A filled, hatched swatch: a green ranking band.
   band,
 }
 
-/// The legend's shrink-to-fit result: what to draw and how wide it came out.
+/// The legend's shrink-to-fit result: what to draw, and how wide it came out.
 typedef ChartLegend = ({
   List<(String, Color, List<double>?, ChartLegendKind)> entries,
   List<TextPainter> painters,
@@ -525,15 +505,12 @@ typedef ChartLegend = ({
   double height,
 });
 
-/// The measured top band — title, then legend, then the plot.
+/// The measured top band: title, then legend, then the plot.
 ///
-/// Replaces three hard-coded y values (title 20, legend box 30..50, `_padTop`
-/// 46) that overlapped each other by 5 px and overran the plot by 4 px. Each
-/// element now reserves its own height, so a two-line title or a legend that
-/// shrank to fit cannot collide with anything.
-///
-/// Public only so `scales_chart_layout_test.dart` can assert those
-/// non-overlap invariants directly, rather than by inspecting pixels.
+/// Each element reserves its own height, so a two-line title or a legend that
+/// shrank to fit cannot collide with anything. Public only so
+/// `scales_chart_layout_test.dart` can assert those non-overlap invariants
+/// directly rather than by inspecting pixels.
 class ChartTopBand {
   const ChartTopBand({
     required this.titleTop,
@@ -579,7 +556,6 @@ class ChartTopBand {
         (name, seriesColor(i), seriesDash(i), ChartLegendKind.series),
       if (p.spec.aggregateIndex.isNotEmpty)
         ('Aggregate Index', p.ink, null, ChartLegendKind.aggregate),
-      // The bands are part of the figure, so they belong in its key.
       if (p.spec.bestXs.isNotEmpty)
         ('Rank 1', const Color(kBestFill), null, ChartLegendKind.band),
       if (p.spec.secondXs.isNotEmpty)
@@ -626,11 +602,9 @@ class ChartTopBand {
 
 /// Rasterise the scales chart to PNG bytes for embedding in a report.
 ///
-/// [size] is the logical chart size; [pixelRatio] multiplies it, so the default
-/// yields 2400x1130 — well above the ~1089x518 the desktop's matplotlib chart
-/// produces, so print quality is a clear improvement over the reference.
-/// Returns null when there is nothing to plot, matching `build_scales_chart`'s
-/// `None` so callers can fall back to a text line.
+/// [size] is the logical chart size and [pixelRatio] multiplies it, so the
+/// default is well above the desktop chart's resolution. Returns null when
+/// there is nothing to plot, so callers can fall back to a text line.
 Future<Uint8List?> renderScalesChartPng(
   ScalesChartSpec spec, {
   Size size = const Size(800, 376),

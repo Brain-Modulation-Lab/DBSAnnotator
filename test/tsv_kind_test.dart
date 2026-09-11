@@ -39,12 +39,7 @@ void main() {
 
   test('a notes TSV is recognised, and is NOT a session', () {
     final notes = writeAnnotations(const [
-      Annotation(
-        date: '2026-06-26',
-        time: '09:00:00',
-        timezone: '+0200',
-        notes: 'a note',
-      ),
+      Annotation(acqTime: '2026-06-26T09:00:00+02:00', notes: 'a note'),
     ]);
     expect(sniffTsvKind(notes), TsvKind.notes);
 

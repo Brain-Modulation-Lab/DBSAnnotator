@@ -2,19 +2,14 @@
 /// amplitude, pulse width and frequency, sharing one horizontally scrollable
 /// x axis.
 ///
-/// ## Why there is no Scrollable here
+/// There is no `Scrollable` here. The panels must stay in x-alignment, and
+/// four `SingleChildScrollView`s with synchronised controllers can drift,
+/// since each runs its own physics simulation. A single [_offset] in state
+/// feeds every painter instead, so alignment holds by construction.
 ///
-/// The panels must stay in x-alignment: reading a dip in a scale against the
-/// amplitude that caused it is the entire point. Four `SingleChildScrollView`s
-/// with synchronised `ScrollController`s can drift (each runs its own physics
-/// simulation, and one `jumpTo` per frame per panel fights them), so instead a
-/// single [_offset] in state feeds every panel's painter. Alignment then holds
-/// by construction rather than by keeping four controllers in step.
-///
-/// Panning is handled explicitly: a horizontal drag on the plot area, plus mouse
-/// wheel and trackpad via `PointerSignalEvent`. Reordering uses **explicit drag
-/// handles**, so a horizontal pan and a vertical reorder can never contend for
-/// the same gesture.
+/// Panning is therefore explicit: a horizontal drag on the plot area, plus
+/// wheel and trackpad via `PointerSignalEvent`. Reordering uses explicit drag
+/// handles, so a pan and a reorder cannot contend for the same gesture.
 library;
 
 import 'dart:math' as math;
@@ -25,10 +20,9 @@ import 'package:flutter/material.dart';
 import '../../report/entry_charts.dart';
 import '../chart_primitives.dart';
 
-/// Width of the fixed left gutter. It holds only the y tick labels: the title
-/// and the series key live in a full-width header above each panel, because a
-/// narrow scrolling gutter silently hid every series past the third — which
-/// read as "the legend does not update when I add more scales".
+/// Width of the fixed left gutter. It holds only the y tick labels; the title
+/// and series key live in a full-width header above each panel, because a
+/// narrow gutter silently clips every series past the third.
 const double _gutterWidth = 52;
 
 /// Height of one panel's plot area.
@@ -53,8 +47,8 @@ class EntryChartsView extends StatefulWidget {
     this.onOrderChanged,
     this.visibleConfigs = kDefaultVisibleConfigs,
     this.onVisibleConfigsChanged,
-    this.bestX,
-    this.secondX,
+    this.bestXs = const [],
+    this.secondXs = const [],
   });
 
   final EntryChartData data;
@@ -67,9 +61,9 @@ class EntryChartsView extends StatefulWidget {
   final int visibleConfigs;
   final ValueChanged<int>? onVisibleConfigsChanged;
 
-  /// Blocks to mark with a green band, from the report's ranking.
-  final int? bestX;
-  final int? secondX;
+  /// Blocks to mark with a green band, from the same ranking the report uses.
+  final List<int> bestXs;
+  final List<int> secondXs;
 
   @override
   State<EntryChartsView> createState() => _EntryChartsViewState();
@@ -78,14 +72,13 @@ class EntryChartsView extends StatefulWidget {
 class _EntryChartsViewState extends State<EntryChartsView> {
   /// Horizontal pan, in pixels from the left edge of the content.
   ///
-  /// Starts at infinity, which the first layout clamps to the right-hand end:
-  /// the default view is the LAST configurations, which is both what the user
-  /// asked for and where the newest data — and the best/second-best bands — are.
-  /// Starting at 0 opened a long session on its oldest blocks.
+  /// Starts at infinity, which the first layout clamps to the right-hand end,
+  /// so a long session opens on its newest configurations rather than its
+  /// oldest.
   double _offset = double.infinity;
 
-  /// While true, new configurations keep the view on the most recent ones —
-  /// which is what you want during a session. Panning left releases it.
+  /// While true, new configurations keep the view on the most recent ones, as
+  /// wanted during a session. Panning left releases it.
   bool _followLatest = true;
 
   int _lastXCount = 0;
@@ -101,11 +94,9 @@ class _EntryChartsViewState extends State<EntryChartsView> {
 
   /// Pixels per configuration.
   ///
-  /// Divides by the *smaller* of the zoom window and the number of
-  /// configurations actually recorded, so early in a session — when there are
-  /// fewer blocks than the window — the panels fill the width instead of
-  /// stopping short and looking broken. Once there are more blocks than the
-  /// window, this is the zoom level and the figure scrolls.
+  /// Divides by the smaller of the zoom window and the number of
+  /// configurations recorded, so a session with fewer blocks than the window
+  /// still fills the width instead of stopping short and looking broken.
   double _pxPerStep(double viewport) {
     final window = widget.visibleConfigs.clamp(_minVisible, _maxVisible);
     final steps = math.max(1, math.min(window, widget.data.xs.length));
@@ -120,9 +111,9 @@ class _EntryChartsViewState extends State<EntryChartsView> {
 
   void _pan(double dx, double viewport) {
     setState(() {
-      // Clamp BEFORE applying the delta: _offset can be the infinity sentinel
-      // for "the end", and infinity - dx is still infinity, which would make
-      // the first drag do nothing.
+      // Clamp before applying the delta: _offset can be the infinity sentinel
+      // meaning "the end", and infinity minus dx is still infinity, so the
+      // first drag would do nothing.
       final max = _maxOffset(viewport);
       _offset = (_offset.clamp(0.0, max) - dx).clamp(0.0, max);
       // Panning back to the right edge re-arms follow-the-latest.
@@ -170,14 +161,14 @@ class _EntryChartsViewState extends State<EntryChartsView> {
         final viewport = math.max(80.0, constraints.maxWidth - _gutterWidth);
         final pxPerStep = _pxPerStep(viewport);
         // Clamp here rather than in setState: the viewport is only known now,
-        // and `didUpdateWidget` parks the offset at infinity to mean "the end".
+        // and `didUpdateWidget` parks the offset at infinity for "the end".
         final offset = _offset.clamp(0.0, _maxOffset(viewport));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _header(theme, xs.length, viewport, pxPerStep, offset),
-            // Wheel and trackpad pan the whole figure.
+            // Wheel and trackpad pan the whole figure, not one panel.
             Listener(
               onPointerSignal: (e) {
                 if (e is PointerScrollEvent) {
@@ -190,7 +181,7 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                 physics: const NeverScrollableScrollPhysics(),
                 buildDefaultDragHandles: false,
                 // onReorderItem gives an index already adjusted for the
-                // removal, so no manual -1 fixup.
+                // removal.
                 onReorderItem: (o, n) => _reorderItem(o, n, panels),
                 children: [
                   for (var i = 0; i < panels.length; i++)
@@ -236,9 +227,8 @@ class _EntryChartsViewState extends State<EntryChartsView> {
   /// A real, draggable scrollbar under the shared axis.
   ///
   /// The figure pans by drag and wheel, but with nothing on screen saying so a
-  /// long session just looks truncated. This is the affordance; it also shows at
-  /// a glance how much of the session is off-screen. Absent (as a thin spacer)
-  /// when everything already fits, so it never implies hidden data.
+  /// long session just looks truncated. Reduced to a thin spacer when
+  /// everything already fits, so it never implies hidden data.
   Widget _scrollbar(ThemeData theme, double viewport, double offset) {
     final maxOff = _maxOffset(viewport);
     if (maxOff <= 0.5) return const SizedBox(height: 6);
@@ -250,7 +240,7 @@ class _EntryChartsViewState extends State<EntryChartsView> {
     return Padding(
       padding: const EdgeInsets.only(left: _gutterWidth, top: 6, bottom: 2),
       child: GestureDetector(
-        // Thumb pixels -> content pixels, so the thumb tracks the finger.
+        // Thumb pixels to content pixels, so the thumb tracks the finger.
         onHorizontalDragUpdate: (d) =>
             _pan(-d.delta.dx * maxOff / travel, viewport),
         child: SizedBox(
@@ -305,7 +295,7 @@ class _EntryChartsViewState extends State<EntryChartsView> {
             child: Text(
               total <= widget.visibleConfigs
                   ? 'All $total configurations'
-                  : 'Configurations $first–$last of $total',
+                  : 'Configurations $first-$last of $total',
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -342,16 +332,15 @@ class _EntryChartsViewState extends State<EntryChartsView> {
     final names = panel.series.keys.toList();
     return Container(
       key: ValueKey(panel.id),
-      // A clear boundary between panels: without it four stacked plots read as
-      // one confusing figure.
+      // Without a boundary, four stacked plots read as one figure.
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: theme.dividerColor, width: 1.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header: handle, title, and the series key at FULL width so it can
-          // never be clipped, however many scales are recorded.
+          // The series key sits at full width so it is never clipped, however
+          // many scales are recorded.
           Padding(
             padding: const EdgeInsets.only(top: 6, bottom: 2),
             child: Row(
@@ -382,10 +371,10 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                     children: [
                       for (var i = 0; i < names.length; i++)
                         _SeriesKey(
-                          // "Left (= Right)" when the two are numerically
-                          // identical: one line hides under the other, and the
-                          // reader otherwise cannot tell whether both sides are
-                          // plotted or one is missing.
+                          // Marked when the two sides are numerically
+                          // identical: one line hides under the other, so the
+                          // reader cannot otherwise tell a coincidence from a
+                          // missing series.
                           name: panel.coincident.contains(names[i])
                               ? '${names[i]} (identical)'
                               : names[i],
@@ -400,10 +389,8 @@ class _EntryChartsViewState extends State<EntryChartsView> {
           ),
           if (panel.constantLabel != null)
             // An unchanged parameter gets a sentence, not a third of the
-            // figure. Plotted, it was a flat line dead-centre of a padded axis
-            // (89-91 for a constant 90), which reads as a measured mid-range
-            // value, and with both sides identical the Left series was hidden
-            // exactly under the Right with nothing saying so.
+            // figure: plotted, it is a flat line mid-axis, which reads as a
+            // measured mid-range value rather than as a constant.
             Padding(
               padding: const EdgeInsets.only(left: _gutterWidth, bottom: 8),
               child: Text(
@@ -433,8 +420,8 @@ class _EntryChartsViewState extends State<EntryChartsView> {
                           xs: xs,
                           pxPerStep: pxPerStep,
                           offset: offset,
-                          bestX: widget.bestX,
-                          secondX: widget.secondX,
+                          bestXs: widget.bestXs,
+                          secondXs: widget.secondXs,
                           ink: theme.colorScheme.onSurfaceVariant,
                           grid: theme.dividerColor,
                         ),
@@ -542,8 +529,8 @@ class _PanelPainter extends CustomPainter {
     required this.offset,
     required this.ink,
     required this.grid,
-    this.bestX,
-    this.secondX,
+    this.bestXs = const [],
+    this.secondXs = const [],
   });
 
   final ParamPanel panel;
@@ -552,8 +539,8 @@ class _PanelPainter extends CustomPainter {
   final double offset;
   final Color ink;
   final Color grid;
-  final int? bestX;
-  final int? secondX;
+  final List<int> bestXs;
+  final List<int> secondXs;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -569,21 +556,22 @@ class _PanelPainter extends CustomPainter {
         _plotPadY -
         ((v - panel.yMin) / span) * (size.height - 2 * _plotPadY);
 
-    // Green ranking bands, behind everything.
-    void band(int? block, int argb) {
-      if (block == null) return;
-      final i = xs.indexOf(block);
-      if (i < 0) return;
-      canvas.drawRect(
-        Rect.fromLTRB(xPos(i - 0.42), 0, xPos(i + 0.42), size.height),
-        Paint()..color = Color(argb).withValues(alpha: 0.45),
-      );
+    // Bands first, so everything else draws over them.
+    void bands(List<int> blocks, int argb) {
+      for (final block in blocks) {
+        final i = xs.indexOf(block);
+        if (i < 0) continue;
+        canvas.drawRect(
+          Rect.fromLTRB(xPos(i - 0.42), 0, xPos(i + 0.42), size.height),
+          Paint()..color = Color(argb).withValues(alpha: 0.45),
+        );
+      }
     }
 
-    if (secondX != bestX) band(secondX, 0xFFC8EBCD);
-    band(bestX, 0xFF96D2A0);
+    bands(secondXs, 0xFFC8EBCD);
+    bands(bestXs, 0xFF96D2A0);
 
-    // Horizontal guides (top / middle / bottom) and one vertical per config.
+    // Horizontal guides, and one vertical per configuration.
     final gridPaint = Paint()
       ..color = grid
       ..strokeWidth = 0.6;
@@ -601,7 +589,7 @@ class _PanelPainter extends CustomPainter {
       );
     }
 
-    // Series, keyed by index so colour and dash match the gutter key.
+    // Keyed by index so colour and dash match the header key.
     final indexOf = {for (var i = 0; i < xs.length; i++) xs[i]: i};
     var s = 0;
     for (final entry in panel.series.entries) {
@@ -619,13 +607,13 @@ class _PanelPainter extends CustomPainter {
       s++;
     }
 
-    // The two MAIN axes, drawn last and heavier than the guides so the eye can
-    // tell the frame of one panel from the guides of the next.
+    // Drawn last and heavier than the guides, so the frame of one panel is
+    // distinguishable from the guides of the next.
     final axis = Paint()
       ..color = ink
       ..strokeWidth = 1.6
       ..style = PaintingStyle.stroke;
-    // Inset by half the stroke: a line ON the clip edge draws at half width.
+    // Inset by half the stroke: a line on the clip edge draws at half width.
     final baseline = size.height - _plotPadY;
     canvas
       ..drawLine(const Offset(1, _plotPadY), Offset(1, baseline), axis)
@@ -639,8 +627,8 @@ class _PanelPainter extends CustomPainter {
       old.xs != xs ||
       old.pxPerStep != pxPerStep ||
       old.offset != offset ||
-      old.bestX != bestX ||
-      old.secondX != secondX ||
+      old.bestXs != bestXs ||
+      old.secondXs != secondXs ||
       old.ink != ink ||
       old.grid != grid;
 }

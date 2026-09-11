@@ -1,13 +1,12 @@
 /// Drawing primitives shared by the report chart and the on-screen entry
 /// panels.
 ///
-/// The two have genuinely different *layouts* — the report chart is a single
-/// fixed-size figure with a title, a legend and a second axis; the panels are a
-/// stack sharing one scrollable x axis — so they are separate painters. But the
-/// parts that decide whether a series *looks right* (dash patterns, breaking a
-/// line across a missing point, marker shape, tick formatting) belong in one
-/// place. Duplicating them is how the two drift into disagreeing about the same
-/// data.
+/// Their layouts differ too much to share a painter: the report chart is one
+/// fixed-size figure with a title, a legend and a second axis, while the panels
+/// are a stack sharing one scrollable x axis. What decides whether a series
+/// looks right (dash patterns, breaking a line across a missing point, marker
+/// shape, tick formatting) is shared, so the two cannot drift into disagreeing
+/// about the same data.
 library;
 
 import 'dart:math' as math;
@@ -15,8 +14,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'painter_font.dart';
 
-/// matplotlib's `Dark2` qualitative colormap — the desktop's series palette, so
-/// a scale keeps its colour between the app and the report.
+/// matplotlib's `Dark2` colormap, the desktop's series palette, so a scale
+/// keeps its colour between the app and the report.
 const kDark2 = <Color>[
   Color(0xFF1B9E77),
   Color(0xFFD95F02),
@@ -28,12 +27,11 @@ const kDark2 = <Color>[
   Color(0xFF666666),
 ];
 
-/// Dash patterns cycling independently of colour: solid, dashed, dotted,
-/// dash-dot, dash-dot-dot. `null` means solid.
+/// Dash patterns cycling independently of colour; `null` means solid.
 ///
-/// Colour alone is not enough — 8 colours × 5 patterns keeps 40 series
-/// distinguishable, and the pattern survives greyscale printing and the common
-/// forms of colour blindness.
+/// Colour alone is not enough: 8 colours by 5 patterns keeps 40 series
+/// distinguishable, and a pattern survives greyscale printing and colour
+/// blindness.
 const kDashes = <List<double>?>[
   null,
   [6, 3],
@@ -77,9 +75,8 @@ Path diamondPath(Offset c, double r) => Path()
 
 /// Split a series into runs of consecutive points that actually have a value.
 ///
-/// A missing x must **break** the line rather than be interpolated across:
-/// joining block 2 to block 5 would draw a trend through a scale that was not
-/// assessed at 3 and 4.
+/// A missing x must break the line rather than be interpolated across: joining
+/// block 2 to block 5 would draw a trend through blocks never assessed.
 List<List<Offset>> seriesRuns(
   Iterable<int> xs,
   Map<int, double> values,
@@ -102,9 +99,7 @@ List<List<Offset>> seriesRuns(
 }
 
 /// Stroke [runs] with [color]/[dash] and put a round marker on every point.
-///
-/// A single-point run gets its marker but no line, which is how an isolated
-/// reading should read.
+/// A single-point run gets its marker but no line.
 void drawSeriesRuns(
   Canvas canvas,
   List<List<Offset>> runs, {
@@ -161,8 +156,8 @@ TextPainter chartTextPainter(
   textDirection: TextDirection.ltr,
 )..layout();
 
-/// Paint [text] at [at]. [align] is horizontal; [anchorY] is the fraction of the
-/// text height above [at] (0 = top, 0.5 = vertically centred).
+/// Paint [text] at [at]. [align] is horizontal; [anchorY] is the fraction of
+/// the text height above [at] (0 is top, 0.5 vertically centred).
 void drawChartText(
   Canvas canvas,
   String text,
@@ -182,7 +177,7 @@ void drawChartText(
   p.paint(canvas, Offset(dx, at.dy - p.height * anchorY));
 }
 
-/// Paint [text] rotated a quarter turn, centred on [at] — for axis titles.
+/// Paint [text] rotated a quarter turn, centred on [at], for axis titles.
 void drawRotatedChartText(
   Canvas canvas,
   String text,
@@ -192,7 +187,7 @@ void drawRotatedChartText(
   bool bold = false,
   bool clockwise = false,
 
-  /// Anchor the text's START at [at] instead of its centre, so a rotated tick
+  /// Anchor the text's start at [at] instead of its centre, so a rotated tick
   /// label hangs down from its tick rather than straddling the axis.
   bool anchorTop = false,
 }) {

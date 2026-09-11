@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Real work areas (logical px, i.e. after DPI scaling) that a clinician might
-/// launch on. The last two are the cases that used to break: a small laptop, and
-/// a high-DPI panel whose LOGICAL resolution is small even though the physical
-/// one is large.
+/// launch on, including a small laptop and a high-DPI panel whose logical
+/// resolution is small even though the physical one is large.
 const _workAreas = <String, Size>{
   '4K desktop @100%': Size(3840, 2120),
   '1080p desktop @100%': Size(1920, 1032),
@@ -22,7 +21,6 @@ void main() {
       test('fits entirely inside the work area: $name', () {
         final r = fitWindowRect(work: work);
 
-        // The whole point: never larger than the screen can show.
         expect(
           r.width,
           lessThanOrEqualTo(work.width),
@@ -32,7 +30,7 @@ void main() {
           r.height,
           lessThanOrEqualTo(work.height),
           reason:
-              'taller than the work area — this is what hid the title '
+              'taller than the work area, which is what hid the title '
               'bar and the taskbar',
         );
         // And fully within it, so the title bar can be grabbed.
@@ -40,7 +38,6 @@ void main() {
         expect(r.top, greaterThanOrEqualTo(0));
         expect(r.right, lessThanOrEqualTo(work.width + 0.01));
         expect(r.bottom, lessThanOrEqualTo(work.height + 0.01));
-        // Still usable.
         expect(r.width, greaterThan(300));
         expect(r.height, greaterThan(300));
       });

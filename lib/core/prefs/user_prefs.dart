@@ -6,12 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import '../session/scale_presets.dart';
 
 /// Per-user preset overrides, persisted as JSON in the app-support directory
-/// and layered over the bundled contract defaults — the tablet counterpart of
-/// the desktop's per-user managers (`setting_presets_manager`,
-/// `scale_preset_manager`, `program_config_manager`) under `user_data_dir()`.
+/// and layered over the bundled contract defaults.
 ///
 /// Any field left null means "use the bundled default"; the UI merges with
-/// `?? <default>`. Pure `fromJson`/`toJson` so the round-trip is unit-testable.
+/// `?? <default>`.
 class UserPrefs {
   UserPrefs({
     this.stimFrequencies,
@@ -41,13 +39,12 @@ class UserPrefs {
   /// Session scale presets: group name -> [name, min, max] rows.
   Map<String, List<List<String>>>? session;
 
-  /// Paper size for exported reports: 'a4' or 'letter'. Null -> [kDefaultReportPageSize].
-  /// Applies to both the PDF and the Word document, so the two always match.
+  /// Paper size for exported reports, 'a4' or 'letter', applied to both the
+  /// PDF and the Word document so the two always match.
   String? reportPageSize;
 
-  /// Top-to-bottom order of the entry-review chart panels, by panel id.
-  /// Persisted so a clinician's arrangement survives closing the app — an order
-  /// that resets every visit is worse than none.
+  /// Top-to-bottom order of the entry-review chart panels, by panel id,
+  /// persisted so a clinician's arrangement survives closing the app.
   List<String>? entryPanelOrder;
 
   /// How many configurations fill the entry-review chart viewport (the zoom).
@@ -56,9 +53,8 @@ class UserPrefs {
   /// Whether the inserted-entries table below the charts is expanded.
   bool? entryTableExpanded;
 
-  /// Report sections to include, by [ReportSection.name]. Persisted so a
-  /// clinician who always drops one section does not re-uncheck it every export.
-  /// Null -> every section.
+  /// Report sections to include, by [ReportSection.name]; null means every
+  /// section. Persisted so a dropped section stays dropped on the next export.
   List<String>? reportSections;
 
   factory UserPrefs.fromJson(Map<String, dynamic> j) {
@@ -108,9 +104,8 @@ class UserPrefs {
   };
 }
 
-/// Default report paper size. A4 rather than the desktop's US Letter (which is
-/// only python-docx's default), since this app is used in a European clinic;
-/// [UserPrefs.reportPageSize] overrides it.
+/// Default report paper size: A4 rather than the desktop's US Letter, which is
+/// only python-docx's default. [UserPrefs.reportPageSize] overrides it.
 const String kDefaultReportPageSize = 'a4';
 
 /// The paper sizes the report exporters accept.
@@ -119,10 +114,9 @@ const List<String> kReportPageSizes = ['a4', 'letter'];
 /// Default program names (desktop `ProgramConfigManager.DEFAULT_PROGRAMS`).
 const List<String> kDefaultPrograms = ['None', 'A', 'B', 'C', 'D'];
 
-/// Bundled [base] scale presets with the user's saved overrides layered on top
-/// (F7) — edited/added disease groups win over the contract defaults, and any
-/// new group name is appended to the button bar. Pure so it is unit-testable;
-/// the tablet counterpart of the desktop ScalePresetManager merge.
+/// Bundled [base] scale presets with the user's saved overrides layered on
+/// top: an edited or added disease group wins over the contract default, and a
+/// new group name is appended to the button bar.
 ScalePresets mergeScalePresets(ScalePresets base, UserPrefs prefs) {
   final clinical = {...base.clinical};
   prefs.clinical?.forEach((k, v) => clinical[k] = v);
@@ -134,8 +128,7 @@ ScalePresets mergeScalePresets(ScalePresets base, UserPrefs prefs) {
           name: r.isNotEmpty ? r[0] : '',
           min: r.length > 1 ? r[1] : '0',
           max: r.length > 2 ? r[2] : '10',
-          // The 4th cell is the report's optimization mode. Rows saved
-          // before it existed fall back to the contract default.
+          // Rows saved before the optimization mode existed fall back.
           mode:
               r.length > 3 &&
                   scaleOptimizationModes.contains(r[3].trim().toLowerCase())

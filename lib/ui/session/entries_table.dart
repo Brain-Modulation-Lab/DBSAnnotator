@@ -1,26 +1,22 @@
 /// Review table of every inserted TSV row, grouped by block.
 ///
-/// Uses Flutter's `Table` rather than `DataTable` for one reason: `DataTable`
-/// cannot draw a per-row border, and the point here is a **heavy rule where one
-/// block ends and the next begins**. One row per scale means a single block can
-/// span several rows, so without that rule the eye cannot tell where a
-/// configuration starts. Each block also gets a faint alternating tint, which
-/// does the same job at a glance.
-///
-/// Extracted from the session screen because the single-session report screen
-/// shows exactly the same review.
+/// Uses Flutter's `Table` rather than `DataTable` because `DataTable` cannot
+/// draw a per-row border, and one row per scale means a block spans several
+/// rows: without a heavy rule at each block boundary the eye cannot tell where
+/// a configuration starts.
 library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/timestamps.dart';
 import '../../core/session/session_row.dart';
 import '../../report/report_data.dart' show coerceInt;
 
 /// Thickness of the rule between blocks.
 const double _blockRule = 2.4;
 
-/// Distinct blocks in [rows] — what the user counts, rather than TSV rows
-/// (one block writes one row per scale, so "rows" reads several times too high).
+/// Distinct blocks in [rows], which is what the user counts: one block writes
+/// one row per scale, so a TSV row count reads several times too high.
 int blockCount(List<SessionRow> rows) =>
     rows.map((r) => coerceInt(r.blockId)).toSet().length;
 
@@ -59,22 +55,25 @@ class SessionEntriesTable extends StatelessWidget {
     );
 
     String triple(String f, String a, String pw) =>
-        [f, a, pw].map((s) => s.trim().isEmpty ? '–' : s.trim()).join(' / ');
+        [f, a, pw].map((s) => s.trim().isEmpty ? '-' : s.trim()).join(' / ');
 
-    // The date belongs to the session, not to a configuration: the baseline row
-    // carries it and each recording block shows only its clock time, so the
-    // column stops repeating "2026-06-26" once per block. A file with no
-    // baseline at all keeps date+time on its first block, so the day is never
+    // The date belongs to the session, not to a configuration, so the baseline
+    // row carries it and recording blocks show only a clock time. A file with
+    // no baseline keeps date and time on its first block, so the day is never
     // lost from the table.
     final hasInitial = rows.any((r) => coerceInt(r.isInitial) == 1);
+    // Read as the wall clock recorded in `acq_time`, never converted: parsing
+    // the instant would render it in this device's zone, so a block recorded
+    // at 09:00 in Geneva would read 03:00 in Chicago. See `recordedDate`.
     String stamp(SessionRow r, bool initial, bool isFirstBlock) {
-      if (initial) return r.date.trim();
-      if (isFirstBlock && !hasInitial) return '${r.date} ${r.time}'.trim();
-      return r.time.trim();
+      final date = recordedDate(r.acqTime);
+      final time = recordedTime(r.acqTime);
+      if (date.isEmpty) return '';
+      if (initial) return date;
+      if (isFirstBlock && !hasInitial) return '$date $time';
+      return time;
     }
 
-    // Walk the rows, tracking where each block starts so the rule can be drawn
-    // on the first row of every block after the first.
     final tableRows = <TableRow>[
       TableRow(
         decoration: BoxDecoration(
@@ -97,12 +96,10 @@ class SessionEntriesTable extends StatelessWidget {
         previousBlock = block;
         blockIndex++;
       }
-      // Everything except Scale and Value is a property of the BLOCK, so it is
-      // printed once on the block's first row and left blank on the rest. A
-      // 7-block x 5-scale session was otherwise repeating the same timestamp,
-      // programme and both sides' parameters 35 times, which buries the two
-      // cells that actually differ. Blanking rather than merging keeps every
-      // column aligned, so the block's values still read straight down.
+      // Everything except Scale and Value is a property of the block, so it is
+      // printed once on the block's first row and left blank on the rest,
+      // leaving only the cells that differ. Blanking rather than merging keeps
+      // every column aligned.
       final isInitial = coerceInt(r.isInitial) == 1;
       tableRows.add(
         TableRow(

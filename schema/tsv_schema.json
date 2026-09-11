@@ -3,24 +3,9 @@
   "session_tsv": {
     "columns": [
       {
-        "name": "date",
-        "type": "string",
-        "description": "Date of the entry (``YYYY-MM-DD``), local to the recording machine."
-      },
-      {
-        "name": "time",
-        "type": "string",
-        "description": "Time of the entry (``HH:MM:SS``), local to the recording machine."
-      },
-      {
-        "name": "timezone",
-        "type": "string",
-        "description": "Zone name and UTC offset at capture time, for human readers (e.g. ``CEST +02:00``). Parse ``acq_time`` instead."
-      },
-      {
         "name": "acq_time",
         "type": "string",
-        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-02-03T09:00:00+00:00``). The machine-readable timestamp."
+        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-02-03T09:00:00+00:00``). The only timestamp a row carries, and BIDS' own name for it: ``pd.to_datetime(df.acq_time)`` reads it offset-aware in one step. Older files that split the instant across ``date``, ``time`` and a free-text ``timezone`` are read and folded into this column; only ``acq_time`` is ever written."
       },
       {
         "name": "block_id",
@@ -28,9 +13,9 @@
         "description": "Index of the stimulation block within a session. Every row of one block repeats its stimulation values."
       },
       {
-        "name": "session_id",
+        "name": "append_id",
         "type": "integer",
-        "description": "Internal session counter, incremented each time the file is reopened for appending."
+        "description": "Data-entry episode within this file: increments each time the file is reopened to add rows. File-scoped, so equal values in different files are unrelated. Deliberately not called ``session_id``, which BIDS uses for the ``ses-`` label in ``sessions.tsv``; one name for both meanings would mislead every reader of a combined table."
       },
       {
         "name": "is_initial",
@@ -76,8 +61,7 @@
       {
         "name": "left_amplitude",
         "type": "string",
-        "units": "mA",
-        "description": "Left amplitude. A single value, or per-contact values joined by ``_`` in ``left_cathode`` order when current is steered (``3.3_2.2`` is 5.5 mA split 60/40)."
+        "description": "Left amplitude in mA. A single value, or per-contact values joined by ``_`` in ``left_cathode`` order when current is steered (``3.3_2.2`` is 5.5 mA split 60/40). It carries no ``Units`` because a steered value is not a single number; sum the parts for the delivered current."
       },
       {
         "name": "left_pulse_width",
@@ -104,8 +88,7 @@
       {
         "name": "right_amplitude",
         "type": "string",
-        "units": "mA",
-        "description": "Right amplitude, same shape as ``left_amplitude``."
+        "description": "Right amplitude in mA, same shape as ``left_amplitude``."
       },
       {
         "name": "right_pulse_width",
@@ -123,29 +106,38 @@
   "annotation_tsv": {
     "columns": [
       {
-        "name": "date",
-        "type": "string",
-        "description": "Date of the entry (``YYYY-MM-DD``), local to the recording machine."
-      },
-      {
-        "name": "time",
-        "type": "string",
-        "description": "Time of the entry (``HH:MM:SS``), local to the recording machine."
-      },
-      {
-        "name": "timezone",
-        "type": "string",
-        "description": "Zone name and UTC offset at capture time, for human readers (e.g. ``CEST +02:00``). Parse ``acq_time`` instead."
-      },
-      {
         "name": "acq_time",
         "type": "string",
-        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-02-03T09:00:00+00:00``). The machine-readable timestamp."
+        "description": "The entry's instant in ISO-8601 with its UTC offset (e.g. ``2026-02-03T09:00:00+00:00``). The only timestamp a row carries, and BIDS' own name for it: ``pd.to_datetime(df.acq_time)`` reads it offset-aware in one step. Older files that split the instant across ``date``, ``time`` and a free-text ``timezone`` are read and folded into this column; only ``acq_time`` is ever written."
       },
       {
         "name": "notes",
         "type": "string",
         "description": "Free-text note for this entry."
+      }
+    ]
+  },
+  "aggregate_tsv": {
+    "columns": [
+      {
+        "name": "participant_id",
+        "type": "string",
+        "description": "Subject label as ``sub-<label>``, parsed from the source filename. The BIDS spelling and value shape deliberately, so this table joins directly onto ``participants.tsv``."
+      },
+      {
+        "name": "session_id",
+        "type": "string",
+        "description": "Session label as ``ses-<label>``, parsed from the source filename: the BIDS session, as ``sessions.tsv`` means it. Not to be confused with ``append_id``, the data-entry counter within one source file, which older files spell ``session_id``."
+      },
+      {
+        "name": "run_id",
+        "type": "string",
+        "description": "The BIDS run index, zero-padded, without the ``run-`` prefix so it sorts numerically."
+      },
+      {
+        "name": "source_file",
+        "type": "string",
+        "description": "The session file this row came from. Not redundant with the entities above: ``run`` defaults to ``01`` and does not auto-increment, so two visits on the same day can share all three, and this is then the only thing that tells their rows apart. A block is unique across the table on ``(participant_id, session_id, run_id, block_id)``."
       }
     ]
   },

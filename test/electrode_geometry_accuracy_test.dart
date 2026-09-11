@@ -6,7 +6,7 @@ import 'package:dbs_annotator/core/electrode/geometry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The repo-root contract is the source of truth (same as electrode_geometry_test).
+/// The committed contract is the source of truth.
 ElectrodeCatalog _catalog() {
   final raw = File('assets/schema/electrode_models.json').readAsStringSync();
   return ElectrodeCatalog.fromJson(jsonDecode(raw) as Map<String, dynamic>);
@@ -22,9 +22,8 @@ void main() {
   ];
 
   /// pitch / contactHeight, in drawn pixels. Each model is fitted to the pane,
-  /// so absolute pixel sizes are NOT comparable between models — but this ratio
-  /// is scale-free, and equalling the model's millimetre ratio is precisely
-  /// what "mm-accurate" means.
+  /// so absolute sizes are not comparable between models; this ratio is
+  /// scale-free, and matching the model's millimetre ratio is "mm-accurate".
   double drawnPitchRatio(String name, [Size size = const Size(300, 600)]) {
     final l = computeLayout(catalog.models[name]!, size);
     final tops = l.levels.map((x) => x.contactRects.values.first.top).toList();
@@ -36,12 +35,11 @@ void main() {
     for (final entry in catalog.models.entries) {
       final m = entry.value;
       if (m.numContacts < 2) continue;
-      // TRUE millimetres — contactHeight + contactSpacing, with no per-gap
-      // padding. (A flat +1 mm on every gap, as the desktop applies, would make
-      // 3387 and 3391 collapse onto the same 1:1.667 ratio.) Models whose
-      // spacing would fall under the minimum drawn gap are pinned to that
-      // floor instead, so skip those here — the invariant group still covers
-      // them.
+      // True millimetres: contactHeight + contactSpacing, with no per-gap
+      // padding. A flat +1 mm on every gap, as the desktop applies, would
+      // collapse 3387 and 3391 onto the same 1:1.667 ratio. Models whose
+      // spacing falls under the minimum drawn gap are pinned to that floor,
+      // so they are skipped here; the invariant group still covers them.
       final expected = (m.contactHeight + m.contactSpacing) / m.contactHeight;
       final actual = drawnPitchRatio(entry.key);
       if (actual > expected + 0.001) continue; // gap pinned to the px floor
@@ -93,7 +91,7 @@ void main() {
               greaterThan(cap.height),
               reason: '$name @$size cap outweighs its segments',
             );
-            // And the cap must not have eaten into them past the cap.
+            // And the cap must not overlap them.
             expect(cap.bottom, lessThanOrEqualTo(seg.top + 0.01));
           }
         }
@@ -101,7 +99,7 @@ void main() {
     },
   );
 
-  test('all leads render at the same width — they are all 1.27-1.30 mm', () {
+  test('all leads render at the same width: they are all 1.27-1.30 mm', () {
     // Width must NOT follow the height-fitted scale, or a widely-spaced model
     // would look like a thinner physical product.
     final widths = [
@@ -185,8 +183,8 @@ void main() {
             reason: 'dome overflows',
           );
 
-          // (b) A ring cap never overlaps the level above it (the old
-          // max(gap*0.8, 16.0) floor did exactly that on Cartesia HX/X).
+          // (b) A ring cap never overlaps the level above it; a
+          // max(gap*0.8, 16.0) floor does exactly that on Cartesia HX/X.
           for (var i = 0; i < l.levels.length; i++) {
             final cap = l.levels[i].ringCapRect;
             if (cap == null) continue;
@@ -210,8 +208,8 @@ void main() {
             expect(cap.height, greaterThan(0));
           }
 
-          // (c) Ring-cap centres stay tappable (this is what the hit-test
-          // precedence change protects).
+          // (c) Ring-cap centres stay tappable, which hit-test precedence
+          // protects.
           for (final lv in l.levels) {
             final cap = lv.ringCapRect;
             if (cap == null) continue;
@@ -256,9 +254,9 @@ void main() {
 
   group('case height and crowding width', () {
     test('the case is a fixed height, whatever the lead or the pane', () {
-      // It used to be 1.75x the drawn lead width, which on a 300x600 pane was
-      // 137 px - 23 % of the canvas - and grew with the lead, so a wide lead
-      // stole the height the contacts needed.
+      // A case scaled to 1.75x the drawn lead width is 137 px on a 300x600
+      // pane, 23 % of the canvas, and grows with the lead, so a wide lead
+      // steals the height the contacts need.
       final heights = <double>{};
       for (final model in _catalog().models.values) {
         for (final size in const [
@@ -278,9 +276,9 @@ void main() {
     });
 
     test('shortening the case gave the contacts the room', () {
-      // The point of the change: more vertical budget for the stack, so labels
-      // stay legible. A SenSight on a small tablet pane used to get 36 px
-      // contacts at a 10.9 px font.
+      // The vertical budget the shorter case frees goes to the stack, so the
+      // labels stay legible: a SenSight on a small tablet pane otherwise gets
+      // 36 px contacts at a 10.9 px font.
       final layout = computeLayout(
         _catalog().models['Medtronic SenSight B33005']!,
         const Size(220, 420),

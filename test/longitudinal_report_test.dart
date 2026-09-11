@@ -25,16 +25,14 @@ String _part(List<int> bytes, String name) => utf8.decode(
 Map<String, List<SessionRow>> _twoVisits() => {
   'sub-07_ses-20260101_task-programming_run-01_beh.tsv': const [
     SessionRow(
-      date: '2026-01-01',
-      time: '09:00:00',
+      acqTime: '2026-01-01T09:00:00',
       blockId: '0',
       isInitial: '1',
       scaleName: 'UPDRS-III',
       scaleValue: '40',
     ),
     SessionRow(
-      date: '2026-01-01',
-      time: '09:10:00',
+      acqTime: '2026-01-01T09:10:00',
       blockId: '1',
       isInitial: '0',
       scaleName: 'Tremor',
@@ -45,8 +43,7 @@ Map<String, List<SessionRow>> _twoVisits() => {
       programId: 'A',
     ),
     SessionRow(
-      date: '2026-01-01',
-      time: '09:20:00',
+      acqTime: '2026-01-01T09:20:00',
       blockId: '2',
       isInitial: '0',
       scaleName: 'Tremor',
@@ -59,16 +56,14 @@ Map<String, List<SessionRow>> _twoVisits() => {
   ],
   'sub-07_ses-20260615_task-programming_run-02_events.tsv': const [
     SessionRow(
-      date: '2026-06-15',
-      time: '10:00:00',
+      acqTime: '2026-06-15T10:00:00',
       blockId: '0',
       isInitial: '1',
       scaleName: 'UPDRS-III',
       scaleValue: '28',
     ),
     SessionRow(
-      date: '2026-06-15',
-      time: '10:10:00',
+      acqTime: '2026-06-15T10:10:00',
       blockId: '1',
       isInitial: '0',
       scaleName: 'Tremor',
@@ -103,8 +98,8 @@ void main() {
   test('the clinical figure has one point per VISIT, labelled date_run', () {
     final chart = data.clinicalChart;
     expect(chart.series.keys, ['UPDRS-III']);
-    // Two visits, so two x positions — not two blocks, and not the
-    // concatenated block index across files that this replaced.
+    // Two visits, so two x positions: not two blocks, and not a block index
+    // concatenated across files.
     expect(chart.xs, [0, 1]);
     expect(chart.xTickLabels[0], '20260101_01');
     expect(chart.xTickLabels[1], '20260615_02');
@@ -147,18 +142,16 @@ void main() {
   });
 
   test('a scale change is rendered without float artifacts', () {
-    // The per-visit table prints the change in the primary clinical scale, and
-    // it used `v.toString()` on a SUBTRACTION - so a UPDRS-III falling 40.0 to
-    // 36.4 rendered as "-3.6000000000000014" in a document filed in a patient
-    // record. Both reports now share report_data's trimZeros, which caps at two
-    // decimals: the scales step in 0.25, so it cannot show precision the
-    // instrument has not got.
+    // The per-visit table prints the change in the primary clinical scale,
+    // which is a subtraction: `v.toString()` on it renders a UPDRS-III falling
+    // 40.0 to 36.4 as "-3.6000000000000014" in a document filed in a patient
+    // record. Both reports share report_data's trimZeros, capped at two
+    // decimals because the scales step in 0.25.
     final artifact = buildLongitudinalReportData(
       files: {
         'sub-07_ses-20260101_task-programming_run-01_beh.tsv': const [
           SessionRow(
-            date: '2026-01-01',
-            time: '09:00:00',
+            acqTime: '2026-01-01T09:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',
@@ -167,8 +160,7 @@ void main() {
         ],
         'sub-07_ses-20260615_task-programming_run-01_beh.tsv': const [
           SessionRow(
-            date: '2026-06-15',
-            time: '09:00:00',
+            acqTime: '2026-06-15T09:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',
@@ -200,8 +192,7 @@ void main() {
         ..._twoVisits(),
         'sub-99_ses-20260701_task-programming_run-01_beh.tsv': const [
           SessionRow(
-            date: '2026-07-01',
-            time: '11:00:00',
+            acqTime: '2026-07-01T11:00:00',
             blockId: '0',
             isInitial: '1',
             scaleName: 'UPDRS-III',

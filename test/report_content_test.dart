@@ -1,5 +1,4 @@
-/// The content the two expert reviews asked for, pinned where it is cheap: in
-/// `report_data`, which both builders render from.
+/// Report content pinned in `report_data`, which both builders render from.
 library;
 
 import 'dart:io';
@@ -36,9 +35,17 @@ void main() {
       expect(first[index], contains('0.380'));
       expect(
         first[index],
-        contains('rank 6'),
-        reason: 'block 1 is the 6th best of 7',
+        contains('rank 5'),
+        reason: 'blocks 3 and 4 tie, so block 1 is 5th of six distinct values',
       );
+      // Equal printed indices must carry equal ranks: the document elsewhere
+      // says those two blocks are indistinguishable.
+      final byBlock = <String, String>{
+        for (final row in data.tableData)
+          if (row[index].isNotEmpty) row.first: row[index],
+      };
+      expect(byBlock['3'], contains('0.450'));
+      expect(byBlock['3'], byBlock['4']);
       // The R row leaves them blank rather than repeating them.
       expect(data.tableData[1][time], isEmpty);
       expect(data.tableData[1][index], isEmpty);
@@ -79,8 +86,8 @@ void main() {
       final time = sessionTableHeaders.indexOf('Time');
       // Block 1 is the first, so no gap; the settings that follow are one to
       // three minutes apart, which is what taking five ratings costs. The gap
-      // column is what makes the NINE SECONDS between blocks 6 and 7 -
-      // identical stimulation, ranked 1 and 2 - visible without arithmetic.
+      // column makes the nine seconds between blocks 6 and 7 (identical
+      // stimulation, ranked 1 and 2) visible without arithmetic.
       expect(data.tableData[0][time], '09:03:20');
       final second = data.tableData[2][time];
       expect(second, startsWith('09:05:05'));
@@ -94,8 +101,8 @@ void main() {
     test(
       'parameters list their distinct values and the blocks that used them',
       () {
-        // "5.0 - 7.0 mA" hid that the right side went 5.0 -> 6.0 -> 7.0 -> 5.0 ->
-        // 7.0 -> 6.0, and implied a titration that never happened.
+        // A "5.0 - 7.0 mA" range hides that the right side went 5.0 -> 6.0 ->
+        // 7.0 -> 5.0 -> 7.0 -> 6.0, implying a titration that never happened.
         expect(data.ampL, '5.0 mA (blocks 1-5), 4.0 mA (blocks 6-7)');
         expect(data.ampR, contains('5.0 mA (blocks 2, 6-7)'));
       },
@@ -153,9 +160,9 @@ void main() {
 
   group('no targets means no ranking', () {
     test('nothing is invented for an externally-authored TSV', () {
-      // Fabricating `min` over 0..10 produced an index, two green bands and a
-      // printed "Scale targets" line asserting an intent nobody expressed — in
-      // this example, that falling Mood and Energy were improvements.
+      // Fabricating `min` over 0..10 yields an index, two green bands and a
+      // "Scale targets" line asserting an intent nobody expressed: here, that
+      // falling Mood and Energy were improvements.
       final bare = buildSessionReportData(rows: _example());
       expect(bare.hasTargets, isFalse);
       expect(bare.chart.aggregateIndex, isEmpty);
@@ -188,9 +195,9 @@ void main() {
       // The `timezone` column holds a platform zone name plus an offset
       // ("CEST +02:00"); only the offset half is portable, and a clinical
       // timestamp with no zone is ambiguous across DST. The synthetic example
-      // is generated in UTC, so its offset is +00:00 - which still exercises
-      // the extraction, since the parser must find and render an offset rather
-      // than assume one.
+      // is generated in UTC, so its offset is +00:00, which still exercises
+      // the extraction: the parser must find and render an offset rather than
+      // assume one.
       final data = rankedReportData(_example());
       expect(data.utcOffset, '+00:00');
       expect(data.sessionStamp, contains('(UTC+00:00)'));
@@ -204,8 +211,7 @@ void main() {
           SessionRow(
             blockId: '1',
             isInitial: '0',
-            date: '2026-01-01',
-            time: '09:00:00',
+            acqTime: '2026-01-01T09:00:00',
           ),
         ],
       );

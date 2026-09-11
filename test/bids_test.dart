@@ -21,9 +21,9 @@ void main() {
 
   group('sidecar', () {
     test('documents every column of both kinds, and nothing else', () {
-      // The whole point of the sidecar is that a reader can look up any column
-      // they meet in the TSV. A column present in the data but missing here is
-      // exactly the gap it exists to close.
+      // The sidecar exists so a reader can look up any column they meet in
+      // the TSV; a column present in the data but missing here is the gap it
+      // was written to close.
       final session = buildSidecar(
         contract,
         'session_tsv',
@@ -50,6 +50,31 @@ void main() {
       expect(contractColumns(contract, 'annotation_tsv'), annotationColumns);
     });
 
+    test('a task file names its task; the combined table does not', () {
+      // bids-validator asks every task file's sidecar for TaskName, and the
+      // combined table is not one: it spans sessions and carries no `task-`
+      // entity, so claiming a task there would be false.
+      final session = buildSidecar(
+        contract,
+        'session_tsv',
+        appVersion: '0.5.0',
+      );
+      expect(session['TaskName'], 'programming');
+      expect(session['TaskDescription'], contains('stimulation'));
+
+      final notes = buildSidecar(
+        contract,
+        'annotation_tsv',
+        appVersion: '0.5.0',
+      );
+      expect(notes['TaskName'], 'notes');
+
+      final aggregate =
+          jsonDecode(aggregateSidecarJson(contract, appVersion: '0.5.0'))
+              as Map<String, dynamic>;
+      expect(aggregate.containsKey('TaskName'), isFalse);
+      expect(aggregate.containsKey('TaskDescription'), isFalse);
+    });
     test('entries use the BIDS key names, with Units where there are any', () {
       final session = buildSidecar(
         contract,
@@ -221,9 +246,11 @@ void main() {
 
     test('the reports derivative carries its own dataset_description', () {
       // "derivatives datasets MUST include a dataset_description.json file at
-      // the root level" — a report dropped into derivatives/ without one makes
+      // the root level": a report dropped into derivatives/ without one makes
       // the whole dataset invalid.
-      final file = reportsDerivativeDescription(
+      final file = derivativeDescription(
+        dir: reportsDerivativeDir,
+        name: 'DBS Annotator reports',
         appName: 'DBS Annotator',
         appVersion: '0.5.0',
         repoUrl: 'https://example.invalid',
@@ -233,6 +260,24 @@ void main() {
         (jsonDecode(file.content) as Map<String, dynamic>)['DatasetType'],
         'derivative',
       );
+    });
+
+    test('the aggregate derivative carries one too, at its own root', () {
+      // Same rule, and the reason `derivativeDescription` is parameterised
+      // rather than fixed to the reports directory: each derivative dataset
+      // needs its own description or the parent dataset is invalid.
+      final file = derivativeDescription(
+        dir: aggregateDerivativeDir,
+        name: 'DBS Annotator combined sessions',
+        appName: 'DBS Annotator',
+        appVersion: '0.5.0',
+        repoUrl: 'https://example.invalid',
+      );
+      expect(file.path, '$aggregateDerivativeDir/dataset_description.json');
+      final json = jsonDecode(file.content) as Map<String, dynamic>;
+      expect(json['DatasetType'], 'derivative');
+      expect(json['BIDSVersion'], isNotNull);
+      expect(json['GeneratedBy'], isA<List<dynamic>>());
     });
 
     test('the README says why the suffix is _beh', () {

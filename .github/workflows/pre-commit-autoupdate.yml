@@ -1,7 +1,7 @@
 name: pre-commit autoupdate
 
 # .pre-commit-config.yaml pins each hook repository to a rev, and there is no
-# Dependabot ecosystem for pre-commit - so without this the hook versions rot
+# Dependabot ecosystem for pre-commit, so without this the hook versions rot
 # indefinitely. Monthly, not weekly: the hooks are formatters, a linter and a
 # spellchecker, and a month of staleness costs nothing.
 on:
@@ -39,5 +39,5 @@ jobs:
             or spelling rule: fix the code, or pin the rev back with a comment
             saying why.
 
-            Merged by hand — a hook bump can require code changes, which is a
-            review rather than a rubber stamp.
+            Merged by hand, because a hook bump can require code changes, so
+            this needs a review rather than a rubber stamp.

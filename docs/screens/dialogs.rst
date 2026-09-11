@@ -22,7 +22,7 @@ Programs
 
 Opened by the gear beside the **Program** card in steps 1 and 3.
 
-The stimulation programme labels offered by the dropdown — ``A``, ``B``, ``C``
+The stimulation programme labels offered by the dropdown: ``A``, ``B``, ``C``
 and so on, or whatever your centre uses. Stored as a preset, so the list you
 build is there next session.
 
@@ -57,7 +57,7 @@ Clinical scales settings
 
 Opened by the gear on the **Clinical scales** card in step 1.
 
-Edits the disease preset buttons for the baseline assessment — the group names
+Edits the disease preset buttons for the baseline assessment: the group names
 (OCD, MDD, PD, ET, Dystonia, TS) and the scale names inside each. A clinical
 scale is just a name and a score, so a row here is one field.
 
@@ -95,7 +95,7 @@ Says what "better" means for each scale, which is the input the ranking needs an
 the one thing only you can supply. **Set all: Min / Max** fills the column in one
 tap for a set of scales that all run the same way.
 
-Each scale gets a mode — ``Min``, ``Max``, ``Custom`` (closest to a stated value,
+Each scale gets a mode: ``Min``, ``Max``, ``Custom`` (closest to a stated value,
 which reveals a *Value* field), or ``Ignore``. Until targets are set, no
 configuration is ranked anywhere: see :ref:`scale-targets` for the definition of
 the aggregate index and :ref:`what-the-reports-do-not-say` for its limits.
@@ -115,8 +115,8 @@ Appears when you export a session report, before the save dialog.
 Chooses which sections the document contains. Each has a one-line description of
 what it adds. **Export** is disabled while nothing is checked, because a report
 of a title page alone is not a document anyone wants. **Scale targets…** opens
-the dialog above without losing the selection — the ranking those targets drive
-is what two of these sections show.
+the dialog above without losing the selection, since the ranking those targets
+drive is what two of these sections show.
 
 The selection is remembered for the next export.
 

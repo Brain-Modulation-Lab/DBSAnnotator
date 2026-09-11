@@ -10,9 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// Headless tests for the pure electrode layout math. Uses the committed
 /// contract in assets/schema/electrode_models.json.
 void main() {
-  // NOTE: runs at group-declaration time, so no expect() here — a missing
-  // contract file fails loudly via the StateError below. The file is committed,
-  // so if it is missing, restore it from git.
+  // Runs at group-declaration time, so no expect() here: a missing contract
+  // file fails loudly through the StateError below.
   ElectrodeModel loadModel(String name) {
     final file = File('assets/schema/electrode_models.json');
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
@@ -23,7 +22,7 @@ void main() {
 
   const size = Size(300, 600);
 
-  group('computeLayout — Boston Scientific Vercise Directed (directional)', () {
+  group('computeLayout: Boston Scientific Vercise Directed (directional)', () {
     // 4 contacts; levels 1 and 2 are directional, 0 and 3 are rings.
     final model = loadModel('Boston Scientific Vercise Directed');
     final layout = computeLayout(model, size);
@@ -127,7 +126,7 @@ void main() {
     );
   });
 
-  group('computeLayout — Medtronic 3389 (non-directional)', () {
+  group('computeLayout: Medtronic 3389 (non-directional)', () {
     final model = loadModel('Medtronic 3389');
     final layout = computeLayout(model, size);
 

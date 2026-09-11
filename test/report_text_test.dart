@@ -85,9 +85,9 @@ void main() {
 
   group('ReportTextSanitiser', () {
     test('passes through whatever the loaded font covers', () {
-      // `’` is in the substitution table, so it is normalised either way; `注意`
-      // is not, so coverage is the only thing that decides its fate. The set is
-      // authoritative — ASCII is in it because every real font has it, not
+      // `’` is in the substitution table, so it is normalised either way;
+      // `注意` is not, so coverage alone decides its fate. The set is
+      // authoritative: ASCII is in it because every real font has it, not
       // because the sanitiser assumes it.
       final s = ReportTextSanitiser(
         coverage: {for (var r = 0x20; r < 0x7f; r++) r, ...'注意'.runes},

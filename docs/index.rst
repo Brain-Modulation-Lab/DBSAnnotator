@@ -18,7 +18,7 @@ or years.
 
 DBS Annotator documents those visits: the stimulation parameters tried on each
 contact, the clinical and session scale ratings at every configuration, side
-effects, and free-text notes — written to :doc:`BIDS tab-separated files
+effects, and free-text notes, written to :doc:`BIDS tab-separated files
 <output_format>` that go straight into analysis. It also produces
 clinician-readable :doc:`PDF and Word reports <reports>` for the patient
 record.
@@ -46,7 +46,7 @@ At a glance
    * - Aspect
      - Detail
    * - Platforms
-     - iPadOS, Android, Linux, Windows, macOS — one codebase
+     - iPadOS, Android, Linux, Windows, macOS, from one codebase
    * - Data format
      - BIDS ``_beh.tsv`` with a JSON sidecar, one row per (block, scale)
    * - Reports

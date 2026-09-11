@@ -21,10 +21,9 @@ void main() {
     final rows = [
       // Baseline (is_initial = 1) with clinical scales + initial notes.
       const SessionRow(
-        date: '2026-07-29',
-        time: '09:00:00',
+        acqTime: '2026-07-29T09:00:00',
         blockId: '0',
-        sessionId: '1',
+        appendId: '1',
         isInitial: '1',
         scaleName: 'UPDRS-III',
         scaleValue: '32',
@@ -38,10 +37,9 @@ void main() {
       // Recording block with a split amplitude ("1.5_1" sums to 2.5 in the
       // programming summary), a unit-bearing pulse width (µs), and a note.
       const SessionRow(
-        date: '2026-07-29',
-        time: '09:30:00',
+        acqTime: '2026-07-29T09:30:00',
         blockId: '1',
-        sessionId: '1',
+        appendId: '1',
         isInitial: '0',
         scaleName: 'Tremor',
         scaleValue: '2',
@@ -61,10 +59,9 @@ void main() {
       ),
       // Second recording block; omitted scale value ("NaN") must be skipped.
       const SessionRow(
-        date: '2026-07-29',
-        time: '10:15:00',
+        acqTime: '2026-07-29T10:15:00',
         blockId: '2',
-        sessionId: '1',
+        appendId: '1',
         isInitial: '0',
         scaleName: 'Tremor',
         scaleValue: 'NaN',
@@ -111,10 +108,9 @@ void main() {
   });
 
   test('embeds the chart and electrode images when supplied', () async {
-    // The image path was previously untested, and a bare pw.Image lays a PNG
-    // out at its PIXEL size — at print resolution that overflows the page and
-    // dart_pdf throws. Use a REALISTIC raster, not a 1x1, or the regression
-    // this guards against slips through.
+    // A bare pw.Image lays a PNG out at its pixel size, which at print
+    // resolution overflows the page and makes dart_pdf throw. Use a realistic
+    // raster, not a 1x1, or the regression this guards slips through.
     final rows = parseSessionTsv(
       File(
         'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv',
@@ -164,9 +160,9 @@ void main() {
   });
 
   test('a narrowed section selection produces a smaller document', () async {
-    // Smoke-level on purpose: this file asserts %PDF magic and byte deltas
-    // rather than extracting text (see the note at the top). The .docx test
-    // does the content assertions, and both formats read the same enum.
+    // Smoke-level on purpose: %PDF magic and byte deltas, no text extraction.
+    // The .docx test makes the content assertions, and both formats read the
+    // same enum.
     final data = buildSessionReportData(
       rows: parseSessionTsv(
         File(

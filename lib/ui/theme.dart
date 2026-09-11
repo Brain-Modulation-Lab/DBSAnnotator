@@ -27,26 +27,21 @@ class DbsColors {
       ? const [Color(0xFF10B981), Color(0xFF34D399), Color(0xFF10B981)]
       : const [Color(0xFF059669), Color(0xFF10B981), Color(0xFF059669)];
 
-  /// Warm fill for the titled group cards (Parameters, electrode model,
-  /// Electrodes, Clinical scales, ratings). A translucent amber over the
-  /// scaffold → light-orange in light mode and a warm, non-black tint in dark
-  /// mode (never the Material-3 blue surface tint, which callers suppress with
-  /// `surfaceTintColor: Colors.transparent`).
+  /// Warm fill for the titled group cards: a translucent amber over the
+  /// scaffold, never the Material-3 blue surface tint, which callers suppress
+  /// with `surfaceTintColor: Colors.transparent`.
   static Color cardFill(bool dark) =>
       accent.withValues(alpha: dark ? 0.16 : 0.14);
 }
 
-/// Non-state colours for the electrode canvas — the lead's insulating polymer
+/// Non-state colours for the electrode canvas: the lead's insulating polymer
 /// body and its outline.
 ///
-/// The contact STATE colours (off / anodic / cathodic in [DbsColors]) are
-/// deliberately brightness-independent: grey / red / blue are clinical
-/// semantics, not decoration, and must read the same in both themes and in a
-/// printed report. Only the inert lead material follows the theme — a
-/// light-grey cylinder on a near-black scaffold was the old dark-mode eyesore.
-///
-/// Reports pass [ElectrodePalette.light] explicitly, since they print on white
-/// paper regardless of the app's current theme.
+/// Only the inert lead material follows the theme. The contact state colours
+/// (off / anodic / cathodic in [DbsColors]) stay brightness-independent
+/// because grey / red / blue are clinical semantics, not decoration, and must
+/// read the same in both themes and in a printed report, which passes
+/// [ElectrodePalette.light] explicitly.
 class ElectrodePalette {
   const ElectrodePalette({
     required this.polymer,
@@ -54,8 +49,8 @@ class ElectrodePalette {
     required this.label,
   });
 
-  /// Mid-tone of the insulating lead body; the painter derives its cylinder
-  /// shading (edge shadow → specular → edge shadow) from this one colour.
+  /// Mid-tone of the insulating lead body; the painter derives the whole
+  /// cylinder shading from it.
   final Color polymer;
 
   /// Lead / dome outline.
@@ -80,12 +75,12 @@ class ElectrodePalette {
       b == Brightness.dark ? dark : light;
 }
 
-/// App-wide light/dark selection, default **light** (matching the desktop
-/// default). Not persisted — the desktop doesn't persist it either.
+/// App-wide light/dark selection, defaulting to light. Not persisted, which
+/// matches the desktop app.
 final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.light);
 
-/// Shared AppBar action that flips light/dark, showing the icon of the theme it
-/// switches TO (☀ when dark, 🌙 when light).
+/// AppBar action that flips light/dark, showing the icon of the theme it
+/// switches to.
 class ThemeToggleButton extends StatelessWidget {
   const ThemeToggleButton({super.key});
 
@@ -103,15 +98,14 @@ class ThemeToggleButton extends StatelessWidget {
 }
 
 /// App-wide text-scale factor, applied in [main] via MediaQuery's textScaler.
-/// Session-only (like [themeMode]); changing it rescales all text live.
+/// Session-only, like [themeMode].
 final ValueNotifier<double> textScale = ValueNotifier(1.0);
 
 const double _kMinTextScale = 0.8;
 const double _kMaxTextScale = 1.6;
 const double _kTextScaleStep = 0.1;
 
-/// Connected +/- pair (an outlined pill) that decreases / increases the app
-/// text size at runtime, for the AppBar next to Help/Theme.
+/// Connected +/- pair that changes the app text size at runtime.
 class TextSizeButtons extends StatelessWidget {
   const TextSizeButtons({super.key});
 
@@ -120,7 +114,7 @@ class TextSizeButtons extends StatelessWidget {
       _kMinTextScale,
       _kMaxTextScale,
     );
-    // Round to the step grid so repeated taps stay clean (0.1 float noise).
+    // Round to the step grid so repeated taps do not accumulate float noise.
     textScale.value = (next * 10).roundToDouble() / 10;
   }
 
@@ -176,7 +170,7 @@ ThemeData dbsTheme(Brightness brightness) {
   );
 }
 
-/// A titled card = the desktop `QGroupBox` (accent title top-left, radius 8).
+/// A titled card, matching the desktop `QGroupBox`.
 class GroupCard extends StatelessWidget {
   const GroupCard({super.key, required this.title, required this.child});
 
@@ -186,9 +180,8 @@ class GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      // Warm light-orange fill + a thin outline (desktop QGroupBox look). The
-      // translucent amber stays warm — not black — in dark mode; keeping
-      // surfaceTintColor transparent avoids the Material-3 blue tint.
+      // A transparent surfaceTintColor (below) keeps Material 3 from tinting
+      // the warm amber blue.
       color: DbsColors.cardFill(
         Theme.of(context).brightness == Brightness.dark,
       ),

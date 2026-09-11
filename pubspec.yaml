@@ -1,12 +1,12 @@
 name: dbs_annotator
-# Shown in the Microsoft Store listing and on the app's tile - it becomes the
-# MSIX manifest Description - so this is user-facing copy, not a dev note.
-description: "Document deep brain stimulation programming visits - the appointments at which stimulation is tested and optimised - as analysis-ready BIDS TSV, plus PDF and Word reports. Fully offline."
+# Shown in the Microsoft Store listing and on the app's tile, where it becomes
+# the MSIX manifest Description, so this is user-facing copy, not a dev note.
+description: "DBS Annotator documents deep brain stimulation programming visits, the appointments at which stimulation is tested and optimised. It writes them to analysis-ready BIDS TSV files, produces PDF and Word reports, and runs fully offline."
 publish_to: "none"
 
 # THE source of truth for the version. Android versionCode/versionName, the
 # iOS/macOS FLUTTER_BUILD_NAME, the Windows FILEVERSION and the docs footer are
-# all derived from this line — do not edit those by hand.
+# all derived from this line; do not edit those by hand.
 #
 # Three literals cannot read it and so restate it: `appVersion` in
 # lib/app_info.dart, `version:` in CITATION.cff, and `msix_version` below (which
@@ -21,8 +21,8 @@ version: 0.5.0+1
 environment:
   # Must not understate what the app actually needs. pubspec.lock resolves
   # against `dart: ">=3.12.0 <4.0.0"` / `flutter: ">=3.38.4"`, so this said
-  # 3.4.0 while a contributor on 3.4 could not run `flutter pub get` at all -
-  # the failure arrived from the lockfile, with no hint that the declared
+  # 3.4.0 while a contributor on 3.4 could not run `flutter pub get` at all.
+  # The failure arrived from the lockfile, with no hint that the declared
   # constraint was the lie. Keep this at or above the lockfile's floor.
   sdk: ">=3.12.0 <4.0.0"
   flutter: ">=3.38.4"
@@ -80,7 +80,7 @@ flutter:
 
 # App launcher icon: the project mark, at assets/icon/app_icon.png.
 # Regenerate all platform icons with `dart run flutter_launcher_icons`.
-# NOTE: this tool has no Linux support — the Linux window icon is set by hand in
+# NOTE: this tool has no Linux support; the Linux window icon is set by hand in
 # linux/runner/my_application.cc from the bundled asset above.
 flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
@@ -109,21 +109,21 @@ flutter_launcher_icons:
 # A Store package is unsigned by design (Microsoft re-signs it after
 # certification, which is why no code-signing certificate is needed and none
 # should ever be bought for this project). Unsigned means uninstallable, so the
-# self-signed build is the only way to smoke-test the package — it is a testing
+# self-signed build is the only way to smoke-test the package. It is a testing
 # tool, not a second distribution channel.
 #
 # The identity below is the SIDELOAD identity. The Store's is different and is
 # NOT committed: Partner Center assigns `identity_name` from the reserved app
 # name and issues the `CN=...` publisher, and both are passed on the command
-# line at build time. They are case-sensitive, punctuation included — a mismatch
-# is the most common submission rejection. See MOBILE_RELEASE.md.
+# line at build time. They are case-sensitive, punctuation included, and a
+# mismatch is the most common submission rejection. See MOBILE_RELEASE.md.
 msix_config:
   display_name: DBS Annotator
   publisher_display_name: Wyss Center for Bio and Neuroengineering
   identity_name: ch.wysscenter.DBSAnnotator
   # Four components, and the fourth MUST be 0: Microsoft reserves the revision
   # field for Store use. That is why this cannot be derived from the pubspec
-  # `version: x.y.z+build` above — the build number is not a revision.
+  # `version: x.y.z+build` above; the build number is not a revision.
   # Keep the first three equal to it; test/version_parity_test.dart enforces it.
   msix_version: 0.5.0.0
   # One 1024x1024 source; the tool generates the whole tile/scale set from it.
@@ -133,7 +133,7 @@ msix_config:
   # Do not auto-install the generated test certificate: that needs elevation,
   # so it turns any non-interactive build (CI, a script) into a prompt or a
   # failure. Trusting the certificate is a deliberate, documented step on each
-  # test machine - see the Windows section of MOBILE_RELEASE.md.
+  # test machine; see the Windows section of MOBILE_RELEASE.md.
   install_certificate: false
   # Do NOT let msix drive the Flutter build. It shells out to `flutter build
   # windows` with its own flags, and a build invoked with a different

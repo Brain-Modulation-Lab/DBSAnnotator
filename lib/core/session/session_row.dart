@@ -2,23 +2,18 @@
 library;
 
 import '../schema_columns.dart';
+import '../timestamps.dart';
 
 /// One row of a programming-session (`task-programming`) TSV.
 ///
-/// Mirrors the desktop writer in
-/// dbs_annotator/models/session_data.py (write_clinical_scales /
-/// write_session_scales). Every field is kept as the raw TSV string so a
-/// parse -> serialize round trip is lossless (the desktop may write block
-/// IDs as "3" or "3.0", amplitudes as split strings like "1.5_1", and
-/// scale_name/scale_value cells with embedded newlines).
+/// Every field stays the raw TSV string so a parse/serialize round trip is
+/// lossless: the desktop writes block IDs as "3" or "3.0", amplitudes as
+/// split strings like "1.5_1", and scale cells with embedded newlines.
 class SessionRow {
   const SessionRow({
-    this.date = '',
-    this.time = '',
-    this.timezone = '',
     this.acqTime = '',
     this.blockId = '',
-    this.sessionId = '',
+    this.appendId = '',
     this.isInitial = '',
     this.scaleName = '',
     this.scaleValue = '',
@@ -37,15 +32,14 @@ class SessionRow {
     this.notes = '',
   });
 
-  final String date;
-  final String time;
-  final String timezone;
-
-  /// The same instant as [date] + [time] + [timezone], as one ISO-8601 string
-  /// (`2026-02-03T09:00:00+00:00`). Empty on rows written before v0.5.0.
+  /// The whole instant as one ISO-8601 string and the only timestamp a row
+  /// carries; empty only when the source had nothing parseable.
   final String acqTime;
   final String blockId;
-  final String sessionId;
+
+  /// Data-entry episode within one file, incremented each time that file is
+  /// reopened: file-scoped, so equal values in two files are unrelated.
+  final String appendId;
   final String isInitial;
   final String scaleName;
   final String scaleValue;
@@ -63,19 +57,15 @@ class SessionRow {
   final String rightPulseWidth;
   final String notes;
 
-  /// Build from a TSV record keyed by the column names in
-  /// schema_columns.dart `sessionColumns`. Missing columns become ''.
-  ///
-  /// Goes through [readColumn], so the pre-0.5.0 `block_ID` / `session_ID` /
-  /// `program_ID` spellings are read as well as the current ones — an older
-  /// file opens with no conversion step.
+  /// Build from a TSV record keyed by `sessionColumns`; missing columns become
+  /// ''. Reads through [readColumn], so superseded spellings open without a
+  /// conversion step, and this is where a legacy row gains its instant: doing
+  /// the [backfillAcqTime] composition at the single parse boundary means no
+  /// report, aggregate or export has to know the source was older.
   factory SessionRow.fromMap(Map<String, String> m) => SessionRow(
-    date: readColumn(m, 'date'),
-    time: readColumn(m, 'time'),
-    timezone: readColumn(m, 'timezone'),
-    acqTime: readColumn(m, 'acq_time'),
+    acqTime: _acqTimeOf(m),
     blockId: readColumn(m, 'block_id'),
-    sessionId: readColumn(m, 'session_id'),
+    appendId: readColumn(m, 'append_id'),
     isInitial: readColumn(m, 'is_initial'),
     scaleName: readColumn(m, 'scale_name'),
     scaleValue: readColumn(m, 'scale_value'),
@@ -94,38 +84,31 @@ class SessionRow {
     notes: readColumn(m, 'notes'),
   );
 
-  /// The row's `date` + `time` as a local [DateTime], or null when either cell
-  /// is missing or unparsable.
-  ///
-  /// Rows written by this app are `yyyy-MM-dd` + `HH:mm:ss`
-  /// (`session_file.dart`), which `DateTime.tryParse` accepts as
-  /// ISO-8601-with-a-space. An externally-authored TSV can carry anything, hence
-  /// the nullable result — callers skip rows they cannot place in time rather
-  /// than guessing. The separate `timezone` cell is deliberately not folded in:
-  /// every timestamp in one file is local to the same session.
+  /// The row's instant as a local [DateTime], or null when [acqTime] is empty
+  /// or unparsable: an external TSV can carry anything, and callers skip rows
+  /// they cannot place in time. `.toLocal()` makes rows recorded in different
+  /// offsets comparable.
   DateTime? get timestamp {
-    // v0.5.0+ writes the whole instant, offset included, in one cell; prefer it
-    // when present and fall back for older files. `.toLocal()` keeps the result
-    // comparable with the dates parsed from the two-cell form below.
-    final iso = acqTime.trim();
-    if (iso.isNotEmpty) {
-      final parsed = DateTime.tryParse(iso);
-      if (parsed != null) return parsed.toLocal();
-    }
-    final d = date.trim();
-    final t = time.trim();
-    if (d.isEmpty || t.isEmpty) return null;
-    return DateTime.tryParse('$d $t');
+    final parsed = DateTime.tryParse(acqTime.trim());
+    return parsed?.toLocal();
+  }
+
+  /// [acqTime] as written, or composed from a legacy row's `date`/`time`.
+  static String _acqTimeOf(Map<String, String> m) {
+    final iso = readColumn(m, 'acq_time').trim();
+    if (iso.isNotEmpty) return iso;
+    return backfillAcqTime(
+      date: readColumn(m, 'date'),
+      time: readColumn(m, 'time'),
+      timezone: readColumn(m, 'timezone'),
+    );
   }
 
   /// Convert to a TSV record keyed by the exact column names.
   Map<String, String> toMap() => {
-    'date': date,
-    'time': time,
-    'timezone': timezone,
     'acq_time': acqTime,
     'block_id': blockId,
-    'session_id': sessionId,
+    'append_id': appendId,
     'is_initial': isInitial,
     'scale_name': scaleName,
     'scale_value': scaleValue,
@@ -145,13 +128,9 @@ class SessionRow {
   };
 }
 
-/// The electrode model named by [rows], or '' when none of them say.
-///
-/// `electrode_model` is a TSV column and `ElectrodeCatalog.models` is keyed by
-/// exactly that name, but nothing used to read it back: opening a file rendered
-/// the lead diagrams for whatever the model dropdown happened to hold. A
-/// mismatch there is not cosmetic — it labels one lead's contacts with
-/// another lead's geometry.
+/// The electrode model named by [rows], or '' when none of them say. The name
+/// keys `ElectrodeCatalog.models`, and a file opened against the wrong model
+/// labels one lead's contacts with another lead's geometry.
 String electrodeModelIn(Iterable<SessionRow> rows) {
   for (final row in rows) {
     final name = row.electrodeModel.trim();

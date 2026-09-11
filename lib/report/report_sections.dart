@@ -1,14 +1,9 @@
-/// Which sections a generated report contains — the tablet counterpart of the
-/// desktop export dialog's section checkboxes (`export_dialog.py`).
+/// Which sections a generated report contains, mirroring the desktop export
+/// dialog's section checkboxes (`export_dialog.py`). A pure enum with no
+/// Flutter import, so both output formats are gated on the same selection.
 ///
-/// A pure enum, with no Flutter import, so the builders can be gated in a
-/// headless test and the two formats cannot end up honouring different
-/// selections.
-///
-/// Deliberately a FLAT list. The desktop dialog spends ~110 lines keeping a
-/// parent checkbox tri-state in sync with its children ("Session data" over
-/// "graph" and "table"); a flat list with graph and table as siblings has
-/// identical expressive power.
+/// Flat on purpose: graph and table are siblings rather than children of a
+/// tri-state parent, at no cost in expressive power.
 library;
 
 enum ReportSection {
@@ -40,16 +35,13 @@ enum ReportSection {
 
   const ReportSection(this.label, this.description);
 
-  /// Checkbox label.
   final String label;
 
-  /// One line saying what the section actually includes, so the choice can be
-  /// made without exporting twice to find out.
+  /// Shown under the checkbox, so the choice can be made without exporting.
   final String description;
 }
 
-/// Everything on: what an export produces unless the user says otherwise, and
-/// what a headless caller gets by default.
+/// Default selection: everything on.
 const Set<ReportSection> kAllReportSections = {
   ReportSection.baseline,
   ReportSection.chart,

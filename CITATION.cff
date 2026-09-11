@@ -19,9 +19,9 @@ repository-code: https://github.com/Brain-Modulation-Lab/DBSAnnotator
 url: https://dbsannotator.readthedocs.io/
 abstract: >-
   DBS Annotator records the programming visits that follow deep brain
-  stimulation surgery — the appointments at which a neurologist or psychiatrist
+  stimulation surgery, the appointments at which a neurologist or psychiatrist
   tests stimulation configurations and optimises them, over months or years as
-  the parameters need adapting — and writes them to BIDS tab-separated files,
+  the parameters need adapting. It writes them to BIDS tab-separated files,
   capturing the relationship between the stimulation delivered at each
   configuration and the clinical response observed. It runs fully offline on
   tablets and desktops, and produces PDF and Word reports for the patient
@@ -34,7 +34,7 @@ keywords:
   - BIDS
   - Flutter
 license: MIT
-# Must match `version:` in pubspec.yaml — pinned by test/version_parity_test.dart.
+# Must match `version:` in pubspec.yaml; pinned by test/version_parity_test.dart.
 version: 0.5.0
 # date-released: 'YYYY-MM-DD'   # TODO: set at release, alongside a Zenodo DOI
 # doi: '10.5281/zenodo.XXXXXXX' # TODO: JOSS requires an archived release

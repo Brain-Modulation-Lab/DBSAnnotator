@@ -1,44 +1,36 @@
-/// Pure (Flutter-free) controller for the Complete-Workflow authoring
-/// screen. Mirrors the desktop `SessionData` counters: `open_file_append`
-/// sets block/session numbering from the existing file, and every write
-/// increments the block counter (`self.block_id += 1`).
+/// Flutter-free controller for the Complete-Workflow authoring screen, holding
+/// the working rows of one programming-session TSV and its block/append
+/// counters.
 library;
 
 import 'session_file.dart';
 import 'session_row.dart';
 
-/// Holds the working rows of one programming-session TSV plus the desktop's
-/// block/session counters. Callers append inserts with [addInsert] and get
-/// the full byte-compatible document back from [serialize].
 class SessionAuthoring {
-  /// All rows of the working file (existing + newly inserted), oldest first.
+  /// Existing and newly inserted rows, oldest first.
   final List<SessionRow> rows = [];
 
   int _blockId = 0;
-  int _sessionId = 1;
+  int _appendId = 1;
 
   /// Block ID the NEXT insert will use.
   int get blockId => _blockId;
 
-  /// Session ID every insert of this app session uses.
-  int get sessionId => _sessionId;
+  /// Append ID every insert of this app session uses; see [nextAppendId].
+  int get appendId => _appendId;
 
-  /// Load an existing TSV and continue numbering, mirroring
-  /// open_file_append: next block = max(block_id)+1, this session =
-  /// max(session_id)+1 (malformed cells are skipped).
+  /// Load an existing TSV and continue its numbering.
   void loadExisting(String tsv) {
     rows
       ..clear()
       ..addAll(parseSessionTsv(tsv));
     _blockId = nextBlockId(rows);
-    _sessionId = nextSessionId(rows);
+    _appendId = nextAppendId(rows);
   }
 
-  /// Append one insert (one block). [stim] carries the 10 stimulation
-  /// columns keyed by their exact TSV column names (missing keys become
-  /// empty cells). [isInitial] true mirrors write_clinical_scales (Step-1
-  /// baseline, is_initial=1); false mirrors write_session_scales (Step-3
-  /// recording, is_initial=0). Returns the rows that were appended.
+  /// Append one insert (one block) and return the rows added. [stim] holds the
+  /// 10 stimulation columns keyed by their exact TSV names; missing keys become
+  /// empty cells. [isInitial] marks a Step-1 baseline rather than a recording.
   List<SessionRow> addInsert({
     required bool isInitial,
     required Map<String, String> stim,
@@ -50,7 +42,7 @@ class SessionAuthoring {
   }) {
     final inserted = buildInsertRows(
       blockId: _blockId,
-      sessionId: _sessionId,
+      appendId: _appendId,
       isInitial: isInitial,
       scales: scales,
       programId: programId,
@@ -69,10 +61,10 @@ class SessionAuthoring {
       at: at,
     );
     rows.addAll(inserted);
-    _blockId += 1; // Desktop: self.block_id += 1 after each write.
+    _blockId += 1;
     return inserted;
   }
 
-  /// Full TSV document (canonical 21-column header, \r\n line endings).
+  /// The full TSV document, with the canonical column header.
   String serialize() => serializeSessionTsv(rows);
 }

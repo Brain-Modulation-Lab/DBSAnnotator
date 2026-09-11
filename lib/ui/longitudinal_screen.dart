@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -5,8 +6,9 @@ import 'package:flutter/material.dart';
 
 import '../app_info.dart';
 import '../core/bids.dart';
-import '../core/bids_dataset.dart' show DatasetEntry;
+import '../core/bids_dataset.dart';
 import '../core/bids_sidecar.dart';
+import '../core/session/aggregate.dart';
 import '../core/session/longitudinal.dart';
 import '../core/session/tsv_kind.dart';
 import '../core/session/session_file.dart';
@@ -29,10 +31,9 @@ class ImportedSessionFile {
   final List<SessionRow> rows;
 }
 
-/// Merge per-file [scaleTimeline]s onto one x-axis. Each file's block
-/// indices are offset by the running block count of the files before it, so
-/// sessions render sequentially left-to-right instead of overwriting each
-/// other at block 0 (files are taken in import order).
+/// Merge per-file [scaleTimeline]s onto one x-axis. Each file's block indices
+/// are offset by the running block count of the files before it, in import
+/// order, so sessions render sequentially instead of colliding at block 0.
 Map<String, Map<int, double>> combinedScaleTimeline(
   Iterable<List<SessionRow>> perFileRows,
 ) {
@@ -53,22 +54,16 @@ Map<String, Map<int, double>> combinedScaleTimeline(
   return combined;
 }
 
-// Categorical series palette (validated 8-slot order, light/dark steps).
-// Fixed assignment order, never cycled: past 8 scales the chart shows the
-// first 8 and the PDF table carries the rest.
 /// Longitudinal review: import several programming-session TSVs, chart the
-/// session scales across blocks, and export a PDF report — the tablet
-/// counterpart of the desktop's longitudinal report view.
+/// session scales across blocks, and export a PDF report. The counterpart of
+/// the desktop's longitudinal report view.
 class LongitudinalScreen extends StatefulWidget {
   const LongitudinalScreen({super.key, this.initialFiles});
 
-  /// Pre-imported files, for headless tests and the documentation screenshots.
-  ///
-  /// Importing normally goes through the platform file picker, which a widget
-  /// test cannot drive — so without this seam the only capturable state is the
-  /// empty one, and the populated chart and the patient-mismatch banner (the
-  /// two things worth documenting here) were unreachable. Mirrors the
-  /// `authoring` seam on [SessionScreen].
+  /// Pre-imported files, for headless tests and the documentation
+  /// screenshots: importing goes through the platform file picker, which a
+  /// widget test cannot drive, so without this seam the only capturable state
+  /// is the empty one. Mirrors the `authoring` seam on [SessionScreen].
   final List<ImportedSessionFile>? initialFiles;
 
   @override
@@ -91,11 +86,10 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _import() async {
-    // This is the genuine multi-file case, so `pickFiles` is right here -
-    // `allowMultiple` is now file_picker 12's default and no longer passed.
-    // The try/catch is new: this was the one screen of four without it, so on a
-    // Linux box lacking zenity/kdialog the future rejected into an unhandled
-    // async error and Import was an inert button with no message at all.
+    // The genuine multi-file case, so `pickFiles` is right here and
+    // `allowMultiple` is file_picker 12's default. Without the catch, a Linux
+    // box lacking zenity/kdialog rejects into an unhandled async error and
+    // Import becomes an inert button with no message at all.
     final List<PlatformFile> files;
     try {
       files = await FilePicker.pickFiles(type: FileType.any);
@@ -113,10 +107,9 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
         failed.add(picked.name);
         continue;
       }
-      // Check the kind BEFORE parsing. `SessionRow.fromMap` is total: every
-      // column it cannot find becomes '', so a notes TSV parsed as a session
-      // yields one all-empty row per line and imported "successfully" — this
-      // screen then showed a review with no data in it and no explanation.
+      // Check the kind before parsing. `SessionRow.fromMap` is total: every
+      // column it cannot find becomes '', so a notes TSV would import
+      // "successfully" as a page of empty rows, with no explanation.
       final kind = sniffTsvKind(content);
       if (kind != TsvKind.programming) {
         wrongKind.add(tsvKindMismatch(picked.name, kind, TsvKind.programming));
@@ -147,13 +140,9 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
 
   /// Lay the imported files out as a BIDS dataset and export it, zipped.
   ///
-  /// This is the screen where the tree pays for itself: several visits of one
-  /// patient are exactly what `sub-XX/ses-YYYYMMDD/beh/` is for, and the files
-  /// arrived here as loose downloads from wherever they were recorded.
-  ///
-  /// Entities come from each file's own name. A file whose name carries none
-  /// (renamed by hand, say) is skipped rather than guessed at — a wrong `sub-`
-  /// label in a shared dataset is worse than a missing file.
+  /// Entities come from each file's own name. A file whose name carries none,
+  /// having been renamed by hand, is skipped rather than guessed at: a wrong
+  /// `sub-` label in a shared dataset is worse than a missing file.
   Future<void> _exportBids() async {
     if (_files.isEmpty) {
       _snack('Import at least one session first.');
@@ -196,11 +185,92 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       _snack('No imported file carries BIDS entities in its name.');
       return;
     }
-    await exportBidsDataset(context, anchor: _exportKey, entries: entries);
+    // The combined table goes where BIDS puts a cross-session derivation: its
+    // own directory under `derivatives/`, with its own
+    // dataset_description.json, without which the whole dataset is invalid.
+    final aggregate = buildAggregate([
+      for (final f in _files) (filename: f.name, rows: f.rows),
+    ]);
+    final extraFiles = <DatasetFile>[
+      if (aggregate.rowCount > 0) ...[
+        derivativeDescription(
+          dir: aggregateDerivativeDir,
+          name: '$appName combined sessions',
+          appName: appName,
+          appVersion: appVersion,
+          repoUrl: repoUrl,
+        ),
+        (
+          path: '$aggregateDerivativeDir/$aggregateStem.tsv',
+          content: aggregate.tsv,
+        ),
+        (
+          path: '$aggregateDerivativeDir/$aggregateStem.json',
+          content: aggregateSidecarJson(contract, appVersion: appVersion),
+        ),
+      ],
+    ];
+
+    await exportBidsDataset(
+      context,
+      anchor: _exportKey,
+      entries: entries,
+      extraFiles: extraFiles,
+    );
     if (mounted && skipped.isNotEmpty) {
       _snack(
         'Skipped (no BIDS entities in the filename): '
         '${skipped.join(', ')}',
+      );
+    }
+  }
+
+  /// The imported sessions as one long table, for sharing and analysis.
+  ///
+  /// Delivered as a standalone TSV with its sidecar beside it: one openable
+  /// file is a better sharing artefact than a zip. The same table also goes
+  /// into the BIDS zip as a derivative; see [_exportBids].
+  Future<void> _exportAggregate() async {
+    if (_files.isEmpty) {
+      _snack('Import at least one session first.');
+      return;
+    }
+    final out = buildAggregate([
+      for (final f in _files) (filename: f.name, rows: f.rows),
+    ]);
+    if (out.rowCount == 0) {
+      _snack(
+        out.skipped.isEmpty
+            ? 'The imported files contain no rows to combine.'
+            : 'No imported file carries BIDS entities in its name.',
+      );
+      return;
+    }
+
+    // Neither name carries a `ses-` entity: the table spans sessions.
+    final stem = out.subjects.length == 1
+        ? '${out.subjects.single}_$aggregateStem'
+        : 'study_$aggregateStem';
+
+    await exportFile(
+      context,
+      filename: '$stem.tsv',
+      anchor: _exportKey,
+      failureLabel: 'Combined table export failed',
+      build: () async => (bytes: utf8.encode(out.tsv), warning: null),
+    );
+    if (!mounted) return;
+    // State the shape rather than just "done": a silently dropped visit would
+    // be invisible in a table this size.
+    _snack(
+      '${out.rowCount} rows from ${out.fileCount} file'
+      '${out.fileCount == 1 ? '' : 's'}, '
+      '${out.subjects.length} subject${out.subjects.length == 1 ? '' : 's'}.',
+    );
+    if (out.skipped.isNotEmpty) {
+      _snack(
+        'Left out: '
+        '${out.skipped.map((s) => '${s.filename}: ${s.reason}').join('; ')}',
       );
     }
   }
@@ -215,10 +285,9 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       _snack('The imported files contain no visits to report.');
       return;
     }
-    // A derivative that spans visits, so it carries neither `ses-` (there are
-    // several) nor `task-` (`longitudinal` was never a task the app records).
-    // `desc-` is the BIDS derivatives entity for exactly this: naming what a
-    // computed file is.
+    // A derivative that spans visits, so no `ses-`, and `longitudinal` is not
+    // a task the app records, so no `task-`. `desc-` is the BIDS derivatives
+    // entity for naming what a computed file is.
     final name =
         'sub-${BidsName.label(data.patientId)}'
         '_desc-longitudinal_report.${docx ? 'docx' : 'pdf'}';
@@ -229,9 +298,8 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       anchor: _exportKey,
       failureLabel: 'Report export failed',
       build: () async {
-        // Both figures, rasterised by the shared painter so screen and print
-        // cannot disagree. Best-effort: a report without a picture beats no
-        // report, and the builders already say so in words when one is absent.
+        // Rasterised by the shared painter so screen and print cannot
+        // disagree, and best-effort because the builders fall back to words.
         final clinical = await _chartPng(data.clinicalChart);
         final session = await _chartPng(data.sessionChart);
         if (docx) {
@@ -285,7 +353,6 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
             tooltip: 'Import session TSVs',
             onPressed: _import,
           ),
-          // One Export menu, as the session and annotations screens have.
           MenuAnchor(
             builder: (context, controller, child) => IconButton(
               key: _exportKey,
@@ -306,6 +373,11 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
                 child: const Text('Report (Word)'),
               ),
               const Divider(height: 8),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.table_chart_outlined),
+                onPressed: _exportAggregate,
+                child: const Text('Combined table (TSV)'),
+              ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.folder_zip_outlined),
                 onPressed: _exportBids,
@@ -442,17 +514,11 @@ class _FileList extends StatelessWidget {
   }
 }
 
-/// The on-screen scales timeline, drawn by the **same painter the report
-/// embeds** ([ScalesChartPainter]) so the screen and the PDF cannot disagree.
+/// The on-screen scales timeline, drawn by [ScalesChartPainter], the painter
+/// the report embeds, so the screen and the PDF cannot disagree.
 ///
-/// This replaced an `fl_chart` `LineChart` that could only show 8 scales — it
-/// carried two hand-maintained 8-colour palettes and apologised in the UI for
-/// the ones it dropped. The shared painter cycles 8 colours x 5 dash patterns
-/// and shrink-fits its legend, so the limit and the apology both disappear, and
-/// `fl_chart` leaves the dependency list.
-///
-/// NOTE: the x axis is still the concatenated block index. Group 3 replaces it
-/// with real session dates, which is what makes it interpretable across visits.
+/// The x axis is the concatenated block index, not session dates, so it is
+/// only comparable within a visit.
 Widget _timelineChart(
   BuildContext context,
   Map<String, Map<int, double>> timeline,

@@ -45,8 +45,8 @@ void main() {
   group('SafeFileWriter', () {
     test('applies overlapping writes in call order', () async {
       final w = SafeFileWriter();
-      // Deliberately NOT awaited individually — this is the autosave pattern
-      // that previously let two truncate-then-write calls interleave.
+      // Deliberately not awaited individually: this is the autosave pattern
+      // where two truncate-then-write calls could otherwise interleave.
       w.write(path, 'first');
       w.write(path, 'second');
       w.write(path, 'third');
@@ -58,11 +58,10 @@ void main() {
       final w = SafeFileWriter();
       final long = 'x' * 20000;
       await w.write(path, long);
-      // Fire overlapping writes and sample throughout. The guarantee is that no
-      // read ever returns a half-written mixture — which is exactly what
-      // truncate-then-write DID produce. On Windows the replace step can make
-      // the target briefly unopenable; that is acceptable (and recoverable),
-      // a truncated file is not.
+      // Fire overlapping writes and sample throughout: no read may return a
+      // half-written mixture, which is what truncate-then-write produced. On
+      // Windows the replace step can make the target briefly unopenable,
+      // which is acceptable and recoverable; a truncated file is not.
       for (var i = 0; i < 12; i++) {
         w.write(path, i.isEven ? long : 'short');
       }
@@ -77,7 +76,7 @@ void main() {
             reason: 'observed a partial file (${seen.length} chars)',
           );
         } on FileSystemException {
-          // Transient lock during the atomic replace — allowed.
+          // Transient lock during the atomic replace; allowed.
         }
         await Future<void>.delayed(Duration.zero);
       }

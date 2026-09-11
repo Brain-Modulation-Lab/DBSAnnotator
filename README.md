@@ -14,7 +14,7 @@ or years.
 
 DBS Annotator documents those visits: the stimulation parameters tried on each
 contact, the clinical and session scale ratings at each configuration, side
-effects, and free-text notes — written to **BIDS tab-separated files** that go
+effects, and free-text notes, written to **BIDS tab-separated files** that go
 straight into analysis. It also produces clinician-readable **PDF and Word
 reports** for the patient record.
 
@@ -26,9 +26,9 @@ It runs **fully offline**. No account, no server, no telemetry. Tablet-first
 Vendor programming devices record what the device needs, not what research
 needs, and they do not export data anyone can pool across patients or sites.
 The alternative in practice is paper notes, which do not survive analysis. So
-sessions get documented twice, inconsistently, and the parameter–response
-relationship — the whole point of a titration session — is the part that gets
-lost.
+sessions get documented twice, inconsistently, and the relationship between
+what was delivered and what happened, which is the whole point of a titration
+session, is the part that gets lost.
 
 This tool records that relationship as it happens, in one format, with the
 timestamps intact.
@@ -37,7 +37,7 @@ timestamps intact.
 
 ```
 lib/                 the Flutter application (Dart)
-test/                380 tests
+test/                463 tests
 assets/              bundled schema contract, fonts, app icon
 android/ ios/ linux/ macos/ windows/
 schema/              the machine-readable domain contract (TSV columns,
@@ -53,7 +53,7 @@ Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install)
 
 ```bash
 flutter pub get
-flutter test        # 380 tests, no device needed
+flutter test        # 463 tests, no device needed
 flutter analyze
 flutter run         # on a connected tablet, emulator, or desktop
 ```
@@ -65,9 +65,9 @@ clone builds and tests immediately.
 
 | Workflow | What it records |
 |---|---|
-| **Complete workflow** | Stimulation parameters, electrode contact selection, clinical and session scales, side effects, notes — the full titration session |
+| **Complete workflow** | Stimulation parameters, electrode contact selection, clinical and session scales, side effects, notes: the full titration session |
 | **Annotations only** | Timestamped free-text notes and nothing else |
-| **Single session report** | Open an existing TSV, get its report — no authoring |
+| **Single session report** | Open an existing TSV, get its report, with no authoring |
 | **Longitudinal review** | Several sessions of one patient, compared across visits |
 
 ## Output
@@ -77,7 +77,7 @@ one row per (block, scale), so it pivots directly:
 
 ```python
 df = pd.read_csv(path, sep="\t", na_values=["n/a"])
-df.pivot_table(index=["session_id", "block_id"], columns="scale_name", values="scale_value")
+df.pivot_table(index=["append_id", "block_id"], columns="scale_name", values="scale_value")
 ```
 
 `_beh` rather than `_events`: the BIDS specification reserves `_events.tsv` for
@@ -87,8 +87,8 @@ programming session has neither. **Export → BIDS dataset** lays a set of sessi
 out as a validator-ready `sub-XX/ses-YYYYMMDD/beh/` tree.
 
 Reports come out as PDF and Word, both built from the same numbers so they
-cannot disagree. The full format reference, including what changed in 0.5.0 and
-how older files are still read, is in the
+cannot disagree. The full format reference, including how files written by the
+older desktop app are read, is in the
 [documentation](https://dbsannotator.readthedocs.io/).
 
 ## Fonts
@@ -107,7 +107,7 @@ If you ever need to replace them, get the **static** TTFs from
 <https://fonts.google.com/specimen/IBM+Plex+Sans> ("Get font", then the
 `static/` folder in the zip) or from <https://github.com/IBM/plex/releases>.
 
-Do **not** hot-link a `raw.githubusercontent` path from google/fonts — IBM Plex
+Do **not** hot-link a `raw.githubusercontent` path from google/fonts: IBM Plex
 Sans has moved to a variable font there, so the old static path 404s, and a 404
 still writes a file: GitHub's error page is ~300 KB of HTML, which sails past any
 "is the file big enough?" check. Verify the magic bytes instead:
@@ -126,7 +126,7 @@ is not, and the loader will correctly ignore it.
 
 Tag `app-vX.Y.Z` to trigger
 [the pipeline](.github/workflows/ci.yml). Android attaches an APK to the GitHub
-Release — signed with the project key once the signing secrets are set, and with
+Release, signed with the project key once the signing secrets are set and with
 the debug key until then, which is runnable but not distributable
 ([MOBILE_RELEASE.md](MOBILE_RELEASE.md)). iPadOS goes to TestFlight (Apple has no
 sideload path); Linux, Windows and macOS bundles are built as workflow artifacts.
@@ -141,7 +141,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Citing
 
-If you use DBS Annotator in published work, please cite it — see
+If you use DBS Annotator in published work, please cite it; see
 [CITATION.cff](CITATION.cff).
 
 ## License

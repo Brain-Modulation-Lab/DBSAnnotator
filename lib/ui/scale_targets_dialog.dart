@@ -1,14 +1,13 @@
-/// Per-scale optimisation targets — the tablet counterpart of the desktop
-/// export dialog's scale table (`export_dialog.py`).
+/// Per-scale optimisation targets, the counterpart of the desktop export
+/// dialog's scale table (`export_dialog.py`).
 ///
-/// This is what makes the aggregate index, and therefore the green best /
-/// second-best bands, mean anything: "best" is only defined relative to what the
-/// clinician is trying to achieve. The default is `Min` on every scale with the
-/// bounds declared in Step 2, exactly as the desktop dialog opens.
+/// These are what make the aggregate index, and so the green best and
+/// second-best bands, mean anything: "best" is defined only relative to what
+/// the clinician is trying to achieve. The default is `Min` on every scale
+/// with the bounds declared in Step 2, as the desktop dialog opens.
 ///
-/// Shared by the entry-review figure and (Group 1c) the export flow, so the
-/// figure on screen and the ranking in the report are driven by ONE set of
-/// targets rather than two that can disagree.
+/// The entry-review figure and the export flow share one set of targets, so
+/// the figure on screen and the ranking in the report cannot disagree.
 library;
 
 import 'package:flutter/material.dart';
@@ -101,8 +100,7 @@ class _ScaleTargetsDialogState extends State<_ScaleTargetsDialog> {
     super.dispose();
   }
 
-  /// Apply one mode to every scale — the common case (all Min, or all Max) in
-  /// one tap instead of once per scale.
+  /// Apply one mode to every scale, for the common all-Min or all-Max case.
   void _setAll(ScaleMode mode) => setState(() {
     for (final r in _rows) {
       r.mode = mode;

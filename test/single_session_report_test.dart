@@ -73,17 +73,10 @@ void main() {
     });
 
     test('the screen composes rather than reimplements', () {
-      // The plan set ~120 lines as the acceptance test for this round's
-      // extractions. That was optimistic about what this screen owns: it
-      // detects the file kind, holds the targets and the section choice, and
-      // drives TWO report families (session and notes) x two formats. What it
-      // must NOT do is reimplement anything shared, and the number is here to
-      // make a slide back into that visible in review.
-      //
-      // It already caught one: this screen shipped its own graphics rasteriser
-      // for about ten minutes, and it was the worse of the two - no section
-      // gating, four sequential awaits instead of concurrent, and its own idea
-      // of which rows to draw. That is now renderReportGraphics, shared.
+      // This screen legitimately owns file-kind detection, the targets and
+      // section choice, and two report families (session and notes) across
+      // two formats. What it must not do is reimplement anything shared, and
+      // the line bound is what makes a slide back into that visible.
       final src = File(
         'lib/ui/single_session_report_screen.dart',
       ).readAsLinesSync();
@@ -91,13 +84,9 @@ void main() {
         final t = l.trim();
         return t.isNotEmpty && !t.startsWith('//') && !t.startsWith('///');
       }).length;
-      // Generous, and deliberately not tight: `dart format` decides where lines
-      // wrap, so the count moves by a few whenever the formatter's style does -
-      // this bound went from 330 to 360 when the tree was formatted and the
-      // count rose 330 -> 332 with no code change at all. A limit that fails on
-      // a reformat teaches people to raise the limit, which is the opposite of
-      // the point. What this guards is a slide back into reimplementing shared
-      // code, which costs tens of lines, not two.
+      // Deliberately loose: `dart format` decides where lines wrap, so the
+      // count moves by a few whenever the formatter's style does. A limit
+      // that fails on a reformat only teaches people to raise the limit.
       expect(
         code,
         lessThan(360),

@@ -4,8 +4,8 @@ name: App CI/CD
 # lives at the repo root, so every step runs there with no working-directory.
 #
 # On PRs touching the Dart tree it runs tests + a build check; on `app-v*` tags
-# it ships Android (APK -> GitHub Release) and iOS (-> TestFlight, when the
-# Apple secrets are configured).
+# it ships Android (the APK to the GitHub Release) and iOS (to TestFlight, when
+# the Apple secrets are configured).
 on:
   push:
     # CI on main was missing entirely: a merge that broke the build was only
@@ -13,7 +13,7 @@ on:
     branches: [main]
     tags: ["app-v*"]
   # No `paths:` filter, deliberately. The app IS the repo root, so the filter
-  # had to enumerate what the app is NOT - and it got it wrong: a PR touching
+  # had to enumerate what the app is NOT, and it got it wrong: a PR touching
   # only `pubspec.lock` (i.e. every Dependabot PR) matched nothing and ran ZERO
   # jobs, and it listed a `ruff.toml` that no longer exists while omitting the
   # `pyproject.toml` that replaced it. A workflow that silently runs nothing is
@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
 
 # Read-only by default. Only the `release` job gets `contents: write`, and only
-# it needs one - previously all seven jobs held a token that could push to the
+# it needs one. Previously all seven jobs held a token that could push to the
 # repository, including the job that pipes a third-party binary into bash.
 permissions:
   contents: read
@@ -58,11 +58,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # test/version_parity_test.dart locks pubspec.yaml <-> lib/app_info.dart
-      # <-> CITATION.cff <-> msix_version to each other, but the TAG sat outside
+      # test/version_parity_test.dart locks pubspec.yaml, lib/app_info.dart,
+      # CITATION.cff and msix_version to each other, but the TAG sat outside
       # that ring: `git tag app-v0.6.0` on a 0.5.0 commit produced an MSIX
-      # labelled 0.6.0.0 wrapping an app whose report footers - filed in a
-      # patient record - said 0.5.0. This closes the ring.
+      # labelled 0.6.0.0 wrapping an app whose report footers, filed in a
+      # patient record, said 0.5.0. This closes the ring.
       #
       # First step, before any toolchain: it fails in seconds, in front of a
       # 20-minute fan-out. The regex is the same one version_parity_test.dart
@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME#app-v}"
-          tag="${tag%-rc*}"          # app-v0.5.1-rc / -rc2 / -rc.2 -> 0.5.1
+          tag="${tag%-rc*}"          # app-v0.5.1-rc / -rc2 / -rc.2 give 0.5.1
           pub=$(sed -n 's/^version:[[:space:]]*\([0-9][^+ #]*\).*/\1/p' pubspec.yaml | head -1)
           [ -n "$pub" ] || { echo "::error::pubspec.yaml declares no parseable version:"; exit 1; }
           if [ "$tag" != "$pub" ]; then
@@ -102,7 +102,7 @@ jobs:
       #
       # A pinned action, NOT `curl | bash`. The download script lives on a
       # moving branch and is unchecksummed, and this workflow holds a token that
-      # can write to the repository - so piping it into a shell would be remote
+      # can write to the repository, so piping it into a shell would be remote
       # code execution with push access, on a clinical tool.
       - uses: rhysd/actionlint@v1.7.12
 
@@ -116,7 +116,7 @@ jobs:
       # One source of truth for hook versions, arguments AND ordering:
       # .pre-commit-config.yaml. This used to be three `uvx ruff@0.16.5 …` /
       # `codespell@2.4.3` / `doc8@2.0.0` steps that pinned the same versions a
-      # SECOND time, so the hooks and CI could enforce different rules - and a
+      # SECOND time, so the hooks and CI could enforce different rules, and a
       # `pre-commit autoupdate` PR would have desynced them silently while CI
       # kept enforcing the old ones. It also subsumes `dart format` and
       # `flutter analyze --fatal-infos` (both local hooks) and satisfies the
@@ -152,8 +152,81 @@ jobs:
       - run: flutter test
 
   # ---------------------------------------------------------------------------
+  # Does the dataset this app writes actually satisfy BIDS?
+  #
+  # Every other claim of compliance in this repository is OUR READING of the
+  # specification, restated in tests we wrote. The validator is the only thing
+  # that tests the reading itself, and it is the claim the JOSS paper makes.
+  #
+  # It lives in CI because it cannot run on the maintainer's machine: the
+  # validator is Deno-based, and that machine has no Node, Deno or Docker.
+  #
+  # `continue-on-error` DELIBERATELY, for now. The first output of a validator
+  # against a bespoke `beh` dataset is a finding, not a verdict. Expect
+  # legitimate complaints about our own columns and about `desc-aggregate_beh`
+  # at a derivative root, which is the one part of the layout not yet confirmed.
+  # Turning a gate red before anyone has read what it says teaches people to
+  # ignore it. Triage the output, fix the real errors, record which warnings are
+  # acceptable and why, and THEN delete this line.
+  bids-validate:
+    name: BIDS validator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: flutter pub get --enforce-lockfile
+
+      # Two sessions of one subject plus a second subject, so `scans.tsv`
+      # grouping, `participants.tsv` with more than one row, and the combined
+      # table's cross-subject path are all exercised. A plain `flutter test`
+      # writes nothing, hence the env var.
+      - name: Write a dataset tree
+        env:
+          BIDS_DATASET_DIR: build/bids-dataset
+        run: flutter test test/bids/dataset_tree_test.dart
+
+      - name: Validate it
+        run: |
+          # Every invocation is guarded. The default shell is `bash -e`, and the
+          # validator exits non-zero whenever it finds errors, so an unguarded
+          # call kills the step before it writes anything: the job's purpose is
+          # to PRODUCE the finding, and `continue-on-error` decides what it
+          # costs. A `set -uo pipefail` line does NOT help, since it leaves the
+          # shell's own -e in place.
+          deno run -ERWN jsr:@bids/validator build/bids-dataset --json > build/bids-report.json || true
+          deno run -ERWN jsr:@bids/validator build/bids-dataset > build/bids-report.txt 2>&1 || true
+          {
+            echo '### BIDS validator'
+            echo ''
+            echo '```'
+            tail -60 build/bids-report.txt || echo 'the validator produced no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The JSON is the thing to triage, and it outlives the log retention of a
+      # step summary.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bids-validator-report
+          path: |
+            build/bids-report.json
+            build/bids-report.txt
+            build/bids-dataset
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
   # Build jobs. Each produces ONE correctly-named archive in `out/`, and the
-  # `cp`/`test -x` that names it IS the completeness check - `upload-artifact`
+  # `cp`/`test -x` that names it IS the completeness check. `upload-artifact`
   # errors only when NOTHING matches, so listing two paths under one
   # `if-no-files-found: error` let a missing .aab beside a present .apk upload a
   # partial artifact and pass.
@@ -208,7 +281,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     # Job-level env so step `if:` conditions can read it (a step-level env is
-    # not visible to that step's own `if:`) - same reason as the android job.
+    # not visible to that step's own `if:`), same reason as the android job.
     env:
       IS_TAG: ${{ startsWith(github.ref, 'refs/tags/app-v') }}
       WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
@@ -282,7 +355,7 @@ jobs:
       # A signature check is the WRONG assertion here: a --store package is
       # unsigned by design, so `signtool verify /pa` would fail on correct
       # output. The failure that actually costs a review cycle is an identity
-      # mismatch, which MOBILE_RELEASE.md calls the most common rejection - so
+      # mismatch, which MOBILE_RELEASE.md calls the most common rejection, so
       # assert the manifest the tool actually wrote.
       - name: Verify the MSIX identity
         if: steps.msix.outcome == 'success'
@@ -486,7 +559,7 @@ jobs:
 
       # Signed IPA + TestFlight upload only on a tag and only when the Apple
       # secrets are present. Wire fastlane pilot here once the Apple Developer
-      # account is set up - see MOBILE_RELEASE.md section 3.
+      # account is set up; see MOBILE_RELEASE.md section 3.
       - name: Upload to TestFlight (fastlane)
         if: ${{ startsWith(github.ref, 'refs/tags/app-v') && env.APP_STORE_CONNECT_KEY_ID != '' }}
         run: |
@@ -511,18 +584,18 @@ jobs:
   # The single release writer.
   #
   # Previously `windows` and `android` each called action-gh-release, so
-  # whichever finished first CREATED the Release - and since the MSIX step
+  # whichever finished first CREATED the Release, and since the MSIX step
   # failed on every real tag, the actual outcome of tagging this repo was a
   # public release containing one debug-signed APK and nothing else. Per-job
   # attach cannot be made atomic: there is no ordering between those jobs. One
   # writer with one manifest eliminates the possibility.
   #
   # If any upstream job fails, this job never starts, so NO Release object is
-  # ever created - nothing to retract.
+  # ever created, and there is nothing to retract.
   #
   # `draft: true` always: the automation guarantees "every gate passed and the
   # asset list is complete", and a human clicks Publish. That single flag is
-  # also what makes the -rc dry run free - an rc exercises this entire job,
+  # also what makes the -rc dry run free: an rc exercises this entire job,
   # artifact download and manifest check included, and publishes nothing.
   # ---------------------------------------------------------------------------
   release:
@@ -559,7 +632,7 @@ jobs:
           else
             echo "No MSIX: neither the MSIX_IDENTITY_NAME variable nor the WINDOWS_CERT_BASE64 secret is set. See MOBILE_RELEASE.md section 4." >> "$GITHUB_STEP_SUMMARY"
           fi
-          # macOS and iOS contribute no asset by design - see their jobs.
+          # macOS and iOS contribute no asset by design; see their jobs.
           [ "$missing" = 0 ]
           { echo "### Release assets"; echo '```'; ls -l dist/; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
@@ -569,7 +642,7 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           name: >-
             ${{ contains(github.ref_name, '-rc')
-                && format('{0} — dry run, do not publish', github.ref_name)
+                && format('{0}: dry run, do not publish', github.ref_name)
                 || format('DBS Annotator {0}', github.ref_name) }}
           files: dist/*
           fail_on_unmatched_files: true

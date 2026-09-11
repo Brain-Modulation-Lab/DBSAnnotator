@@ -7,9 +7,8 @@ Opening the app
 Launch DBS Annotator as you would any other app on the device. The home screen
 offers four entries, in two groups:
 
-**Record** — for a session happening now.
-
-**Reports** — for a file that already exists.
+**Record** is for a session happening now; **Reports** is for a file that
+already exists.
 
 .. image:: _static/screenshots/home.png
    :alt: Home screen with four entries grouped under Record and Reports
@@ -25,7 +24,7 @@ offers four entries, in two groups:
      - You are running a programming session: stimulation parameters, electrode
        contacts, scale ratings, side effects and notes.
    * - :doc:`Annotations only <screens/annotations>`
-     - You only want timestamped notes — no stimulation data.
+     - You only want timestamped notes, with no stimulation data.
    * - :doc:`Single session report <screens/single_session_report>`
      - You have a TSV and want its report, with no authoring.
    * - :doc:`Longitudinal review <screens/longitudinal>`
@@ -71,12 +70,12 @@ previous file intact rather than a truncated one.
 
 **Notes and side effects belong to a block.** They are attached to the
 configuration that was active when you typed them, not to the session as a
-whole — which is what makes it possible afterwards to say *which* setting caused
+whole, which is what makes it possible afterwards to say *which* setting caused
 the paraesthesia.
 
 **Scale targets are yours to set.** If you want the app to highlight the
 best-scoring configurations, you must first say what "better" means for each
-scale — lower, higher, or closest to a value. Until you do, no configuration is
+scale: lower, higher, or closest to a value. Until you do, no configuration is
 ranked. This is deliberate; see :ref:`what-the-reports-do-not-say`.
 
 **Text size and theme** are adjustable from the top bar of every screen, which

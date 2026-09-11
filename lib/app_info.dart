@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// App identity + Help/About, mirroring the desktop `config.py` values and the
-/// wizard's Help dialog.
+/// App identity, mirroring the desktop `config.py` values.
 const String appName = 'DBS Annotator';
 
-/// Restates `version:` from pubspec.yaml, which is the source of truth.
-///
-/// Dart cannot read the pubspec at runtime without a native plugin, so this is
-/// a literal — but `test/version_parity_test.dart` fails if it drifts. It
-/// reaches every report footer, the PDF `/Info` dictionary and the docx
-/// `docProps`, so a stale value here is filed in a patient record.
+/// Restates `version:` from pubspec.yaml, the source of truth; reading the
+/// pubspec at runtime would need a native plugin. The value reaches report
+/// footers and document metadata, so `version_parity_test.dart` guards it
+/// against drift.
 const String appVersion = '0.5.0';
 const String repoUrl = 'https://github.com/Brain-Modulation-Lab/DBSAnnotator';
 const String issuesUrl = '$repoUrl/issues';
@@ -22,11 +19,9 @@ const String copyrightHolders =
 /// The app mark, bundled from `icons/logosimple/`. Declared in pubspec assets.
 const String appIconAsset = 'assets/icon/app_icon.png';
 
-/// The app mark as a widget, for AppBars and dialogs.
-///
-/// [size] is the logical height; the mark is square. Falls back to a Material
-/// glyph if the asset is somehow missing, so a packaging slip degrades to an
-/// icon rather than a red error box in the AppBar.
+/// The app mark as a widget, for AppBars and dialogs. [size] is the logical
+/// height; the mark is square. A missing asset degrades to a Material glyph
+/// rather than a red error box.
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 32});
 
@@ -42,9 +37,8 @@ class AppLogo extends StatelessWidget {
   );
 }
 
-/// Desktop-style Help/About dialog: name + version, workflow overview,
-/// copyright/license, and the repository / issues / contact URLs as
-/// SelectableText (copy to open — avoids a url_launcher dependency).
+/// Help/About dialog. URLs are SelectableText rather than tappable links,
+/// which avoids a url_launcher dependency.
 void showAppAbout(BuildContext context) {
   showAboutDialog(
     context: context,
@@ -54,11 +48,12 @@ void showAppAbout(BuildContext context) {
     children: const [
       SizedBox(height: 8),
       Text(
-        'Document DBS programming visits — the appointments at which '
-        'stimulation configurations are tested and optimised: file setup → '
-        'initial configuration → session-scales configuration → active '
-        'recording. Writes BIDS behavioural TSV with a JSON sidecar '
-        'documenting every column, and exports PDF and Word reports.',
+        'Document DBS programming visits, the appointments at which '
+        'stimulation configurations are tested and optimised. The complete '
+        'workflow runs in four steps: file setup, initial configuration, '
+        'session-scales configuration, active recording. Writes BIDS '
+        'behavioural TSV with a JSON sidecar documenting every column, and '
+        'exports PDF and Word reports.',
       ),
       SizedBox(height: 12),
       Text(

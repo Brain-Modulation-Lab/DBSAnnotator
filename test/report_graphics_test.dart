@@ -14,9 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'report_ranking_prefs.dart';
 
-/// The committed export the desktop docs are built from — real clinical shape
-/// (7 blocks, 5 session scales, clinical baseline), so the scoring is checked
-/// against data we can compare with the reference figure in
+/// The committed export the desktop docs are built from: real clinical shape
+/// (7 blocks, 5 session scales, clinical baseline), so the scoring can be
+/// compared against the reference figure in
 /// docs/_static/session_report_session_scales_figure.png.
 List<SessionRow> _exampleRows() => parseSessionTsv(
   File(
@@ -56,15 +56,13 @@ void main() {
       expect(data.chart.yMax, 10);
     });
 
-    test('ranks SETTINGS, so an identical pair is one configuration', () {
+    test('ranks blocks by aggregate index, best first', () {
       expect(data.chart.aggregateIndex, hasLength(7));
-      // Blocks 6 and 7 are byte-identical in all ten stimulation columns and
-      // were rated 9 s apart. They are ONE setting, so both are banded as the
-      // best and the second band goes to a genuinely different configuration.
-      // The desktop (and this port until now) banded 7 as "optimal" and 6 as
-      // "second-best" - a rank order over a repeat rating.
-      expect(data.chart.bestXs, [6, 7]);
-      expect(data.chart.secondXs, [2]);
+      // One ordering for the bands, the row shading and the printed rank: the
+      // highest index is banded dark green and the next lightest green, with
+      // no second notion of a winner anywhere in the document.
+      expect(data.chart.bestXs, [7]);
+      expect(data.chart.secondXs, [6]);
       for (final v in data.chart.aggregateIndex.values) {
         expect(v, inInclusiveRange(0.0, 1.0));
       }
@@ -78,12 +76,14 @@ void main() {
       expect(data.replicateSpread, closeTo(0.070, 5e-4));
       expect(data.rankingResolutionNote, contains('0.070'));
       expect(data.rankingResolutionNote, contains('not distinguishable'));
-      expect(data.bestSettingText, contains('blocks 6, 7'));
+      expect(data.anomalies.join(' '), contains('Blocks 6, 7 record the same'));
     });
 
-    test('table shading uses the separate raw-sum ranking', () {
-      // Deliberately a different algorithm from the chart's index — the desktop
-      // does the same and they may disagree. See scale_scoring.dart.
+    test('the table shades by the same ranking the figure bands by', () {
+      // One algorithm, so a row can never be shaded rank 1 while its Index
+      // cell prints rank 2.
+      expect(data.bestBlocks, data.chart.bestXs);
+      expect(data.secondBlocks, data.chart.secondXs);
       expect(data.bestBlocks, isNotEmpty);
       expect(data.bestBlocks, isNot(equals(data.secondBlocks)));
     });
@@ -127,14 +127,10 @@ void main() {
     });
 
     test('a single scale is still ranked (the desktop suppresses it)', () {
-      // Deliberate divergence: the desktop draws no index below two scales, so
-      // a one-scale session got no green bands at all. The user asked for the
-      // ranking to work "no matter how many scales there are", and a single
-      // scale against its own target ranks the blocks perfectly well.
-      // Different amplitudes, so these are two SETTINGS and not one rated
-      // twice. (With no stimulation columns at all they would group together,
-      // which is right - the grouping keys on the stimulation - but is not a
-      // shape a real session produces.)
+      // Deliberate divergence: the desktop draws no index below two scales,
+      // so a one-scale session got no green bands at all, yet a single scale
+      // against its own target ranks the blocks perfectly well. The rows
+      // differ in amplitude, so they are two settings, not one rated twice.
       const rows = [
         SessionRow(
           blockId: '1',

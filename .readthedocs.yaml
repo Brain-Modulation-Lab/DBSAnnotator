@@ -2,7 +2,7 @@
 #
 # The app is written in Dart and nothing in docs/conf.py imports it, so the
 # build needs four Sphinx wheels and nothing else: no project install, no system
-# libraries. Flutter is never installed either — screenshots are generated from
+# libraries. Flutter is never installed either: screenshots are generated from
 # widget tests and committed, because RTD cannot run a ~1 GB SDK inside its
 # build limits.
 version: 2

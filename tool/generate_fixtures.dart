@@ -2,65 +2,45 @@
 //
 //   dart run tool/generate_fixtures.dart
 //
-// ## Why this file exists
-//
-// The example session is **synthetic**: every rating, every stimulation
-// parameter and every timestamp below is invented. It replaced a real patient's
-// recorded session, which the repository had been publishing as a `:download:`
-// link on Read the Docs — a full date to the second, a UTC offset, the implanted
-// lead model, an OCD-plus-depression scale set and clinical notes that still
-// carried elisions where identifying detail had been removed.
-//
-// Generating rather than hand-editing buys three things. The file is written by
-// the app's own `buildInsertRows` + `serializeSessionTsv`, so its header, column
-// order, `n/a` sentinel, line endings and largest-remainder amplitude encoding
-// are exactly what the app produces — a hand-written fixture drifts from the
-// writer the moment either changes. The provenance is auditable: anyone can read
-// this file and see that no recorded data went into it. And the numbers below are
-// *designed*, which matters because several tests pin values derived from them.
-//
-// ## The structure the tests depend on — change with care
+// Every rating, stimulation parameter and timestamp below is invented; no
+// recorded patient data goes into these fixtures. Generating rather than
+// hand-editing keeps the header, column order, `n/a` sentinel, line endings
+// and largest-remainder amplitude encoding identical to what the app writes,
+// since the file goes through `buildInsertRows` + `serializeSessionTsv`.
 //
 // `test/ranking_values_test.dart` and `test/report_graphics_test.dart` assert
-// properties of this data, not just that code runs. Preserve all of these or
-// re-derive the expected values:
+// properties of this data, so preserve all of the following or re-derive the
+// expected values:
 //
 //  * 1 baseline block (`is_initial=1`, clinical scales) + 7 recording blocks
 //    × 5 session scales = 35 rated rows.
-//  * **A replicate pair**: blocks 6 and 7 are byte-identical across all ten
-//    stimulation columns and rated 9 seconds apart. They are the session's own
+//  * Blocks 6 and 7 are a replicate pair: byte-identical across all ten
+//    stimulation columns, rated 9 seconds apart. They are the session's own
 //    measure of re-rating noise.
-//  * **An identical-ratings pair**: blocks 3 and 4 carry the same five ratings
-//    under *different* stimulation, so the record cannot distinguish a
-//    re-rating from values carried forward.
-//  * **Replicate spread must exceed between-setting separation.** Here 0.070
-//    (blocks 6→7) against 0.010 (blocks 2 vs 3). That inequality is asserted
-//    directly, because it is what makes the report's own warning true: two
-//    settings closer together than the noise are not distinguishable.
+//  * Blocks 3 and 4 carry the same five ratings under different stimulation,
+//    so the record cannot tell a re-rating from values carried forward.
+//  * Replicate spread must exceed between-setting separation: 0.070 (blocks
+//    6 to 7) against 0.010 (blocks 2 vs 3). A test asserts that inequality
+//    directly, because it is what makes the report's own warning true.
 //  * 6 distinct stimulation settings across the 7 recording blocks.
-//  * At least one current-split block, so the percentage rendering is covered
-//    (block 4 splits three ways, which also exercises the 33/33/34
-//    largest-remainder case).
+//  * At least one current-split block, so percentage rendering is covered
+//    (block 4 splits three ways, exercising the 33/33/34 remainder case).
 //
-// With every scale targeted `min` over 0–10, a block's aggregate index is the
-// mean of `1 - value/10` over its five ratings. The designed indices are:
-//
-//   block 1  0.380   block 2  0.460   block 3  0.450   block 4  0.450
-//   block 5  0.270   block 6  0.580   block 7  0.650
-//
-// ranked: 7, 6, 2, 3, 4, 1, 5 — so the best *setting* is blocks 6+7 (mean
-// 0.615) and the second is block 2, while block 1 is rank 6.
+// Every scale is targeted `min` over 0 to 10, so a block's aggregate index is
+// the mean of `1 - value/10` over its five ratings. The designed ranking is
+// 7, 6, 2, 3, 4, 1, 5: the best setting is blocks 6+7 and block 1 is rank 6.
+// `main` prints the indices themselves.
 
 import 'dart:io';
 
 import 'package:dbs_annotator/core/schema_columns.dart';
 import 'package:dbs_annotator/core/session/session_file.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
+import 'package:dbs_annotator/core/timestamps.dart';
 import 'package:dbs_annotator/core/tsv.dart';
 
-/// A fictional instant, in UTC. UTC on purpose: the data is invented, and a
-/// non-zero offset would invite a reader to infer a recording site that does
-/// not exist. `timezoneCell` renders this as `UTC +00:00`.
+/// A fictional instant. UTC on purpose: a non-zero offset would invite a
+/// reader to infer a recording site that does not exist.
 final DateTime _start = DateTime.utc(2026, 2, 3, 9);
 
 const String _model = 'Medtronic SenSight B33005';
@@ -87,12 +67,7 @@ const List<String> _sessionScales = [
   'Energy',
 ];
 
-// Left lead: a two-segment split for most of the visit, narrowed to one segment
-// for the last setting. Right lead: a ring titrated up, then two split-current
-// settings, then back to the ring at a lower amplitude.
 const List<_Block> _blocks = [
-  // Deliberately unremarkable intervals of one to three minutes between
-  // settings - long enough to set a parameter and take five ratings...
   (
     seconds: 200,
     leftCathode: 'E1b_E1c',
@@ -120,8 +95,6 @@ const List<_Block> _blocks = [
     ratings: [6.25, 6.25, 4.75, 5.75, 4.50],
     notes: '',
   ),
-  // Same five ratings as block 3 under different stimulation: the record cannot
-  // tell a genuine re-rating from values carried forward, and the report says so.
   (
     seconds: 555,
     leftCathode: 'E1b_E1c',
@@ -149,10 +122,8 @@ const List<_Block> _blocks = [
     ratings: [4.00, 3.75, 4.25, 5.50, 3.50],
     notes: 'settled, obsessions much reduced',
   ),
-  // ...and then one interval of NINE SECONDS on identical stimulation. Nine
-  // seconds is not a plausible re-administration of five 0-10 ratings, which is
-  // exactly the point: this pair is the session's noise floor, and the report
-  // flags it rather than ranking the two against each other.
+  // Nine seconds after block 6, on identical stimulation: too short to be a
+  // plausible re-administration, which makes this pair the noise floor.
   (
     seconds: 879,
     leftCathode: 'E1c',
@@ -164,9 +135,8 @@ const List<_Block> _blocks = [
   ),
 ];
 
-/// The baseline assessment: clinical instruments, before any change.
-/// `Y-BOCS` is the sum of its obsession and compulsion subscales, as the
-/// instrument defines it.
+/// The baseline assessment: clinical instruments, before any change. `Y-BOCS`
+/// is the sum of its obsession and compulsion subscales.
 const List<ScaleEntry> _clinicalScales = [
   (name: 'Y-BOCS', value: '28'),
   (name: 'Y-BOCS-o', value: '15'),
@@ -179,7 +149,7 @@ String _fmt(double v) => v.toStringAsFixed(2);
 List<SessionRow> _rows() => [
   ...buildInsertRows(
     blockId: 0,
-    sessionId: 1,
+    appendId: 1,
     isInitial: true,
     scales: _clinicalScales,
     programId: _program,
@@ -200,7 +170,7 @@ List<SessionRow> _rows() => [
   for (var i = 0; i < _blocks.length; i++)
     ...buildInsertRows(
       blockId: i + 1,
-      sessionId: 1,
+      appendId: 1,
       scales: [
         for (var s = 0; s < _sessionScales.length; s++)
           (name: _sessionScales[s], value: _fmt(_blocks[i].ratings[s])),
@@ -251,17 +221,28 @@ String _legacyDocument(List<SessionRow> rows) {
   ];
   const rename = {
     'block_id': 'block_ID',
-    'session_id': 'session_ID',
+    'append_id': 'session_ID',
     'program_id': 'program_ID',
   };
-  final records = [
-    for (final row in rows.map((r) => r.toMap()))
-      {
-        for (final entry in row.entries)
-          if (entry.key != 'acq_time')
-            rename[entry.key] ?? entry.key: entry.value,
-      },
-  ];
+  // A 0.4.x file has no `acq_time`: it stored the instant as `date` + `time`
+  // plus a free-text `timezone`, so those three cells are rebuilt here. This
+  // is the regression test for `backfillAcqTime`, which must reconstruct the
+  // same instant, offset included, from nothing but them. The harder Windows
+  // zone spelling (`W. Europe Daylight Time +0200`) is left to unit tests.
+  final records = <Map<String, String>>[];
+  for (final row in rows) {
+    final at = DateTime.parse(row.acqTime);
+    final mapped = <String, String>{
+      'date': dateCell(at),
+      'time': timeCell(at),
+      'timezone': 'UTC ${offsetString(at)}',
+    };
+    for (final entry in row.toMap().entries) {
+      if (entry.key == 'acq_time') continue;
+      mapped[rename[entry.key] ?? entry.key] = entry.value;
+    }
+    records.add(mapped);
+  }
   return writeTsvRecords(legacyColumns, records);
 }
 
@@ -275,8 +256,8 @@ void main() {
     '$dir/legacy_0.4_${stem}_events.tsv',
   ).writeAsStringSync(_legacyDocument(rows).replaceAll('\tn/a', '\tNaN'));
 
-  // Print the arithmetic the tests pin, so a change here shows its consequences
-  // immediately rather than as a test failure with no context.
+  // Print the arithmetic the tests pin, so a change here shows its effect
+  // immediately rather than as a context-free test failure.
   stdout.writeln('${rows.length} rows, ${sessionColumns.length} columns');
   final byBlock = <String, List<double>>{};
   for (final r in rows.where((r) => r.isInitial.trim() != '1')) {

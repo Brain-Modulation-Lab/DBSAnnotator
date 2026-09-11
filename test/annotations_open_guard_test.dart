@@ -1,17 +1,11 @@
 /// The guard that stops the Annotations workflow destroying a programming
 /// session TSV.
 ///
-/// This is a pure-logic test of the guard's PREMISE, not a widget test: it
-/// pins the two facts that made the bug possible, so that if either changes,
-/// the reason `annotations_screen._open` must sniff the kind is still recorded.
-///
-/// The bug: `annotations_screen._open` was the only one of four file readers
-/// with no `sniffTsvKind` check, and the only one that autosaves back to the
-/// file it opened. A programming TSV parses as notes *successfully*, so the
-/// screen reported a plausible note count, set `_savePath` to the clinician's
-/// real file, and the first typed note atomically rewrote it with only the five
-/// annotation columns - every block, stimulation parameter, amplitude, scale
-/// rating and program gone, with no error and no `.tmp` to recover from.
+/// A programming TSV parses as notes without error, so `_open` in
+/// `annotations_screen` must sniff the kind: it autosaves back to the file it
+/// opened, and the first typed note would rewrite that file with only the five
+/// annotation columns. Pure logic rather than a widget test; it pins the two
+/// facts that make the guard necessary.
 library;
 
 import 'dart:io';
@@ -36,9 +30,8 @@ void main() {
   });
 
   test('a programming TSV parses as notes WITHOUT error - the trap', () {
-    // Precondition for the bug, and the reason a guard is required rather than
-    // relying on a parse failure: `parseAnnotations` is total, and every
-    // annotation column exists in a programming file.
+    // Why a guard is needed rather than a parse failure: `parseAnnotations`
+    // is total, and every annotation column exists in a programming file.
     expect(
       annotationColumns.every(sessionColumns.contains),
       isTrue,
@@ -59,8 +52,7 @@ void main() {
 
   test('round-tripping a programming file through the notes writer would '
       'destroy it', () {
-    // What autosave used to do on the very first note. Asserted so the cost is
-    // recorded next to the guard, not just described in a comment.
+    // What autosave does on the first typed note if the guard is removed.
     final rewritten = writeAnnotations(parseAnnotations(programming));
     final lostColumns = sessionColumns.where(
       (c) => !annotationColumns.contains(c),

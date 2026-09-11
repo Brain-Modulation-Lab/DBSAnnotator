@@ -3,13 +3,12 @@ import 'package:dbs_annotator/ui/session/entries_table.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Two blocks, three scales each: the shape that made the old table unreadable.
+/// Two blocks, three scales each: the shape the table has to keep readable.
 const _rows = [
   SessionRow(
     blockId: '1',
     isInitial: '0',
-    date: '2026-01-01',
-    time: '09:00:00',
+    acqTime: '2026-01-01T09:00:00',
     programId: 'A',
     leftStimFreq: '130',
     leftAmplitude: '2.5',
@@ -21,8 +20,7 @@ const _rows = [
   SessionRow(
     blockId: '1',
     isInitial: '0',
-    date: '2026-01-01',
-    time: '09:00:00',
+    acqTime: '2026-01-01T09:00:00',
     programId: 'A',
     leftStimFreq: '130',
     leftAmplitude: '2.5',
@@ -34,8 +32,7 @@ const _rows = [
   SessionRow(
     blockId: '2',
     isInitial: '0',
-    date: '2026-01-01',
-    time: '09:12:00',
+    acqTime: '2026-01-01T09:12:00',
     programId: 'A',
     leftStimFreq: '130',
     leftAmplitude: '3.5',
@@ -63,8 +60,8 @@ void main() {
   testWidgets('block-level columns are printed once per block', (tester) async {
     await _pump(tester, _rows);
 
-    // Two blocks share the same programme, so the cell appears twice — not
-    // three times, which is what one-row-per-scale used to produce.
+    // Two blocks share the same programme, so the cell appears twice, not
+    // once per scale row.
     expect(find.text('A'), findsNWidgets(2));
     expect(
       find.text('2026-01-01 09:00:00'),
@@ -92,8 +89,7 @@ void main() {
       const SessionRow(
         blockId: '0',
         isInitial: '1',
-        date: '2026-01-01',
-        time: '08:55:00',
+        acqTime: '2026-01-01T08:55:00',
         scaleName: 'Y-BOCS',
         scaleValue: '30',
       ),

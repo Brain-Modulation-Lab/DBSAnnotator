@@ -1,11 +1,9 @@
-/// "Export BIDS dataset" — the whole tree, as one zip.
+/// "Export BIDS dataset": the whole tree, as one zip.
 ///
 /// A zip rather than a directory picker because it is the one shape that works
-/// identically on all five platforms: `exportFile` already knows how to hand a
-/// single file to a desktop Save-As dialog or an iPad share sheet, and a
-/// directory-writing path would need a separate implementation, separate
-/// permissions and a separate failure mode on mobile for no gain — the recipient
-/// unzips it into their dataset either way.
+/// identically on all five platforms. `exportFile` already hands a single file
+/// to a desktop Save-As dialog or an iPad share sheet, whereas writing a
+/// directory would need its own permissions and mobile failure modes.
 library;
 
 import 'dart:convert';
@@ -26,6 +24,7 @@ import 'share_util.dart';
 Future<void> exportBidsDataset(
   BuildContext context, {
   required List<DatasetEntry> entries,
+  List<DatasetFile> extraFiles = const <DatasetFile>[],
   GlobalKey? anchor,
 }) async {
   if (entries.isEmpty) {
@@ -34,8 +33,7 @@ Future<void> exportBidsDataset(
     ).showSnackBar(const SnackBar(content: Text('Nothing to export yet.')));
     return;
   }
-  // One subject means a name that says whose data it is; several means it does
-  // not, and saying "bids-dataset" beats naming only the first of them.
+  // Naming only the first of several subjects would be worse than generic.
   final subjects = {for (final e in entries) BidsName.label(e.name.subject)};
   final stem = subjects.length == 1
       ? 'sub-${subjects.first}_bids'
@@ -54,7 +52,9 @@ Future<void> exportBidsDataset(
         repoUrl: repoUrl,
       );
       final archive = Archive();
-      for (final file in files) {
+      // [extraFiles] carries derivatives, kept out of buildBidsDataset so the
+      // raw tree's layout never depends on what a caller is deriving.
+      for (final file in [...files, ...extraFiles]) {
         archive.addFile(
           ArchiveFile.bytes(file.path, utf8.encode(file.content)),
         );
@@ -69,9 +69,8 @@ Future<void> exportBidsDataset(
 
 /// A [DatasetEntry] for one recorded file.
 ///
-/// [kind] is `session_tsv` or `annotation_tsv`; the sidecar is generated from
-/// the same contract that documents the columns in the docs, so the two cannot
-/// disagree.
+/// [kind] is `session_tsv` or `annotation_tsv`. The sidecar comes from the
+/// same contract that documents the columns, so the two cannot disagree.
 DatasetEntry datasetEntry({
   required BidsName name,
   required String tsv,

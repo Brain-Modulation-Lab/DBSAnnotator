@@ -12,7 +12,7 @@ Icon=dbs-annotator
 StartupWMClass=dbs_annotator
 
 # ---------------------------------------------------------------------------
-# NOT installed by `flutter build linux` — Flutter produces only a bundle
+# NOT installed by `flutter build linux`: Flutter produces only a bundle
 # directory. This is the template a packaging step (.deb, AppImage, Flatpak)
 # should install, because a Linux app needs a .desktop entry to get a name and
 # an icon in the launcher, dock and Alt+Tab list.
@@ -33,6 +33,6 @@ StartupWMClass=dbs_annotator
 #
 # `Icon=` must be the theme NAME (dbs-annotator), not a path, so the shell can
 # pick the size it needs. StartupWMClass must match the GTK application id so
-# the launcher associates the running window with this entry — otherwise the
+# the launcher associates the running window with this entry; otherwise the
 # taskbar shows a second, unnamed iconless entry.
 # ---------------------------------------------------------------------------

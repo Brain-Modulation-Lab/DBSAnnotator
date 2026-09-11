@@ -2,26 +2,20 @@ import 'contact_state.dart';
 import 'electrode_model.dart';
 import 'stimulation_rule.dart';
 
-/// Anode/cathode token grammar shared with the desktop app's TSV files.
+/// Anode/cathode token grammar shared with the desktop app's TSV files,
+/// ported from `step3_view.py`.
 ///
-/// Ports `_get_anode_cathode_texts` and `_apply_contact_text_to_canvas` from
-/// `dbs_annotator/views/step3_view.py`.
-///
-/// Grammar (tokens joined with `_`):
-/// - `case`          — the stimulator case carries this polarity.
-/// - `E{idx}{a|b|c}` — one segment of a directional level (seg 0/1/2 -> a/b/c).
-/// - `E{idx}`        — a ring (non-directional) level; on decode, if the level
-///   is directional this activates all 3 segments.
+/// Tokens joined with `_`: `case`, `E{idx}{a|b|c}` for one segment of a
+/// directional level (seg 0/1/2 maps to a/b/c), and `E{idx}` for a ring level
+/// (on decode it activates all 3 segments of a directional level).
 
 const List<String> _segmentLabels = ['a', 'b', 'c'];
 const Map<String, int> _segmentIndices = {'a': 0, 'b': 1, 'c': 2};
 
-/// Encodes contact [states] (plus [caseState]) into underscore-separated
-/// anode and cathode token strings for the given [model].
-///
-/// The `case` token (if any) comes first, then contacts in level order; each
-/// active segment of a directional level is emitted individually (segments
-/// are never grouped into a bare `E{idx}` on encode).
+/// Encodes contact [states] and [caseState] into underscore-separated anode
+/// and cathode token strings. `case` comes first, then contacts in level
+/// order; segments of a directional level are emitted individually, never
+/// grouped into a bare `E{idx}`.
 ({String anode, String cathode}) encodeTokens(
   Map<ContactKey, ContactState> states,
   ContactState caseState,
@@ -46,13 +40,11 @@ const Map<String, int> _segmentIndices = {'a': 0, 'b': 1, 'c': 2};
 
   for (var contactIdx = 0; contactIdx < model.numContacts; contactIdx++) {
     if (model.isDirectional && model.isLevelDirectional(contactIdx)) {
-      // Segmented level: always emit individual segments, never grouped.
       for (var seg = 0; seg < 3; seg++) {
         final state = states[ContactKey(contactIdx, seg)] ?? ContactState.off;
         addToken('E$contactIdx${_segmentLabels[seg]}', state);
       }
     } else {
-      // Ring contact (or non-directional model).
       final state = states[ContactKey(contactIdx, 0)] ?? ContactState.off;
       addToken('E$contactIdx', state);
     }
@@ -61,23 +53,17 @@ const Map<String, int> _segmentIndices = {'a': 0, 'b': 1, 'c': 2};
   return (anode: anodeItems.join('_'), cathode: cathodeItems.join('_'));
 }
 
-/// Decodes underscore-separated [anode] and [cathode] token strings into a
-/// contact-state map and case state for the given [model].
+/// Decodes [anode] and [cathode] token strings into a contact-state map and
+/// case state. Anode tokens are applied first, so a contact listed in both
+/// ends up cathodic (matching Python); invalid tokens are skipped silently and
+/// OFF is represented by key absence.
 ///
-/// Anode tokens are applied first, then cathode tokens (matching Python, so a
-/// contact listed in both ends up cathodic). Invalid tokens are skipped
-/// silently, like the Python parser. OFF is represented by key absence.
+/// On a bare `E{idx}` the Python parser expands to all 3 segments whenever the
+/// model is directional; this port expands only when that level is
+/// directional, which round-trips with [encodeTokens].
 ///
-/// Note: on a bare `E{idx}` token the Python parser expands to all 3 segments
-/// whenever the MODEL is directional; this port only expands when that LEVEL
-/// is directional (ring levels of directional leads get a single
-/// `(idx, 0)` key), which matches what `encodeTokens` produces and
-/// round-trips cleanly.
-///
-/// TODO: legacy token forms found in very old TSVs are not supported yet:
-/// `"{idx} ring"` and bare `"{idx}{a|b|c}"` (without the `E` prefix) — see
-/// `_apply_contact_text_to_canvas` in step3_view.py. Add them here if old
-/// desktop files must be loadable on the tablet.
+/// TODO: the legacy forms `"{idx} ring"` and bare `"{idx}{a|b|c}"` (no `E`
+/// prefix) accepted by `_apply_contact_text_to_canvas` are not supported.
 ({Map<ContactKey, ContactState> states, ContactState caseState}) decodeTokens(
   String anode,
   String cathode,
@@ -100,16 +86,13 @@ const Map<String, int> _segmentIndices = {'a': 0, 'b': 1, 'c': 2};
       if (token.startsWith('E') && token.length >= 2) {
         final lastChar = token[token.length - 1];
         if (_isAsciiLetter(lastChar)) {
-          // E{digits}{a|b|c} -> single segment.
           final idx = int.tryParse(token.substring(1, token.length - 1));
           final seg = _segmentIndices[lastChar.toLowerCase()];
-          if (idx == null || seg == null) continue; // Invalid token: skip.
+          if (idx == null || seg == null) continue;
           states[ContactKey(idx, seg)] = state;
         } else {
-          // E{digits} -> ring contact, or all 3 segments of a directional
-          // level.
           final idx = int.tryParse(token.substring(1));
-          if (idx == null) continue; // Invalid token: skip.
+          if (idx == null) continue;
           if (model.isDirectional &&
               idx < model.numContacts &&
               model.isLevelDirectional(idx)) {
@@ -122,7 +105,6 @@ const Map<String, int> _segmentIndices = {'a': 0, 'b': 1, 'c': 2};
         }
         continue;
       }
-      // Unrecognized token (including the legacy forms above): skip.
     }
   }
 
