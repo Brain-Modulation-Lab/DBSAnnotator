@@ -1,17 +1,13 @@
-/// Session (Complete-Workflow) Word (.docx) report — the tablet counterpart of
+/// Session (Complete-Workflow) Word (.docx) report, the tablet counterpart of
 /// the desktop's DOCX exporter (dbs_annotator/utils/session_exporter.py).
 ///
-/// A .docx is a zip of OOXML parts, built here by hand with the `archive`
-/// package, so this stays a PURE function over already-parsed [SessionRow]s (no
-/// widgets, no platform channels) and is headless-testable.
+/// A pure function over already-parsed [SessionRow]s, so it is
+/// headless-testable. Sections and row math are shared with the PDF via
+/// report_data.dart, and the graphics are the same PNG bytes the PDF embeds,
+/// passed in by the caller, so the two formats cannot drift.
 ///
-/// Sections and row math are shared with the PDF via report_data.dart, and the
-/// graphics are the *same PNG bytes* the PDF embeds, so the two formats cannot
-/// drift: the scales-timeline chart (ui/scales_chart_painter.dart) and the four
-/// electrode leads (ui/report_images.dart) are passed in by the caller.
-///
-/// Unlike the PDF there is no font concern here — the XML is UTF-8 and Word uses
-/// system fonts, so any character renders correctly without sanitising.
+/// Unlike the PDF there is no font concern: the XML is UTF-8 and Word uses
+/// system fonts, so any character renders without sanitising.
 library;
 
 import 'dart:typed_data';
@@ -26,9 +22,8 @@ import 'session_pdf.dart' show ElectrodeReportImages, kElectrodeCellGapPt;
 // reachable here rather than making every call site learn where they moved.
 export 'docx_ooxml.dart' show DocxPageSize, pngSize;
 
-/// A borderless table, used for the electrode-image grid so the images sit in a
-/// clean 4-column layout with no visible cell edges (the desktop does the same
-/// with explicit `w:val="none"` borders).
+/// A borderless table for the electrode-image grid, so the images sit in a
+/// clean 4-column layout with no visible cell edges.
 String _borderlessTable(List<String> rowsXml, {required int contentTwips}) {
   // Four equal columns, explicitly quartered: with no grid, Word sized the
   // electrode cells from their captions and the four leads came out unequal.
@@ -72,12 +67,8 @@ String _captionCell(
 );
 
 /// Per-lead caption under an electrode image: "+ case" / "- 2b(3.3) 2c(2.2)".
-///
-/// Renders through the shared vendor-nomenclature helper rather than printing
-/// the raw tokens. `E2b_E2c` is an internal identifier and an underscore-joined
-/// current read as a dose is a misreading hazard — which is why it was retired
-/// from the PDF. This caption kept printing it, so the two formats described
-/// the same lead in two different notations.
+/// Goes through the shared vendor-nomenclature helper: `E2b_E2c` is an
+/// internal identifier, and an underscore-joined current reads as a dose.
 String _tokenCaption(LateralTokens? tokens, {required bool left}) =>
     tokens == null ? '' : lateralText(tokens, left: left);
 
@@ -85,8 +76,7 @@ String _tokenCaption(LateralTokens? tokens, {required bool left}) =>
 String _hex(int argb) =>
     (argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
 
-/// One decimal unless the value is whole. Twin of the PDF's, so a delta reads
-/// identically in both documents.
+/// One decimal unless the value is whole. Twin of the PDF's formatter.
 String _num(double v) {
   if (v == v.roundToDouble()) return v.toStringAsFixed(0);
   var out = v.toStringAsFixed(2);
@@ -110,7 +100,7 @@ String? _ratedNote(SessionReportData data) {
       'directly comparable.';
 }
 
-/// A signed delta: "-5", "+0.25", or "0" for no change — never "+0".
+/// A signed delta: "-5", "+0.25", or "0" for no change, never "+0".
 String _delta(double v) => v == 0 ? '0' : '${v > 0 ? '+' : ''}${_num(v)}';
 
 /// Legend + scale targets + disclaimer under the session-data table, mirroring
@@ -138,11 +128,10 @@ String _legendBlock(SessionReportData data) {
   return b.toString();
 }
 
-/// Build the session-report .docx and return its bytes.
-///
-/// [subjectId] is the BIDS subject label (without the "sub-" prefix). Mirrors
-/// the PDF section order, and honours the same [sections] selection so the two
-/// formats of one export can never contain different sections.
+/// Build the session-report .docx and return its bytes. [subjectId] is the
+/// BIDS subject label (without the "sub-" prefix). Mirrors the PDF's section
+/// order and honours the same [sections] selection, so the two formats of one
+/// export can never contain different sections.
 Uint8List buildSessionDocx({
   required SessionReportData data,
   required String subjectId,
@@ -168,8 +157,7 @@ Uint8List buildSessionDocx({
     ),
   );
   if (data.lastConfig.isNotEmpty) {
-    // Same page-1 summary as the PDF, in the same words: arrived on beside
-    // left on, then what moved.
+    // Same page-1 summary as the PDF, in the same words.
     body.write(
       docxTable(
         const ['At start of session', 'Last recorded configuration'],
@@ -188,22 +176,20 @@ Uint8List buildSessionDocx({
       ),
     );
     for (final line in data.configChanges) {
-      body.write(docxPara('Changed: $line', size: 18));
+      body.write(docxPara(line, size: 18));
     }
   }
 
-  // (b) Baseline assessment. The heading, and every label below, must match
-  // the PDF word for word: two documents of one session that word things
-  // differently is a discovery problem, not a cosmetic one.
+  // (b) Baseline assessment. Headings and labels must match the PDF word for
+  // word: two documents of one session that differ are a discovery problem.
   if (sections.contains(ReportSection.baseline)) {
     body.write(docxHeading('Baseline assessment (pre-session)'));
     if (!data.hasInitial) {
       body.write(docxPara('No baseline (is_initial = 1) rows recorded.'));
     } else {
       if (data.initScales.isNotEmpty) {
-        // A two-column table, not bullets: Y-BOCS alongside its own two
-        // subscales reads as three separate findings when all three are
-        // bulleted alike.
+        // A two-column table, not bullets: Y-BOCS bulleted alike with its own
+        // two subscales reads as three separate findings.
         body.write(
           docxTable(
             const ['Scale', 'Score'],
@@ -224,9 +210,8 @@ Uint8List buildSessionDocx({
     }
   }
 
-  // (c) Session data: the scales-timeline chart, then the lateral table. Graph
-  // and table are independent sections, so the heading appears only when at
-  // least one of them does.
+  // (c) Session data: chart, then lateral table. Graph and table are
+  // independent sections, so the heading appears only when at least one does.
   final wantsChart = sections.contains(ReportSection.chart);
   final wantsTable = sections.contains(ReportSection.table);
   if (wantsChart || wantsTable) {
@@ -242,8 +227,8 @@ Uint8List buildSessionDocx({
     if (wantsTable && !data.hasRecording) {
       body.write(docxPara('No recording blocks in this session.'));
     } else if (wantsTable) {
-      // Green shading for the best / second-best blocks, and a 3 pt rule on the
-      // first row of each block (tableData is two rows — L then R — per block).
+      // Green shading for the best / second-best blocks, and a 3 pt rule on
+      // the first row of each block (tableData holds L then R per block).
       final fills = <int, String>{};
       final rules = <int>{};
       var previousBlock = '';
@@ -288,8 +273,7 @@ Uint8List buildSessionDocx({
   }
 
   // (d) Electrode configuration: the four rendered leads in a borderless grid
-  // when the caller supplied them (desktop `_add_electrode_config_section`),
-  // else anode/cathode token text.
+  // when the caller supplied them, else anode/cathode token text.
   if (sections.contains(ReportSection.electrodes)) {
     body.write(docxHeading('Electrode configuration'));
     final ei = electrodeImages;
@@ -309,7 +293,7 @@ Uint8List buildSessionDocx({
       final ft = data.finalTokens;
       if (hasImages) {
         // One quarter of the content width per lead, less the same gap the PDF
-        // leaves — expressed in points there, so convert 72 dpi -> 96 dpi.
+        // leaves (expressed in points there, so convert 72 dpi -> 96 dpi).
         final cellPx =
             pageSize.contentWidthPx / 4 - kElectrodeCellGapPt * 96 / 72;
         String img(Uint8List? png) =>
@@ -346,9 +330,7 @@ Uint8List buildSessionDocx({
         body.write(docxPara(''));
       } else {
         // Vendor nomenclature here too, through the SAME helper the PDF's
-        // fallback uses. This branch was still printing the raw `E2b_E2c`
-        // tokens long after they were retired from every other surface, which
-        // is precisely what report_parity_test exists to catch.
+        // fallback uses; report_parity_test catches a divergence.
         for (final pair in [
           ('Initial settings', it),
           ('Last recorded settings', ft),
@@ -405,9 +387,8 @@ Uint8List buildSessionDocx({
     }
   }
 
-  // Attestation. The document otherwise asserts that a machine produced it and
-  // that no human stands behind it. Underscores rather than a border, so the
-  // rules survive a copy-paste into another document.
+  // Attestation, so the document does not stand on a machine's word alone.
+  // Underscores rather than a border, to survive a copy-paste elsewhere.
   body.write(docxHeading2('Attestation'));
   body.write(
     docxPara(
@@ -416,9 +397,8 @@ Uint8List buildSessionDocx({
     ),
   );
 
-  // Packaging is shared with the annotations report: a missing content-type or
-  // an unresolved relationship makes Word offer to repair the file rather than
-  // say what is wrong, so there is one implementation of it.
+  // Packaging is shared with the annotations report: one implementation of the
+  // content-types and relationships Word would otherwise offer to repair.
   return packDocx(
     body: body.toString(),
     pageSize: pageSize,

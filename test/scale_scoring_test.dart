@@ -1,12 +1,12 @@
 import 'package:dbs_annotator/core/session/scale_scoring.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Pins the Dart port against the desktop implementation. Every expected number
-/// here was produced by running the Python functions themselves
-/// (`report_chart_utils.parse_scale_targets` / `compute_aggregate_index` /
-/// `get_declared_scale_range` / `find_best_and_second`, and the scoring loop of
-/// `session_exporter._find_best_and_second_best_blocks`) over the same fixture
-/// and pasting the result — not by reading the Dart output back.
+/// Pins the Dart port against the desktop implementation. Every expected
+/// number here came from running the Python functions themselves
+/// (`report_chart_utils.parse_scale_targets`, `compute_aggregate_index`,
+/// `get_declared_scale_range`, `find_best_and_second`, and the scoring loop
+/// of `session_exporter._find_best_and_second_best_blocks`) over the same
+/// fixture, not from reading the Dart output back.
 void main() {
   ScalePref pref(
     String name,
@@ -214,9 +214,8 @@ void main() {
     });
   });
 
-  group('findBestAndSecond', () {
-    test('highest index wins', () {
-      // Python best/2nd for fixture A: (2, 3)
+  group('rankBlocks', () {
+    test('highest index is rank 1', () {
       final idx = indexOf(
         {
           'Tremor': {1: 8.0, 2: 4.0, 3: 2.0},
@@ -227,34 +226,45 @@ void main() {
           pref('Mood', 0, 10, ScaleMode.max),
         ],
       );
-      expect(findBestAndSecond(idx), (2, 3));
+      expect(rankBlocks(idx), {2: 1, 3: 2, 1: 3});
+      expect(blocksAtRank(rankBlocks(idx), 1), [2]);
+      expect(blocksAtRank(rankBlocks(idx), 2), [3]);
     });
 
-    test('ties resolve by point order, like Python stable sort', () {
-      // Python: {1: 0.5, 2: 0.5, 3: 0.5} -> (1, 2)
+    test('equal indices share a rank, and all of them are banded', () {
+      // Shading one of three identical scores dark green and another light
+      // asserts an order the printed number does not contain.
       final idx = indexOf(
         {
           'Same': {1: 5.0, 2: 5.0, 3: 5.0},
         },
         [pref('Same', 0, 10, ScaleMode.min)],
       );
-      expect(findBestAndSecond(idx), (1, 2));
+      expect(rankBlocks(idx), {1: 1, 2: 1, 3: 1});
+      expect(blocksAtRank(rankBlocks(idx), 1), [1, 2, 3]);
+      expect(blocksAtRank(rankBlocks(idx), 2), isEmpty);
     });
 
-    test('a tie for second resolves to the earlier point', () {
-      // Python fixture E: {1: 0.0, 2: 1.0, 3: 0.0} -> (2, 1)
+    test('a tie below the top shares its rank too', () {
       final idx = indexOf(
         {
           'Sweet': {1: 0.0, 2: 5.0, 3: 10.0},
         },
         [pref('Sweet', 0, 10, ScaleMode.custom, 5)],
       );
-      expect(findBestAndSecond(idx), (2, 1));
+      expect(rankBlocks(idx), {2: 1, 1: 2, 3: 2});
+      expect(blocksAtRank(rankBlocks(idx), 2), [1, 3]);
+    });
+
+    test('ranks tie on the value as PRINTED', () {
+      // Differing in the fourth decimal, so the table shows one number twice.
+      expect(rankBlocks(const {1: 0.4501, 2: 0.4502}), {2: 1, 1: 1});
     });
 
     test('empty and single-point inputs', () {
-      expect(findBestAndSecond(const {}), (null, null));
-      expect(findBestAndSecond(const {7: 0.3}), (7, null));
+      expect(rankBlocks(const {}), isEmpty);
+      expect(rankBlocks(const {7: 0.3}), {7: 1});
+      expect(blocksAtRank(const {}, 1), isEmpty);
     });
   });
 }

@@ -1,14 +1,9 @@
 /// Report for an annotations-only (`task-notes`) session, in PDF and Word.
 ///
-/// The home screen has promised "Notes -> report" for this workflow since it was
-/// written, and the screen only ever wrote a TSV. This is the report.
-///
-/// It shares **nothing** with `SessionReportData` by design: a notes session has
-/// no blocks, no stimulation, no scales and no ranking, so there is no common
-/// content to factor out and a shared data class would be an abstraction over
-/// two things that are not alike. What it does share is the *packaging* — the
-/// sanitiser, the fonts, the page geometry, the footer, the OOXML plumbing —
-/// because that is where the failure modes live.
+/// Shares no data class with `SessionReportData`: a notes session has no
+/// blocks, no stimulation, no scales and no ranking. What it does share is the
+/// packaging (sanitiser, fonts, page geometry, footer, OOXML plumbing), which
+/// is where the failure modes live.
 library;
 
 import 'dart:typed_data';
@@ -37,17 +32,16 @@ class AnnotationsReportData {
 
   final String subjectId;
 
-  /// The date the notes were TAKEN, from the entries themselves — not the
-  /// export clock, which is the mistake the session report used to make.
+  /// The date the notes were TAKEN, from the entries themselves, never the
+  /// export clock.
   final String sessionDate;
   final String generatedOn;
 
   /// e.g. "+02:00", or '' when the entries carry no parseable offset.
   final String utcOffset;
 
-  /// Oldest first: the order the session happened in, which is the order it has
-  /// to be read back in. (The entry UI lists newest first, which is right for
-  /// typing and wrong for reading.)
+  /// Oldest first, the order the session happened in. The entry UI lists
+  /// newest first, which is right for typing and wrong for reading.
   final List<Annotation> entries;
 
   final String sourceFile;
@@ -81,8 +75,8 @@ AnnotationsReportData buildAnnotationsReportData({
   String two(int n) => n.toString().padLeft(2, '0');
   final generatedOn = '${dt.year}-${two(dt.month)}-${two(dt.day)}';
 
-  // `acq_time` is ISO-8601, so a lexical sort is also a chronological one -
-  // which the old `'$date $time'` concatenation was only accidentally.
+  // `acq_time` is ISO-8601, so a lexical sort is also a chronological one,
+  // which a date-plus-time concatenation would only be by accident.
   final sorted = entries.toList()
     ..sort((a, b) => a.acqTime.compareTo(b.acqTime));
 
@@ -97,9 +91,8 @@ AnnotationsReportData buildAnnotationsReportData({
 
   return AnnotationsReportData(
     subjectId: subjectId,
-    // The recorded wall-clock date, not a converted instant: a note taken at
-    // 23:30 in the clinic must not be dated the next day because the report was
-    // generated further east.
+    // Recorded wall-clock date, not a converted instant: a note taken at
+    // 23:30 must not be dated the next day by a report generated further east.
     sessionDate: sorted.isEmpty
         ? generatedOn
         : (recordedDate(sorted.first.acqTime).isEmpty
@@ -208,9 +201,8 @@ Future<ReportBytes> buildAnnotationsPdf(
         if (data.entries.isEmpty)
           pw.Text('No notes recorded.')
         else
-          // A fixed time column beside the text, rather than the timestamp inline:
-          // the reading task is "what happened, in order", and a column lets the
-          // eye run down it.
+          // A fixed time column rather than an inline timestamp, so the eye
+          // can run down it in order.
           pw.TableHelper.fromTextArray(
             headers: const ['Time', 'Note'],
             data: [
@@ -299,10 +291,6 @@ Uint8List buildAnnotationsDocx(
 }
 
 /// A note's clock time for display, `HH:MM:SS`, or '' when it has no instant.
-///
-/// Notes used to store `time` as its own cell; it is a display form of
-/// `acq_time` now. Pre-0.5.0 notes files were the worst case for this - their
-/// `timezone` cell carried a zone NAME with no offset, so those rows could not
-/// be resolved to an instant at all until `Annotation.fromMap` began
-/// backfilling them.
+/// Derived from `acq_time`; files whose `timezone` cell carries a zone name
+/// instead of an offset depend on `Annotation.fromMap` backfilling it.
 String _clock(Annotation e) => recordedTime(e.acqTime);

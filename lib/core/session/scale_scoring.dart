@@ -1,36 +1,19 @@
-/// Scale-optimisation targets and the two block-ranking algorithms used by the
-/// reports.
+/// Scale-optimisation targets and the block ranking behind the reports' green
+/// best and second-best markers, ported from
+/// `dbs_annotator/utils/report_chart_utils.py`.
 ///
-/// Ports, verbatim in behaviour:
-/// - `parse_scale_targets`, `compute_aggregate_index`,
-///   `get_declared_scale_range`, `find_best_and_second` from
-///   `dbs_annotator/utils/report_chart_utils.py` — these drive the green
-///   best / second-best BANDS on the scales chart;
-/// - `_find_best_and_second_best_blocks` from
-///   `dbs_annotator/utils/session_exporter.py` — this drives the green
-///   ROW SHADING in the session data table.
-///
-/// ONE ranking, deliberately diverging from the desktop. The desktop runs a
-/// second algorithm for the table's row shading (`_find_best_and_second_best_
-/// blocks`, signed raw sums) and its own comment admits the two can disagree —
-/// so a desktop report can band one block on the chart and shade a different
-/// one in the table. Two green markers pointing at different blocks in one
-/// clinical document is indefensible, so the raw-sum twin is not ported:
-/// [computeAggregateIndex] + [findBestAndSecond] drive both.
-///
-/// Pure Dart: no Flutter imports, so it is testable with no asset bundle.
+/// One ranking, deliberately: the desktop ranks the table's row shading with a
+/// second algorithm (signed raw sums) that can disagree with the chart's
+/// bands, so one report could band one block and shade another. That twin is
+/// not ported; [computeAggregateIndex] and [findBestAndSecond] drive both.
 library;
 
 import 'longitudinal.dart' show isScaleValueOmitted, splitScalePairs;
 import 'session_row.dart';
 
-/// How a scale should be optimised. Mirrors the desktop's `mode` string in the
-/// `(name, min, max, mode, custom)` preference tuples.
+/// How a scale should be optimised; the desktop's `mode` string.
 enum ScaleMode {
-  /// Lower is better.
   min,
-
-  /// Higher is better.
   max,
 
   /// Closer to [ScalePref.custom] is better.
@@ -40,8 +23,6 @@ enum ScaleMode {
   ignore,
 }
 
-/// One row of the desktop's scale-optimisation preferences: the 5-tuple
-/// `(name, min, max, mode, custom_value)`.
 typedef ScalePref = ({
   String name,
   double min,
@@ -50,8 +31,7 @@ typedef ScalePref = ({
   double? custom,
 });
 
-/// A resolved optimisation target for one scale — the Dart shape of the
-/// `{"type", "value", "lower", "upper"}` dicts `parse_scale_targets` returns.
+/// A resolved optimisation target for one scale.
 typedef ScaleTarget = ({
   ScaleMode type,
   double value,
@@ -61,12 +41,9 @@ typedef ScaleTarget = ({
 
 double _clip01(double v) => v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);
 
-/// Parse a desktop mode string, including the `low`/`high` aliases that
-/// `parse_scale_targets` accepts alongside `min`/`max`.
-///
-/// Unrecognised strings become [ScaleMode.ignore], which is also how the
-/// desktop behaves in effect: `parse_scale_targets` writes no entry for them,
-/// so they contribute nothing to a target lookup.
+/// Parse a mode string, including the `low`/`high` aliases accepted alongside
+/// `min`/`max`. An unrecognised string becomes [ScaleMode.ignore], which is
+/// what the desktop does in effect by writing no target entry for it.
 ScaleMode scaleModeFromString(String raw) => switch (raw.trim().toLowerCase()) {
   'low' || 'min' => ScaleMode.min,
   'high' || 'max' => ScaleMode.max,
@@ -74,9 +51,8 @@ ScaleMode scaleModeFromString(String raw) => switch (raw.trim().toLowerCase()) {
   _ => ScaleMode.ignore,
 };
 
-/// Build a [ScalePref] from the raw strings a UI or TSV supplies, mirroring the
-/// desktop's coercion: unparsable bounds become `0.0`, a blank or unparsable
-/// custom value becomes `0.0`.
+/// Build a [ScalePref] from raw strings, coercing an unparsable bound or
+/// custom value to `0.0` as the desktop does.
 ScalePref scalePrefFromStrings({
   required String name,
   required String min,
@@ -93,11 +69,10 @@ ScalePref scalePrefFromStrings({
 
 /// Resolve [prefs] into per-scale targets keyed by scale name.
 ///
-/// Port of `parse_scale_targets`. Bounds are swapped when `min > max`;
-/// [ScaleMode.min] targets the lower bound, [ScaleMode.max] the upper, and
-/// [ScaleMode.custom] the custom value (0.0 when absent). [ScaleMode.ignore]
-/// yields **no entry**, which is what makes an ignored scale fall through to
-/// the unknown-scale branch of [computeAggregateIndex].
+/// Bounds are swapped when `min > max`; [ScaleMode.min] targets the lower
+/// bound, [ScaleMode.max] the upper, [ScaleMode.custom] the custom value.
+/// [ScaleMode.ignore] yields no entry, which is what makes an ignored scale
+/// fall through to the unknown-scale branch of [computeAggregateIndex].
 Map<String, ScaleTarget> parseScaleTargets(List<ScalePref> prefs) {
   final targets = <String, ScaleTarget>{};
   for (final pref in prefs) {
@@ -139,16 +114,14 @@ Map<String, ScaleTarget> parseScaleTargets(List<ScalePref> prefs) {
 
 /// Weighted aggregate index per x-point: 1.0 is best, 0.0 worst.
 ///
-/// Port of `compute_aggregate_index`. Per point, every scale that has a value
-/// there contributes a score:
-/// - a scale **with** a target is normalised into `[lower, upper]` and scored
-///   `1 - z` (min), `z` (max), or `1 - |v - target| / maxDistance` (custom), at
-///   weight 1.0. A non-positive span, or a custom target equidistant from both
-///   bounds, scores a flat 0.5;
-/// - a scale **without** a target scores 0.5 at weight **0.5**.
+/// Per point, every scale with a value there contributes a score. A scale with
+/// a target is normalised into `[lower, upper]` and scored `1 - z` (min), `z`
+/// (max) or `1 - |v - target| / maxDistance` (custom) at weight 1.0, flat 0.5
+/// if the span is non-positive or a custom target sits equidistant from both
+/// bounds; a scale without a target scores 0.5 at weight 0.5. Points where no
+/// scale has a value are absent from the result.
 ///
-/// Points where no scale has a value are absent from the result. [allPoints]
-/// must be sorted — the returned map preserves that order, which
+/// [allPoints] must be sorted: the returned map preserves that order, which
 /// [findBestAndSecond] relies on to break ties the way Python does.
 Map<int, double> computeAggregateIndex(
   Map<String, Map<int, double>> scaleData,
@@ -205,9 +178,7 @@ Map<int, double> computeAggregateIndex(
 }
 
 /// Overall `(min, max)` across every declared per-scale range, or null when
-/// nothing is declared or the span collapses.
-///
-/// Port of `get_declared_scale_range`; used to clamp the chart's left y-axis.
+/// nothing is declared or the span collapses; clamps the chart's left y-axis.
 (double, double)? declaredScaleRange(Map<String, ScaleTarget> targets) {
   if (targets.isEmpty) return null;
   var overallMin = double.infinity;
@@ -227,38 +198,50 @@ Map<int, double> computeAggregateIndex(
   return (overallMin, overallMax);
 }
 
-/// The x-points with the best and second-best aggregate index.
+/// Decimals the aggregate index prints to, wherever it appears.
 ///
-/// Port of `find_best_and_second`. Python sorts with a **stable** sort, so ties
-/// resolve by the key order of [indexVals] — which is why
-/// [computeAggregateIndex] builds its map in sorted-point order. Dart's
-/// `List.sort` is not stable, so the original index is used as an explicit
-/// tie-breaker here.
-(int?, int?) findBestAndSecond(Map<int, double> indexVals) {
-  if (indexVals.isEmpty) return (null, null);
-  final keys = indexVals.keys.toList();
-  final ranked = List<int>.generate(keys.length, (i) => i)
+/// [rankBlocks] ties on the value as PRINTED, so a reader can never see two
+/// identical numbers carrying different ranks or different colours.
+const int indexDecimals = 3;
+
+/// Blocks ranked by aggregate index, 1 = best, with equal indices sharing a
+/// rank.
+///
+/// One ordering drives the figure's green bands, the table's row shading and
+/// the rank printed beside each index, on screen and in both report formats,
+/// so they cannot contradict each other. Ties are dense because a rank is a
+/// claim about the number, and two blocks printing 0.450 are not ordered by
+/// it. The original key order breaks exact ties, since `List.sort` is not
+/// stable and a report must be reproducible.
+Map<int, int> rankBlocks(Map<int, double> index) {
+  final keys = index.keys.toList();
+  final order = List<int>.generate(keys.length, (i) => i)
     ..sort((a, b) {
-      final cmp = indexVals[keys[b]]!.compareTo(indexVals[keys[a]]!);
+      final cmp = index[keys[b]]!.compareTo(index[keys[a]]!);
       return cmp != 0 ? cmp : a.compareTo(b);
     });
-  final best = keys[ranked[0]];
-  final second = ranked.length > 1 ? keys[ranked[1]] : null;
-  return (best, second);
+  String printed(int i) =>
+      index[keys[order[i]]]!.toStringAsFixed(indexDecimals);
+  final out = <int, int>{};
+  var rank = 0;
+  for (var i = 0; i < order.length; i++) {
+    if (i == 0 || printed(i) != printed(i - 1)) rank += 1;
+    out[keys[order[i]]] = rank;
+  }
+  return out;
 }
 
+/// The blocks [rankBlocks] put at [rank], ascending.
+List<int> blocksAtRank(Map<int, int> ranks, int rank) => [
+  for (final e in ranks.entries)
+    if (e.value == rank) e.key,
+]..sort();
+
 /// Default preferences for every scale present in [rows]: mode
-/// [ScaleMode.min], with bounds from [bounds] when the scale is listed there
-/// and [fallback] otherwise.
-///
-/// This reproduces the desktop's out-of-the-box scoring without any UI: its
-/// export dialog starts with every scale checked and "Min" selected
-/// (`export_dialog.py`), i.e. `(name, min, max, "min", "")`.
-///
-/// [bounds] is supplied by the caller so this stays free of Flutter imports —
-/// build it from the live session-scale editors, or from
-/// `sessionRows(presets, preset)`; [fallback] is normally
-/// `limits.sessionScale`.
+/// [ScaleMode.min], bounds from [bounds] where the scale is listed and
+/// [fallback] otherwise, which reproduces the desktop export dialog's
+/// out-of-the-box scoring. The caller supplies [bounds], from the live scale
+/// editors or from `sessionRows(presets, preset)`, so this needs no imports.
 List<ScalePref> defaultScalePrefsFor(
   Iterable<SessionRow> rows, {
   Map<String, (double, double)> bounds = const {},

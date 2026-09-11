@@ -98,8 +98,8 @@ void main() {
     expect(declared.panels.first.yMin, 0);
     expect(declared.panels.first.yMax, 10);
     expect(auto.panels.first.yMax, isNot(10));
-    expect(declared.bestX, 1, reason: 'the only rated block is the best');
-    expect(auto.bestX, isNull, reason: 'no targets, so nothing is ranked');
+    expect(declared.bestXs, [1], reason: 'the only rated block is the best');
+    expect(auto.bestXs, isEmpty, reason: 'no targets, so nothing is ranked');
   });
 
   test('blocks are ordered by time, not by block id', () {

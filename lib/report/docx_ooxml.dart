@@ -1,15 +1,10 @@
 /// Hand-built OOXML primitives shared by every .docx this app writes.
 ///
-/// Extracted when the annotations report became the second caller — before that
-/// a single builder owned them and extracting would have been speculation.
-///
-/// The reason this is worth sharing rather than copying is the failure mode. A
-/// .docx is a zip of parts that reference each other: a `w:pStyle` with no
+/// A .docx is a zip of parts that reference each other: a `w:pStyle` with no
 /// styles part, an image with no content-type default, a footer with no
-/// relationship, a table grid that does not sum to its declared width. Word's
-/// response to any of them is to offer to repair the file, with no indication of
-/// what is wrong. One implementation of the packaging is one place for that to
-/// be right.
+/// relationship, a table grid that does not sum to its declared width. Word
+/// answers each of those with a repair prompt and no diagnostic, so the
+/// packaging is implemented once, here.
 library;
 
 import 'dart:convert';
@@ -19,16 +14,11 @@ import 'package:archive/archive.dart';
 
 import '../app_info.dart' show appVersion;
 
-/// XML-escape text content, and drop characters XML 1.0 cannot represent.
-///
-/// Escaping `&<>"` is the obvious half. The half that matters for robustness:
-/// most C0 control characters (U+0000-U+0008, U+000B, U+000C, U+000E-U+001F)
-/// have **no legal representation in XML 1.0 at all** — not even as a numeric
-/// entity. One of them reaching `document.xml` makes Word reject the entire
-/// report as unreadable content, losing the whole export rather than one glyph.
-/// They arrive easily: text pasted from a PDF, a scanner, or a hospital system.
-/// Tab, newline and carriage return are legal and are kept ([docxRun] turns
-/// newlines into `<w:br/>`).
+/// XML-escape text content, and drop the characters XML 1.0 cannot represent:
+/// most C0 controls (U+0000-U+0008, U+000B, U+000C, U+000E-U+001F) have no
+/// legal representation at all, not even as a numeric entity, and one reaching
+/// `document.xml` makes Word reject the whole report. They arrive easily in
+/// pasted text. Tab, newline and carriage return are legal and are kept.
 String docxEsc(String s) {
   final out = StringBuffer();
   for (final rune in s.runes) {
@@ -67,37 +57,30 @@ String docxRun(String text, {bool bold = false, int size = 20}) {
   return '<w:r>$rPr${parts.join()}</w:r>';
 }
 
-/// A body paragraph.
 String docxPara(String text, {bool bold = false, int size = 20}) =>
     '<w:p>${docxRun(text, bold: bold, size: size)}</w:p>';
 
-/// A section heading, as a real `Heading1` paragraph.
-///
-/// The `w:pStyle` is what makes it a heading rather than merely large text:
-/// without it Word's navigation pane is empty, a table of contents cannot be
-/// generated, and assistive technology sees flat body text. The direct bold and
-/// size are kept alongside so the document still looks right if the style is
-/// missing from the consumer's template.
+/// A section heading, as a real `Heading1` paragraph. The `w:pStyle` is what
+/// fills Word's navigation pane, allows a table of contents and stops
+/// assistive technology seeing flat body text; the direct bold and size are
+/// kept so it still looks right if the consumer's template lacks the style.
 String docxHeading(String text) =>
     '<w:p><w:pPr><w:pStyle w:val="Heading1"/>'
     '<w:spacing w:before="240" w:after="60"/></w:pPr>'
     '${docxRun(text, bold: true, size: 28)}</w:p>';
 
-/// A sub-heading (`Heading2`), for the blocks inside a section.
 String docxHeading2(String text) =>
     '<w:p><w:pPr><w:pStyle w:val="Heading2"/>'
     '<w:spacing w:before="120" w:after="40"/></w:pPr>'
     '${docxRun(text, bold: true, size: 22)}</w:p>';
 
-/// Vertical-merge state of a cell. Used for a block's scales and notes, which
-/// belong to the block rather than to either of its two lateral rows.
+/// Vertical-merge state, for cells spanning a block's two lateral rows.
 enum DocxVMerge { none, start, rest }
 
 /// One table cell (8pt to match the PDF), optionally bold / shaded / ruled.
-///
-/// [widthTwips] emits `<w:tcW w:type="dxa">`. Word's fixed layout needs it on
-/// EVERY cell, not just the header: the grid alone is a hint, and a row without
-/// per-cell widths falls back to auto-fitting.
+/// [widthTwips] emits `<w:tcW w:type="dxa">`, which Word's fixed layout needs
+/// on EVERY cell: the grid alone is a hint, and a row without per-cell widths
+/// falls back to auto-fitting.
 String docxCell(
   String text, {
   bool bold = false,
@@ -125,7 +108,7 @@ String docxCell(
 }
 
 /// Split [contentTwips] across columns by [weights], the last column absorbing
-/// the rounding remainder so the grid sums EXACTLY to the content width — Word
+/// the rounding remainder so the grid sums EXACTLY to the content width; Word
 /// rescales the whole table if it does not.
 List<int> docxGridWidths(List<double> weights, int contentTwips) {
   final sum = weights.fold<double>(0, (a, b) => a + b);
@@ -149,9 +132,8 @@ String docxTblGrid(List<int> widths) =>
     '<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>'
     '${widths.map((w) => '<w:gridCol w:w="$w"/>').join()}</w:tblGrid>';
 
-/// One table row. [fill] shades every cell (the green best/second-best
-/// highlight); [topRule] draws the 3 pt rule the desktop uses to separate
-/// blocks.
+/// One table row. [fill] shades every cell (the best/second-best highlight);
+/// [topRule] draws the 3 pt rule the desktop uses to separate blocks.
 String docxRow(
   List<String> cells, {
   bool header = false,
@@ -185,10 +167,9 @@ String docxTable(
   b.write(docxTblGrid(widths));
   b.write(docxRow(headers, header: true, widths: widths));
   for (var i = 0; i < rows.length; i++) {
-    // Merge a column downwards while column 0 (the block id) is unchanged. The
-    // block's scales and notes are written on its first lateral row and left
-    // blank on the second, so without the merge Word shows an empty cell where
-    // the desktop shows one tall one.
+    // Merge a column downwards while column 0 (the block id) is unchanged: a
+    // block's scales and notes are written on its first lateral row only, and
+    // without the merge Word shows an empty cell instead of one tall one.
     final continues = i > 0 && rows[i].first == rows[i - 1].first;
     b.write(
       docxRow(
@@ -214,15 +195,14 @@ const kDocxContentTypes =
     '<Default Extension="xml" ContentType="application/xml"/>'
     '<Default Extension="png" ContentType="image/png"/>'
     '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-    // The footer needs its own Override. A footer part that is present and
-    // related but undeclared here is exactly the kind of omission Word answers
-    // with a repair prompt rather than a diagnostic.
+    // The footer needs its own Override: a part that is present and related
+    // but undeclared here is what draws a repair prompt.
     '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'
-    // Document properties. Without docProps the title, author and dates are
-    // blank in Word's info pane and in any system that indexes the file.
+    // Without docProps the title, author and dates are blank in Word's info
+    // pane and in any system that indexes the file.
     '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
-    // A `w:pStyle` that resolves to nothing is ignored, so the styles part has
-    // to define the two heading styles the body references.
+    // A `w:pStyle` that resolves to nothing is ignored, so the styles part
+    // must define the two heading styles the body references.
     '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
     '</Types>';
 
@@ -233,11 +213,10 @@ const kDocxPackageRels =
     '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'
     '</Relationships>';
 
-/// `word/styles.xml` defining the heading styles the body uses.
-///
-/// Minimal on purpose: `Heading1`/`Heading2` linked to Word's built-in outline
-/// levels, which is what populates the navigation pane and lets a table of
-/// contents be generated. Anything more would fight the consumer's template.
+/// `word/styles.xml` defining the heading styles the body uses. Minimal on
+/// purpose: `Heading1`/`Heading2` linked to Word's built-in outline levels,
+/// which is what populates the navigation pane. More would fight the
+/// consumer's template.
 const kDocxStyles =
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<w:styles '
@@ -257,7 +236,7 @@ const kDocxStyles =
     '</w:style>'
     '</w:styles>';
 
-/// English Metric Units per pixel at 96 dpi — the unit every OOXML drawing
+/// English Metric Units per pixel at 96 dpi, the unit every OOXML drawing
 /// extent is expressed in (1 inch = 914 400 EMU).
 const int kEmuPerPx = 9525;
 
@@ -274,7 +253,7 @@ enum DocxPageSize {
   static const _sideMarginTwips = 720; // 0.5 in
   static const _endMarginTwips = 1080; // 0.75 in
 
-  /// Usable width in twips — what a fixed-layout table's columns must sum to.
+  /// Usable width in twips: what a fixed-layout table's columns must sum to.
   int get contentWidthTwips => widthTwips - 2 * _sideMarginTwips;
 
   /// Usable width in px at 96 dpi, for sizing embedded images.
@@ -293,21 +272,17 @@ enum DocxPageSize {
 }
 
 /// Collects the images a document embeds and emits the OOXML they need: the
-/// `word/media/*` parts, the `word/_rels/document.xml.rels` entries, and the
-/// `<w:drawing>` run for each placement.
-///
-/// Word is strict about this: an image needs a media part, a relationship, a
-/// `png` content-type default, the `r`/`wp`/`a`/`pic` namespaces on
-/// `<w:document>`, and matching `cx`/`cy` extents in both `wp:extent` and
-/// `a:ext`. Getting any of it wrong yields a repair prompt rather than a
-/// diagnostic, which is why this is centralised in one place.
+/// `word/media/*` parts, the `document.xml.rels` entries and the `<w:drawing>`
+/// run for each placement. Word requires every one of a media part, a
+/// relationship, a `png` content-type default, the `r`/`wp`/`a`/`pic`
+/// namespaces on `<w:document>`, and matching `cx`/`cy` extents in both
+/// `wp:extent` and `a:ext`.
 class DocxMediaBag {
   final _bytes = <String, Uint8List>{};
   int _next = 1;
 
-  /// rId -> (relationship type suffix, target). Images and the footer share one
-  /// registry so `document.xml.rels` has a single writer; two writers is how a
-  /// package ends up with a relationship Word cannot resolve.
+  /// rId -> (relationship type suffix, target). Images and the footer share
+  /// one registry so `document.xml.rels` has a single writer.
   final _relTargets = <String, (String, String)>{};
 
   bool get isEmpty => _bytes.isEmpty;
@@ -339,9 +314,8 @@ class DocxMediaBag {
     return '<w:r><w:drawing>'
         '<wp:inline distT="0" distB="0" distL="0" distR="0">'
         '<wp:extent cx="$cx" cy="$cy"/>'
-        // `descr` is the alt text. Without it a screen reader announces
-        // "Picture 1" and nothing else, which for the session figure means the
-        // document's central graphic is unreadable non-visually.
+        // `descr` is the alt text: without it a screen reader announces only
+        // "Picture 1", leaving the central figure unreadable non-visually.
         '<wp:docPr id="$docPrId" name="Picture $docPrId"'
         '${description.isEmpty ? '' : ' descr="${docxEsc(description)}"'}/>'
         '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
@@ -389,10 +363,8 @@ class DocxMediaBag {
 }
 
 /// Read a PNG's pixel dimensions from its IHDR chunk, so an embedded image
-/// keeps its aspect ratio instead of being stretched to a guessed box.
-///
-/// PNG layout: 8-byte signature, then the IHDR chunk whose data starts at byte
-/// 16 with big-endian width and height.
+/// keeps its aspect ratio instead of being stretched to a guessed box. Layout:
+/// 8-byte signature, then IHDR data from byte 16, big-endian width and height.
 (int, int)? pngSize(Uint8List bytes) {
   if (bytes.length < 24) return null;
   // Signature check, so a non-PNG can't be silently mis-sized.
@@ -413,16 +385,10 @@ class DocxMediaBag {
 
 /// Assemble a complete .docx from a rendered `<w:body>` fragment.
 ///
-/// This is the part worth sharing. A .docx is a zip of parts that reference
-/// each other, and Word answers a missing content-type, an unresolved
-/// relationship or an undeclared style by offering to repair the file rather
-/// than saying what is wrong. One implementation is one place for that to be
-/// right, and it is verified by `session_docx_test`.
-///
 /// [footerPrefix] is the text before the page numbers; `PAGE`/`NUMPAGES` field
 /// codes are appended so Word recomputes them on reflow. [media] carries any
-/// images the body referenced — pass the same bag the drawings were built from,
-/// or omit it for a text-only document.
+/// images the body referenced, so pass the same bag the drawings were built
+/// from, or omit it for a text-only document.
 Uint8List packDocx({
   required String body,
   required DocxPageSize pageSize,
@@ -452,8 +418,7 @@ Uint8List packDocx({
       '</w:p></w:ftr>';
 
   // The drawing namespaces are declared even with no image embedded: harmless
-  // then, required the moment one appears, and declaring them always keeps the
-  // two code paths from diverging.
+  // then, required the moment one appears, and one code path instead of two.
   final document =
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<w:document '
@@ -464,7 +429,7 @@ Uint8List packDocx({
       'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
       '<w:body>$body${pageSize.sectPr(footerRelId)}</w:body></w:document>';
 
-  // docProps/core.xml - the Word twin of the PDF's /Info dictionary.
+  // docProps/core.xml: the Word twin of the PDF's /Info dictionary.
   final coreProps =
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<cp:coreProperties '

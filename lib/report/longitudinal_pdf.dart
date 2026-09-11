@@ -1,10 +1,9 @@
-/// Longitudinal report, in PDF and Word — the tablet counterpart of the
+/// Longitudinal report, in PDF and Word: the tablet counterpart of the
 /// desktop's longitudinal exporter.
 ///
 /// Pure functions over already-computed [LongitudinalReportData], so both
-/// formats are built from one set of numbers and are headless-testable. The two
-/// figures come in as PNG bytes the caller rasterised, exactly as the session
-/// report's do.
+/// formats are built from one set of numbers and are headless-testable. The
+/// two figures come in as PNG bytes the caller rasterised.
 library;
 
 import 'dart:typed_data';
@@ -29,9 +28,9 @@ const _marginEnd = 54.0;
 
 /// A PNG at exactly [width] points, aspect preserved.
 ///
-/// Never a bare `pw.Image`: dart_pdf lays one out at the PNG's PIXEL size, so a
-/// print-resolution raster becomes a widget hundreds of points tall and the page
-/// fails to generate. The session report learned this the hard way.
+/// Never a bare `pw.Image`: dart_pdf lays one out at the PNG's PIXEL size, so
+/// a print-resolution raster becomes a widget hundreds of points tall and the
+/// page fails to generate.
 pw.Widget _fitWidth(Uint8List png, double width) {
   final image = pw.MemoryImage(png);
   final w = image.width ?? 0;

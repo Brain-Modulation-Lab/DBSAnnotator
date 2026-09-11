@@ -1,24 +1,12 @@
 /// Pure computation behind the longitudinal report: one entry per visit, and
 /// the two figures the desktop draws.
 ///
-/// ## Why two figures, and why the old x axis was wrong
-///
-/// The report used to plot a single series set against a **concatenated block
-/// index** — every imported file's blocks laid end to end. That number means
-/// nothing across visits: block 3 of June and block 3 of September are
-/// different configurations of different sessions, and the axis silently
-/// asserted they were comparable points on one scale.
-///
-/// The desktop draws two figures instead, and they answer different questions:
-///
-/// - **Clinical scales, x = visit.** One assessment per visit, so the axis is
-///   the visit itself. This is the "is the patient better than last time"
-///   figure. It carries **no aggregate index and no green bands** — the index is
-///   normalised within a session, so ranking across visits would be comparing
-///   numbers that were never on the same scale.
-/// - **Session scales, x = visit + block.** Several configurations per visit, so
-///   each visit contributes a run of points. This is the "what did we try, and
-///   how did it go" figure.
+/// Clinical scales are plotted against the visit (one assessment per visit),
+/// session scales against visit + block (several configurations per visit).
+/// Neither carries the aggregate index or its bands: the index is normalised
+/// within a session, so ranking across visits would compare numbers that were
+/// never on the same scale. A block index concatenated across files would
+/// assert the same false comparability.
 library;
 
 import '../core/session/longitudinal.dart'
@@ -37,7 +25,7 @@ typedef LongitudinalVisit = ({
   /// The BIDS `run-` entity, or ''.
   String run,
 
-  /// "20260626_01" — the desktop's `{date}_{run}` tick label.
+  /// "20260626_01", the desktop's `{date}_{run}` tick label.
   String label,
 
   /// Baseline (`is_initial == 1`) scale scores: the clinical assessment.
@@ -71,8 +59,7 @@ class LongitudinalReportData {
   /// Visits in date order, oldest first.
   final List<LongitudinalVisit> visits;
 
-  /// Clinical scales against the visit. No index, no bands — see the library
-  /// comment.
+  /// Clinical scales against the visit. No index, no bands; see above.
   final ScalesChartSpec clinicalChart;
 
   /// Session scales against visit + block.
@@ -107,9 +94,8 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
   final initial = rows.where((r) => coerceInt(r.isInitial) == 1).toList();
   final recording = rows.where((r) => coerceInt(r.isInitial) != 1).toList();
 
-  // The visit's date is the earliest stamp in the file, formatted from the
-  // row's single `acq_time` instant. Rows whose instant will not parse are
-  // skipped rather than sorted as empty strings.
+  // The visit's date is the earliest `acq_time` instant in the file; rows
+  // whose instant will not parse are skipped, not sorted as empty strings.
   final dates =
       rows
           .map((r) => recordedDate(r.acqTime))
@@ -124,9 +110,8 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
     return (v == null || !v.isFinite) ? null : v;
   }
 
-  // Clinical scores come from the baseline rows. Where a scale appears more
-  // than once, the LAST wins: the desktop takes the highest-block baseline, and
-  // a re-entered score supersedes the one it corrects.
+  // Clinical scores come from the baseline rows; where a scale appears more
+  // than once the LAST wins, so a re-entered score supersedes its predecessor.
   final clinical = <String, double>{};
   for (final row in initial) {
     for (final pair in splitScalePairs(row.scaleName, row.scaleValue)) {
@@ -162,10 +147,9 @@ LongitudinalVisit _visitOf(String filename, List<SessionRow> rows) {
   );
 }
 
-/// Build the whole report from the imported files.
-///
-/// [files] is filename -> rows, in the order they were imported; visits are
-/// sorted by date here so the figures read left to right in time.
+/// Build the whole report from the imported files. [files] is filename ->
+/// rows in import order; visits are sorted by date here so the figures read
+/// left to right in time.
 LongitudinalReportData buildLongitudinalReportData({
   required Map<String, List<SessionRow>> files,
   DateTime? generatedAt,
@@ -188,7 +172,7 @@ LongitudinalReportData buildLongitudinalReportData({
         ..sort();
   final patientId = ids.isEmpty ? 'unknown' : ids.first;
 
-  // ---- Figure 1: clinical scales, one point per visit ---------------------
+  // Figure 1: clinical scales, one point per visit.
   final clinicalSeries = <String, Map<int, double>>{};
   final clinicalLabels = <int, String>{};
   for (final (i, visit) in visits.indexed) {
@@ -198,15 +182,14 @@ LongitudinalReportData buildLongitudinalReportData({
     });
   }
 
-  // ---- Figure 2: session scales, one point per (visit, block) -------------
+  // Figure 2: session scales, one point per (visit, block).
   final sessionSeries = <String, Map<int, double>>{};
   final sessionLabels = <int, String>{};
   var x = 0;
   for (final visit in visits) {
     for (final (bi, block) in visit.blocks.indexed) {
-      // The desktop labels the first block of a visit with the full
-      // `{date}_{run}_{block}` and later blocks with the bare block number, so
-      // a long session does not stamp its date under every point.
+      // A visit's first block carries the full `{date}_{run}_{block}` and the
+      // rest only the block number, so a long session does not repeat its date.
       sessionLabels[x] = bi == 0 ? '${visit.label}_$block' : '$block';
       visit.sessionScales.forEach((name, byBlock) {
         final v = byBlock[block];
@@ -244,10 +227,9 @@ LongitudinalReportData buildLongitudinalReportData({
       xs: xs,
       yMin: lo,
       yMax: hi,
-      // No index and no bands on either figure: the aggregate index is
-      // normalised WITHIN a session, so a value from June and one from
-      // September were never on the same scale. The desktop passes
-      // `show_general_index=False` here for the same reason.
+      // No index and no bands on either figure: the index is normalised
+      // WITHIN a session, so two visits' values share no scale. The desktop
+      // passes `show_general_index=False` for the same reason.
       aggregateIndex: const {},
       bestXs: const [],
       secondXs: const [],
@@ -258,9 +240,9 @@ LongitudinalReportData buildLongitudinalReportData({
     );
   }
 
-  // ---- The per-visit table ------------------------------------------------
-  // The primary clinical scale is the one recorded at the most visits; ties go
-  // to the alphabetically first, so the choice is stable across exports.
+  // The per-visit table. Its primary clinical scale is the one recorded at the
+  // most visits; ties go to the alphabetically first, so the choice is stable
+  // across exports.
   final counts = <String, int>{};
   for (final v in visits) {
     for (final name in v.clinicalScales.keys) {

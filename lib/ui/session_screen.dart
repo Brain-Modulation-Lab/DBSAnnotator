@@ -47,18 +47,17 @@ import 'theme.dart';
 /// Complete-Workflow authoring as the desktop's 4-step wizard
 /// (step0..step3_view.py), driven by a Material [Stepper]:
 ///
-/// - Step 0 — File: patient/run, start empty or open an existing TSV.
-/// - Step 1 — Initial configuration: baseline stimulation + clinical
-///   scales, inserted as ONE is_initial=1 block.
-/// - Step 2 — Session scales: define the (name, min, max) scale set that
-///   Step 3 rates. Nothing is written to the TSV here.
-/// - Step 3 — Recording: stimulation + one slider/omit row per Step-2
-///   scale, inserted as is_initial=0 blocks; TSV / PDF export.
+/// - Step 0, File: patient/run, start empty or open an existing TSV.
+/// - Step 1, Initial configuration: baseline stimulation and clinical scales,
+///   inserted as ONE is_initial=1 block.
+/// - Step 2, Session scales: define the (name, min, max) scale set that Step 3
+///   rates. Nothing is written to the TSV here.
+/// - Step 3, Recording: stimulation and one slider/omit row per Step-2 scale,
+///   inserted as is_initial=0 blocks; TSV and PDF export.
 ///
-/// Produces the same `task-programming` TSV (via [SessionAuthoring] ->
-/// buildInsertRows) that the desktop writes. Offline pattern copied from
-/// annotations_screen.dart: in-memory rows, Open via file_picker, Export
-/// via share_plus.
+/// Produces the same `task-programming` TSV the desktop writes, via
+/// [SessionAuthoring]. Offline pattern as in annotations_screen.dart:
+/// in-memory rows, Open via file_picker, Export via share_plus.
 class SessionScreen extends StatefulWidget {
   const SessionScreen({
     super.key,
@@ -194,7 +193,7 @@ class _SessionScreenState extends State<SessionScreen> {
   final _removedClinical = <_ClinicalScaleEdit>[];
   final _removedSession = <_SessionScaleEdit>[];
 
-  // Serialised, atomic autosave to the user's chosen file. See [SafeFileWriter].
+  // Serialised, atomic autosave to the chosen file. See [SafeFileWriter].
   final _writer = SafeFileWriter();
 
   // Anchor the iPadOS share popover to whichever export button was tapped.
@@ -255,7 +254,7 @@ class _SessionScreenState extends State<SessionScreen> {
   /// Call wherever [_authoring] is mutated, or the figure goes stale.
   void _invalidateEntryCharts() => _entryChartsCache = null;
 
-  /// The optimisation targets for every named session scale — the single input
+  /// The optimisation targets for every named session scale: the single input
   /// to both the on-screen ranking and the report's, so the green bands on the
   /// charts and in the document can never point at different blocks.
   List<ScalePref> _scalePrefs() => [
@@ -289,13 +288,12 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   /// The report content, computed ONCE per export and shared by the graphics
-  /// step and both builders — so the two formats cannot disagree, and
+  /// step and both builders, so the two formats cannot disagree and
   /// `DateTime.now()` is read a single time.
   ///
-  /// Passes the Step-2 scale bounds and optimisation modes through as
-  /// [ScalePref]s. The app never did this, so the report silently fell back to a
-  /// 0-10 default: the chart's y-axis clamp and the whole best/second-best
-  /// ranking ignored what the user actually typed.
+  /// The Step-2 scale bounds and optimisation modes go through as [ScalePref]s.
+  /// Without them the report falls back to a 0-10 default, and the chart's
+  /// y-axis clamp and the whole ranking ignore what the user typed.
   SessionReportData _reportData() => buildSessionReportData(
     rows: _authoring.rows,
     scalePrefs: _scalePrefs(),
@@ -431,7 +429,7 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   /// Navigate to [step], seeding the recording config from the initial config
-  /// the first time the Recording step (3) is opened — so recording STARTS from
+  /// the first time the Recording step (3) is opened, so recording STARTS from
   /// the initial config but is then edited independently. Call inside setState.
   void _goToStep(int step) {
     if (step == 3 && !_recSeeded) {
@@ -515,9 +513,8 @@ class _SessionScreenState extends State<SessionScreen> {
   /// If a save path was chosen (New/Open), rewrite the TSV to it after each
   /// insert (desktop autosaves every entry). No-op when there is no path.
   ///
-  /// Goes through [SafeFileWriter], so overlapping inserts cannot interleave and
-  /// a crash mid-write cannot leave the clinician's only copy truncated — the
-  /// previous version stayed intact with a plain `writeAsString` only by luck.
+  /// Goes through [SafeFileWriter], so overlapping inserts cannot interleave
+  /// and a crash mid-write cannot truncate the clinician's only copy.
   Future<void> _autosave() async {
     final path = _savePath;
     if (path == null) return;
@@ -587,8 +584,8 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Future<void> _open() async {
-    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
-    // default TRUE, so the old call would silently accept a multi-selection.
+    // `pickFile`, not `pickFiles`: `allowMultiple` defaults to TRUE, so
+    // `pickFiles` here would silently accept a multi-selection.
     final PlatformFile? chosen;
     try {
       chosen = await FilePicker.pickFile(type: FileType.any);
@@ -621,11 +618,9 @@ class _SessionScreenState extends State<SessionScreen> {
     _authoring.loadExisting(content);
     final bids = BidsName.parse(picked.name);
 
-    // The file names its own electrode model, and this screen used to ignore
-    // the column entirely — so opening a TSV rendered the lead diagrams, and
-    // the report's, for whatever the dropdown happened to say. A mismatch there
-    // is not cosmetic: it labels one lead's contacts with another lead's
-    // geometry.
+    // The file names its own electrode model, so the dropdown follows it. A
+    // mismatch is not cosmetic: it labels one lead's contacts with another
+    // lead's geometry, in the diagrams here and in the report.
     final catalog = (await _contracts).$1;
     final named = electrodeModelIn(_authoring.rows);
     final unknownModel = named.isNotEmpty && !catalog.models.containsKey(named);
@@ -662,8 +657,8 @@ class _SessionScreenState extends State<SessionScreen> {
     return (subject: subject.isEmpty ? 'unknown' : subject, run: run);
   }
 
-  /// The BIDS entities for everything this screen writes — the session TSV, its
-  /// sidecar, and the report derivative — so all three carry the same ones.
+  /// The BIDS entities for everything this screen writes: the session TSV, its
+  /// sidecar and the report derivative all carry the same ones.
   BidsName _bidsName(({String subject, String run}) labels) => BidsName(
     subject: labels.subject,
     session: BidsName.sessionStamp(DateTime.now()),
@@ -683,7 +678,7 @@ class _SessionScreenState extends State<SessionScreen> {
     return on.isEmpty ? kAllReportSections : on;
   }
 
-  /// Ask which sections to include, and offer the scale targets alongside —
+  /// Ask which sections to include, offering the scale targets alongside, since
   /// they are what the ranking inside two of those sections is measured
   /// against. Returns null if the user cancelled the export.
   Future<Set<ReportSection>?> _askSections() async {
@@ -715,10 +710,10 @@ class _SessionScreenState extends State<SessionScreen> {
   /// Export this session as a one-subject BIDS dataset (zipped).
   ///
   /// The TSV on its own carries BIDS entities in its *name*; this is the tree
-  /// those entities describe — `sub-XX/ses-YYYYMMDD/beh/` with the sidecar, a
-  /// `dataset_description.json`, a `README`, `participants.tsv` and `scans.tsv`
-  /// — which is what a validator, and a colleague pooling several patients,
-  /// actually need.
+  /// those entities describe (`sub-XX/ses-YYYYMMDD/beh/` with the sidecar, a
+  /// `dataset_description.json`, a `README`, `participants.tsv` and
+  /// `scans.tsv`), which is what a validator and a colleague pooling several
+  /// patients actually need.
   Future<void> _exportBids() async {
     if (_authoring.rows.isEmpty) {
       _snack('Insert at least one block before exporting.');
@@ -763,9 +758,9 @@ class _SessionScreenState extends State<SessionScreen> {
     if (sections == null || !mounted) return;
 
     final l = _labels;
-    // A report is a derivative, not raw data — `_report` is not a BIDS suffix
-    // and never will be. Built from the same entities as the TSV so the two
-    // files sort together, through the one builder so they cannot drift.
+    // A report is a derivative, not raw data: `_report` is not a BIDS suffix.
+    // Built from the same entities as the TSV so the two files sort together,
+    // and through the one builder so they cannot drift.
     final filename = _bidsName(
       l,
     ).withSuffix('report', extension: docx ? 'docx' : 'pdf').filename;
@@ -904,20 +899,17 @@ class _SessionScreenState extends State<SessionScreen> {
     return items;
   }
 
-  /// Two rows: **what was delivered** on top, **what was observed** below.
+  /// Two rows: what was delivered on top, what was observed below.
   ///
-  /// Row 1 — stimulation parameters and the electrode canvases: the
-  /// configuration being set up, side by side, because a contact selection and
-  /// the amplitude that drives it are one decision.
+  /// Row 1 holds the stimulation parameters and the electrode canvases side by
+  /// side, because a contact selection and the amplitude that drives it are one
+  /// decision. Row 2 holds the scales, the notes and (recording only) side
+  /// effects.
   ///
-  /// Row 2 — the scales, the notes, and (recording only) side effects: what the
-  /// patient reported at that configuration.
-  ///
-  /// The old layout was three columns — params | electrodes | (scales + notes) —
-  /// which gave the electrode canvas a third of the width on a tablet and
-  /// squeezed the scale sliders and the notes into the same narrow column. Two
-  /// rows give each half the full width, and the split matches the order the
-  /// work is actually done in: set the configuration, then rate it.
+  /// Rows rather than three columns: params, electrodes and
+  /// scales-plus-notes would each take a third of the width, which squeezes
+  /// the sliders and the notes into one narrow column. The split also matches
+  /// the order the work is done in, set the configuration then rate it.
   ///
   /// Portrait/narrow keeps the single stacked column; the rows only appear once
   /// there is width to split.
@@ -1325,11 +1317,10 @@ class _SessionScreenState extends State<SessionScreen> {
 
   /// Side effects for the configuration being rated (recording step only).
   ///
-  /// A separate box because a side effect is not a note: it is the adverse-event
-  /// record for that configuration, and the clinical review found that typing it
-  /// into a general Notes field buries the only tolerability data the session
-  /// captures. Giving it its own labelled field also means the report can lift
-  /// it out.
+  /// A separate box because a side effect is not a note: it is the
+  /// adverse-event record for that configuration, and a general Notes field
+  /// buries the only tolerability data the session captures. Its own labelled
+  /// field also lets the report lift it out.
   ///
   /// It is written into the `notes` COLUMN with a `Side effects:` prefix rather
   /// than a new TSV column, so the file stays readable by the desktop app
@@ -1433,7 +1424,7 @@ class _SessionScreenState extends State<SessionScreen> {
         const SizedBox(height: 8),
         Text(
           _authoring.rows.isEmpty
-              ? 'Empty session — the first insert is block 0.'
+              ? 'Empty session. The first insert is block 0.'
               : '${_authoring.rows.length} rows loaded; next block '
                     '${_authoring.blockId}, append ${_authoring.appendId}.',
           style: Theme.of(context).textTheme.bodySmall,
@@ -1481,8 +1472,8 @@ class _SessionScreenState extends State<SessionScreen> {
     if (mounted) _snack('Clinical scale presets saved.');
   }
 
-  /// Edit + persist the session scale presets via the desktop-style group
-  /// editor (all disease groups → (name,min,max) rows; report mode preserved).
+  /// Edit and persist the session scale presets via the group editor: all
+  /// disease groups, (name,min,max) rows, report mode preserved.
   Future<void> _editSessionPresets(ScalePresets presets) async {
     final edited = await showSessionPresetsDialog(
       context,
@@ -1613,7 +1604,7 @@ class _SessionScreenState extends State<SessionScreen> {
               const Padding(
                 padding: EdgeInsets.only(top: 4),
                 child: Text(
-                  'No scales — the insert writes one scale-less '
+                  'No scales. The insert writes one scale-less '
                   'row (like the desktop).',
                 ),
               ),
@@ -1791,7 +1782,7 @@ class _SessionScreenState extends State<SessionScreen> {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             _sessionScales.isEmpty
-                ? 'No session scales — recording inserts write one '
+                ? 'No session scales. Recording inserts write one '
                       'scale-less row (like the desktop).'
                 : 'These scales are rated in the Recording step; nothing is '
                       'written to the TSV here.',
@@ -1822,8 +1813,8 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
           Expanded(
             flex: 5,
-            // Desktop ScaleProgressWidget: bar + value + ±0.25/±0.5 chevrons +
-            // X-omit. Any move re-includes an omitted scale.
+            // Desktop ScaleProgressWidget: bar, value, chevrons, X-omit. Any
+            // move re-includes an omitted scale.
             child: ScaleSlider(
               value: scale.value.clamp(min, max).toDouble(),
               min: min,
@@ -1866,7 +1857,7 @@ class _SessionScreenState extends State<SessionScreen> {
             const SizedBox(height: 8),
             if (_sessionScales.isEmpty)
               const Text(
-                'No session scales defined — add them in the '
+                'No session scales defined. Add them in the '
                 'Session scales step.',
               )
             else
@@ -1949,8 +1940,8 @@ class _SessionScreenState extends State<SessionScreen> {
             setState(() => _prefs.entryVisibleConfigs = n);
             saveUserPrefs(_prefs);
           },
-          bestX: _entryCharts().bestX,
-          secondX: _entryCharts().secondX,
+          bestXs: _entryCharts().bestXs,
+          secondXs: _entryCharts().secondXs,
         ),
         Theme(
           // Drop the ExpansionTile's default divider lines so it reads as part
@@ -2054,7 +2045,7 @@ class _SessionScreenState extends State<SessionScreen> {
             steps: [
               Step(
                 title: const Text('File'),
-                subtitle: const Text('Patient / run — new or open TSV'),
+                subtitle: const Text('Patient / run: new or open TSV'),
                 isActive: _currentStep == 0,
                 content: when(0, _fileStep),
               ),

@@ -1,18 +1,13 @@
-/// Turns inserted session rows into the four stacked panels of the entry-review
-/// figure: session scales, amplitude, pulse width and stimulation frequency.
+/// Turns inserted session rows into the four stacked panels of the
+/// entry-review figure: session scales, amplitude, pulse width and frequency.
 ///
-/// Pure Dart — no Flutter — so the whole shape of the figure is unit-testable
-/// without pumping a widget. The painter and the panel widget consume this.
+/// Pure Dart (no Flutter), so the shape of the figure is unit-testable without
+/// pumping a widget.
 ///
-/// ## Why blocks are the x axis
-///
-/// The x positions are **configurations** (blocks) in time order, evenly spaced,
-/// and each tick is labelled with that block's clock time. Plotting against real
-/// elapsed time instead would bunch a rapid titration into a few pixels and
-/// stretch a coffee break across the panel, and "show the last 10
-/// configurations" would stop being well defined. Even spacing keeps zoom and
-/// horizontal scrolling meaningful; the time labels keep the axis readable as a
-/// progression.
+/// The x positions are configurations (blocks) in time order, evenly spaced,
+/// each tick labelled with that block's clock time. Plotting against real
+/// elapsed time would bunch a rapid titration into a few pixels, stretch a
+/// break across the panel, and leave "the last 10 configurations" undefined.
 library;
 
 import '../core/electrode/amplitude.dart';
@@ -22,10 +17,9 @@ import '../core/session/scale_scoring.dart';
 import '../core/session/session_row.dart';
 import 'report_data.dart' show coerceInt;
 
-/// One stacked panel: a title, its series, and the y range to draw.
-///
-/// [id] is stable across rebuilds and across app runs, so the user's panel
-/// order can be persisted by id rather than by position.
+/// One stacked panel: a title, its series, and the y range to draw. [id] is
+/// stable across rebuilds and app runs, so the user's panel order can be
+/// persisted by id rather than by position.
 typedef ParamPanel = ({
   String id,
   String title,
@@ -34,22 +28,20 @@ typedef ParamPanel = ({
   double yMax,
 
   /// Set when every series in the panel held one value throughout, e.g.
-  /// "90 µs, unchanged". The view then draws a single line with this as its
-  /// label instead of a full plot: an invariant parameter needs a sentence, not
-  /// a third of the figure, and `_padRange` used to draw a constant 90 dead
-  /// centre of an 89-91 axis, which reads as a measured mid-range value.
+  /// "90 µs, unchanged". The view then draws a single labelled line instead of
+  /// a plot: padding a constant range puts 90 dead centre of an 89-91 axis,
+  /// which reads as a measured mid-range value.
   String? constantLabel,
 
-  /// Series that are numerically identical to another in the same panel, e.g.
-  /// Left exactly under Right. Without this the reader cannot tell whether both
-  /// sides are plotted or one is missing.
+  /// Series numerically identical to another in the same panel (Left exactly
+  /// under Right), so the reader can tell both sides are plotted.
   List<String> coincident,
 });
 
 /// Everything the four-panel figure needs, sharing one x domain so the panels
 /// line up vertically.
 typedef EntryChartData = ({
-  /// Block IDs in time order — the x positions, evenly spaced.
+  /// Block IDs in time order: the x positions, evenly spaced.
   List<int> xs,
 
   /// Block ID -> "HH:MM" for the axis ticks.
@@ -57,9 +49,10 @@ typedef EntryChartData = ({
   List<ParamPanel> panels,
 
   /// Blocks with the best and second-best aggregate index against the scale
-  /// targets, for the green bands. Null when nothing was rated.
-  int? bestX,
-  int? secondX,
+  /// targets, for the green bands. Empty when nothing was rated; a tie puts
+  /// several blocks at the same rank, and every one of them is banded.
+  List<int> bestXs,
+  List<int> secondXs,
 });
 
 /// Canonical panel ids, also the default top-to-bottom order.
@@ -84,9 +77,6 @@ String _trim(double v) =>
     v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
 /// Sum a possibly-split amplitude cell ("1.5_1" -> 2.5). Null when unparsable.
-///
-/// Reuses [parseAmplitude] rather than re-splitting on '_' by hand, which is
-/// what the report table still does in its own copy.
 double? _amplitudeTotal(String raw) {
   final text = raw.trim();
   if (text.isEmpty) return null;
@@ -104,11 +94,9 @@ double? _numeric(String raw) {
   return m == null ? null : double.tryParse(m.group(0)!);
 }
 
-/// Pad a y range so markers do not sit exactly on the frame.
-///
-/// [zeroBased] anchors the bottom at 0, which is right for a magnitude: an
-/// amplitude axis that starts at 4.4 makes a 5.5 -> 4.5 mA step occupy a third
-/// of the panel and read as a collapse.
+/// Pad a y range so markers do not sit exactly on the frame. [zeroBased]
+/// anchors the bottom at 0, right for a magnitude: an amplitude axis starting
+/// at 4.4 makes a 5.5 -> 4.5 mA step occupy a third of the panel.
 (double, double) _padRange(double lo, double hi, {bool zeroBased = false}) {
   if (!lo.isFinite || !hi.isFinite) return (0, 1);
   if (lo == hi) return zeroBased ? (0, hi + 1) : (lo - 1, hi + 1);
@@ -152,16 +140,14 @@ List<String> _coincidentSeries(Map<String, Map<int, double>> series) {
   return out;
 }
 
-/// Build the four panels from [rows].
+/// Build the four panels from [rows]. Only recording rows are plotted
+/// (`is_initial != 1`): the baseline block is the pre-session state, not a
+/// tested configuration.
 ///
-/// Only recording rows are plotted (`is_initial != 1`): the baseline block is
-/// the pre-session state, not a tested configuration.
-///
-/// [scalePrefs] carries the scale bounds AND the optimisation mode per scale, so
-/// one input drives both the scales panel's y axis (the range the user declared
-/// in Step 2, rather than auto-fitting to whatever happens to be recorded) and
-/// the aggregate index behind the green best/second bands. When it is empty the
-/// axis auto-fits and no block is banded.
+/// [scalePrefs] carries the scale bounds and the optimisation mode per scale,
+/// driving both the scales panel's y axis (the range declared in Step 2 rather
+/// than an auto-fit) and the aggregate index behind the best/second bands.
+/// When it is empty the axis auto-fits and no block is banded.
 EntryChartData buildEntryChartData(
   List<SessionRow> rows, {
   List<ScalePref> scalePrefs = const [],
@@ -289,15 +275,15 @@ EntryChartData buildEntryChartData(
     );
   }
 
-  final (bestX, secondX) = findBestAndSecond(
-    computeAggregateIndex(scales, blockOrder, targets),
-  );
+  final ranks = targets.isEmpty
+      ? const <int, int>{}
+      : rankBlocks(computeAggregateIndex(scales, blockOrder, targets));
 
   return (
     xs: blockOrder,
     xLabels: xLabels,
-    bestX: targets.isEmpty ? null : bestX,
-    secondX: targets.isEmpty ? null : secondX,
+    bestXs: blocksAtRank(ranks, 1),
+    secondXs: blocksAtRank(ranks, 2),
     panels: [
       panel('scales', scales, scalesRange),
       // Dose is a magnitude, so its axis starts at zero: an amplitude panel
@@ -324,11 +310,9 @@ EntryChartData buildEntryChartData(
   );
 }
 
-/// Reorder [panels] to match a persisted list of ids.
-///
-/// Unknown ids are ignored and missing ones appended in their default order, so
-/// a stale preference (from an older version, or a hand-edited file) degrades to
-/// a sensible order instead of losing a panel.
+/// Reorder [panels] to match a persisted list of ids. Unknown ids are ignored
+/// and missing ones appended in default order, so a stale preference degrades
+/// to a sensible order instead of losing a panel.
 List<ParamPanel> orderPanels(List<ParamPanel> panels, List<String>? order) {
   if (order == null || order.isEmpty) return panels;
   final byId = {for (final p in panels) p.id: p};
