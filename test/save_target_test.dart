@@ -1,9 +1,5 @@
 /// The single decision point for "does writing reach the clinician's file",
 /// plus the basename helper the report provenance line depends on.
-///
-/// Nineteen lines of code with no test, and both of the defects it now guards
-/// were invisible in exactly the same way: they produced a plausible-looking
-/// result rather than an error.
 library;
 
 import 'package:dbs_annotator/ui/save_target.dart';
@@ -11,14 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('pickedBasename', () {
-    // The regression. Both call sites carried
-    // `path.replaceAll(r'', '/').split('/').last`, where `r''` is an EMPTY raw
-    // string (almost certainly an `r'\'` that could not compile - a raw string
-    // may not end in a backslash). `replaceAll('', '/')` inserts a separator
-    // between every character, so `.split('/').last` was ALWAYS ''. Every
-    // report builder renders provenance as `sourceFile.isEmpty ? '' : ...`, so
-    // every PDF and Word report from the session and annotations screens was
-    // filed with no record of which file produced it.
+    // Both call sites carried `path.replaceAll(r'', '/').split('/').last`,
+    // where the raw string is empty: `replaceAll('', '/')` inserts a
+    // separator between every character, so the last segment was always ''
+    // and every report was filed with no record of its source file.
     test('is never empty for a real path (the provenance regression)', () {
       const windows = r'C:\Users\clinician\Documents\sub-01_beh.tsv';
       const posix = '/home/clinician/documents/sub-01_beh.tsv';
@@ -59,12 +51,9 @@ void main() {
       expect(pickedPathAutosavesToOriginal(null), isFalse);
     });
 
-    // Platform-dependent beyond this point, and WP2's subject: the reviews
-    // established that Android's picker also returns a CACHE copy
-    // (file_picker's Android delegate copies into getCacheDir()), so the
-    // current `!Platform.isIOS` test reports write-back on a platform where
-    // there is none. Asserting the true per-platform answer needs a device, so
-    // it is deliberately not asserted here - see the WP2 section of the plan.
+    // Android's picker also returns a cache copy (file_picker's delegate
+    // copies into getCacheDir()), so `!Platform.isIOS` claims write-back
+    // where there is none; the true per-platform answer needs a device.
     test('a non-null path is answered without throwing on this host', () {
       expect(pickedPathAutosavesToOriginal('/tmp/x.tsv'), isA<bool>());
     });

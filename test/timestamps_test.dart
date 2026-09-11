@@ -1,7 +1,6 @@
 /// The timestamp model: one stored column, two ways of reading it.
 ///
-/// `lib/core/timestamps.dart` had no direct test, and it now carries the whole
-/// v0.5.0 timestamp cleanup — the backfill that keeps pre-0.5.0 files readable,
+/// Two things matter here: the backfill that keeps pre-0.5.0 files readable,
 /// and the wall-clock/instant split that keeps a clinical report honest.
 library;
 
@@ -92,7 +91,7 @@ void main() {
     });
   });
 
-  group('recordedDate / recordedTime — the wall clock, never converted', () {
+  group('recordedDate / recordedTime: the wall clock, never converted', () {
     // The defect these exist to prevent: reading `acq_time` as a DateTime and
     // formatting it renders the instant in the READER's zone, so a block
     // recorded at 09:00 in Geneva prints as 03:00 in Chicago. A clinical

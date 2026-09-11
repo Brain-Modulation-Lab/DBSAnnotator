@@ -1,33 +1,22 @@
-/// Scale presets from the generated contract `schema/scale_presets.json`
-/// (source of truth: the Python desktop app's config). Pure parse/lookup
-/// code — no widgets — so behaviour is verifiable headlessly.
+/// Scale presets from the generated contract `schema/scale_presets.json`,
+/// whose source of truth is the Python desktop app's config.
 library;
 
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
-/// One session-scale preset row: name, its own slider bounds, and the default
-/// direction the report's block ranking optimises it in (kept as the
-/// contract's strings; the UI parses them when building sliders).
-///
-/// [mode] is `min` | `max` | `custom` | `ignore`, mirroring
-/// `config.SESSION_SCALES_PRESETS`. Contracts generated before the field
-/// existed carry 3-element rows, which decode to
-/// [defaultScaleOptimizationMode].
+/// One session-scale preset row, as the contract's strings. [mode] (`min`,
+/// `max`, `custom`, `ignore`) is the direction the report's block ranking
+/// optimises the scale in, and is absent from older 3-cell rows.
 typedef SessionScaleRow = ({String name, String min, String max, String mode});
 
-/// Fallback for a preset row with no mode cell — matches the desktop's
-/// `config.DEFAULT_SCALE_OPTIMIZATION_MODE`.
+/// Fallback for a preset row with no mode cell.
 const String defaultScaleOptimizationMode = 'min';
 
 /// The modes the contract may carry; anything else decodes to the default.
 const List<String> scaleOptimizationModes = ['min', 'max', 'custom', 'ignore'];
 
-/// The desktop's disease preset tables:
-/// - [buttons]: ordered preset names shown as the pill/button bar;
-/// - [clinical]: preset -> clinical scale NAMES (Step-1 baseline rows);
-/// - [session]: preset -> (name, min, max) session-scale rows (Step 2/3).
 class ScalePresets {
   const ScalePresets({
     required this.buttons,
@@ -54,8 +43,7 @@ class ScalePresets {
         entry.key: (entry.value as List)
             .map((row) {
               final cells = (row as List).map((e) => '$e').toList();
-              // The 4th cell (optimization mode) is absent in contracts
-              // generated before it was added.
+              // The 4th cell is absent in older contracts.
               final mode = cells.length > 3
                   ? cells[3].trim().toLowerCase()
                   : defaultScaleOptimizationMode;
@@ -80,7 +68,6 @@ class ScalePresets {
   /// Preset -> clinical scale names (baseline / is_initial rows).
   final Map<String, List<String>> clinical;
 
-  /// Preset -> session scale rows with per-scale min/max (recording rows).
   final Map<String, List<SessionScaleRow>> session;
 }
 
@@ -92,11 +79,8 @@ List<String> clinicalRows(ScalePresets p, String preset) =>
 List<SessionScaleRow> sessionRows(ScalePresets p, String preset) =>
     p.session[preset] ?? const [];
 
-/// Loads the scale-presets contract from the bundled asset at runtime.
-///
-/// NOTE: the build/CI copies the repo-root `schema/*.json` contracts into
-/// `app/assets/schema/` before building (same as `loadElectrodeCatalog`).
-/// Tests read the repo-root file directly via `dart:io` instead.
+/// Loads the scale-presets contract from the bundled `assets/schema/` mirror
+/// of the repo-root `schema/*.json`; tests read the repo root via `dart:io`.
 Future<ScalePresets> loadScalePresets() async {
   final raw = await rootBundle.loadString('assets/schema/scale_presets.json');
   return ScalePresets.fromJson(jsonDecode(raw) as Map<String, dynamic>);

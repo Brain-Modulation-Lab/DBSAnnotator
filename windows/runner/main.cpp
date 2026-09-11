@@ -26,7 +26,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   // Modest default: Win32Window::Create SCALES this by the monitor DPI, so on a
-  // 150%-scaled laptop 1280x720 becomes 1920x1080 physical — the whole screen,
+  // 150%-scaled laptop 1280x720 becomes 1920x1080 physical: the whole screen,
   // with the taskbar and title bar behind the window. Dart fits the window to
   // the work area right after (lib/main.dart, _fitWindowToWorkArea); this keeps
   // the pre-Dart frame small enough to be safe on its own.

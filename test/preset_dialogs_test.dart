@@ -4,7 +4,7 @@ import 'package:dbs_annotator/ui/stim_params_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Headless coverage for the desktop-style preset editor dialogs (Round 3).
+/// Headless coverage for the desktop-style preset editor dialogs.
 /// They use only `showDialog` (no platform channels), so the seed -> edit ->
 /// save round trip is verifiable without a device.
 void main() {

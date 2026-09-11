@@ -1,10 +1,8 @@
-/// The chart's top band: title, then legend, then plot — none overlapping.
+/// The chart's top band: title, then legend, then plot, none overlapping.
 ///
-/// The defect this pins was reported from a generated report: the title sat at
-/// y 20..38, the legend's OPAQUE box at y 30..50, and the legend was painted
-/// after the axes, so its fill erased the bottom third of every title glyph.
-/// `_padTop` was 46, four pixels above the legend's bottom, so the legend also
-/// overran the plot.
+/// The legend's box is opaque and painted after the axes, so any overlap
+/// erases what lies beneath it: the bottom third of every title glyph in the
+/// reported defect, and the top of the plot when `_padTop` sits too high.
 library;
 
 import 'package:dbs_annotator/report/report_data.dart';

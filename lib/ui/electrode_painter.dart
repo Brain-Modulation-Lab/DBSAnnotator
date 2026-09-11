@@ -1,22 +1,14 @@
 /// The electrode painter, split out of `electrode_view.dart` so the report
 /// layer can rasterise a lead offscreen without importing a widget.
 ///
-/// ## The lighting model
-///
-/// The lead is a vertical cylinder, so all shading varies along **x** only,
-/// with a single light from the upper-left putting the specular highlight at
-/// [_specular] of the lead width. Every element — body, ring contacts, all
-/// three directional segments, the dome — is filled with a gradient built from
-/// **one shared silhouette rect** ([ElectrodeLayout.leadRect]), so they read as
-/// one lit cylinder rather than a stack of separately-lit parts.
-///
-/// That is the substantive difference from the desktop canvas
-/// (`dbs_annotator/models/electrode_viewer.py`), which gives every contact
-/// its own `QRadialGradient` centred in its own bounding box (`:483-489`,
-/// `:646-652`) — each contact lit by a private light, which is why they read as
-/// detached glossy buttons. Here a directional level's `a|b|c` inherits the
-/// curvature for free: `a` brightens toward its inner edge, `b` carries the
-/// specular, `c` falls away into shadow.
+/// The lead is a vertical cylinder, so all shading varies along x only, with a
+/// single light from the upper-left putting the specular highlight at
+/// [_specular] of the lead width. Every element (body, ring contacts, all three
+/// directional segments, the dome) is filled with a gradient built from ONE
+/// shared silhouette rect, [ElectrodeLayout.leadRect], so they read as one lit
+/// cylinder rather than a stack of separately-lit parts. The desktop canvas
+/// instead gives every contact its own radial gradient centred in its own
+/// bounding box, which is why its contacts read as detached glossy buttons.
 ///
 /// Two materials are kept visually distinct: matte insulating polymer for the
 /// body and dome, polished platinum-iridium for the contacts. An active contact
@@ -60,10 +52,6 @@ class ElectrodePainter extends CustomPainter {
 
   static const _segmentLabels = ['a', 'b', 'c'];
 
-  // ---------------------------------------------------------------------------
-  // Materials
-  // ---------------------------------------------------------------------------
-
   static Color _base(ContactState s) => switch (s) {
     ContactState.anodic => DbsColors.anodicBase,
     ContactState.cathodic => DbsColors.cathodicBase,
@@ -76,10 +64,9 @@ class ElectrodePainter extends CustomPainter {
     ContactState.off => DbsColors.offBorder,
   };
 
-  /// Blend toward white. Replaces the old HSV-value `lighter()` port, which
-  /// desaturated unpredictably (`#ff6464` "lightened" to nearly white) and
-  /// whose sibling `darker(80)` silently *brightened* — the inverted-light bug
-  /// in the old ring cap.
+  /// Blend toward white, not an HSV-value shift: that desaturates unpredictably
+  /// (`#ff6464` "lightens" to nearly white), and its Qt sibling `darker(80)`
+  /// brightens instead of darkening.
   static Color _tint(Color c, double t) => Color.lerp(c, Colors.white, t)!;
 
   /// Blend toward black.
@@ -138,12 +125,8 @@ class ElectrodePainter extends CustomPainter {
     stops: [0.0, 0.22, 0.78, 1.0],
   ).createShader(rect);
 
-  // ---------------------------------------------------------------------------
-  // Elements
-  // ---------------------------------------------------------------------------
-
-  /// The insulating lead body plus its distal dome (or, for `tipContact`
-  /// models, just the body — the dome belongs to E0 and is painted as metal).
+  /// The insulating lead body plus its distal dome, or on `tipContact` models
+  /// just the body: there the dome belongs to E0 and is painted as metal.
   void _paintLead(Canvas canvas) {
     final span = layout.leadRect;
     final path = Path()..addRect(span);
@@ -163,7 +146,7 @@ class ElectrodePainter extends CustomPainter {
 
   /// A ring contact, or one directional segment. Square-cornered and exactly
   /// the lead width, so the cylinder silhouette stays one continuous line
-  /// (the old rounded, over-wide contacts let the body show through at every
+  /// (rounded or over-wide contacts let the body show through at every
   /// corner). [shape] lets a directional segment taper.
   void _paintContact(
     Canvas canvas,
@@ -197,7 +180,7 @@ class ElectrodePainter extends CustomPainter {
   }
 
   /// The CASE (ground / IPG can): vertical gradient plus a feathered specular
-  /// sweep across the upper third — not a hard-edged white rounded rect.
+  /// sweep across the upper third, not a hard-edged white rounded rect.
   void _paintCase(Canvas canvas, Rect rect, ContactState state) {
     final base = _base(state);
     final r = Radius.circular(rect.width * 0.14);
@@ -234,10 +217,9 @@ class ElectrodePainter extends CustomPainter {
       );
   }
 
-  /// A directional ring cap — the "cycle all three segments together"
-  /// affordance. Deliberately understated: a slim, flat strip so the contacts
-  /// stay the dominant shapes. On a Cartesia (five segmented levels) a glossy
-  /// tall cap turns the whole lead into a stack of buttons.
+  /// The "cycle all three segments together" affordance. Deliberately
+  /// understated, a slim flat strip, so the contacts stay the dominant shapes:
+  /// on a five-segment Cartesia a glossy tall cap turns the lead into buttons.
   void _paintCap(Canvas canvas, Rect rect, ContactState state) {
     final base = _base(state);
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(2));
@@ -248,8 +230,8 @@ class ElectrodePainter extends CustomPainter {
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            // Darkens downward — the old port lightened here, because Qt's
-            // `darker(80)` divides by the percentage.
+            // Darkens downward. A Qt `darker(80)` port lightens here,
+            // because it divides by the percentage.
             colors: [_tint(base, 0.30), _shade(base, 0.04)],
           ).createShader(rect),
       )
@@ -262,8 +244,8 @@ class ElectrodePainter extends CustomPainter {
       );
   }
 
-  /// One soft ambient shadow behind the whole lead, replacing the old dozen-odd
-  /// per-element offset shadows that made the canvas look cluttered.
+  /// One soft ambient shadow behind the whole lead. Per-element offset
+  /// shadows, one per contact and cap, make the canvas look cluttered.
   void _paintAmbientShadow(Canvas canvas) {
     final silhouette = Path()
       ..addRRect(
@@ -282,17 +264,13 @@ class ElectrodePainter extends CustomPainter {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Text
-  // ---------------------------------------------------------------------------
-
   /// Label colour on a contact: white on active, near-black on OFF metal.
   static Color _labelOn(ContactState state) => state == ContactState.off
       ? const Color(0xFF1A1A1A)
       : const Color(0xFFFFFFFF);
 
   /// Font sizes track the rendered lead (via `scale` px/mm) instead of being
-  /// hard-coded, so labels stay proportionate on a 320 px pane and a 900 px one.
+  /// hard-coded, so labels stay proportionate on a 320 px pane and a 900 px.
   double _font(double perMm, double lo, double hi) =>
       (layout.scale * perMm).clamp(lo, hi);
 
@@ -383,8 +361,6 @@ class ElectrodePainter extends CustomPainter {
     }
     return ContactState.off;
   }
-
-  // ---------------------------------------------------------------------------
 
   @override
   void paint(Canvas canvas, Size size) {

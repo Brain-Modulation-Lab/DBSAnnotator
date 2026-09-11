@@ -88,9 +88,9 @@ void main() {
     await tester.tap(insert);
     await tester.pumpAndSettle();
 
-    // One `notes` column, so the two fields are joined — side effects FIRST, so
-    // a tolerability line is never lost at the end of a long paragraph. No new
-    // TSV column, so the desktop app still reads the file.
+    // One `notes` column, so the two fields are joined; side effects come
+    // first, so a tolerability line is never lost at the end of a long
+    // paragraph. No new TSV column, so the desktop app still reads the file.
     expect(authoring.rows, isNotEmpty);
     expect(
       authoring.rows.first.notes,

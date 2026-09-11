@@ -8,17 +8,16 @@
 /// flutter test test/bids/dataset_tree_test.dart
 /// ```
 ///
-/// Everything the app claims about BIDS compliance is currently *our reading* of
-/// the specification. The validator is the only thing that tests the reading
-/// itself, and it cannot run here — it is Deno-based, and this machine has no
-/// Node, Deno or Docker — so this writes the tree and CI validates it.
+/// BIDS compliance here is our reading of the specification, and the validator
+/// is the only check on that reading. It is Deno-based and cannot run on this
+/// machine, so the test writes the tree and CI validates it.
 ///
 /// The shape is chosen to exercise what a single session cannot:
-///  * **two sessions of one subject**, the only way `scans.tsv` grouping runs;
-///  * **a second subject**, the only way `participants.tsv` gets more than one
-///    row and the combined table's cross-subject path is reached;
-///  * **a notes file beside a programming file**, so both sidecar kinds appear;
-///  * **the combined table as a derivative**, whose placement is the one part of
+///  * two sessions of one subject, the only way `scans.tsv` grouping runs;
+///  * a second subject, the only way `participants.tsv` gets more than one row
+///    and the combined table's cross-subject path is reached;
+///  * a notes file beside a programming file, so both sidecar kinds appear;
+///  * the combined table as a derivative, whose placement is the one part of
 ///    this layout not yet confirmed against the spec.
 library;
 
@@ -41,11 +40,9 @@ final String? _outDir = Platform.environment['BIDS_DATASET_DIR'];
 const _fixture =
     'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv';
 
-/// The four source files the tree is built from.
-///
-/// Derived from the one committed fixture by shifting its dates, the way
-/// `test/docs/screenshots_test.dart` already does: a second on-disk fixture per
-/// subject would add maintenance for no extra coverage.
+/// The four source files the tree is built from: the one committed fixture
+/// with its dates shifted, since a second on-disk fixture per subject would
+/// add maintenance for no extra coverage.
 List<({BidsName name, String tsv, String kind})> _sources(String source) {
   BidsName programming(String subject, String session, String run) => BidsName(
     subject: subject,
@@ -152,8 +149,8 @@ void main() {
     });
 
     test('groups scans.tsv per subject and session, not per file', () {
-      // Two sessions of sub-01 and one of sub-07, so three scans.tsv - and the
-      // notes file must land in its session's existing one rather than a fourth.
+      // Two sessions of sub-01 and one of sub-07, so three scans.tsv, and the
+      // notes file must land in its session's file rather than in a fourth.
       final scans = buildTree()
           .map((f) => f.path)
           .where((p) => p.endsWith('_scans.tsv'))
@@ -186,7 +183,7 @@ void main() {
 
     test('the derivative carries its own description', () {
       // "derivatives datasets MUST include a dataset_description.json file at
-      // the root level" - without it the whole dataset is invalid, not just
+      // the root level": without it the whole dataset is invalid, not just
       // the derivative.
       final paths = buildTree().map((f) => f.path).toSet();
       expect(
@@ -236,10 +233,10 @@ void main() {
     expect(written, isNotEmpty);
   });
 
-  // `datasetEntry` is a pure adapter and was uncovered until now, which matters
-  // because both of its jobs are silent when wrong: a sidecar built for the
-  // wrong kind documents columns the file does not have, and an empty acq_time
-  // written as '' rather than 'n/a' is a blank cell, which BIDS forbids.
+  // `datasetEntry` is a pure adapter whose two jobs are both silent when
+  // wrong: a sidecar built for the wrong kind documents columns the file does
+  // not have, and an empty acq_time written as '' rather than 'n/a' leaves a
+  // blank cell, which BIDS forbids.
   group('datasetEntry', () {
     const name = BidsName(
       subject: '01',

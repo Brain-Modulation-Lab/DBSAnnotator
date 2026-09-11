@@ -1,42 +1,26 @@
 /// Generates the screenshots used in `docs/`.
 ///
-/// Opt-in: a plain `flutter test` skips this. To regenerate, from the repo root:
+/// Opt-in: a plain `flutter test` skips this. From the repo root:
 ///
 /// ```powershell
 /// $env:DOCS_SCREENSHOT_DIR = "docs/_static/screenshots"
 /// flutter test test/docs/screenshots_test.dart
 /// ```
 ///
-/// ## Why widget tests rather than a driven app
+/// `RenderRepaintBoundary.toImage` needs no display, so this runs headless in
+/// CI with no device, emulator or `flutter_driver`. The output is committed,
+/// because Read the Docs cannot run Flutter.
 ///
-/// `RenderRepaintBoundary.toImage` needs no display, so this runs in CI on a
-/// headless runner and needs no device, no emulator and no `flutter_driver`.
-/// The output is committed, because Read the Docs cannot run Flutter.
+/// Three traps, each producing a plausible-looking wrong result: `toImage()`
+/// never completes under the widget-test fake clock, so it and `toByteData`
+/// must run inside `tester.runAsync`; `flutter_tester` ships no fonts, so
+/// every glyph renders as a filled box unless real ones are registered with
+/// [FontLoader]; and the binding sets `debugDisableShadows = true` for golden
+/// determinism, so Material elevation renders flat.
 ///
-/// ## Three traps, all of which produce a plausible-looking wrong result
-///
-/// 1. `toImage()` **never completes** under the widget-test fake clock. Both it
-///    and `toByteData` must run inside `tester.runAsync`.
-/// 2. `flutter_tester` ships **no fonts**. Text falls back to the engine's test
-///    font, which draws every glyph as a filled black box — and the capture
-///    still "succeeds". Real fonts have to be registered with [FontLoader],
-///    including the Material *icon* font, or the home screen is a grid of boxes.
-/// 3. The test binding sets `debugDisableShadows = true` for golden
-///    determinism, so Material elevation renders flat.
-///
-/// ## Two rules every capture follows
-///
-/// **Never hand-pick a height.** The previous harness named a surface size as a
-/// constant per capture, and three of them cut through a widget — a step label,
-/// a step circle, the ratings list above the Insert button. [_shootFitted] and
-/// [_shootRegion] measure the laid-out content and size the window to it, so a
-/// layout change moves the frame instead of cropping it.
-///
-/// **Never photograph an empty form.** A screenshot of a blank Patient ID,
-/// "Select program" and seven ratings reading 0.00 documents nothing. Every
-/// capture is seeded first — the `_seed*` helpers here are the Dart
-/// counterparts of the v0.4.0 Qt harness's `configure_stimulation` and
-/// `fill_step3_session_scale_values`.
+/// Two rules: never hand-pick a height ([_shootFitted] and [_shootRegion]
+/// measure the laid-out content instead of cutting through it), and never
+/// photograph an empty form (every capture is seeded by a `_seed*` helper).
 library;
 
 import 'dart:async' show unawaited;
@@ -69,8 +53,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
-/// Where PNGs are written. Unset means "do nothing", so the default
-/// `flutter test` never dirties the working tree.
+/// Where PNGs are written; unset means the default `flutter test` does nothing.
 final String? _outDir = Platform.environment['DOCS_SCREENSHOT_DIR'];
 
 const _boundary = ValueKey('docs-screenshot');
@@ -78,38 +61,27 @@ const _boundary = ValueKey('docs-screenshot');
 /// Resolved once in `setUpAll`; applied to every capture's theme.
 String? _textFont;
 
-/// The two canvas widths every capture uses.
-///
-/// One number per layout, not one per screenshot: mixed widths (the previous
-/// harness used 1120, 1280 and 1500) render at different apparent scales on the
-/// same documentation page, which reads as sloppiness rather than as detail.
-///
-/// [_wide] is above the 900 px breakpoint in `session_screen.dart`, so the
-/// two-row layout the docs describe is what gets drawn. [_narrow] is below it,
-/// and is also the width for screens whose own content is capped — the home
-/// screen's card column is 600 px, so a wider canvas is mostly background.
+/// The two canvas widths every capture uses. One number per layout rather
+/// than one per screenshot: mixed widths render at different apparent scales
+/// on the same documentation page. [_wide] is above the 900 px breakpoint in
+/// `session_screen.dart`, so the two-row layout the docs describe is what gets
+/// drawn; [_narrow] is below it, and is also the width for screens whose own
+/// content is capped (the home screen's card column is 600 px).
 const double _wide = 1440;
 const double _narrow = 900;
 
 /// The tallest window a capture may use before it has to become a region.
-///
-/// Anything taller renders as an illegible sliver at documentation width. The
-/// recording step is ~4800 px once its review charts and entries table are laid
-/// out, which is why that step is captured in three parts.
+/// Anything taller renders as an illegible sliver at documentation width; the
+/// recording step is ~4800 px with its charts and entries table laid out.
 const double _maxHeight = 3000;
 
-/// Device pixels of background kept below the last painted row when a capture
-/// is trimmed. 32 device pixels is 16 logical, which reads as a margin rather
-/// than as a crop that clipped something.
+/// Device pixels of background kept below the last painted row of a trimmed
+/// capture. 32 device pixels is 16 logical, which reads as a margin.
 const int _trimMargin = 32;
 
-// ---------------------------------------------------------------------------
-// The demo session
-//
 // One consistent patient across every capture, so the screenshots read as one
-// session rather than as unrelated fragments: sub-01, run 01, an OCD scale set,
-// a segmented Medtronic lead with current steered across two segments.
-// ---------------------------------------------------------------------------
+// session rather than as unrelated fragments: sub-01, run 01, an OCD scale
+// set, a segmented Medtronic lead with current steered across two segments.
 
 const _fixture =
     'test/fixtures/sub-01_ses-20260203_task-programming_run-01_beh.tsv';
@@ -126,15 +98,12 @@ const _sideEffects = 'Transient paraesthesia in the right hand at 5.5 mA.';
 const _recordingNotes =
     'Noticeably less checking behaviour; patient reports a lighter mood.';
 
-/// Session-scale ratings as a fraction of each scale's range, cycled across the
-/// rating rows. Chosen to look like a real spread rather than a flat row.
+/// Ratings as a fraction of each scale's range, cycled across the rows.
 const _ratings = <double>[0.62, 0.35, 0.48, 0.7, 0.25];
 
 /// Register every font in the asset bundle, plus the Material icon font.
-///
-/// Walks `FontManifest.json` rather than hard-coding asset keys, which is how
-/// `golden_toolkit` does it — it picks up `MaterialIcons-Regular.otf` and any
-/// family declared in `pubspec.yaml` without needing to know their paths.
+/// Walking `FontManifest.json` rather than hard-coding asset keys picks up
+/// `MaterialIcons-Regular.otf` and every family `pubspec.yaml` declares.
 Future<void> _loadFonts() async {
   final manifest = await rootBundle.loadString('FontManifest.json');
   for (final entry in json.decode(manifest) as List<dynamic>) {
@@ -149,23 +118,13 @@ Future<void> _loadFonts() async {
 }
 
 /// The text font to render captures with, or null when none could be found.
-///
-/// `flutter_tester` ships **no fonts at all**. `FontManifest.json` contains only
-/// what `pubspec.yaml` declares — in this project, the Material icon font and
-/// the committed IBM Plex faces — and the default text face normally comes from
-/// the host platform, which the test binding does not have. Without an explicit
-/// text font every glyph renders as a filled box, and the capture still
-/// "succeeds", so this is checked loudly.
-///
-/// Preference order:
-///
-/// 1. `assets/fonts/IBMPlexSans-*.ttf`, committed. Preferred because it makes
-///    the screenshots reproducible on any machine and in CI, and because those
-///    are the same files that give the PDF reports full Unicode coverage.
-/// 2. A host system font, so the harness still works if those are ever dropped
-///    from the bundle. Host-dependent, hence second.
+/// `flutter_tester` ships no fonts, and `FontManifest.json` holds only what
+/// `pubspec.yaml` declares, so without an explicit text font every glyph
+/// renders as a filled box while the capture still succeeds. The committed
+/// `assets/fonts/IBMPlexSans-*.ttf` come first, because they make the
+/// screenshots reproducible on any machine and in CI; a host system font is
+/// the fallback should they ever be dropped from the bundle.
 Future<String?> _loadTextFont() async {
-  // (1) A committed font: reproducible everywhere.
   try {
     final loader = FontLoader('DocsText')
       ..addFont(rootBundle.load('assets/fonts/IBMPlexSans-Regular.ttf'))
@@ -176,12 +135,11 @@ Future<String?> _loadTextFont() async {
     // Not bundled in this checkout; fall through.
   }
 
-  // (2) A host font. Regular and bold are loaded into one family so bold text
-  // is really bold rather than synthesised.
+  // A host font. Regular and bold go into one family so bold text is really
+  // bold rather than synthesised.
   const candidates = <List<String>>[
-    // seguisym carries the symbol glyphs (the validity tick is a literal U+2713,
-    // which real Windows finds through the OS fallback chain but the test
-    // binding does not).
+    // seguisym carries the symbol glyphs: the validity tick is a literal
+    // U+2713, and the test binding has no OS fallback chain to find it with.
     [
       'C:/Windows/Fonts/segoeui.ttf',
       'C:/Windows/Fonts/segoeuib.ttf',
@@ -216,16 +174,13 @@ ThemeData _withFont(ThemeData base) => _textFont == null
     ? base
     : base.copyWith(textTheme: base.textTheme.apply(fontFamily: _textFont));
 
-/// Pump [home] inside the capture boundary.
-///
-/// The boundary wraps the `MaterialApp`'s content via its `builder`, not the
-/// home widget, so anything pushed into the Navigator's overlay — a dialog, a
-/// `MenuAnchor`'s menu — is captured along with the screen behind it. That is
-/// what makes the dialog and menu captures possible at all.
-///
-/// `debugDisableShadows` is toggled here and restored in [_shoot], not in
-/// setUp/tearDown: the binding asserts that painting debug variables are back to
-/// their defaults, and that check runs INSIDE the test body.
+/// Pump [home] inside the capture boundary, which wraps the `MaterialApp`'s
+/// content through its `builder` rather than the home widget, so a dialog or a
+/// `MenuAnchor`'s menu in the Navigator's overlay is captured along with the
+/// screen behind it. `debugDisableShadows` is toggled here and restored in
+/// [_shoot] rather than in setUp/tearDown, because the binding's check that
+/// painting debug variables are back to their defaults runs inside the test
+/// body.
 Future<void> _pump(
   WidgetTester tester,
   Widget home, {
@@ -239,8 +194,8 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      // The app's real theme, with a text font substituted in — see
-      // [_loadTextFont] for why one has to be supplied explicitly.
+      // The real theme, with a text font substituted in; see [_loadTextFont]
+      // for why one has to be supplied explicitly.
       theme: _withFont(dbsTheme(brightness)),
       builder: (context, child) => RepaintBoundary(
         key: _boundary,
@@ -256,11 +211,9 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-/// The last row of [image] that has anything drawn on it.
-///
-/// "Anything" means "differs from the bottom-right pixel", which on every screen
-/// here is the page background. Returns `image.height - 1` when the bottom row
-/// is already painted, i.e. there is nothing to trim.
+/// The last row of [image] with anything drawn on it, where "anything" means
+/// "differs from the bottom-right pixel", the page background on every screen
+/// here. Returns `image.height - 1` when there is nothing to trim.
 int _lastPaintedRow(ByteData raw, int width, int height) {
   final px = raw.buffer.asUint8List();
   int at(int x, int y) => (y * width + x) * 4;
@@ -280,15 +233,12 @@ int _lastPaintedRow(ByteData raw, int width, int height) {
 }
 
 /// Capture the boundary, optionally cropping dead background off the bottom.
-///
 /// [trim] exists because a scroll view's `maxScrollExtent` measures the extent
-/// it will *scroll*, which on the wizard steps runs well past the last thing
-/// actually drawn — step 1 came out 44 % empty, and the narrow variant 46 %.
-/// Rather than guess which widget reserves that space, the frame is cut to the
-/// last painted row plus [_trimMargin] of breathing room. Only the captures
-/// whose height was measured from a scroll view use it: a region, a dialog or a
-/// deliberately-sized empty state is already framed on purpose, and a centred
-/// empty state would look bottom-heavy with its lower half removed.
+/// it will scroll, which on the wizard steps runs well past the last thing
+/// actually drawn: step 1 came out 44 % empty. The frame is cut to the last
+/// painted row plus [_trimMargin], and only captures whose height came from a
+/// scroll view use it. A region, a dialog or a deliberately-sized empty state
+/// is already framed on purpose.
 Future<void> _shoot(
   WidgetTester tester,
   String name, {
@@ -344,15 +294,10 @@ Future<void> _shoot(
   debugDisableShadows = true;
 }
 
-// ---------------------------------------------------------------------------
-// Fitting the frame to the content
-// ---------------------------------------------------------------------------
-
-/// The screen's own vertical scroll view, or null when it has none.
-///
-/// The first *vertical* one in tree order is the page. A screen may also hold
-/// horizontal scrollables — the entries table, the annotations `DataTable` — and
-/// measuring one of those would size the window to a row height.
+/// The screen's own vertical scroll view, or null when it has none. The first
+/// vertical one in tree order is the page; a screen may also hold horizontal
+/// scrollables (the entries table, the annotations `DataTable`), and measuring
+/// one of those would size the window to a row height.
 ScrollableState? _pageScroll(WidgetTester tester) {
   for (final element in find.byType(Scrollable).evaluate()) {
     final state = (element as StatefulElement).state as ScrollableState;
@@ -364,20 +309,13 @@ ScrollableState? _pageScroll(WidgetTester tester) {
   return null;
 }
 
-/// Capture [name] with the window sized to exactly the laid-out content.
-///
-/// Nothing is cut off and nothing is padded with background: the height is the
-/// scroll view's own `viewportDimension + maxScrollExtent`, plus whatever chrome
-/// (the AppBar) sits outside it.
-///
-/// [fallback] is used for a screen with no scroll view at all — an empty state
-/// that is a single centred `Column`, which fills whatever it is given and so
-/// cannot be measured.
-///
-/// [height], when given, skips the measurement entirely. That is for screens
-/// whose body *fills* the window rather than flowing down it — the longitudinal
-/// review puts its chart in an `Expanded`, so its content is exactly as tall as
-/// whatever it is handed and "fit to content" has no fixed point.
+/// Capture [name] with the window sized to exactly the laid-out content: the
+/// scroll view's own `viewportDimension + maxScrollExtent`, plus whatever
+/// chrome sits outside it. [fallback] covers a screen with no scroll view,
+/// such as an empty state that is one centred `Column` and so cannot be
+/// measured. [height] skips the measurement for a body that fills the window
+/// rather than flowing down it: the longitudinal review puts its chart in an
+/// `Expanded`, so "fit to content" has no fixed point there.
 Future<void> _shootFitted(
   WidgetTester tester,
   String name, {
@@ -392,12 +330,10 @@ Future<void> _shootFitted(
     await _shoot(tester, name);
     return;
   }
-  // Measure from a deliberately SHORT window. `maxScrollExtent` is how much
-  // content overflows the viewport, so it is 0 whenever the content already
-  // fits — measuring from a tall window therefore cannot tell "fits exactly"
-  // from "fits with 2000 px to spare", and every capture came out at the
-  // maximum height. From a short one the overflow is real and the content
-  // height is `viewportDimension + maxScrollExtent`.
+  // Measure from a deliberately short window. `maxScrollExtent` is how much
+  // content overflows the viewport, so from a tall window it is 0 whether the
+  // content fits exactly or with 2000 px to spare. From a short one the
+  // overflow is real and the height is `viewportDimension + maxScrollExtent`.
   const probe = 400.0;
   await tester.binding.setSurfaceSize(Size(width, probe));
   await tester.pumpAndSettle();
@@ -419,18 +355,12 @@ Future<void> _shootFitted(
   await _shoot(tester, name, trim: scroll != null);
 }
 
-/// Capture the band of the page running from [from]'s top edge to [to]'s bottom.
-///
-/// For steps too tall to photograph whole. The page is scrolled so [from] sits
-/// flush under the AppBar and the window is sized to the band, so both cuts land
-/// on a real boundary rather than through a widget — which is exactly what the
-/// previous `setSurfaceSize(Size(1500, 1180))` did not do.
-///
-/// [max] caps the band for content that is unboundedly long on purpose. The
-/// entries table grows a row per (block, scale) and reaches ~2900 px on the
-/// example session, which is both a poor figure and over this repo's 600 KB
-/// large-file gate; a capped table visibly continuing past the frame is what a
-/// long table looks like, and is a different thing from a button cut in half.
+/// Capture the band from [from]'s top edge to [to]'s bottom, for steps too
+/// tall to photograph whole. The page is scrolled so [from] sits flush under
+/// the AppBar and the window is sized to the band, so both cuts land on a real
+/// boundary rather than through a widget. [max] caps content that is
+/// unboundedly long on purpose: the entries table grows a row per (block,
+/// scale), reaching ~2900 px here, over this repo's 600 KB large-file gate.
 Future<void> _shootRegion(
   WidgetTester tester,
   String name, {
@@ -468,30 +398,24 @@ Future<void> _shootRegion(
 }
 
 /// Capture the dialog that is currently open, framed by a thin band of the
-/// screen behind it.
-///
-/// The window is sized to the dialog rather than the other way round. A dialog
-/// photographed on a 1440 px canvas is a small box in a field of scrim, which is
-/// the complaint the whole of this rewrite is answering; sized to its own
-/// content it fills the figure. The previous size is restored afterwards, so a
-/// test can capture several dialogs in turn and still reach the controls that
-/// open them.
+/// screen behind it. The window is sized to the dialog rather than the other
+/// way round: on a 1440 px canvas a dialog is a small box in a field of scrim.
+/// The previous size is restored afterwards, so one test can capture several
+/// dialogs in turn and still reach the controls that open them.
 Future<void> _shootDialog(
   WidgetTester tester,
   String name, {
   double margin = 56,
 }) async {
   final before = tester.view.physicalSize / tester.view.devicePixelRatio;
-  // Measure from a modest window, for the same reason [_shootFitted] probes
-  // from a short one: several of these dialogs size themselves to the space
-  // available (a preset list in an `Expanded`), so measured on a 3000 px canvas
-  // they report being 3000 px tall.
+  // Measure from a modest window, as [_shootFitted] probes from a short one:
+  // several of these dialogs size themselves to the space available, so on a
+  // 3000 px canvas they report being 3000 px tall.
   await tester.binding.setSurfaceSize(const Size(1100, 900));
   await tester.pumpAndSettle();
-  // The `Dialog` render box is the whole overlay — it holds the `Align` that
-  // centres the surface — so measuring it just returns the window size and the
-  // frame grows by one margin per pass. The `Material` inside it is the actual
-  // card.
+  // The `Dialog` render box is the whole overlay, including the `Align` that
+  // centres the surface, so measuring it returns the window size and the frame
+  // grows by one margin per pass. The `Material` inside it is the card.
   final surface = find
       .descendant(of: find.byType(Dialog).last, matching: find.byType(Material))
       .first;
@@ -512,10 +436,6 @@ Future<void> _shootDialog(
   await tester.pumpAndSettle();
 }
 
-// ---------------------------------------------------------------------------
-// Contracts and seeding
-// ---------------------------------------------------------------------------
-
 /// Contracts loaded from the committed schema, so the wizard renders with real
 /// electrode models and limits instead of empty dropdowns.
 Future<(ElectrodeCatalog, StimLimits, ScalePresets)> _contracts() async => (
@@ -533,20 +453,16 @@ Future<(ElectrodeCatalog, StimLimits, ScalePresets)> _contracts() async => (
   ),
 );
 
-/// The committed example session, so the charts and the entries table have real
-/// content instead of empty-state placeholders.
+/// The committed example, so the charts and tables have real content.
 SessionAuthoring _seededAuthoring() =>
     SessionAuthoring()..loadExisting(File(_fixture).readAsStringSync());
 
-/// Tap the current step's `Next`. Only the active step renders one, so the
-/// finder is unambiguous.
+/// Tap the current step's `Next`; only the active step renders one.
 Future<void> _next(WidgetTester tester) async => _tapText(tester, 'Next');
 
-/// Scroll [finder] into view, let the scroll settle, then tap it.
-///
-/// The settle between the two matters: `ensureVisible` starts an animation, and
-/// tapping before it finishes uses the widget's pre-scroll position, which the
-/// framework then reports as a tap outside the render tree.
+/// Scroll [finder] into view, let the scroll settle, then tap it. The settle
+/// matters: `ensureVisible` starts an animation, and tapping before it ends
+/// uses the pre-scroll position, reported as a tap outside the render tree.
 Future<void> _tapFinder(WidgetTester tester, Finder finder) async {
   final target = finder.first;
   await tester.ensureVisible(target);
@@ -561,10 +477,8 @@ Future<void> _tapText(WidgetTester tester, String text) =>
 Future<void> _tapTooltip(WidgetTester tester, String tooltip) =>
     _tapFinder(tester, find.byTooltip(tooltip));
 
-/// Fill a labelled text field, addressing it by the label the user sees.
-///
-/// Silently does nothing when the field is absent, so a helper can be reused
-/// across steps that do not all have every field.
+/// Fill a labelled text field, addressed by the label the user sees. Does
+/// nothing when absent, so one helper serves steps without every field.
 Future<void> _type(
   WidgetTester tester,
   String label,
@@ -579,15 +493,10 @@ Future<void> _type(
 }
 
 /// Pick a stimulation program, so the card reads a group rather than its
-/// "Select program" hint.
-///
-/// Addressed through the hint text, not `find.byType(DropdownButton).first`:
-/// the electrode-model dropdown is built above this one, so `.first` opened
-/// that instead, found no program in it, and left the card unset — which is
-/// exactly the empty-form state these captures exist to avoid.
-///
-/// The dropdown renders its selected value AND its menu items as `Text`, so the
-/// menu item is addressed as the last match rather than the first.
+/// "Select program" hint. Addressed through the hint text, because the
+/// electrode-model dropdown is built above this one and would be found first.
+/// The dropdown renders its selected value and its menu items both as `Text`,
+/// so the menu item is the last match, not the first.
 Future<void> _selectProgram(WidgetTester tester, {String program = 'B'}) async {
   final dropdown = find.ancestor(
     of: find.text('Select program'),
@@ -611,12 +520,9 @@ Future<void> _seedFileStep(WidgetTester tester) async {
   await _type(tester, 'Run', _runId);
 }
 
-/// Tap a shape on the [index]th lead.
-///
-/// The layout comes from the same pure `computeLayout` the widget uses, so the
-/// tap targets are exact rather than guessed — the approach
-/// `test/electrode_view_test.dart` already takes. One tap leaves a contact
-/// anodic, two cathodic (OFF -> ANODIC -> CATHODIC -> OFF).
+/// Tap a shape on the [index]th lead. The layout comes from the same pure
+/// `computeLayout` the widget uses, so tap targets are exact rather than
+/// guessed. One tap leaves a contact anodic, two cathodic.
 Future<void> _tapElectrode(
   WidgetTester tester,
   ElectrodeModel model, {
@@ -640,13 +546,9 @@ Offset _contact(ElectrodeLayout layout, int level, int segment) => layout.levels
     .contactRects[ContactKey(level, segment)]!
     .center;
 
-/// A full baseline configuration — the state the previous captures showed as
-/// empty placeholders.
-///
-/// Current is steered across two segments of one level, which is the case the
-/// documentation spends most of its words on and which is also what makes the
-/// amplitude-split rows appear (they stay hidden below two cathodes).
-///
+/// A full baseline configuration, with current steered across two segments of
+/// one level: the case the documentation spends most of its words on, and the
+/// one that makes the amplitude-split rows appear (hidden below two cathodes).
 /// With [invalid] the case is left off, so the left lead has cathodes and no
 /// return path: applied anyway, like the desktop, and reported invalid.
 Future<void> _seedConfiguration(
@@ -717,8 +619,7 @@ Future<void> _seedRatings(WidgetTester tester) async {
       await tester.pumpAndSettle();
       continue;
     }
-    // Tapping the bar sets the value from the x fraction, which is how a
-    // clinician sets it too.
+    // Tapping the bar sets the value from the x fraction, as a clinician does.
     final bar = find.descendant(
       of: sliders.at(i),
       matching: find.byType(CustomPaint),
@@ -736,10 +637,8 @@ Future<void> _seedRatings(WidgetTester tester) async {
   }
 }
 
-/// Two visits of one patient, for the longitudinal captures.
-///
-/// Built from the committed example with its dates shifted, so the chart plots
-/// real recorded scale values twice rather than invented ones.
+/// Two visits of one patient, for the longitudinal captures: the committed
+/// example with its dates shifted, so the chart plots real values twice.
 List<ImportedSessionFile> _visits({bool mismatchedPatients = false}) {
   final source = File(_fixture).readAsStringSync();
   return [
@@ -771,13 +670,11 @@ void main() {
   setUpAll(() async {
     await _loadFonts();
     _textFont = await _loadTextFont();
-    // CustomPainters never see the theme, so the electrode labels, the "Ring"
-    // caps, the slider values and the chart ticks need this separately or they
-    // render as filled boxes in the app's most recognisable artwork.
+    // CustomPainters never see the theme, so electrode labels, slider values
+    // and chart ticks need the font set separately or they render as boxes.
     debugPainterFontFamily = _textFont;
     if (_textFont == null) {
-      // Failing here beats emitting thirty files full of black rectangles that
-      // look like a rendering bug in the app.
+      // Failing beats emitting thirty files of black rectangles.
       fail(
         'No text font available, so every glyph would render as a filled '
         'box. Restore assets/fonts/IBMPlexSans-{Regular,Bold}.ttf or run on '
@@ -799,9 +696,8 @@ void main() {
   });
 
   testWidgets('home (large text)', (tester) async {
-    // The text-size control in the top bar goes to 1.6; this is what the docs
-    // point at when they say the app stays legible on a tablet held in a
-    // consulting room.
+    // The in-app text-size control goes to 1.6; the docs point here when they
+    // say the app stays legible scaled up on a tablet.
     await _pump(tester, const HomeScreen(), textScale: 1.4);
     await _shootFitted(
       tester,
@@ -843,8 +739,8 @@ void main() {
   });
 
   testWidgets('session: initial configuration (narrow)', (tester) async {
-    // Below the 900 px breakpoint the two rows stack into one column — the
-    // layout a phone, or a tablet held in portrait, actually gets.
+    // Below the 900 px breakpoint the two rows stack into one column, which
+    // is the layout a phone or a tablet in portrait actually gets.
     final (catalog, limits, presets) = await _contracts();
     await _pump(
       tester,
@@ -928,8 +824,7 @@ void main() {
     await _type(tester, 'Side effects (if any)', _sideEffects);
     await _type(tester, 'Notes', _recordingNotes);
 
-    // The step is ~4800 px tall, so it is documented in the two parts the
-    // pages actually describe rather than shrunk into one unreadable image.
+    // The step is ~4800 px tall, so it is documented in two parts.
     await _shootRegion(
       tester,
       'session_step3_recording',
@@ -987,10 +882,9 @@ void main() {
     await _next(tester);
     await _next(tester);
 
-    // Shrink to the frame BEFORE the menu opens. A menu lives in the overlay,
+    // Shrink to the frame before the menu opens. A menu lives in the overlay,
     // not in the page's scroll view, so [_shootFitted] would measure the page
-    // and shrink the window out from under the menu — which is how the submenu
-    // item ended up outside the render tree on the first attempt.
+    // and shrink the window out from under the menu.
     await tester.binding.setSurfaceSize(const Size(_wide, 620));
     await tester.pumpAndSettle();
     // Put the Export button just below the AppBar so the menu opens into the
@@ -1002,8 +896,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Only the submenu shot is kept: it shows the whole menu as well, so a
-    // separate capture of the menu alone was the same picture twice.
+    // Only the submenu shot is kept: it shows the whole menu as well.
     await _tapText(tester, 'Export');
     await _tapText(tester, 'Paper size: A4');
     await _shoot(tester, 'session_paper_size_submenu');
@@ -1043,8 +936,8 @@ void main() {
     await _next(tester);
     await _tapText(tester, _preset);
     await _tapTooltip(tester, 'Settings session scales');
-    // Unlike the clinical variant, each row here carries a Min and a Max —
-    // which is the reason both dialogs are documented rather than one.
+    // Unlike the clinical variant, each row here carries a Min and a Max,
+    // which is why both dialogs are documented rather than one.
     await _shootDialog(tester, 'dialog_session_scales');
   });
 
@@ -1068,9 +961,8 @@ void main() {
     await _shootDialog(tester, 'dialog_scale_targets');
     await _tapText(tester, 'Cancel');
 
-    // Reached through Export in the app, which needs the share and file-picker
-    // channels a widget test has no answer for. The dialog itself is a plain
-    // function, so it is opened directly over the same screen.
+    // Reached through Export in the app, which needs share and file-picker
+    // channels a widget test cannot answer; the dialog is a plain function.
     unawaited(
       showReportSectionsDialog(
         tester.element(find.byType(SessionScreen)),

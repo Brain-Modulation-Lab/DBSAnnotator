@@ -13,9 +13,9 @@ name: Docs screenshots
 # enough between the runner and a developer's machine that a byte comparison
 # fails on renders that are visually identical, and a check that cries wolf gets
 # disabled. What IS enforced is that generation still works: a finder that no
-# longer matches, a dialog that moved, a region whose bounds vanished — every
-# one of those fails the test rather than quietly writing a wrong picture. The
-# uploaded artifact is then the thing to eyeball.
+# longer matches, a dialog that moved, or a region whose bounds vanished all
+# fail the test rather than quietly writing a wrong picture. The uploaded
+# artifact is then the thing to eyeball.
 on:
   workflow_dispatch:
   pull_request:
@@ -34,7 +34,7 @@ permissions:
 
 env:
   # Duplicated from ci.yml because `env` is per-workflow and a workflow cannot
-  # read another's. Bump both together - or the screenshots are rendered by a
+  # read another's. Bump both together, or the screenshots are rendered by a
   # different Flutter than the one CI builds with, which is precisely the drift
   # this pin exists to prevent.
   FLUTTER_VERSION: "3.47.1"

@@ -11,12 +11,10 @@ typedef StimPresetLists = ({
   List<num> pulseWidths,
 });
 
-/// The desktop "Edit Setting Presets" dialog: three tabs — Frequency /
-/// Amplitude / Pulse width — each an editable numeric list (add / edit inline /
-/// remove). On Save each list is validated against the contract range,
-/// de-duplicated and sorted ascending (≥1 required), mirroring
-/// `SettingPresetsManager.save_presets`. Returns the edited lists, or null on
-/// Cancel.
+/// The desktop "Edit Setting Presets" dialog: one editable numeric list per
+/// tab (Frequency, Amplitude, Pulse width). On Save each list is validated
+/// against the contract range, de-duplicated and sorted ascending, mirroring
+/// `SettingPresetsManager.save_presets`. Returns null on Cancel.
 Future<StimPresetLists?> showSettingPresetsDialog(
   BuildContext context, {
   required StimLimits limits,
@@ -70,8 +68,8 @@ class _SettingPresetsDialogState extends State<_SettingPresetsDialog> {
     super.dispose();
   }
 
-  /// Parse one tab's fields into a sorted, de-duplicated list; throws a
-  /// user-facing message on the first bad / out-of-range value, or when empty.
+  /// Parse one tab's fields into a sorted, de-duplicated list. Throws a
+  /// user-facing message on the first bad value, or when the list is empty.
   List<num> _collect(
     List<TextEditingController> ctrls,
     LimitRange range,
@@ -85,7 +83,7 @@ class _SettingPresetsDialogState extends State<_SettingPresetsDialog> {
       if (v == null) throw '$label: "$t" is not a number.';
       if (v < range.min || v > range.max) {
         throw '$label: $t is out of range '
-            '(${presetLabel(range.min)}–${presetLabel(range.max)}).';
+            '(${presetLabel(range.min)}-${presetLabel(range.max)}).';
       }
       if (!out.contains(v)) out.add(v);
     }
@@ -156,8 +154,8 @@ class _SettingPresetsDialogState extends State<_SettingPresetsDialog> {
   }
 }
 
-/// One tab: inline-editable numeric rows + an Add button. Mutates the passed
-/// [ctrls] list (owned/disposed by the parent dialog).
+/// One tab of inline-editable numeric rows. Mutates [ctrls], which the parent
+/// dialog owns and disposes.
 class _NumberListEditor extends StatefulWidget {
   const _NumberListEditor({required this.ctrls, required this.unit});
 

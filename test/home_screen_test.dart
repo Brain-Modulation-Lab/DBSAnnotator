@@ -13,12 +13,10 @@ void main() {
   testWidgets('shows the app mark and every workflow option', (tester) async {
     await pumpHome(tester);
 
-    // Branding: the logo, not just a text title.
     expect(find.byType(AppLogo), findsWidgets);
     expect(find.text(appName), findsOneWidget);
 
-    // Every entry point is reachable. Group 4 adds "Single session report"
-    // here; this list is the regression gate for that restructure.
+    // Every entry point must stay reachable from the home screen.
     expect(find.text('Complete workflow'), findsOneWidget);
     expect(find.text('Annotations only'), findsOneWidget);
     expect(find.text('Longitudinal review'), findsOneWidget);
@@ -31,7 +29,7 @@ void main() {
 
     expect(find.text(appName), findsWidgets);
     expect(find.text('v$appVersion'), findsOneWidget);
-    // applicationIcon — the mark, not a Material glyph.
+    // applicationIcon: the mark, not a Material glyph.
     expect(find.byType(AppLogo), findsWidgets);
   });
 

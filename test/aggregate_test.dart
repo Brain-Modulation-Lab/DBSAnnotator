@@ -75,7 +75,8 @@ void main() {
     });
 
     test('carries append_id, and never a bare session counter', () {
-      // The whole reason v0.5.0 renamed the column before this feature existed.
+      // The per-file counter travels under a name that cannot be read as the
+      // BIDS session label, which is what `session_id` holds here.
       expect(aggregateColumns(), contains('append_id'));
       final out = buildAggregate(_twoVisits());
       final header = _table(out.tsv).first;

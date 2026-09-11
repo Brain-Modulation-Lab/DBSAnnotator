@@ -1,18 +1,11 @@
 /// Combine several session TSVs into one long table, for pooled analysis.
 ///
-/// The table prepends `participant_id` (`sub-01`), `session_id`
-/// (`ses-20260203`), `run_id` and `source_file` to the session columns, which
-/// are carried through unchanged. `participant_id` uses the BIDS spelling and
-/// value shape so the table joins onto `participants.tsv` untransformed.
-///
-/// It belongs under `derivatives/`, not in the raw tree: BIDS raw layout is one
-/// file per (subject, session, task, run), which a table spanning sessions
-/// contradicts. See `aggregateDerivativeDir` in `lib/core/bids_dataset.dart`.
-///
-/// A block is unique on `(participant_id, session_id, run_id, block_id)`.
-/// `source_file` is a key column rather than a convenience because `run`
-/// defaults to `01` and does not auto-increment, so two visits on the same day
-/// can share all three entities.
+/// `participant_id`, `session_id`, `run_id` and `source_file` are prepended to
+/// the session columns, which carry through unchanged; `participant_id` keeps
+/// the BIDS spelling so the table joins onto `participants.tsv` untransformed.
+/// `source_file` is a key column, not a convenience: `run` defaults to `01`
+/// and does not auto-increment, so two visits on one day can share all three
+/// entities. The table belongs under `derivatives/`, never the raw tree.
 library;
 
 import '../bids.dart';
@@ -21,27 +14,18 @@ import '../tsv.dart';
 import 'session_file.dart';
 import 'session_row.dart';
 
-/// One file to fold in: its name, and its already-parsed rows.
 typedef AggregateSource = ({String filename, List<SessionRow> rows});
 
-/// A file left out, and why.
 typedef AggregateSkip = ({String filename, String reason});
 
-/// The combined table and what it is made of.
 typedef AggregateResult = ({
   /// The TSV document, or '' when nothing was includable.
   String tsv,
-
-  /// Files that were not folded in, each with a reason.
   List<AggregateSkip> skipped,
-
-  /// Data rows in [tsv] (excluding the header).
   int rowCount,
 
   /// Distinct `participant_id` values, sorted.
   List<String> subjects,
-
-  /// Files actually folded in.
   int fileCount,
 });
 
@@ -61,11 +45,10 @@ List<String> aggregateColumns() => <String>[
 
 /// Fold [sources] into one table.
 ///
-/// Two kinds of file are skipped and named in [AggregateResult.skipped]: one
-/// whose name carries no `sub-` or `ses-` entity, since guessing entities would
-/// put a wrong subject label on clinical data; and a repeated filename, since
-/// duplicate rows double every count derived from the table with nothing on the
-/// face of it to show why.
+/// A file is skipped, and named in [AggregateResult.skipped], when its name
+/// carries no `sub-` or `ses-` entity (guessing would put a wrong subject
+/// label on clinical data) or when it repeats a filename already folded in
+/// (duplicate rows double every count derived from the table).
 AggregateResult buildAggregate(List<AggregateSource> sources) {
   final skipped = <AggregateSkip>[];
   final seen = <String>{};
@@ -113,8 +96,7 @@ AggregateResult buildAggregate(List<AggregateSource> sources) {
     }
   }
 
-  // Subject, session, run, block, then written order: the same inputs in any
-  // order must give byte-identical output, or the table cannot be diffed.
+  // Ordered so the same inputs in any order give byte-identical output.
   keyed.sort((a, b) {
     for (var i = 0; i < a.key.length; i++) {
       final c = a.key[i].compareTo(b.key[i]);
@@ -139,10 +121,8 @@ AggregateResult buildAggregate(List<AggregateSource> sources) {
   );
 }
 
-/// `block_id` as an int for ordering; unparsable cells sort first.
-///
-/// Tolerant like [nextBlockId], because older files write block indices as `3`
-/// or `3.0`.
+/// `block_id` as an int for ordering; unparsable cells sort first. Tolerant
+/// like [nextBlockId], because older files write block indices as `3` or `3.0`.
 int _asInt(String raw) {
   final v = double.tryParse(raw.trim());
   return (v == null || !v.isFinite) ? -1 : v.truncate();

@@ -216,7 +216,8 @@ void main() {
         expect(doc, contains(ns));
       }
       expect(doc, contains('<w:drawing>'));
-      // wp:extent and a:ext must agree and be non-zero, or Word offers to repair.
+      // wp:extent and a:ext must agree and be non-zero, or Word offers to
+      // repair the file.
       final extents = RegExp(
         r'<wp:extent cx="(\d+)" cy="(\d+)"/>',
       ).allMatches(doc).toList();
@@ -333,7 +334,7 @@ void main() {
       expect(footer, contains('NUMPAGES'));
 
       // Declared in [Content_Types], related from the document, and referenced
-      // by the section — miss any one and Word shows a repair prompt or an
+      // by the section: miss any one and Word shows a repair prompt or an
       // inert footer.
       expect(
         _part(bytes, '[Content_Types].xml'),
@@ -364,40 +365,42 @@ void main() {
     expect(pngSize(Uint8List.fromList(List.filled(40, 0))), isNull);
   });
 
-  test('drops XML-illegal control characters instead of corrupting the file', () {
-    // U+000B and U+0000 have NO legal XML 1.0 representation. Emitting one
-    // makes Word reject the whole document as unreadable, losing the entire
-    // report - and such characters arrive easily from pasted PDF or hospital
-    // system text. Tab / newline / CR are legal and must survive.
-    //
-    // Built with fromCharCode so no raw control byte lives in this source file.
-    final vt = String.fromCharCode(0x0B);
-    final nul = String.fromCharCode(0x00);
-    final tab = String.fromCharCode(0x09);
-    final rows = [
-      SessionRow(
-        blockId: '1',
-        isInitial: '0',
-        notes: 'before${vt}after${nul}end${tab}kept',
-      ),
-    ];
-    final bytes = buildSessionDocx(
-      data: buildSessionReportData(
-        rows: rows,
-        generatedAt: DateTime(2026, 7, 29),
-      ),
-      subjectId: '01',
-    );
-    final doc = _part(bytes, 'word/document.xml');
+  test(
+    'drops XML-illegal control characters instead of corrupting the file',
+    () {
+      // U+000B and U+0000 have no legal XML 1.0 representation, and emitting
+      // one makes Word reject the whole document as unreadable. They arrive
+      // easily from pasted PDF or hospital-system text. Tab, newline and CR are
+      // legal and must survive. Built with fromCharCode so no raw control byte
+      // lives in this source file.
+      final vt = String.fromCharCode(0x0B);
+      final nul = String.fromCharCode(0x00);
+      final tab = String.fromCharCode(0x09);
+      final rows = [
+        SessionRow(
+          blockId: '1',
+          isInitial: '0',
+          notes: 'before${vt}after${nul}end${tab}kept',
+        ),
+      ];
+      final bytes = buildSessionDocx(
+        data: buildSessionReportData(
+          rows: rows,
+          generatedAt: DateTime(2026, 7, 29),
+        ),
+        subjectId: '01',
+      );
+      final doc = _part(bytes, 'word/document.xml');
 
-    // The illegal codepoints are gone; surrounding text and the tab remain.
-    expect(doc.contains(vt), isFalse, reason: 'U+000B leaked into XML');
-    expect(doc.contains(nul), isFalse, reason: 'U+0000 leaked into XML');
-    expect(doc, contains('beforeafterend${tab}kept'));
+      // The illegal codepoints are gone; surrounding text and the tab remain.
+      expect(doc.contains(vt), isFalse, reason: 'U+000B leaked into XML');
+      expect(doc.contains(nul), isFalse, reason: 'U+0000 leaked into XML');
+      expect(doc, contains('beforeafterend${tab}kept'));
 
-    // And the part is still well-formed enough to re-read.
-    expect(doc, startsWith('<?xml version="1.0"'));
-  });
+      // And the part is still well-formed enough to re-read.
+      expect(doc, startsWith('<?xml version="1.0"'));
+    },
+  );
 
   group('sections gate the document', () {
     final data = buildSessionReportData(
@@ -467,7 +470,7 @@ void main() {
   group('tables are fixed-layout and fill the page', () {
     // With no width hints Word auto-fits from content, and since most of these
     // cells hold 1-4 characters the ten columns collapsed to a fraction of the
-    // page while the PDF's filled it. This is the fix for that.
+    // page while the PDF's filled it.
     List<List<int>> gridsIn(String doc) =>
         RegExp(r'<w:tblGrid>(.*?)</w:tblGrid>')
             .allMatches(doc)
@@ -500,11 +503,9 @@ void main() {
           'word/document.xml',
         );
 
-        // The invariant Word actually cares about: each table's grid sums to
-        // that table's OWN declared `tblW`, or Word rescales the whole table.
-        // NOT to the page width, and NOT a fixed table count - the document
-        // grew a page-1 configuration box and a baseline scale table since this
-        // was written, and a census is not the property under test.
+        // The invariant Word cares about: each table's grid sums to that
+        // table's own declared `tblW`, or Word rescales the whole table. Not
+        // to the page width, and not to a fixed table count.
         final declared = RegExp(
           r'<w:tblW w:w="(\d+)" w:type="dxa"/>',
         ).allMatches(doc).map((m) => int.parse(m.group(1)!)).toList();
@@ -538,7 +539,7 @@ void main() {
         expect(leadIdx, greaterThanOrEqualTo(0));
         expect(declared[leadIdx], size.contentWidthTwips);
 
-        // Fixed layout on every table, and a width on every cell - the grid
+        // Fixed layout on every table, and a width on every cell: the grid
         // alone is only a hint, so a row without per-cell widths auto-fits.
         expect(
           RegExp('w:tblLayout w:type="fixed"').allMatches(doc).length,

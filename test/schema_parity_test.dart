@@ -6,18 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// The TSV column contract, asserted two ways.
 ///
-/// `schema/*.json` is this project's machine-readable contract. The docs render
-/// their column tables from it (docs/_ext/generated_includes.py) and the app
-/// bundles a copy under `assets/schema/`, because Flutter can only bundle
-/// assets that live inside the project directory. Both copies are committed so
-/// that a fresh clone builds with nothing generated first — which also means
-/// nothing stops someone editing one and forgetting the other.
-///
-/// That is what the second test is for. Without it a changed column would ship
-/// documentation describing a contract the app does not implement, with no
-/// error anywhere.
-///
-/// Run `flutter test` from the repo root.
+/// `schema/*.json` is this project's machine-readable contract. The docs
+/// render their column tables from it and the app bundles a copy under
+/// `assets/schema/`, because Flutter can only bundle assets that live inside
+/// the project directory. Both copies are committed so that a fresh clone
+/// builds with nothing generated first, which also means nothing stops
+/// someone editing one and forgetting the other.
 void main() {
   test('Dart column lists match the contract', () {
     final file = File('assets/schema/tsv_schema.json');

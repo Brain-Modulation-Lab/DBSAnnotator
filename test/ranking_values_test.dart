@@ -1,10 +1,7 @@
-/// Pins the aggregate index to exact NUMBERS over the committed example, not
-/// just to which block wins.
-///
-/// The report shades rows and bands a figure on this index. Every existing test
-/// asserts the ranking's *outcome* (best 7, second 6), so a regression that
-/// shifted every value while preserving their order — a changed weight, a
-/// changed clip, a changed default bound — would pass all of them silently.
+/// Pins the aggregate index to exact numbers over the committed example, not
+/// just to which block wins. The other tests assert only the ranking's
+/// outcome, so a regression that shifted every value while preserving their
+/// order (a changed weight, clip or default bound) would pass silently.
 library;
 
 import 'dart:io';
@@ -53,11 +50,9 @@ void main() {
   });
 
   test('the ranking margin is smaller than the session\'s own noise', () {
-    // Blocks 6 and 7 are byte-identical in all ten stimulation columns and were
-    // rated 9 s apart, so the gap between them is a measure of re-rating noise,
-    // NOT of a stimulation effect. It is also the gap the report presents as
-    // "optimal" vs "second-best". This test exists to keep that fact in front of
-    // whoever next touches the ranking.
+    // Blocks 6 and 7 are byte-identical in all ten stimulation columns, rated
+    // 9 s apart, so the gap between them measures re-rating noise, not any
+    // stimulation effect. It is also the report's "optimal" vs "second-best".
     final idx = data.chart.aggregateIndex;
     final replicateSpread = (idx[7]! - idx[6]!).abs();
     final betweenSettings = (idx[2]! - idx[3]!).abs();

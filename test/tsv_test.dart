@@ -27,16 +27,16 @@ void main() {
       ]);
     });
 
-    // The regression this file was written for. A `notes` cell can legitimately
-    // contain a `\r\n` - pasted from a Windows app or an EHR web page - and the
-    // writer quotes it, so it survives a round trip. Detection used to be
-    // `content.contains('\r\n')`, which scans quoted content too: the parser
-    // then took `\r\n` as the row terminator, the quoted `\r\n` was not a row
-    // break (terminators only match outside quotes), the real LF terminators
-    // stopped matching, and the WHOLE document collapsed to one row. With
-    // `parseTsvRecords` skipping the header that yielded zero records, while
-    // `sniffTsvKind` still recognised the file from its intact header - so a
-    // session opened reporting "0 rows" and the next insert autosaved a
+    // A `notes` cell can legitimately contain a CRLF, pasted from a Windows
+    // app or an EHR web page, and the writer quotes it so it survives a round
+    // trip. The row terminator must therefore be read from the first line
+    // ending only. Deriving it by scanning the whole document finds the quoted
+    // CRLF, takes CRLF as the terminator, and then matches nothing: the quoted
+    // pair is not a row break (terminators only match outside quotes) and the
+    // real LF terminators no longer match, so the whole document collapses to
+    // one row. `parseTsvRecords` skips the header and yields zero records
+    // while `sniffTsvKind` still recognises the file from its intact header,
+    // so a session opens reporting "0 rows" and the next insert autosaves a
     // one-row file over it.
     test('a quoted CRLF inside a cell does not break row splitting', () {
       const doc =

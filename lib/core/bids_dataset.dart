@@ -1,17 +1,11 @@
 /// Lay a set of recorded TSVs out as a BIDS dataset directory.
 ///
-/// A single file with BIDS entities in its name is not a BIDS dataset. The
-/// specification wants a tree — `sub-<label>/ses-<label>/beh/` — with a
-/// `dataset_description.json` at its root, a `README`, and a `participants.tsv`
-/// naming the subjects. The app records one file per visit, wherever the
-/// platform's picker puts it, which is the right behaviour during an
-/// appointment; this module is what turns a folder of those into something
-/// `bids-validator` accepts.
-///
-/// Derived documents — the PDF and Word reports — go under `derivatives/`,
-/// which is where BIDS puts anything computed from raw data. That is also what
-/// retires the invented `task-longitudinal_..._report.pdf` name: a report is
-/// not raw data and was never going to have a legal raw-data filename.
+/// A file with BIDS entities in its name is not a BIDS dataset: the spec wants
+/// a `sub-<label>/ses-<label>/beh/` tree with a `dataset_description.json`, a
+/// `README` and a `participants.tsv` at its root. The app records one file per
+/// visit wherever the platform's picker puts it, and this turns a folder of
+/// those into something `bids-validator` accepts. Derived documents (the PDF
+/// and Word reports) go under `derivatives/`, as BIDS requires.
 library;
 
 import 'dart:convert';
@@ -25,16 +19,11 @@ const String bidsVersion = '1.10.0';
 
 /// One recorded file to place in the dataset.
 typedef DatasetEntry = ({
-  /// Parsed entities; determines the path and the filename.
   BidsName name,
-
-  /// The TSV document, already serialised.
   String tsv,
-
-  /// Its `_beh.json` sidecar.
   String sidecar,
 
-  /// The instant of the first recorded row, for `scans.tsv`. Empty when the
+  /// The instant of the first recorded row, for `scans.tsv`; empty when the
   /// file has no dated rows.
   String acqTime,
 });
@@ -42,11 +31,8 @@ typedef DatasetEntry = ({
 /// One file of the dataset: a path relative to the dataset root, and content.
 typedef DatasetFile = ({String path, String content});
 
-/// Build every file of a BIDS dataset for [entries].
-///
-/// Returns paths relative to the dataset root, in a stable order, so a caller
-/// can write them to a directory or stream them into a zip without knowing the
-/// layout rules.
+/// Build every file of a BIDS dataset for [entries], as paths relative to the
+/// dataset root in a stable order, so a caller need not know the layout rules.
 List<DatasetFile> buildBidsDataset(
   List<DatasetEntry> entries, {
   required String appName,
@@ -131,9 +117,8 @@ List<DatasetFile> buildBidsDataset(
   return files;
 }
 
-/// The `dataset_description.json` for the reports derivative, which needs its
-/// own — "derivatives datasets MUST include a dataset_description.json file at
-/// the root level".
+/// The `dataset_description.json` a derivative needs of its own: "derivatives
+/// datasets MUST include a dataset_description.json file at the root level".
 DatasetFile derivativeDescription({
   required String dir,
   required String name,
@@ -155,21 +140,14 @@ DatasetFile derivativeDescription({
 /// Where clinician-readable reports live inside a dataset.
 const String reportsDerivativeDir = 'derivatives/dbs-annotator-reports';
 
-/// Where the combined cross-session table lives inside a dataset.
-///
-/// A table spanning sessions — let alone subjects — cannot sit in the raw tree,
-/// which is one file per (subject, session, task, run). `derivatives/` is what
-/// the specification provides for it, and a derivative dataset must carry its
-/// own `dataset_description.json`, which [derivativeDescription] writes.
+/// Where the combined cross-session table lives inside a dataset: the raw tree
+/// is one file per (subject, session, task, run), so a table spanning sessions
+/// can only be a derivative, with its own [derivativeDescription].
 const String aggregateDerivativeDir = 'derivatives/dbs-annotator-aggregate';
 
-/// The combined table's stem inside [aggregateDerivativeDir].
-///
-/// No `sub-` entity, because the table deliberately spans subjects; `desc-` is
-/// the entity BIDS provides for naming a derivative variant. Whether a
-/// `desc-`-only file at a derivative root satisfies the validator is the one
-/// genuinely uncertain part of this layout, which is why the CI validator job
-/// exists — see the plan's WP3b.
+/// The combined table's stem inside [aggregateDerivativeDir]: no `sub-`
+/// entity, because it spans subjects, and `desc-` is the entity BIDS provides
+/// for a derivative variant. The CI validator job checks that this passes.
 const String aggregateStem = 'desc-aggregate_beh';
 
 String _json(Object? value) =>

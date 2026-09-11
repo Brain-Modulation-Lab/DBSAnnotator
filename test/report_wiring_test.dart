@@ -1,11 +1,9 @@
-// Regression cover for how the SCREEN wires the report builders — the seams
-// where correct components were being combined incorrectly.
-//
-// Each test here pins a bug that shipped: the report was built from a second,
-// independently-computed data object (so `DateTime.now()` ran twice and an
-// export at midnight could print two dates); the Step-2 scale bounds were never
-// passed, so the chart axis and the whole ranking silently used a 0-10 default;
-// and the sanitiser's "characters were replaced" flag had nowhere to go.
+// Regression cover for how the screen wires the report builders, the seams
+// where correct components were being combined incorrectly: the report was
+// built from a second, independently-computed data object (so an export at
+// midnight could print two dates); the Step-2 scale bounds never reached the
+// chart, so the axis and the ranking silently used a 0..10 default; and the
+// sanitiser's "characters were replaced" flag had nowhere to go.
 import 'package:dbs_annotator/core/session/scale_scoring.dart';
 import 'package:dbs_annotator/core/session/session_row.dart';
 import 'package:dbs_annotator/report/report_data.dart';

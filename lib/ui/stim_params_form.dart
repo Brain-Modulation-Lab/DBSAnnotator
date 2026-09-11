@@ -6,8 +6,8 @@ import 'package:flutter/services.dart' show rootBundle;
 /// A [min, max] pair from schema/limits.json.
 typedef LimitRange = ({double min, double max});
 
-/// Numeric bounds from the generated contract `schema/limits.json`
-/// (source of truth: the Python desktop app's config).
+/// Numeric bounds from the generated contract `schema/limits.json`, whose
+/// source of truth is the desktop app's config.
 class StimLimits {
   const StimLimits({
     required this.frequency,
@@ -68,13 +68,12 @@ class StimLimits {
   final LimitRange pulseWidth; // µs
   final LimitRange sessionScale;
 
-  /// Coarse increment (`step1`) — the double-chevron column, mirroring the
-  /// desktop IncrementWidget's coarse arrows.
+  /// Coarse increment (`step1`), the double-chevron column.
   final double frequencyStep;
   final double amplitudeStep;
   final double pulseWidthStep;
 
-  /// Fine increment (`step2`) — the single-chevron column.
+  /// Fine increment (`step2`), the single-chevron column.
   final double frequencyFineStep;
   final double amplitudeFineStep;
   final double pulseWidthFineStep;
@@ -82,19 +81,17 @@ class StimLimits {
   /// Decimal places for amplitude values (`stimulation.amplitude.decimals`).
   final int amplitudeDecimals;
 
-  /// Literal written to the scale_value TSV cell when a session scale is
-  /// omitted / not assessed (`session_scale.omitted_tsv`, "NaN"). Reports
-  /// already skip these via `isScaleValueOmitted`.
+  /// Literal written to the scale_value TSV cell for a scale that was not
+  /// assessed (`session_scale.omitted_tsv`).
   final String sessionScaleOmittedTsv;
 
-  /// Quick-pick values from `stimulation_presets` (the desktop shows these
-  /// in a preset combo beside each numeric field); empty when absent.
+  /// Quick-pick values from `stimulation_presets`; empty when absent.
   final List<num> frequencyPresets;
   final List<num> amplitudePresets;
   final List<num> pulseWidthPresets;
 
-  /// Copy with the quick-pick preset lists replaced by user overrides (null
-  /// keeps the contract default). Used to layer per-user prefs over the bundle.
+  /// Copy with the preset lists replaced by user overrides; null keeps the
+  /// contract default.
   StimLimits withPresets({
     List<num>? frequencies,
     List<num>? amplitudes,
@@ -120,36 +117,33 @@ class StimLimits {
   }
 }
 
-/// Loads the limits contract from the bundled asset at runtime (the build/CI
-/// copies repo-root `schema/*.json` into `app/assets/schema/`, same as
-/// `loadElectrodeCatalog`). Tests read the repo-root file via `dart:io`.
+/// Loads the limits contract from the bundled asset, which the build copies
+/// from repo-root `schema/*.json`. Tests read that file directly instead.
 Future<StimLimits> loadStimLimits() async {
   final raw = await rootBundle.loadString('assets/schema/limits.json');
   return StimLimits.fromJson(jsonDecode(raw) as Map<String, dynamic>);
 }
 
-/// Validation message for a numeric field: null when [text] is blank
-/// (an empty TSV cell is allowed) or parses to a value within [range].
+/// Validation message for a numeric field. Null when [text] is blank, since
+/// an empty TSV cell is allowed, or parses to a value within [range].
 String? rangeError(String text, LimitRange range) {
   final t = text.trim();
   if (t.isEmpty) return null;
   final v = double.tryParse(t);
   if (v == null) return 'Not a number';
   if (v < range.min || v > range.max) {
-    return 'Allowed: ${_fmt(range.min)}–${_fmt(range.max)}';
+    return 'Allowed: ${_fmt(range.min)}-${_fmt(range.max)}';
   }
   return null;
 }
 
 String _fmt(double v) => v == v.truncateToDouble() ? '${v.truncate()}' : '$v';
 
-/// Chip label / controller text for a quick-pick value: no trailing `.0`
-/// (25 -> "25", 1.5 -> "1.5", 0.0 -> "0").
+/// Chip label for a quick-pick value, without a trailing `.0`.
 String presetLabel(num v) => _fmt(v.toDouble());
 
-/// Text for a stepped value: fixed to [decimals] places, then trailing
-/// zeros/dot stripped (2.50 -> "2.5", 110.0 with 0 decimals -> "110").
-/// Rounding to [decimals] keeps repeated ± steps free of float noise.
+/// Text for a stepped value, fixed to [decimals] places with trailing zeros
+/// stripped. Rounding first keeps repeated steps free of float noise.
 String steppedLabel(double v, int decimals) {
   var out = v.toStringAsFixed(decimals);
   if (out.contains('.')) {
@@ -161,15 +155,11 @@ String steppedLabel(double v, int decimals) {
   return out;
 }
 
-/// Compact one-side stimulation parameter entry: Frequency / Amplitude /
-/// Pulse width as numeric fields with units and min/max validation from
-/// [StimLimits]. The parent owns the three [TextEditingController]s and
-/// reads the values from them (blank = column left empty).
+/// Compact one-side stimulation parameter entry: Frequency, Amplitude and
+/// Pulse width as numeric fields validated against [StimLimits].
 ///
-/// Each field carries the desktop spin-box affordances: − / + buttons that
-/// step by `step1` (clamped to the field's min/max, amplitude keeping its
-/// contract decimals), a clear "X" that empties the field, and the
-/// quick-pick preset chips.
+/// The parent owns the three [TextEditingController]s and reads the values
+/// from them; a blank field leaves its TSV column empty.
 class StimParamsForm extends StatelessWidget {
   const StimParamsForm({
     super.key,
@@ -201,7 +191,7 @@ class StimParamsForm extends StatelessWidget {
     controller.text = steppedLabel(next, decimals);
   }
 
-  /// One tiny arrow button (~22×15), styled like the desktop spin arrows.
+  /// One tiny arrow button, styled like the desktop spin arrows.
   Widget _arrowButton(IconData icon, String tooltip, VoidCallback onPressed) {
     return Tooltip(
       message: tooltip,
@@ -213,8 +203,7 @@ class StimParamsForm extends StatelessWidget {
     );
   }
 
-  /// A stacked up/down arrow column: coarse (double-chevron, `step1`) or fine
-  /// (single-chevron, `step2`), matching the desktop IncrementWidget.
+  /// A stacked up/down arrow column, coarse (`step1`) or fine (`step2`).
   Widget _arrowColumn({
     required TextEditingController controller,
     required LimitRange range,
@@ -223,8 +212,7 @@ class StimParamsForm extends StatelessWidget {
     required String label,
     required bool coarse,
   }) {
-    // Coarse column keeps the plain "Increase/Decrease {label}" tooltips;
-    // the fine column is marked "(fine)" so both are addressable.
+    // The fine column's tooltips are marked so both columns are addressable.
     final suffix = coarse ? '' : ' (fine)';
     void bump(int direction) => stepField(
       controller: controller,
@@ -277,22 +265,20 @@ class StimParamsForm extends StatelessWidget {
                 decoration: InputDecoration(
                   labelText: label,
                   suffixText: unit,
-                  // The clear "X": empties the field (blank = TSV cell empty).
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear, size: 18),
                     tooltip: 'Clear $label',
                     visualDensity: VisualDensity.compact,
                     onPressed: controller.clear,
                   ),
-                  helperText: '${_fmt(range.min)}–${_fmt(range.max)}',
+                  helperText: '${_fmt(range.min)}-${_fmt(range.max)}',
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
             ),
             const SizedBox(width: 4),
-            // Fine (step2) then coarse (step1) columns, like the desktop
-            // IncrementWidget's [line-edit][fine][coarse] order.
+            // Fine then coarse, matching the desktop IncrementWidget's order.
             _arrowColumn(
               controller: controller,
               range: range,
@@ -314,8 +300,7 @@ class StimParamsForm extends StatelessWidget {
         if (presets.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            // Touch-first counterpart of the desktop's preset combo: one
-            // tap writes the quick-pick value into the field.
+            // Touch-first counterpart of the desktop's preset combo.
             child: Wrap(
               spacing: 4,
               runSpacing: 4,

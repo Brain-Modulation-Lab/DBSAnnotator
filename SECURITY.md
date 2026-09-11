@@ -5,7 +5,7 @@
 Two kinds of problem, and the second is the one people forget:
 
 1. **A security vulnerability** in the usual sense.
-2. **Anything that could make a filed document wrong** — a report that
+2. **Anything that could make a filed document wrong**: a report that
    misattributes a rating to the wrong configuration, a stimulation parameter
    rendered incorrectly, a number that loses precision, a silently truncated
    note. This app writes PDFs and Word documents that go into a patient record,
@@ -16,7 +16,7 @@ Report either through
 or by email to lucia.poma@wysscenter.ch if you would rather not use GitHub.
 
 Please do **not** open a public issue for these first, and please do not attach
-real patient data to a report of any kind — a synthetic example session ships at
+real patient data to a report of any kind. A synthetic example session ships at
 `test/fixtures/`.
 
 ## What is in scope
@@ -24,8 +24,8 @@ real patient data to a report of any kind — a synthetic example session ships 
 The application is **offline by design**: it makes no network connection, has no
 account, no server and no telemetry, and stores nothing outside the files you
 save and one small preferences file. That removes most of the usual attack
-surface — there is no endpoint to attack and no credential to steal — and it
-means the realistic threats are local:
+surface: there is no endpoint to attack and no credential to steal. The
+realistic threats are local:
 
 - data written somewhere the user did not intend, or reported as saved when it
   was not

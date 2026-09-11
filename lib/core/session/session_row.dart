@@ -6,12 +6,9 @@ import '../timestamps.dart';
 
 /// One row of a programming-session (`task-programming`) TSV.
 ///
-/// Mirrors the desktop writer in
-/// dbs_annotator/models/session_data.py (write_clinical_scales /
-/// write_session_scales). Every field is kept as the raw TSV string so a
-/// parse -> serialize round trip is lossless (the desktop may write block
-/// IDs as "3" or "3.0", amplitudes as split strings like "1.5_1", and
-/// scale_name/scale_value cells with embedded newlines).
+/// Every field stays the raw TSV string so a parse/serialize round trip is
+/// lossless: the desktop writes block IDs as "3" or "3.0", amplitudes as
+/// split strings like "1.5_1", and scale cells with embedded newlines.
 class SessionRow {
   const SessionRow({
     this.acqTime = '',
@@ -35,19 +32,13 @@ class SessionRow {
     this.notes = '',
   });
 
-  /// The whole instant as one ISO-8601 string (`2026-02-03T09:00:00+00:00`).
-  ///
-  /// The only timestamp a row carries. For a file written before this became so,
-  /// [SessionRow.fromMap] composes it from the retired `date` / `time` /
-  /// `timezone` cells, so it is populated whatever wrote the source — see
-  /// `backfillAcqTime`. Empty only when the source had nothing parseable.
+  /// The whole instant as one ISO-8601 string and the only timestamp a row
+  /// carries; empty only when the source had nothing parseable.
   final String acqTime;
   final String blockId;
 
-  /// Data-entry episode within one file: increments each time that file was
-  /// reopened to add rows. **File-scoped** — `append_id` 1 in two different
-  /// files are unrelated. Was called `session_id`, which BIDS uses for the
-  /// `ses-` label; see `schema_columns.dart`.
+  /// Data-entry episode within one file, incremented each time that file is
+  /// reopened: file-scoped, so equal values in two files are unrelated.
   final String appendId;
   final String isInitial;
   final String scaleName;
@@ -66,19 +57,11 @@ class SessionRow {
   final String rightPulseWidth;
   final String notes;
 
-  /// Build from a TSV record keyed by the column names in
-  /// schema_columns.dart `sessionColumns`. Missing columns become ''.
-  ///
-  /// Goes through [readColumn], so every superseded spelling is read as well as
-  /// the current one — `block_ID`, `program_ID`, and both ancestors of
-  /// `append_id`. An older file opens with no conversion step.
-  ///
-  /// **This is where a legacy row gains its instant.** A file written before
-  /// `acq_time` became the only timestamp has `date` / `time` / `timezone`
-  /// instead, and [backfillAcqTime] composes them — offset included when the
-  /// `timezone` cell carried one. Doing it here, at the single parse boundary,
-  /// means reports, the aggregate and every export see one populated column and
-  /// none of them needs to know the source was older.
+  /// Build from a TSV record keyed by `sessionColumns`; missing columns become
+  /// ''. Reads through [readColumn], so superseded spellings open without a
+  /// conversion step, and this is where a legacy row gains its instant: doing
+  /// the [backfillAcqTime] composition at the single parse boundary means no
+  /// report, aggregate or export has to know the source was older.
   factory SessionRow.fromMap(Map<String, String> m) => SessionRow(
     acqTime: _acqTimeOf(m),
     blockId: readColumn(m, 'block_id'),
@@ -102,23 +85,15 @@ class SessionRow {
   );
 
   /// The row's instant as a local [DateTime], or null when [acqTime] is empty
-  /// or unparsable.
-  ///
-  /// An externally-authored TSV can carry anything, hence the nullable result —
-  /// callers skip rows they cannot place in time rather than guessing.
-  /// `.toLocal()` so results from files recorded in different offsets are
-  /// directly comparable.
-  ///
-  /// This is now a one-line read because [SessionRow.fromMap] already resolved
-  /// the legacy two-cell form; the fallback that used to live here moved to the
-  /// parse boundary, where it runs once instead of on every access.
+  /// or unparsable: an external TSV can carry anything, and callers skip rows
+  /// they cannot place in time. `.toLocal()` makes rows recorded in different
+  /// offsets comparable.
   DateTime? get timestamp {
     final parsed = DateTime.tryParse(acqTime.trim());
     return parsed?.toLocal();
   }
 
-  /// [acqTime] as written, or composed from the retired `date` / `time` /
-  /// `timezone` cells when the source predates it.
+  /// [acqTime] as written, or composed from a legacy row's `date`/`time`.
   static String _acqTimeOf(Map<String, String> m) {
     final iso = readColumn(m, 'acq_time').trim();
     if (iso.isNotEmpty) return iso;
@@ -153,13 +128,9 @@ class SessionRow {
   };
 }
 
-/// The electrode model named by [rows], or '' when none of them say.
-///
-/// `electrode_model` is a TSV column and `ElectrodeCatalog.models` is keyed by
-/// exactly that name, but nothing used to read it back: opening a file rendered
-/// the lead diagrams for whatever the model dropdown happened to hold. A
-/// mismatch there is not cosmetic — it labels one lead's contacts with
-/// another lead's geometry.
+/// The electrode model named by [rows], or '' when none of them say. The name
+/// keys `ElectrodeCatalog.models`, and a file opened against the wrong model
+/// labels one lead's contacts with another lead's geometry.
 String electrodeModelIn(Iterable<SessionRow> rows) {
   for (final row in rows) {
     final name = row.electrodeModel.trim();

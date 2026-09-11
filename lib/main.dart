@@ -13,24 +13,18 @@ import 'ui/theme.dart';
 /// Preferred desktop window size, used only when the display can spare it.
 const Size _preferredWindowSize = Size(1500, 950);
 
-/// Smallest window the layout still works in. Deliberately modest: the UI
-/// already reflows to a single column below ~900 px wide, and a large minimum is
-/// actively harmful — on a small display it prevents the window from ever
-/// fitting, which is how the title bar ends up off-screen and unreachable.
+/// Smallest window the layout still works in. Keep it modest: a minimum
+/// larger than the display stops the window from ever fitting, which is how
+/// the title bar ends up off-screen and unreachable.
 const Size _minWindowSize = Size(640, 520);
 
 /// Gap left around the window so the frame stays grabbable.
 const double _screenMargin = 24.0;
 
-/// The window rect that fits centred inside a display's work area.
-///
-/// Pure geometry, so the sizing rules are unit-testable — this arithmetic is
-/// what previously let the window open bigger than the screen. Both [work] and
-/// [workOrigin] are in LOGICAL pixels, which is what `screen_retriever` reports
-/// and what `windowManager.setBounds` expects, so no DPI conversion is needed.
-///
-/// Guarantees: the result never exceeds the work area, and its top-left is
-/// inside it — so the title bar is always reachable.
+/// The window rect that fits centred inside a display's work area: never
+/// larger than that area, top-left always inside it so the title bar stays
+/// reachable. [work] and [workOrigin] are LOGICAL pixels, as
+/// `screen_retriever` reports and `windowManager.setBounds` expects.
 Rect fitWindowRect({
   required Size work,
   Offset workOrigin = Offset.zero,
@@ -49,22 +43,17 @@ Rect fitWindowRect({
   );
 }
 
-/// The minimum window size, never larger than what actually fits in [window].
-///
-/// A minimum bigger than the screen re-creates the unreachable-title-bar bug it
-/// is meant to prevent, because the window can then never be shrunk to fit.
+/// The minimum window size, clamped to what actually fits in [window]; a
+/// minimum bigger than the screen makes the window impossible to shrink.
 Size fitMinimumSize(Size window, {Size minimum = _minWindowSize}) => Size(
   math.min(minimum.width, window.width),
   math.min(minimum.height, window.height),
 );
 
-/// Size and position the window so it is entirely inside the current display's
-/// work area (the screen minus the taskbar/dock/menu bar).
-///
-/// Applies explicit BOUNDS rather than trusting `WindowOptions.size` +
-/// `center: true`. Relying on those left the window larger than small screens,
-/// with the title bar and the taskbar both off-screen — so the window could not
-/// be moved, resized or closed. Setting bounds directly also fixes the position.
+/// Size and position the window inside the current display's work area (the
+/// screen minus the taskbar/dock/menu bar). Sets explicit bounds instead of
+/// `WindowOptions.size` with `center: true`, which on small screens left the
+/// window oversized and both the title bar and the taskbar off-screen.
 Future<void> _fitWindowToWorkArea() async {
   Size work = const Size(1280, 800);
   Offset workOrigin = Offset.zero;
@@ -84,8 +73,7 @@ Future<void> _fitWindowToWorkArea() async {
 }
 
 Future<void> main() async {
-  // Desktop (Linux/Windows/macOS): open a titled window that fits the screen.
-  // No-op on mobile, where the OS owns the window.
+  // Mobile platforms own the window; only desktop needs explicit sizing.
   if (!kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
@@ -98,8 +86,8 @@ Future<void> main() async {
       await _fitWindowToWorkArea();
       await windowManager.show();
       await windowManager.focus();
-      // Apply once more after the window is mapped: on some window managers the
-      // pre-show bounds are overridden by the native runner's default size.
+      // Again after the window is mapped: some window managers override the
+      // pre-show bounds with the native runner's default size.
       await _fitWindowToWorkArea();
     });
   }
@@ -121,8 +109,7 @@ class DbsAnnotatorApp extends StatelessWidget {
           theme: dbsTheme(Brightness.light),
           darkTheme: dbsTheme(Brightness.dark),
           themeMode: mode,
-          // App-wide runtime text scaling (wraps the Navigator, so dialogs
-          // and all routes scale too).
+          // Wraps the Navigator, so dialogs and all routes scale too.
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,

@@ -6,7 +6,7 @@ jobs and reads the secret and variable names below; this document is the one-tim
 setup that arms them.
 
 Nothing here is required to *run* the app. Building from source needs only the
-Flutter SDK — see the documentation's Installation page.
+Flutter SDK; see the documentation's Installation page.
 
 ## 1. App icon
 
@@ -21,29 +21,29 @@ Commit the generated files under `android/`, `ios/`, `macos/` and
 `windows/runner/resources/`. The tool has no Linux support; the Linux window icon
 is set by hand in `linux/runner/my_application.cc` from the bundled asset.
 
-## 2. Android signing (→ signed APK on the GitHub Release)
+## 2. Android signing (signed APK on the GitHub Release)
 
 **The gradle side is already wired.** `android/app/build.gradle.kts` reads the
 signing config from `android/key.properties` if present, otherwise from the
 `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` / `ANDROID_STORE_PASSWORD`
-environment variables plus a keystore at `android/app/upload-keystore.jks` —
+environment variables plus a keystore at `android/app/upload-keystore.jks`,
 which is exactly where the CI job decodes it. With neither configured it falls
 back to the **debug** key and says so in the build log.
 
 That fallback matters: a debug-signed APK installs and runs, so it is fine for
 this week's testing, but it is not distributable. Play rejects it, and a device
-that installed it cannot later be upgraded by a properly signed build — it has to
-be uninstalled first, taking its data with it. So sign before handing a build to
-anyone else.
+that installed it cannot later be upgraded by a properly signed build. It has to
+be uninstalled first, taking its data with it. So sign before handing a build
+to anyone else.
 
-**Generate an upload keystore** (keep the `.jks` OUT of git — already gitignored):
+**Generate an upload keystore** (keep the `.jks` OUT of git; already gitignored):
 
 ```bash
 keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 \
   -validity 10000 -alias upload
 ```
 
-**Local builds** — create `android/key.properties` (gitignored):
+**Local builds**: create `android/key.properties` (gitignored):
 
 ```
 storePassword=<store password>
@@ -52,7 +52,7 @@ keyAlias=upload
 storeFile=<absolute path to upload-keystore.jks>
 ```
 
-**GitHub secrets** — `ANDROID_KEYSTORE_BASE64` (`base64 -w0 upload-keystore.jks`),
+**GitHub secrets**: `ANDROID_KEYSTORE_BASE64` (`base64 -w0 upload-keystore.jks`),
 `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD`. The CI
 android job reads all four. Set them and `flutter build apk --release` is signed,
 attached to the Release for sideloading, and the `.aab` alongside it is ready for
@@ -82,18 +82,18 @@ and on tags CI exports `ANDROID_REQUIRE_RELEASE_SIGNING=true`, which makes
 variable is unset, so `flutter build apk --release` still gives you a runnable
 debug-signed APK for testing.
 
-## 3. iOS / TestFlight (→ research distribution)
+## 3. iOS / TestFlight (research distribution)
 
-iPadOS cannot be sideloaded from GitHub — TestFlight is the channel.
+iPadOS cannot be sideloaded from GitHub, so TestFlight is the channel.
 
-1. **Apple Developer Program** — enroll Wyss Center as an **organization**
+1. **Apple Developer Program**: enroll Wyss Center as an **organization**
    (needs a **D-U-N-S number**); apply for the **nonprofit fee waiver** ($0).
    This includes code-signing certificates + TestFlight + App Store.
-2. **App Store Connect API key** — create an API key (App Manager role);
-   download the `.p8` once. It gives three values → GitHub secrets:
+2. **App Store Connect API key**: create an API key (App Manager role);
+   download the `.p8` once. It gives three values for GitHub secrets:
    `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
    `APP_STORE_CONNECT_API_KEY` (the `.p8` contents).
-3. **fastlane** — add `ios/fastlane/Fastfile`:
+3. **fastlane**: add `ios/fastlane/Fastfile`:
 
    ```ruby
    default_platform(:ios)
@@ -115,13 +115,13 @@ iPadOS cannot be sideloaded from GitHub — TestFlight is the channel.
    already in place). Signing certs/profiles: use `fastlane match` or Xcode
    automatic signing with the API key.
 
-## 4. Windows / Microsoft Store (→ MSIX)
+## 4. Windows / Microsoft Store (MSIX)
 
 **No code-signing certificate is needed, and none should be bought.** Microsoft
 re-signs MSIX packages themselves after certification: *"You don't need to
 purchase a CA-trusted code signing certificate for MSIX/AppX Store
 submissions"*, and *"USB tokens or hardware security modules (HSMs) are not
-required."* This holds only for MSIX — an MSI or EXE submission is **not**
+required."* This holds only for MSIX: an MSI or EXE submission is **not**
 re-signed and would have to be Authenticode-signed by you, which is one more
 reason MSIX is the format here. Partner Center registration is also free now, for
 both individual and company accounts, so there is no fee waiver to apply for.
@@ -152,11 +152,11 @@ The output is `build/windows/msix/dbs_annotator.msix`.
 
 **Do not distribute a package signed with the default certificate.** With no
 `certificate_path` configured, the tool signs with a `test_certificate.pfx` that
-ships *inside the msix pub package* — subject `CN=Msix Testing, O=Msix Testing
-Corporation` — so its private key is public and anyone can sign anything with it.
-Asking someone to trust that certificate asks them to trust every package signed
-with it, forever. It is fine for "does my package install at all" on your own
-machine and nothing more.
+ships *inside the msix pub package*, with subject `CN=Msix Testing, O=Msix
+Testing Corporation`, so its private key is public and anyone can sign anything
+with it. Asking someone to trust that certificate asks them to trust every
+package signed with it, forever. It is fine for "does my package install at
+all" on your own machine and nothing more.
 
 For anything you hand to another person, make your own:
 
@@ -172,7 +172,7 @@ Export-PfxCertificate -cert "Cert:\CurrentUser\My\$($c.Thumbprint)" -FilePath si
 
 Then set `certificate_path`/`certificate_password` (or pass
 `--certificate-path`/`--certificate-password`) and add `publisher: CN=Wyss Center
-for Bio and Neuroengineering` to `msix_config` — the manifest `Publisher` must
+for Bio and Neuroengineering` to `msix_config`. The manifest `Publisher` must
 match the certificate subject character for character or Windows rejects the
 package. Keep the `.pfx` out of git; `*.pfx`/`*.cer`/`*.p12` are gitignored. In
 CI, store it base64-encoded as the `WINDOWS_CERT_BASE64` secret with
@@ -180,7 +180,7 @@ CI, store it base64-encoded as the `WINDOWS_CERT_BASE64` secret with
 afterwards even if the build fails.
 
 Note there is **no separate `.cer` file** to distribute: the certificate travels
-inside the signed `.msix`, and recipients trust it from the file's *Properties →
+inside the signed `.msix`, and recipients trust it from the file's *Properties >
 Digital Signatures* tab. The documentation's Installation page has that procedure
 and the warning that goes with it.
 
@@ -190,15 +190,15 @@ produced unsigned with `--store` and needs no certificate at all.
 
 Steps 1 and 2 are what unblock the Store identity, so they gate everything else.
 
-1. **Reserve the app name** — *Apps and games → New product → App*. Pick the final
+1. **Reserve the app name**: *Apps and games > New product > App*. Pick the final
    name here; the reservation is what `identity_name` is derived from.
-2. **Copy the identity values** — *Product management → View app identity
+2. **Copy the identity values**: *Product management > View app identity
    details*, which gives `Package/Identity/Name`, `Publisher` (the `CN=…` string)
    and `Publisher display name`. These are **case-sensitive, punctuation
-   included** — Microsoft's own warning is that *"Spaces and other punctuation
+   included**. Microsoft's own warning is that *"Spaces and other punctuation
    must also match"*, and a mismatch is the most common submission rejection.
-   They are **not committed**. Set them as GitHub repository *variables* (not
-   secrets — they are public identifiers):
+   They are **not committed**. Set them as GitHub repository *variables*, not
+   secrets, because they are public identifiers:
    `MSIX_IDENTITY_NAME`, `MSIX_PUBLISHER`, `MSIX_PUBLISHER_DISPLAY_NAME`.
    For a local Store build, pass them on the command line instead:
 
@@ -209,18 +209,19 @@ Steps 1 and 2 are what unblock the Store identity, so they gate everything else.
      --publisher-display-name "<Publisher display name>"
    ```
 
-   `--store` produces an **unsigned** package, which is correct — Microsoft signs
-   it. It fails loudly if any of the three is missing rather than quietly
-   emitting a self-signed one.
-3. **Business verification** — must complete before anything publishes. It is
+   `--store` produces an **unsigned** package, which is correct, because
+   Microsoft signs it. It fails loudly if any of the three is missing rather
+   than quietly emitting a self-signed one.
+3. **Business verification**: must complete before anything publishes. It is
    independent of the code and can take days; start it early.
-4. **Age rating** — the IARC questionnaire. Required for every submission.
-5. **Privacy policy URL** — the docs carry the statement: the *Privacy* page,
+4. **Age rating**: the IARC questionnaire. Required for every submission.
+5. **Privacy policy URL**: the docs carry the statement on the *Privacy* page,
    `docs/privacy.rst`. Point the submission at its published URL.
-6. **Set the audience to private** while evaluating — *Pricing and availability →
-   Audience → Private audience*, listing tester email addresses. The listing is
-   then not publicly discoverable. A **package flight** is the alternative when
-   you want a separate tester build stream alongside a public listing.
+6. **Set the audience to private** while evaluating, under *Pricing and
+   availability > Audience > Private audience*, listing tester email addresses.
+   The listing is then not publicly discoverable. A **package flight** is the
+   alternative when you want a separate tester build stream alongside a public
+   listing.
 7. **Run the Windows App Certification Kit** against the package before
    uploading. It catches most certification failures locally, without spending a
    review cycle.
@@ -231,19 +232,20 @@ MSIX needs four components and Microsoft reserves the fourth: *"the last (fourth
 section of the version number is reserved for Store use and must be left as 0"*.
 `msix_version` in `pubspec.yaml` is therefore `<pubspec version>.0`, enforced by
 `test/version_parity_test.dart`. On a tag, CI derives it from the tag instead
-(`app-v0.5.1` → `0.5.1.0`), so the release artifact matches what you tagged.
+(`app-v0.5.1` gives `0.5.1.0`), so the release artifact matches what you tagged.
 
 One caveat to expect: the same Microsoft page says the first section *"cannot be
 0"*. That sentence sits in a section about UWP packages and it is not established
-that Partner Center enforces it for a packaged desktop app — but if a `0.x`
-package is rejected at upload, that is why, and the fix is a major-version bump.
+that Partner Center enforces it for a packaged desktop app. If a `0.x` package
+is rejected at upload, that is why, and the fix is a major-version bump.
 Package validation runs before review, so finding out costs nothing.
 
 ## 5. Cut a release
 
 ```bash
-# bump pubspec.yaml version (e.g. 0.5.0+1 -> 0.5.1+2), then the three literals
-# that restate it — lib/app_info.dart, CITATION.cff, msix_config — and commit.
+# bump pubspec.yaml version (e.g. 0.5.0+1 becomes 0.5.1+2), then the three
+# literals that restate it (lib/app_info.dart, CITATION.cff, msix_config), and
+# commit.
 # `flutter test` fails if you miss one (test/version_parity_test.dart).
 git tag app-v0.5.1 && git push origin app-v0.5.1
 ```
@@ -252,7 +254,7 @@ git tag app-v0.5.1 && git push origin app-v0.5.1
 assert the tag matches `pubspec.yaml` before anything is built), the tests, and
 all five platform builds; each produces one named archive. A single `release`
 job then downloads them, checks a **manifest** of expected assets, and creates
-one draft. If any job fails, that job never runs — so no Release object is
+one draft. If any job fails, that job never runs, so no Release object is
 created at all and there is nothing to retract.
 
 You then read the asset list and click **Publish**. That is the whole point: the
@@ -266,19 +268,20 @@ git tag app-v0.5.1-rc && git push origin app-v0.5.1-rc
 ```
 
 An `-rc` tag takes an identical path through every job and produces a draft
-*prerelease* titled "dry run, do not publish" — invisible to the public, never
-marked `latest`, no watcher notifications. Inspect it, then delete it. (Before
-this, `-rc` matched `startsWith(github.ref, 'refs/tags/app-v')` like any other
-tag and published for real.)
+*prerelease* titled "dry run, do not publish". It is invisible to the public, is
+never marked `latest`, and sends no watcher notifications. Inspect it, then
+delete it. (Before this, `-rc` matched
+`startsWith(github.ref, 'refs/tags/app-v')` like any other tag and published for
+real.)
 
 What is and is not in a release:
 
 | Platform | Asset |
 |---|---|
-| Linux | `.tar.gz` of the bundle — `tar`, because artifact uploads drop the executable bit |
+| Linux | `.tar.gz` of the bundle (`tar`, because artifact uploads drop the executable bit) |
 | Windows | portable `.zip`, plus an `.msix` **only** when `MSIX_IDENTITY_NAME` or `WINDOWS_CERT_BASE64` is configured (otherwise the step is skipped, the job stays green, and the run summary says why) |
 | Android | signed `.apk` and `.aab` |
-| macOS, iOS | **nothing** — both are compile gates. An unsigned `.app` is Gatekeeper-quarantined with no documented way to open it, and iPadOS is TestFlight-only. |
+| macOS, iOS | **nothing**: both are compile gates. An unsigned `.app` is Gatekeeper-quarantined with no documented way to open it, and iPadOS is TestFlight-only. |
 
 TestFlight upload still requires the Apple secrets; without them the iOS job
 compiles, warns in the run summary that nothing was shipped, and stays green.
@@ -286,5 +289,5 @@ Link the TestFlight invite from the Release notes once it exists.
 
 ## Scale-up later (same artifacts, no rebuild)
 
-`.aab` → Google Play track · TestFlight build → App Store · `.ipa`/`.aab` → MDM
-(Apple Business Manager / Android Enterprise).
+The `.aab` goes to a Google Play track, the TestFlight build to the App Store,
+and the `.ipa`/`.aab` to MDM (Apple Business Manager, Android Enterprise).

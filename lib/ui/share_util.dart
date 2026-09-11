@@ -9,10 +9,8 @@ import 'save_target.dart';
 
 /// Global bounds of the widget at [context], for [shareOrSaveFile]'s `origin`.
 ///
-/// Attach a [GlobalKey] to the button that triggers the export and pass its
-/// `currentContext` here, in the button's callback and *before* the first
-/// await — after one the widget may be gone. Returns null if the widget is not
-/// laid out, which [shareOrSaveFile] tolerates.
+/// Pass the export button's `currentContext` before the first await; after
+/// one the widget may be gone. Null when it is not laid out.
 Rect? shareOriginFrom(BuildContext? context) {
   final box = context?.findRenderObject();
   if (box is! RenderBox || !box.hasSize) return null;
@@ -22,8 +20,7 @@ Rect? shareOriginFrom(BuildContext? context) {
 bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
 /// MIME type for the file kinds we export. Android's `MimeTypeMap` does not
-/// know `.docx`, so without an explicit type the share sheet degrades to a
-/// generic `*/*` chooser and some target apps refuse the file.
+/// know `.docx`, and without an explicit type some target apps refuse it.
 String? mimeTypeFor(String filename) {
   final ext = _ext(filename).toLowerCase();
   return switch (ext) {
@@ -36,12 +33,9 @@ String? mimeTypeFor(String filename) {
   };
 }
 
-/// A non-empty popover anchor for the iPad share sheet.
-///
-/// share_plus's iOS plugin **throws** when a popover is required and the origin
-/// is null or empty (`FPPSharePlusPlugin.m`), which used to send the export down
-/// the disk-save path and into the app container. A centred fallback keeps the
-/// sheet presentable even when the triggering button is not laid out.
+/// A non-empty popover anchor for the iPad share sheet. share_plus's iOS
+/// plugin throws when a popover is required and the origin is null or empty
+/// (`FPPSharePlusPlugin.m`), sending the export into the app container.
 Rect safeOrigin(Rect? origin, Size screen) {
   if (origin != null && !origin.isEmpty) return origin;
   return Rect.fromCenter(
@@ -51,15 +45,13 @@ Rect safeOrigin(Rect? origin, Size screen) {
   );
 }
 
-/// Deliver [file] to the user: the OS share sheet on mobile (Android / iPadOS),
-/// or a saved copy on desktop, where `share_plus` has no share sheet. Never
-/// throws, and always reports the outcome via [messenger] so an export can
-/// never fail silently.
+/// Deliver [file] to the user: the OS share sheet on mobile, or a saved copy
+/// on desktop, where `share_plus` has none. Never throws, and always reports
+/// the outcome via [messenger], so an export cannot fail silently.
 ///
-/// Pass a captured [ScaffoldMessengerState] (resolved before the first await)
-/// so the snackbar is safe across the async gap. [origin] anchors the iPadOS
-/// share popover (see [shareOriginFrom]); other platforms ignore it. [screen]
-/// supplies the fallback anchor — pass `MediaQuery.sizeOf(context)`.
+/// [messenger] must be resolved before the first await, so the snackbar is
+/// safe across the async gap. [origin] anchors the iPadOS share popover and
+/// [screen] supplies its fallback.
 Future<void> shareOrSaveFile(
   ScaffoldMessengerState messenger,
   File file,
@@ -69,12 +61,6 @@ Future<void> shareOrSaveFile(
 }) async {
   if (_isMobile) {
     try {
-      // share_plus 12 retired the static `Share.shareXFiles`; the single entry
-      // point is now `SharePlus.instance.share(ShareParams(...))`. Field names
-      // and `ShareResultStatus` are unchanged, so the behaviour below is the
-      // same. `share` throws ArgumentError for empty or conflicting params -
-      // none of which can happen here (always exactly one non-empty file), and
-      // the catch below would degrade to a disk save anyway.
       final result = await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: mimeTypeFor(filename))],
@@ -82,8 +68,7 @@ Future<void> shareOrSaveFile(
           sharePositionOrigin: safeOrigin(origin, screen),
         ),
       );
-      // Confirm on mobile too: previously the happy path returned silently, so
-      // a dismissed sheet was indistinguishable from a completed share.
+      // Confirm on mobile too, so a dismissed sheet is distinguishable.
       if (result.status != ShareResultStatus.unavailable) {
         messenger.showSnackBar(
           SnackBar(
@@ -113,22 +98,15 @@ Future<void> shareOrSaveFile(
   );
 }
 
-/// What an export produced: the file's bytes, and an optional warning to show
-/// after it has been delivered (e.g. the PDF sanitiser replaced a character).
+/// An export's bytes, plus an optional warning to show once it is delivered.
 typedef ExportPayload = ({List<int> bytes, String? warning});
 
 /// Build a file and deliver it, reporting every failure.
 ///
-/// One home for the sequence five call sites each had their own copy of:
-/// capture the messenger / screen / share anchor **before** the first await,
-/// build the bytes, write a temp file, share-or-save, and turn any throw into a
-/// snackbar. Capturing up front is not a style point — a menu item is unmounted
-/// by the time the iPad share sheet needs its anchor, and using a `BuildContext`
-/// across an await is exactly the bug `use_build_context_synchronously` warns
-/// about.
-///
-/// [anchor] is the key on the widget the share popover should point at; pass the
-/// enclosing button, not a menu item that is about to disappear.
+/// The messenger, screen size and share anchor are captured before the first
+/// await, because a menu item is unmounted by the time the iPad share sheet
+/// needs its anchor. So [anchor] should key the enclosing button, not a menu
+/// item that is about to disappear.
 Future<void> exportFile(
   BuildContext context, {
   required String filename,
@@ -163,17 +141,10 @@ Future<void> exportFile(
 }
 
 /// Save [file] to a user-visible location: a native Save-As dialog first, then
-/// the first writable well-known directory. Returns the destination path, or
-/// null if every option failed. Never throws.
+/// the first writable well-known directory. Never throws.
 Future<String?> _saveToDisk(File file, String filename) async {
-  // 1) Native Save-As dialog (desktop with zenity/kdialog; a document picker on
-  //    mobile). Absent on a bare Linux box → the auto-save below runs instead.
-  //
-  // file_picker 12 requires the bytes and does the write itself, returning a
-  // Uri. That removes the `file.copy(dest)` and the extension-appending this
-  // used to do - `fileName` is passed, so honouring it is the platform's job.
-  // A non-`file` Uri (content://, blob:) has no path to report, so fall through
-  // to the auto-save rather than naming a location the user cannot open.
+  // 1) Native Save-As dialog. It returns a Uri, and a non-`file` one has no
+  //    path to report, so fall through rather than name an unopenable place.
   try {
     final uri = await FilePicker.saveFile(
       dialogTitle: 'Save $filename',
@@ -184,12 +155,11 @@ Future<String?> _saveToDisk(File file, String filename) async {
     final saved = pickerUriToPath(uri);
     if (saved != null) return saved;
   } catch (_) {
-    // No dialog available — auto-save below.
+    // No dialog available; auto-save below.
   }
 
-  // 2) First writable well-known directory. Application-support is
-  //    XDG-user-dirs-independent, so it resolves even on a minimal Linux box
-  //    where Downloads/Documents are unset.
+  // 2) First writable well-known directory. Application-support resolves even
+  //    on a minimal Linux box where XDG Downloads/Documents are unset.
   final getters = <Future<Directory?> Function()>[
     getDownloadsDirectory,
     getApplicationDocumentsDirectory,
@@ -204,7 +174,7 @@ Future<String?> _saveToDisk(File file, String filename) async {
       await file.copy(dest);
       return dest;
     } catch (_) {
-      // Try the next location.
+      // Unwritable; try the next location.
     }
   }
 

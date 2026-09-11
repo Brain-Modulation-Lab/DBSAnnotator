@@ -1,15 +1,12 @@
 /// Open a TSV, get a report. No authoring.
 ///
-/// The two recording screens produce a report as a side effect of a session you
-/// are running now. This is the other half: a file already exists — written
-/// here, or on the desktop app, or last month — and you want the document.
+/// The two recording screens produce a report as a side effect of a session in
+/// progress; this is the other half, where the file already exists (written
+/// here, or by the desktop app) and only the document is wanted.
 ///
-/// It is deliberately thin, and that is the acceptance test for the extractions
-/// this round did: it composes [SessionEntriesTable], [EntryChartsView],
-/// [showScaleTargetsDialog], [showReportSectionsDialog], [exportFile] and both
-/// report builders, and owns only the file it opened and the choices made about
-/// it. If this file starts growing, something that belongs in a shared widget is
-/// being written here instead.
+/// It composes shared widgets and both report builders, and owns only the file
+/// it opened and the choices made about it. If it starts growing, something
+/// that belongs in a shared widget is being written here instead.
 library;
 
 import 'package:file_picker/file_picker.dart';
@@ -62,9 +59,8 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
   ElectrodeCatalog? _catalog;
   UserPrefs _prefs = UserPrefs();
 
-  /// Null until the user sets them. The report refuses to rank without targets
-  /// rather than inventing `min` for every scale, so this is also the flag for
-  /// "has anybody said what better means".
+  /// Null until the user sets them. The report refuses to rank without
+  /// targets rather than inventing `min` for every scale.
   List<ScalePref>? _targets;
 
   Set<ReportSection> _sections = kAllReportSections;
@@ -85,8 +81,8 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
   bool get _hasFile => _rows.isNotEmpty || _notes.isNotEmpty;
 
   Future<void> _open() async {
-    // `pickFile`, not `pickFiles`: file_picker 12 flipped `allowMultiple` to
-    // default TRUE, so the old call would silently accept a multi-selection.
+    // `pickFile`, not `pickFiles`: file_picker 12 defaults `allowMultiple` to
+    // true, so the plural call would silently accept a multi-selection.
     final PlatformFile? chosen;
     try {
       chosen = await FilePicker.pickFile(type: FileType.any);
@@ -130,7 +126,7 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
     _snack('Opened ${picked.name}.');
   }
 
-  /// Targets for the ranking. Never defaulted silently — see [_targets].
+  /// Targets for the ranking. Never defaulted silently; see [_targets].
   Future<void> _editTargets() async {
     final seed = _targets ?? defaultScalePrefsFor(_recordingRows);
     if (seed.isEmpty) {
@@ -167,9 +163,9 @@ class _SingleSessionReportScreenState extends State<SingleSessionReportScreen> {
     final letter =
         (_prefs.reportPageSize ?? kDefaultReportPageSize) == 'letter';
     // Derive the report name from the source file's entities so the two sort
-    // together. A file whose name carries no `sub-` entity keeps its stem, with
-    // the data suffix swapped for `_report` — inventing entities for a
-    // hand-renamed file would put a wrong subject label on a clinical document.
+    // together. A file whose name carries no `sub-` entity keeps its stem,
+    // with the data suffix swapped for `_report`: inventing entities for a
+    // hand-renamed file would put a wrong subject on a clinical document.
     final base = (_filename ?? 'report')
         .replaceAll(RegExp(r'\.tsv$'), '')
         .replaceAll(

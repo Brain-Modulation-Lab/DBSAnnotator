@@ -21,9 +21,9 @@ void main() {
 
   group('sidecar', () {
     test('documents every column of both kinds, and nothing else', () {
-      // The whole point of the sidecar is that a reader can look up any column
-      // they meet in the TSV. A column present in the data but missing here is
-      // exactly the gap it exists to close.
+      // The sidecar exists so a reader can look up any column they meet in
+      // the TSV; a column present in the data but missing here is the gap it
+      // was written to close.
       final session = buildSidecar(
         contract,
         'session_tsv',
@@ -221,7 +221,7 @@ void main() {
 
     test('the reports derivative carries its own dataset_description', () {
       // "derivatives datasets MUST include a dataset_description.json file at
-      // the root level" — a report dropped into derivatives/ without one makes
+      // the root level": a report dropped into derivatives/ without one makes
       // the whole dataset invalid.
       final file = derivativeDescription(
         dir: reportsDerivativeDir,
@@ -239,9 +239,8 @@ void main() {
 
     test('the aggregate derivative carries one too, at its own root', () {
       // Same rule, and the reason `derivativeDescription` is parameterised
-      // rather than hard-coded to the reports directory: there are now two
-      // derivative datasets, and each needs its own description or the parent
-      // dataset is invalid.
+      // rather than fixed to the reports directory: each derivative dataset
+      // needs its own description or the parent dataset is invalid.
       final file = derivativeDescription(
         dir: aggregateDerivativeDir,
         name: 'DBS Annotator combined sessions',

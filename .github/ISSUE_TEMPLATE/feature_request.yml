@@ -17,7 +17,7 @@ body:
     id: today
     attributes:
       label: What you do today instead
-      description: The workaround, if there is one — including on paper.
+      description: The workaround, if there is one, including on paper.
 
   - type: dropdown
     id: kind
@@ -27,8 +27,8 @@ body:
         The TSV is an interchange contract, so a new column is a bigger decision
         than a new screen. Guessing is fine.
       options:
-        - "No — it is about the app or a report"
-        - "Yes — it needs something the file does not record"
+        - "No, it is about the app or a report"
+        - "Yes, it needs something the file does not record"
         - "Not sure"
     validations:
       required: true

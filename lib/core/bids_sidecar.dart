@@ -1,39 +1,25 @@
 /// The `_beh.json` sidecar that documents a TSV's columns.
 ///
-/// ## Why this is not optional in practice
-///
-/// Of the 22 columns in a programming-session file, only `notes` resembles
-/// anything BIDS defines. The rest — `block_id`, `left_cathode`,
-/// `left_amplitude` and the contact grammar they use — mean nothing to a reader
-/// who did not write them, and the specification's answer to that is the
-/// sidecar: "any additional columns in a TSV file SHOULD be documented in an
-/// accompanying JSON sidecar file". Without one, `left_amplitude` = `3.3_2.2` is
-/// an unexplained string; with one, it is a documented current split.
-///
-/// The descriptions come from `schema/tsv_schema.json`, which already feeds the
-/// column tables in the documentation, so the sidecar cannot drift from either.
+/// Of a programming-session file's 22 columns only `notes` resembles anything
+/// BIDS defines, and the spec's answer is the sidecar: "any additional columns
+/// in a TSV file SHOULD be documented in an accompanying JSON sidecar file".
+/// Descriptions come from `schema/tsv_schema.json`, which also feeds the docs.
 library;
 
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
-/// Loads the TSV contract from the bundled asset at runtime.
-///
-/// The repo-root `schema/*.json` files are mirrored into `assets/schema/`
-/// (test/schema_parity_test.dart enforces byte identity), same as
-/// `loadElectrodeCatalog` and `loadScalePresets`. Tests read the repo-root file
-/// directly via `dart:io` instead.
+/// Loads the TSV contract from the bundled `assets/schema/` mirror of the
+/// repo-root `schema/*.json`; tests read the repo root via `dart:io`.
 Future<Map<String, dynamic>> loadTsvContract() async {
   final raw = await rootBundle.loadString('assets/schema/tsv_schema.json');
   return jsonDecode(raw) as Map<String, dynamic>;
 }
 
-/// A column's entry in the sidecar, as BIDS names the keys.
 Map<String, String> _entry(Map<String, dynamic> column) {
   final description = (column['description'] as String? ?? '')
-      // The descriptions carry reStructuredText inline literals because the
-      // docs render them; JSON readers should see plain text.
+      // Strip the reStructuredText inline literals the docs render.
       .replaceAll('``', '');
   final out = <String, String>{
     'LongName': _longName(column['name'] as String),
@@ -44,8 +30,7 @@ Map<String, String> _entry(Map<String, dynamic> column) {
   return out;
 }
 
-/// `left_stim_freq` -> `Left stim freq`. A readable expansion beats leaving
-/// LongName out, and beats hand-maintaining a second table of prose.
+/// `left_stim_freq` -> `Left stim freq`, so `LongName` needs no second table.
 String _longName(String column) {
   final words = column.split('_');
   if (words.isEmpty) return column;
@@ -56,10 +41,7 @@ String _longName(String column) {
   ].join(' ');
 }
 
-/// Build the sidecar object for one of the two TSV kinds.
-///
-/// [contract] is the parsed `tsv_schema.json`; [kind] is `session_tsv` or
-/// `annotation_tsv`.
+/// Build the sidecar for one [kind] of TSV: `session_tsv` or `annotation_tsv`.
 Map<String, dynamic> buildSidecar(
   Map<String, dynamic> contract,
   String kind, {
@@ -90,18 +72,12 @@ String annotationSidecarJson(
   required String appVersion,
 }) => _encode(buildSidecar(contract, 'annotation_tsv', appVersion: appVersion));
 
-/// The sidecar for the combined table, pretty-printed.
+/// The sidecar for the combined table, pretty-printed, in header key order.
 ///
-/// Composed from two contract sections rather than one: `aggregate_tsv` declares
-/// only the four identity columns, because the other 19 are the session columns
-/// carried through unchanged and describing them twice would let the two copies
-/// drift. The key order matches the table's header.
-///
-/// [computedAcqTime] adds a note to `acq_time` recording that the value may be
-/// *derived* rather than recorded — true for any row that came from a
-/// pre-0.5.0 file, where `SessionRow.fromMap` composed it from `date` + `time` +
-/// `timezone`. A reader of a derivative cannot otherwise know that, and for a
-/// timestamp in a clinical dataset the difference matters.
+/// Composed from two contract sections because `aggregate_tsv` declares only
+/// the four identity columns; the other 19 are session columns carried through
+/// unchanged. [computedAcqTime] notes on `acq_time` that a row from a legacy
+/// file had its timestamp derived rather than recorded.
 String aggregateSidecarJson(
   Map<String, dynamic> contract, {
   required String appVersion,
@@ -109,8 +85,7 @@ String aggregateSidecarJson(
 }) {
   final keys = buildSidecar(contract, 'aggregate_tsv', appVersion: appVersion);
   final session = buildSidecar(contract, 'session_tsv', appVersion: appVersion);
-  // `buildSidecar` puts the three document-level fields first; take them from
-  // the keys map and then the two column sets in header order.
+  // Document-level fields first, then the two column sets in header order.
   const documentLevel = {'GeneratedBy', 'SchemaVersion', 'MissingValueCode'};
   final merged = <String, dynamic>{
     for (final field in documentLevel)
@@ -135,8 +110,7 @@ String aggregateSidecarJson(
 String _encode(Object? value) =>
     '${const JsonEncoder.withIndent('  ').convert(value)}\n';
 
-/// The columns [kind] declares, in order — the same list the Dart constants
-/// hold, read back out of the contract so a caller can check they agree.
+/// The columns [kind] declares, in order, as the contract states them.
 List<String> contractColumns(Map<String, dynamic> contract, String kind) =>
     ((contract[kind] as Map<String, dynamic>)['columns'] as List)
         .cast<Map<String, dynamic>>()

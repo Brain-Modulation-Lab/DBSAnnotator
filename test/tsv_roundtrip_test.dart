@@ -83,7 +83,7 @@ void main() {
 
     test('run is an index: zero-padded, and write agrees with parse', () {
       // `label()` would happily emit `run-pre`, which `parse` reads back as
-      // `01` because its pattern is digits-only — a silent round-trip loss.
+      // `01` because its pattern is digits-only: a silent round-trip loss.
       expect(BidsName.index('1'), '01');
       expect(BidsName.index('7'), '07');
       expect(BidsName.index('12'), '12');

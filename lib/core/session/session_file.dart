@@ -1,22 +1,9 @@
-/// Programming-session TSV parsing, appending, and serialization.
+/// Programming-session TSV parsing, appending, and serialization, mirroring
+/// dbs_annotator/models/session_data.py.
 ///
-/// Mirrors dbs_annotator/models/session_data.py:
-/// - `buildInsertRows` = the row-shaping half of `write_session_scales`
-///   (Step 3: one row per valid scale, or one scale-less row).
-/// - `nextBlockId` / `nextAppendId` = the max-scan half of
-///   `open_file_append`.
-///
-/// MOBILE PERSISTENCE NOTE: the desktop app keeps an open append handle
-/// (csv.DictWriter on a file opened with mode "a") and writes each insert
-/// incrementally. On the tablet there is no long-lived file handle: callers
-/// read the whole TSV with [parseSessionTsv], append the rows from
-/// [buildInsertRows] in memory, and rewrite the entire file with
-/// [serializeSessionTsv] (writeTsvRecords over sessionColumns).
-///
-/// The output is **no longer byte-compatible with the desktop appender** — that
-/// claim outlived the CRLF-to-LF change and then the v0.5.0 schema cleanup.
-/// Compatibility runs one way now: this app reads what the 0.4.x desktop app
-/// wrote, not the reverse. See `lib/core/schema_columns.dart`.
+/// The desktop app holds an open append handle; on the tablet there is none,
+/// so callers read the whole TSV, append rows in memory and rewrite it.
+/// Compatibility runs one way: this app reads what the desktop wrote.
 library;
 
 import '../schema_columns.dart';
@@ -35,18 +22,14 @@ List<SessionRow> parseSessionTsv(String content) =>
 String serializeSessionTsv(List<SessionRow> rows) =>
     writeTsvRecords(sessionColumns, rows.map((r) => r.toMap()).toList());
 
-/// Parse a TSV integer cell the way `int(float(val))` does in Python
-/// (accepts "3" and "3.0", truncates toward zero); null when unparsable,
-/// matching open_file_append's skip-malformed-row behavior.
+/// A TSV integer cell as Python's `int(float(val))`; null when unparsable.
 int? _asInt(String raw) {
   final v = double.tryParse(raw.trim());
   if (v == null || !v.isFinite) return null;
   return v.truncate();
 }
 
-/// Next block ID for an append: max(block_id) + 1, or 0 for an empty/new
-/// file. Mirrors open_file_append (max_block starts at -1; malformed cells
-/// are skipped).
+/// Next block ID for an append: max(block_id) + 1, or 0 for a new file.
 int nextBlockId(List<SessionRow> existing) {
   var maxBlock = -1;
   for (final row in existing) {
@@ -56,12 +39,9 @@ int nextBlockId(List<SessionRow> existing) {
   return maxBlock + 1;
 }
 
-/// Next append ID: max(append_id) + 1, or 1 for an empty/new file.
-///
-/// Counts data-entry episodes in ONE file — it advances each time that file is
-/// reopened to add rows — so it is file-scoped by design, and equal values in
-/// two different files are unrelated. Mirrors open_file_append (max_session
-/// starts at 0).
+/// Next append ID: max(append_id) + 1, or 1 for a new file. It counts
+/// data-entry episodes within one file, so it is file-scoped by design and
+/// equal values in two files are unrelated.
 int nextAppendId(List<SessionRow> existing) {
   var maxAppend = 0;
   for (final row in existing) {
@@ -71,23 +51,11 @@ int nextAppendId(List<SessionRow> existing) {
   return maxAppend + 1;
 }
 
-/// Build the NEW rows for one insert, mirroring write_session_scales
-/// ([isInitial] false, the default: Step-3 recording, is_initial=0) or
-/// write_clinical_scales ([isInitial] true: Step-1 baseline, is_initial=1).
-/// The two Python writers produce identical row shapes apart from is_initial
-/// and the scale filter: session scales keep any scale with a non-blank
-/// value (SessionScale.has_value), clinical scales additionally require a
-/// non-blank name (ClinicalScale.is_valid).
-///
-/// If no scale survives the filter, ONE row is written with empty
-/// scale_name/scale_value; otherwise one row PER valid scale. Every row of
-/// the insert shares the same block/append IDs, is_initial, timestamp,
-/// stimulation columns, [programId] (the desktop's `group`),
-/// [electrodeModel], and [notes].
-///
-/// The caller advances the block ID itself for the next insert (the desktop
-/// increments `self.block_id` after each write); recompute with
-/// [nextBlockId] after appending.
+/// Build the new rows for one insert: one per scale that survives the filter,
+/// or a single scale-less row when none does, all sharing the same block and
+/// append IDs, timestamp and stimulation columns. [isInitial] marks a Step-1
+/// baseline, which additionally requires a non-blank scale name. The caller
+/// recomputes the next block ID with [nextBlockId] after appending.
 List<SessionRow> buildInsertRows({
   required int blockId,
   required int appendId,
@@ -114,10 +82,7 @@ List<SessionRow> buildInsertRows({
     acqTime: acqTime,
     blockId: '$blockId',
     appendId: '$appendId',
-    // 1 for Step-1 baseline (write_clinical_scales), 0 for Step-3
-    // recording (write_session_scales). Via `initialCell` so the "exactly 0 or
-    // 1, never 0.0" guarantee has one owner - see its doc comment for the
-    // `astype(bool)` footgun that motivates it.
+    // Via `initialCell` so the "exactly 0 or 1, never 0.0" rule has one owner.
     isInitial: initialCell(isInitial),
     scaleName: scaleName,
     scaleValue: scaleValue,

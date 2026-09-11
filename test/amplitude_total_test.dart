@@ -6,9 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('the parts always sum exactly to the total', () {
-    // The desktop rounds each part independently, so 5.0 mA over three contacts
-    // became `1.67_1.67_1.67` = 5.01 and 7.0 became 6.99 — and every consumer
-    // then printed the artifact as the delivered dose.
+    // Rounding each part independently does not close: 5.0 mA over three
+    // contacts gives `1.67_1.67_1.67` = 5.01, and 7.0 gives 6.99.
     const cases = <(double, List<double>)>[
       (5.0, [33.33, 33.33, 33.33]),
       (7.0, [33.33, 33.33, 33.33]),

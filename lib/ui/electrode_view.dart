@@ -7,28 +7,21 @@ import '../core/electrode/stimulation_rule.dart';
 import 'electrode_painter.dart';
 import 'theme.dart';
 
-/// Fired after every applied change with the full new configuration.
-/// OFF contacts are absent from the map (Python representation invariant).
+/// Fired after every applied change with the full new configuration. OFF
+/// contacts are absent from the map, as in the desktop representation.
 typedef ElectrodeChanged =
     void Function(Map<ContactKey, ContactState> states, ContactState caseState);
 
 /// Fired after every applied change with the `validateConfiguration` result.
-/// Like the desktop, changes are applied even when invalid; this callback is
-/// how the parent surfaces the error message.
+/// Changes are applied even when invalid, as on the desktop, so the parent
+/// surfaces the error rather than the edit being refused.
 typedef ElectrodeValidation = void Function(bool valid, String error);
 
 /// Interactive electrode viewer, a port of the desktop `ElectrodeCanvas`
 /// (`dbs_annotator/models/electrode_viewer.py`).
 ///
-/// Tap behaviour matches the desktop:
-/// - contact tap cycles OFF -> ANODIC -> CATHODIC -> OFF (key removed on OFF);
-/// - ring-cap tap cycles all three segments together (all OFF -> ANODIC,
-///   all ANODIC -> CATHODIC, mixed/other -> OFF);
-/// - CASE tap cycles OFF -> ANODIC -> CATHODIC -> OFF.
-///
-/// Rendering mirrors the desktop paintEvent (cylinder/CASE gradients, metallic
-/// radial-gradient contacts with drop shadows + specular highlights); hover is
-/// dropped since touch has none.
+/// Tap behaviour and rendering mirror the desktop; hover is dropped, since
+/// touch has none.
 class ElectrodeView extends StatefulWidget {
   const ElectrodeView({
     super.key,
@@ -41,7 +34,7 @@ class ElectrodeView extends StatefulWidget {
 
   final ElectrodeModel model;
 
-  /// Initial contact states (OFF represented by key absence).
+  /// Initial contact states; OFF is represented by key absence.
   final Map<ContactKey, ContactState> initialStates;
 
   final ContactState initialCaseState;
@@ -85,8 +78,8 @@ class _ElectrodeViewState extends State<ElectrodeView> {
     ContactState.cathodic => ContactState.off,
   };
 
-  /// Applies the change unconditionally (like the desktop
-  /// `_apply_change_if_valid`) and reports the validation outcome.
+  /// Applies the change unconditionally and reports the validation outcome,
+  /// matching the desktop `_apply_change_if_valid`.
   void _apply(Map<ContactKey, ContactState> newStates, ContactState newCase) {
     final result = validateConfiguration(newStates, newCase);
     setState(() {
@@ -116,8 +109,8 @@ class _ElectrodeViewState extends State<ElectrodeView> {
         _states[ContactKey(levelIdx, seg)] ?? ContactState.off,
     ];
 
-    // Desktop mousePressEvent ring logic: all OFF -> ANODIC, all ANODIC ->
-    // CATHODIC, anything else -> OFF.
+    // Desktop ring logic: all OFF becomes ANODIC, all ANODIC becomes
+    // CATHODIC, and any mixed ring goes to OFF.
     final ContactState newState;
     if (segStates.every((s) => s == ContactState.off)) {
       newState = ContactState.anodic;
@@ -154,12 +147,9 @@ class _ElectrodeViewState extends State<ElectrodeView> {
   }
 
   // Cached layout, keyed on the only two things it depends on. Recomputing it
-  // every build returned a NEW ElectrodeLayout each time, and since that class
-  // has no value equality, `shouldRepaint`'s `oldDelegate.layout != layout` was
-  // always true — so every setState in the host screen fully repainted this
-  // canvas (shared cylinder shader, per-contact gradients, a TextPainter per
-  // label), including on every slider tick. Caching fixes the repaint AND skips
-  // the geometry recompute.
+  // every build yields a new ElectrodeLayout, and that class has no value
+  // equality, so `shouldRepaint` would see a change on every setState in the
+  // host screen and fully repaint the canvas, slider ticks included.
   ElectrodeLayout? _layout;
   String? _layoutModel;
   Size? _layoutSize;

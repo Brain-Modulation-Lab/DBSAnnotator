@@ -1,4 +1,4 @@
-/// The notes report — the thing the home card has always promised.
+/// The notes-only report: ordering, dates and the PDF and docx packages.
 library;
 
 import 'dart:convert';
@@ -74,7 +74,7 @@ void main() {
         .files
         .map((f) => f.name)
         .toList();
-    // The same packaging as the session report, because it IS the same code.
+    // The same packaging as the session report, from the same code.
     expect(
       names,
       containsAll(<String>[

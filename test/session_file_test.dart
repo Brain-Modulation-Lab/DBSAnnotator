@@ -136,7 +136,7 @@ void main() {
     test('column names are BIDS-style snake_case', () {
       // BIDS: "It is RECOMMENDED that the column names ... are written in
       // snake_case with the first letter in lower case." The `block_ID` /
-      // `session_ID` / `program_ID` spellings this replaced were not.
+      // `session_ID` / `program_ID` spellings that `readColumn` accepts are not.
       for (final column in sessionColumns) {
         expect(
           column,
@@ -159,19 +159,17 @@ void main() {
       expect(rows.first.appendId, '1');
       expect(rows.first.programId, 'B');
       expect(rows.first.electrodeModel, 'Medtronic SenSight B33005');
-      // The point of this fixture, and of the whole v0.5.0 timestamp cleanup:
-      // the file has NO `acq_time` column at all — only `date`, `time` and a
-      // free-text `timezone` — and reading it produces a complete instant
-      // anyway, offset included. Every consumer downstream (reports, exports,
-      // the aggregate) therefore sees one populated timestamp column without
-      // knowing the source predates it.
+      // The fixture has no `acq_time` column at all, only `date`, `time` and
+      // a free-text `timezone`, yet reading it produces a complete instant,
+      // offset included, so every consumer downstream sees one populated
+      // timestamp column without knowing the source predates it.
       expect(
         rows.first.acqTime,
         '2026-02-03T09:00:00+00:00',
         reason: 'backfilled from date + time + the offset in the timezone cell',
       );
-      // The offset is the RECORDING machine's, taken from the file, never this
-      // machine's — so the instant is the same wherever the file is read.
+      // The offset is the recording machine's, taken from the file and never
+      // this machine's, so the instant is the same wherever the file is read.
       expect(rows.first.timestamp, DateTime.utc(2026, 2, 3, 9).toLocal());
       // Display reads the wall clock as recorded, with no zone conversion.
       expect(recordedDate(rows.first.acqTime), '2026-02-03');

@@ -6,18 +6,12 @@ import 'tsv.dart';
 class Annotation {
   const Annotation({required this.acqTime, required this.notes});
 
-  /// The whole instant in ISO-8601 with its offset, and the only timestamp a
-  /// note carries.
-  ///
-  /// Before v0.5.0 a note stored `date` + `time` + a `timezone` cell holding a
-  /// bare `DateTime.timeZoneName` with **no offset** — so an annotation row
-  /// could not be resolved to an instant at all, where the session writer at
-  /// least included one. [Annotation.fromMap] backfills those rows, so an old
-  /// notes file now reads as a real instant for the first time.
+  /// ISO-8601 instant with offset. Legacy notes files stored
+  /// `date`/`time`/`timezone` with no offset; [Annotation.fromMap] backfills
+  /// those rows.
   final String acqTime;
   final String notes;
 
-  /// Build an entry stamped with the current local date and time.
   factory Annotation.now(String notes, {DateTime? at}) =>
       Annotation(acqTime: acqTimeCell(at ?? DateTime.now()), notes: notes);
 

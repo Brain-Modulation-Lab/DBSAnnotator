@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Per-cathode amplitude split — tablet port of `ui/amplitude_split_widget.py`.
+/// Per-cathode amplitude split, a port of `ui/amplitude_split_widget.py`.
 ///
-/// Shown only when >= 2 cathodes are active. Each cathode gets an editable
-/// percentage; the LAST row is the auto-computed remainder so the values always
-/// sum to 100 (mirrors the desktop's rebalance). The current percentages
-/// (aligned to [cathodes]) are reported via [onChanged]; the parent serializes
-/// them with `encodeAmplitude(total, percentages)` at insert.
+/// Shown only when at least two cathodes are active. Each gets an editable
+/// percentage, and the last row is the auto-computed remainder so the values
+/// always sum to 100. [onChanged] reports the percentages aligned to
+/// [cathodes]; the parent serialises them at insert.
 class AmplitudeSplit extends StatefulWidget {
   const AmplitudeSplit({
     super.key,
@@ -66,8 +65,8 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
     ];
   }
 
-  /// Report the current split after the frame (avoids setState-in-build when
-  /// this fires from initState/didUpdateWidget).
+  /// Report the current split after the frame, so a call from initState or
+  /// didUpdateWidget cannot setState during build.
   void _notifyLater() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (mounted) widget.onChanged(List<double>.of(_pct));
   });
@@ -78,8 +77,8 @@ class _AmplitudeSplitState extends State<AmplitudeSplit> {
     return s;
   }
 
-  /// Row [i] edited to [text]: clamp 0..100; if the earlier rows would exceed
-  /// 100, scale the non-edited ones down; the last row takes the remainder.
+  /// Row [i] edited to [text]: clamp to 0..100, scale the other rows down if
+  /// they would exceed 100, and give the last row the remainder.
   void _edit(int i, String text) {
     final n = _pct.length;
     _pct[i] = (double.tryParse(text.trim()) ?? 0).clamp(0.0, 100.0).toDouble();

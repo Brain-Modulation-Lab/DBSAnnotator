@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Generic add / remove / edit dialog for a list of short strings — program
-/// names, stim preset values (numeric), or scale names. Returns the edited
-/// list (blanks dropped) on Save, or null on Cancel.
+/// Generic add / remove / edit dialog for a list of short strings: program
+/// names, stim preset values, or scale names. Returns the edited list with
+/// blanks dropped on Save, or null on Cancel.
 class ListEditorDialog extends StatefulWidget {
   const ListEditorDialog({
     super.key,
