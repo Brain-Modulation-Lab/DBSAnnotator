@@ -61,8 +61,7 @@
       {
         "name": "left_amplitude",
         "type": "string",
-        "units": "mA",
-        "description": "Left amplitude. A single value, or per-contact values joined by ``_`` in ``left_cathode`` order when current is steered (``3.3_2.2`` is 5.5 mA split 60/40)."
+        "description": "Left amplitude in mA. A single value, or per-contact values joined by ``_`` in ``left_cathode`` order when current is steered (``3.3_2.2`` is 5.5 mA split 60/40). It carries no ``Units`` because a steered value is not a single number; sum the parts for the delivered current."
       },
       {
         "name": "left_pulse_width",
@@ -89,8 +88,7 @@
       {
         "name": "right_amplitude",
         "type": "string",
-        "units": "mA",
-        "description": "Right amplitude, same shape as ``left_amplitude``."
+        "description": "Right amplitude in mA, same shape as ``left_amplitude``."
       },
       {
         "name": "right_pulse_width",

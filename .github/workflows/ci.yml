@@ -196,14 +196,19 @@ jobs:
 
       - name: Validate it
         run: |
-          set -uo pipefail
-          deno run -ERWN jsr:@bids/validator build/bids-dataset \
-            --json > build/bids-report.json || true
+          # Every invocation is guarded. The default shell is `bash -e`, and the
+          # validator exits non-zero whenever it finds errors, so an unguarded
+          # call kills the step before it writes anything: the job's purpose is
+          # to PRODUCE the finding, and `continue-on-error` decides what it
+          # costs. A `set -uo pipefail` line does NOT help, since it leaves the
+          # shell's own -e in place.
+          deno run -ERWN jsr:@bids/validator build/bids-dataset --json > build/bids-report.json || true
+          deno run -ERWN jsr:@bids/validator build/bids-dataset > build/bids-report.txt 2>&1 || true
           {
-            echo "### BIDS validator"
+            echo '### BIDS validator'
             echo ''
             echo '```'
-            deno run -ERWN jsr:@bids/validator build/bids-dataset 2>&1 | tail -60
+            tail -60 build/bids-report.txt || echo 'the validator produced no output'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -215,6 +220,7 @@ jobs:
           name: bids-validator-report
           path: |
             build/bids-report.json
+            build/bids-report.txt
             build/bids-dataset
           if-no-files-found: error
 

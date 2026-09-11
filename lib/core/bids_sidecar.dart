@@ -41,6 +41,29 @@ String _longName(String column) {
   ].join(' ');
 }
 
+/// The `task-` label each contract section describes, and what that task is.
+///
+/// BIDS asks a task file's sidecar for both. The label is already in the
+/// filename, but a sidecar that repeats it still describes the file when it is
+/// read on its own, and the description is the only place a reuser learns what
+/// the rows represent. The combined table declares neither: it spans sessions
+/// and carries no `task-` entity.
+const _tasks = <String, ({String name, String description})>{
+  'session_tsv': (
+    name: 'programming',
+    description:
+        'Deep brain stimulation programming. Stimulation configurations are '
+        'set, tried and rated during a clinical visit, one row per block and '
+        'rated scale.',
+  ),
+  'annotation_tsv': (
+    name: 'notes',
+    description:
+        'Timestamped free-text clinical notes taken during a visit, one row '
+        'per note.',
+  ),
+};
+
 /// Build the sidecar for one [kind] of TSV: `session_tsv` or `annotation_tsv`.
 Map<String, dynamic> buildSidecar(
   Map<String, dynamic> contract,
@@ -51,6 +74,8 @@ Map<String, dynamic> buildSidecar(
       .cast<Map<String, dynamic>>();
   final bids = contract['bids'] as Map<String, dynamic>? ?? const {};
   return <String, dynamic>{
+    if (_tasks[kind] != null) 'TaskName': _tasks[kind]!.name,
+    if (_tasks[kind] != null) 'TaskDescription': _tasks[kind]!.description,
     'GeneratedBy': [
       {'Name': 'DBS Annotator', 'Version': appVersion},
     ],
@@ -86,7 +111,13 @@ String aggregateSidecarJson(
   final keys = buildSidecar(contract, 'aggregate_tsv', appVersion: appVersion);
   final session = buildSidecar(contract, 'session_tsv', appVersion: appVersion);
   // Document-level fields first, then the two column sets in header order.
-  const documentLevel = {'GeneratedBy', 'SchemaVersion', 'MissingValueCode'};
+  const documentLevel = {
+    'TaskName',
+    'TaskDescription',
+    'GeneratedBy',
+    'SchemaVersion',
+    'MissingValueCode',
+  };
   final merged = <String, dynamic>{
     for (final field in documentLevel)
       if (keys.containsKey(field)) field: keys[field],

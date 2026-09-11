@@ -50,6 +50,31 @@ void main() {
       expect(contractColumns(contract, 'annotation_tsv'), annotationColumns);
     });
 
+    test('a task file names its task; the combined table does not', () {
+      // bids-validator asks every task file's sidecar for TaskName, and the
+      // combined table is not one: it spans sessions and carries no `task-`
+      // entity, so claiming a task there would be false.
+      final session = buildSidecar(
+        contract,
+        'session_tsv',
+        appVersion: '0.5.0',
+      );
+      expect(session['TaskName'], 'programming');
+      expect(session['TaskDescription'], contains('stimulation'));
+
+      final notes = buildSidecar(
+        contract,
+        'annotation_tsv',
+        appVersion: '0.5.0',
+      );
+      expect(notes['TaskName'], 'notes');
+
+      final aggregate =
+          jsonDecode(aggregateSidecarJson(contract, appVersion: '0.5.0'))
+              as Map<String, dynamic>;
+      expect(aggregate.containsKey('TaskName'), isFalse);
+      expect(aggregate.containsKey('TaskDescription'), isFalse);
+    });
     test('entries use the BIDS key names, with Units where there are any', () {
       final session = buildSidecar(
         contract,

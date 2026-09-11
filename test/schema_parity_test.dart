@@ -32,6 +32,27 @@ void main() {
     expect(sessionColumns, columnsOf('session_tsv'));
   });
 
+  test('only numeric columns declare Units', () {
+    // `Units` is what makes bids-validator type a column as a number, and it
+    // rejected `3.0_2.0` in left_amplitude for exactly that reason: the column
+    // is declared `string` because a steered current is several values joined
+    // by an underscore, so claiming a unit on it asserts a shape the data does
+    // not have. The unit belongs in the description instead.
+    final json =
+        jsonDecode(File('schema/tsv_schema.json').readAsStringSync())
+            as Map<String, dynamic>;
+    for (final block in json.values.whereType<Map<String, dynamic>>()) {
+      for (final column in (block['columns'] as List? ?? [])) {
+        final c = column as Map<String, dynamic>;
+        if (c['units'] == null) continue;
+        expect(
+          c['type'],
+          anyOf("float", "integer"),
+          reason: '${c['name']} declares Units but is ${c['type']}',
+        );
+      }
+    }
+  });
   test('the bundled contract is identical to the canonical one', () {
     for (final name in const <String>[
       'tsv_schema',
