@@ -3,8 +3,8 @@
 The application is written in Dart, so nothing here imports the software. Two
 consequences:
 
-* Read the Docs installs only ``docs/requirements.txt`` — no project install and
-  no system libraries.
+* Read the Docs installs only ``docs/requirements.txt``, with no project
+  install and no system libraries.
 * ``autodoc``, ``autosummary``, ``napoleon`` and ``viewcode`` are absent because
   they would have no target. A Dart API reference via ``dartdoc`` is a separate
   decision.
@@ -40,10 +40,10 @@ html_context = {"contact_email": "lucia.poma@wysscenter.ch"}
 
 
 def _flutter_version() -> str:
-    """``version: 0.5.0+1`` in pubspec.yaml -> ``0.5.0``.
+    """The ``0.5.0`` out of a pubspec ``version: 0.5.0+1``.
 
     A regex rather than a YAML parser, because PyYAML is not in the standard
-    library and this is the only field needed — a pubspec ``version`` is always
+    library and this is the only field needed: a pubspec ``version`` is always
     a top-level scalar.
 
     Raises rather than defaulting: a silent ``0.0.0`` in the footer of a

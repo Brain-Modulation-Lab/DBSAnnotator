@@ -1,9 +1,9 @@
 """Render the TSV column tables from the committed schema contract at build time.
 
-The tables in :doc:`output_format` describe 21 session columns and 4 annotation
+The tables in :doc:`output_format` describe 19 session columns and 2 annotation
 columns. Hand-maintaining that in reStructuredText guarantees it drifts from the
-code, so it is generated instead — from ``schema/tsv_schema.json``, which is the
-same file the application loads at runtime and several tests assert against.
+code, so it is generated instead, out of ``schema/tsv_schema.json``, which is
+the same file the application loads at runtime and several tests assert against.
 
 Generated at build time rather than committed, which makes staleness
 structurally impossible: there is no second copy to fall behind. The input is
@@ -53,8 +53,8 @@ def _rst_table(columns: list[dict], title: str) -> str:
         lines += [
             f"   * - ``{col['name']}``",
             f"     - {col.get('type', 'string')}",
-            f"     - {col.get('units', '') or '—'}",
-            f"     - {col.get('description', '').strip() or '—'}",
+            f"     - {col.get('units', '') or 'n/a'}",
+            f"     - {col.get('description', '').strip() or 'n/a'}",
         ]
     return "\n".join(lines) + "\n"
 
@@ -62,14 +62,14 @@ def _rst_table(columns: list[dict], title: str) -> str:
 def _example_table(path: Path, max_rows: int = 6) -> str:
     """The first few rows of the worked example, as a literal block.
 
-    Only a handful of columns are shown: all 21 in one table is unreadable at
-    any page width, and the point here is the *row shape* — that one block
+    Only a handful of columns are shown: all 19 in one table is unreadable at
+    any page width, and the point here is the *row shape*, that one block
     contributes one row per scale, repeating its stimulation values.
     """
     show = [
+        "acq_time",
         "block_id",
         "is_initial",
-        "time",
         "scale_name",
         "scale_value",
         "left_amplitude",

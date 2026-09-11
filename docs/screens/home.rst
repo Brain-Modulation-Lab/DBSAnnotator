@@ -21,7 +21,7 @@ the top bar of every screen.
      - You are running a programming session: stimulation parameters, electrode
        contacts, scale ratings, side effects and notes.
    * - :doc:`Annotations only <annotations>`
-     - You only want timestamped notes — no stimulation data.
+     - You only want timestamped notes, with no stimulation data.
    * - :doc:`Single session report <single_session_report>`
      - You have a TSV and want its report, with no authoring.
    * - :doc:`Longitudinal review <longitudinal>`
@@ -53,5 +53,5 @@ an appointment and neither should need hunting for.
 
    Enlarged text. Layouts reflow rather than clipping, on every screen.
 
-**Help.** The **?** opens the About dialog — version, licence and where to
-report a problem. See :ref:`dialog-about`.
+**Help.** The **?** opens the About dialog: the version, the licence and where
+to report a problem. See :ref:`dialog-about`.

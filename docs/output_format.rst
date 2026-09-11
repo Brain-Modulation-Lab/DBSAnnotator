@@ -38,10 +38,11 @@ path.
 
 .. note::
 
-   Files written before v0.5.0 end in ``_events.tsv`` and spell three columns
-   ``block_ID``, ``session_ID`` and ``program_ID``. They open unchanged — the
-   app detects the format from the file's columns, not from its name. See
-   :ref:`bids-changes` for why the names moved.
+   Older files end in ``_events.tsv`` and spell three of their columns
+   ``block_ID``, ``session_ID`` and ``program_ID``. They open unchanged,
+   because the app reads a file's kind from its columns rather than from its
+   name. See :ref:`the naming rules <bids-changes>` for where the current
+   spellings come from.
 
 Row shape
 ---------
@@ -61,10 +62,10 @@ Why long and not wide
 ~~~~~~~~~~~~~~~~~~~~~
 
 One row per block with a column per scale looks tidier and is worse. The column
-set would become indication-specific — an OCD session and a Parkinson's session
-would have different columns — so pooling them would need an outer join on
-mismatched headers, and adding a scale mid-study would change the header of
-every file written afterwards.
+set becomes indication-specific, because an OCD session and a Parkinson's
+session rate different things, so pooling the two needs an outer join on
+mismatched headers, and adding a scale mid-study changes the header of every
+file written from then on.
 
 In long form, a site using different scales simply writes different *rows*, and
 everything pools with a concatenation. It is also the shape that pivots without
@@ -98,7 +99,7 @@ Which rows are which
 
    Read ``is_initial`` numerically, not as a truthy string. Some files write
    ``0.0``/``1.0``, and ``df.is_initial.astype(bool)`` is ``True`` for the
-   *string* ``"0.0"`` — which silently moves the baseline into the tested set.
+   *string* ``"0.0"``, which silently moves the baseline into the tested set.
    Use ``df.is_initial.astype(float).eq(1)``.
 
 Omitted ratings
@@ -111,7 +112,7 @@ BIDS requires for a missing or non-applicable value. Read it with:
 
    df = pd.read_csv(path, sep="\t", na_values=["n/a", "NaN"])
 
-``NaN`` is there for files written before v0.5.0, which used that spelling.
+``NaN`` is there because older files spell it that way.
 
 Timestamps
 ----------
@@ -123,25 +124,26 @@ Every row carries **one** time cell:
    df["when"] = pd.to_datetime(df.acq_time)   # tz-aware, ISO-8601, one line
 
 ``acq_time`` is the whole instant with its UTC offset
-(``2026-02-03T09:00:00+00:00``) — and it is BIDS' own name for a timestamp
+(``2026-02-03T09:00:00+00:00``), and it is BIDS' own name for a timestamp
 column, used in ``scans.tsv`` and ``sessions.tsv``.
 
-Earlier drafts also wrote ``date``, ``time`` and ``timezone`` beside it: four
-cells for one instant. They were removed in v0.5.0 because four cells can
-disagree and nothing asserted they agreed, because ``timezone`` was *not
-reproducible* — Dart reports the zone name as ``W. Europe Daylight Time`` on
-Windows and ``CEST`` on Linux, so one clinic produced different cells per
-platform — and because its only machine-usable half, the offset, is already
-inside ``acq_time``.
+One cell rather than four is a deliberate choice. Spreading an instant across
+``date``, ``time`` and ``timezone`` cells lets them disagree with each other
+while nothing in the file asserts that they agree, and a zone *name* is not
+reproducible: Dart reports the same zone as ``W. Europe Daylight Time`` on
+Windows and as ``CEST`` on Linux, so one clinic would emit different cells
+depending on which platform it recorded the visit on. The only
+machine-readable part of a zone name is the offset, and that is already inside
+``acq_time``.
 
 .. note::
 
-   Files written before v0.5.0 stored the timestamp as ``date`` + ``time`` plus
-   a ``timezone`` cell holding a platform-supplied display name — on Windows,
-   ``W. Europe Daylight Time +0200``, which no date parser accepts. **You do not
-   need to handle that.** Open such a file in DBS Annotator and export it, and
-   the app composes ``acq_time`` from those cells on read, offset included; the
-   three retired columns are not written back.
+   Older files store the timestamp as ``date`` + ``time`` plus a ``timezone``
+   cell holding a platform-supplied display name, such as the Windows spelling
+   ``W. Europe Daylight Time +0200``, which no date parser accepts. **You do
+   not need to handle that.** Open such a file in DBS Annotator and export it:
+   the app composes ``acq_time`` out of those three cells as it reads them,
+   offset included, and writes back only ``acq_time``.
 
    If you are reading an old file directly with pandas rather than through the
    app, the equivalent is:
@@ -151,14 +153,14 @@ inside ``acq_time``.
       when = pd.to_datetime(df.date + " " + df.time)
       offset = df.timezone.str.extract(r"([+-]\d{4})")[0]
 
-   which is precisely the two-line, regex-requiring reconstruction that having a
-   single ``acq_time`` column removes.
+   which is the two-line, regex-requiring reconstruction that a single
+   ``acq_time`` column spares you.
 
 .. warning::
 
    ``acq_time`` is an *instant*, and rendering an instant picks a timezone. A
-   block recorded at ``09:00:00+01:00`` in Geneva is ``03:00`` in Chicago —
-   the same moment, a different clock. If you want the time the event happened
+   block recorded at ``09:00:00+01:00`` in Geneva is ``03:00`` in Chicago: the
+   same moment on a different clock. If you want the time the event happened
    **at the clinic**, read the wall clock out of the string rather than
    localising it:
 
@@ -229,8 +231,11 @@ The full sidecar carries one such entry per column in the tables above.
 Relationship to BIDS
 --------------------
 
-These files are BIDS files, not merely BIDS-*named*. That distinction is worth
-spelling out, because until v0.5.0 they were the latter.
+These files are BIDS files, not merely BIDS-*named*: the entities in the
+filename, the datatype directory, the suffix and the sidecar are all what the
+specification asks for. The distinction is worth spelling out, because a
+filename that looks like BIDS on a file the specification would reject is worse
+than no BIDS naming at all. Downstream tools trust the name.
 
 .. _bids-changes:
 
@@ -249,31 +254,34 @@ names the correct alternative directly:
    columns MAY be included, but MUST be labeled ``_beh.tsv`` rather than
    ``_events.tsv``.
 
-So ``_beh.tsv``, in a ``beh/`` datatype directory, is not a compromise: it is the
-suffix the specification points at for exactly this shape of file. Versions up
-to 0.4.0 wrote ``_events.tsv``, which no validator would have accepted.
+So ``_beh.tsv``, in a ``beh/`` datatype directory, is not a compromise: it is
+the suffix the specification points at for exactly this shape of file. An
+``_events.tsv`` holding these columns is a file no validator accepts, which is
+why the app reads that name and never writes it.
 
-The same release moved ``block_ID``, ``session_ID`` and ``program_ID`` to
-``block_id``, ``append_id`` and ``program_id`` (BIDS recommends snake_case
-throughout), replaced ``NaN`` with ``n/a``, collapsed ``date`` + ``time`` +
-``timezone`` into a single ``acq_time``, and switched line endings from CRLF to
-LF.
+The column names follow the same reasoning. BIDS recommends snake_case, so the
+columns are ``block_id``, ``append_id`` and ``program_id``; a missing value is
+``n/a``, the spelling BIDS reserves for it; the timestamp is one ``acq_time``
+cell; and lines end in LF. Files that instead spell those columns ``block_ID``,
+``session_ID`` and ``program_ID``, write ``NaN``, split the timestamp across
+``date``, ``time`` and ``timezone``, or end their lines in CRLF are read
+without conversion.
 
-``session_ID`` became ``append_id`` rather than ``session_id`` deliberately. The
-column counts **data-entry episodes within one file** — it advances each time
-that file is reopened to add more rows — and it is file-scoped, so ``append_id``
-1 in two different files are unrelated. BIDS uses ``session_id`` for the
-``ses-`` label in ``sessions.tsv``, and one name meaning both things would
-mislead anyone reading a table that combines several sessions.
+The one name worth dwelling on is ``append_id``, which is deliberately not
+``session_id``. It counts **data-entry episodes within one file**, advancing
+each time that file is reopened to add more rows, and it is file-scoped, so
+``append_id`` 1 in two different files are unrelated. BIDS uses ``session_id``
+for the ``ses-`` label in ``sessions.tsv``, and one name meaning both things
+would mislead anyone reading a table that combines several sessions.
 
 .. note::
 
-   Compatibility runs **one way**. This app reads files written by the 0.4.x
-   desktop application, including all of the spellings above. Files it *writes*
-   are for this app and for analysis: they no longer carry ``session_ID``,
-   ``date``, ``time`` or ``timezone``, so the frozen desktop app cannot read
-   them in full. That was a deliberate trade for a retired implementation —
-   stating it plainly is better than implying a symmetry that does not hold.
+   Compatibility runs **one way**. DBS Annotator reads the files written by the
+   0.4.x desktop application, in every spelling above. What it writes is meant
+   for this app and for analysis, and carries no ``session_ID``, ``date``,
+   ``time`` or ``timezone``, so that retired desktop application cannot read a
+   current file in full. Saying so plainly is better than implying a symmetry
+   that does not hold.
 
 .. _bids-dataset-export:
 
@@ -299,12 +307,12 @@ from any of the three screens that hold session data:
 
 The longitudinal screen is the useful place to do this: it already holds several
 visits of one patient, which is exactly what the ``sub-``/``ses-`` hierarchy is
-for, and a file imported as a pre-0.5.0 ``_events.tsv`` is re-emitted into the
-tree as a valid ``_beh.tsv``.
+for, and a file imported under the older ``_events.tsv`` name is re-emitted
+into the tree as a valid ``_beh.tsv``.
 
 Reports are derived documents, so they belong under ``derivatives/`` rather than
-beside the raw data, and are written there — with their own
-``dataset_description.json`` — rather than being given invented raw-data
+beside the raw data, and are written there with their own
+``dataset_description.json`` rather than being given invented raw-data
 filenames.
 
 .. _combined-table:
@@ -314,7 +322,7 @@ The combined table
 
 One file per visit is right for recording and awkward for analysis: pooling a
 patient's visits, or several patients for a study, means concatenating a folder
-of files and losing the one thing that told their rows apart — the filename.
+of files and losing the one thing that told their rows apart, the filename.
 
 **Export → Combined table (TSV)**, from the longitudinal screen, writes the
 imported sessions as one long table with four identity columns prepended:
@@ -325,7 +333,8 @@ imported sessions as one long table with four identity columns prepended:
    sub-01          ses-20260203   01      sub-01_ses-20260203_..._beh.tsv   ...
    sub-07          ses-20260401   01      sub-07_ses-20260401_..._beh.tsv   ...
 
-The nineteen session columns follow, unchanged. So:
+The nineteen session columns follow unchanged, which makes twenty-three in
+all. So:
 
 .. code-block:: python
 
@@ -344,11 +353,11 @@ above, and the filename is then the only thing that separates their rows.
 .. note::
 
    ``session_id`` here is the **BIDS session label**, as ``sessions.tsv`` means
-   it. The per-file counter that used to be called ``session_id`` is
-   ``append_id``, and it is still in the table — it counts data-entry episodes
-   within one source file, so equal values in different ``source_file`` values
-   are unrelated. That collision is why the column was renamed in v0.5.0; see
-   :ref:`bids-changes`.
+   it. The per-file counter is in the table too, under its own name
+   ``append_id``: it counts data-entry episodes within one source file, so
+   equal values under different ``source_file`` entries are unrelated. That
+   possible collision is exactly why the two carry different names; see
+   :ref:`the naming rules <bids-changes>`.
 
 Inside a BIDS dataset the same table is a **derivative**, because a table
 spanning sessions cannot sit in a tree defined as one file per session:
@@ -376,27 +385,27 @@ What is still not standard
 
 The columns themselves. Of the nineteen in a session file, only ``notes`` and
 ``acq_time`` resemble anything BIDS defines; ``block_id``, ``left_cathode``,
-``left_amplitude`` and the rest are this application's own. That is permitted —
-BIDS allows additional columns and asks that they be documented in a sidecar,
-which is what the ``_beh.json`` is for — but it does mean no generic BIDS tool
-will understand what a *block* is. Read this page, or the sidecar.
+``left_amplitude`` and the rest are this application's own. That is permitted,
+since BIDS allows additional columns and asks that they be documented in a
+sidecar, which is what the ``_beh.json`` is for, but it does mean no generic
+BIDS tool will understand what a *block* is. Read this page, or the sidecar.
 
 The placement of the combined table is the part with the least precedent: a
 ``desc-``-only filename at a derivative root has no ``sub-`` entity, because the
 table deliberately spans subjects. ``desc-`` is the entity BIDS provides for
-naming a derivative variant, and dataset-level files do exist, so it is
-idiomatic — but it is checked by a validator job in CI rather than asserted
-here.
+naming a derivative variant, and dataset-level files do exist, so the shape is
+idiomatic; it is checked by a validator job in CI rather than asserted here.
 
 Worked example
 --------------
 
 The file used throughout this documentation, and in the app's own test suite, is
 **synthetic**. Every rating, stimulation parameter and timestamp in it is
-invented, and no recorded session went into it — which is why it can be
+invented, and no recorded session went into it, which is why it can be
 published here at all. It is generated by ``tool/generate_fixtures.dart``, whose
-comments explain the structure the tests depend on, and it is a 7-configuration
-visit with five session scales:
+comments explain the structure the tests depend on. It describes a visit with a
+baseline block, seven configurations tried after it, and five session scales
+rated at each:
 
 :download:`sub-01_ses-20260203_task-programming_run-01_beh.tsv
 <_generated/sub-01_ses-20260203_task-programming_run-01_beh.tsv>`

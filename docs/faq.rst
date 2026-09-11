@@ -16,7 +16,7 @@ General
 **Which leads are supported?**
    Medtronic (3387, 3389, 3391, SenSight B33005/B33015), Boston Scientific
    (Vercise, Vercise Directed, Cartesia HX, Cartesia X), Abbott (ActiveTip,
-   Infinity), PINS Medical (L301–L303) and ALEVA directSTIM — including the
+   Infinity), PINS Medical (L301-L303) and ALEVA directSTIM, including the
    segmented models, whose levels are drawn and tapped as three separate
    segments plus a whole-level ring.
 
@@ -34,18 +34,21 @@ Files and data
 
 **Can I open the TSV in Excel?**
    Yes. It is tab-separated text. Be aware that Excel will try to reinterpret
-   some values — a scale name that looks like a date, for instance — so for
+   some values (a scale name that looks like a date, for instance), so for
    analysis prefer pandas or R, and see :doc:`output_format`.
 
 **Are files written by different versions compatible?**
-   Yes. The format is defined by a committed contract, and readers tolerate
-   missing columns, so an older file opens in a newer app.
+   An older file opens in a newer app. The format is defined by a committed
+   contract, and readers fall back to the superseded column spellings, so
+   nothing has to be converted first. It does not hold in the other
+   direction: a file written today no longer carries the retired columns an
+   older build looked for. See :ref:`the naming rules <bids-changes>`.
 
 **What happens if the app crashes mid-session?**
-   Every insert is written to the file as it happens, and writes are atomic — the
-   new content is written alongside and then swapped in, so an interrupted write
-   leaves the previous file intact rather than a truncated one. You lose at most
-   the entry you were typing.
+   Every insert is written to the file as it happens, and writes are atomic:
+   the new content is written alongside and then swapped in, so an interrupted
+   write leaves the previous file intact rather than a truncated one. You lose
+   at most the entry you were typing.
 
 **Why is there a row per scale instead of a row per configuration?**
    So that data pools across sites that rate different scales. See
@@ -59,8 +62,8 @@ Reports
    at export, or from the Recording step. See :ref:`scale-targets`.
 
 **Why does the report say "last recorded configuration" rather than "final"?**
-   Because the data does not record that a clinician confirmed a choice — only
-   which block came last. See :ref:`what-the-reports-do-not-say`.
+   Because the data records only which block came last, not that a clinician
+   confirmed a choice. See :ref:`what-the-reports-do-not-say`.
 
 **A character in my note came out as a question mark.**
    You are on a build whose bundled fonts are missing; the PDF exporter's
@@ -70,7 +73,7 @@ Reports
    silently.
 
 **Can I get the report as a Word file I can edit?**
-   Yes — both formats come from the same numbers, so the ``.docx`` says exactly
+   Yes. Both formats come from the same numbers, so the ``.docx`` says exactly
    what the PDF does.
 
 Troubleshooting

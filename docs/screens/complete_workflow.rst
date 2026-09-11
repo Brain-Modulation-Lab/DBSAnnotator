@@ -4,12 +4,13 @@ Complete workflow
 The full session: stimulation parameters, electrode configuration, scale ratings,
 side effects and notes, recorded configuration by configuration.
 
-The screen is a four-step wizard. Steps 1 and 3 share a two-row layout — what was
-*delivered* on top (parameters and electrodes), what was *observed* below (scales,
-side effects, notes) — which follows the order the work is actually done in.
+The screen is a four-step wizard. Steps 1 and 3 share a two-row layout that
+follows the order the work is actually done in: what was *delivered* on top
+(parameters and electrodes), what was *observed* below (scales, side effects
+and notes).
 
-Step 0 — File
--------------
+Step 0: File
+------------
 
 .. figure:: ../_static/screenshots/session_step0_file.png
    :alt: The File step with a patient ID and run entered, and an opened file
@@ -24,18 +25,18 @@ straight away, along with its ``.json`` sidecar, so every later insert has
 somewhere to go.
 
 *Open* loads an existing session instead, and appends to it. The status line
-under the buttons reports what was found — how many rows, and which block and
-session the next insert will carry — so an append is never a guess. Opening a
+under the buttons reports what was found: the row count, and the block and
+``append_id`` the next insert will carry, so an append is never a guess. Opening a
 file also adopts the **electrode model named in that file**, so the lead diagrams
 show the patient's actual hardware rather than whatever the dropdown last held.
 If the file names a model that is not in the catalogue, the app says so rather
 than drawing the wrong lead.
 
-A file that is not a programming session — an annotations file, say — is refused
-with an explanation, rather than loading as empty rows.
+A file that is not a programming session, an annotations file for instance, is
+refused with an explanation rather than loading as empty rows.
 
-Step 1 — Initial configuration
-------------------------------
+Step 1: Initial configuration
+-----------------------------
 
 The state the patient arrived in, before anything is changed.
 
@@ -55,10 +56,10 @@ and spacings, so two different leads look different.
 
 **Parameters, per side.** Frequency, amplitude and pulse width, with quick-pick
 presets. When more than one cathode is active, an amplitude split appears so you
-can set the percentage per contact — visible in the screenshot above as the
-``E2b`` / ``E2c`` rows, each showing the milliamps its share works out to.
+can set the percentage per contact. Those are the ``E2b`` and ``E2c`` rows in
+the screenshot above, each showing the milliamps its share works out to.
 
-**Clinical scales.** The baseline assessment — disease-specific scores such as
+**Clinical scales.** The baseline assessment: disease-specific scores such as
 Y-BOCS or UPDRS-III. Disease presets fill the list in with a tap.
 
 **Notes.** Free text. Unlike the recording step, these persist after inserting,
@@ -69,9 +70,9 @@ Inserting records this as the **baseline block** (``is_initial = 1``).
 Selecting contacts
 ~~~~~~~~~~~~~~~~~~
 
-Tap a contact to cycle it: off → anode → cathode → off. Tap the case to use it as
-the return. Segmented levels show their three segments plus a *Ring* strip that
-activates the whole level at once.
+Tap a contact to cycle it from off, to anode, to cathode, and back to off. Tap
+the case to use it as the return. Segmented levels show their three segments
+plus a *Ring* strip that activates the whole level at once.
 
 .. figure:: ../_static/screenshots/session_electrodes.png
    :alt: Both leads with a valid configuration, each pane reporting
@@ -96,7 +97,7 @@ rejected mid-way:
 Narrow screens
 ~~~~~~~~~~~~~~
 
-Below about 900 logical pixels — a phone, or a tablet held in portrait — the two
+Below about 900 logical pixels (a phone, or a tablet held in portrait) the two
 rows stack into one column. Everything is present; there is simply more
 scrolling.
 
@@ -106,8 +107,8 @@ scrolling.
 
    Step 1 in the single-column layout.
 
-Step 2 — Session scales configuration
--------------------------------------
+Step 2: Session scales configuration
+------------------------------------
 
 .. figure:: ../_static/screenshots/session_step2_scales.png
    :alt: Session scales configuration with the OCD preset applied, one row per
@@ -120,13 +121,13 @@ Name the scales to be rated at *every* configuration, with a minimum and maximum
 for each. Keeping the set fixed for the whole session is what makes the ratings
 comparable between configurations.
 
-Choosing a disease preset here — or having chosen one in step 1 — fills the list.
+Choosing a disease preset here, or having chosen one in step 1, fills the list.
 The gear icon edits :ref:`the presets themselves <dialog-session-scales>`, which
 persist between sessions. Nothing on this step is written to the file; it defines
 what step 3 will ask for.
 
-Step 3 — Recording
-------------------
+Step 3: Recording
+-----------------
 
 The loop, repeated once per configuration tried.
 
@@ -139,7 +140,8 @@ The loop, repeated once per configuration tried.
 
 Set the parameters and contacts as in step 1, then rate each scale. A scale that
 was not assessed can be marked omitted, which writes ``n/a`` rather than a
-made-up number — the grey bar with the crossed-out icon in the screenshot above.
+made-up number. That is the grey bar with the crossed-out icon in the
+screenshot above.
 
 **Side effects** have their own field, separate from notes, because a side effect
 is the tolerability record for that configuration and should not be buried in
@@ -177,12 +179,12 @@ configurations by default, with zoom controls and drag handles to reorder the
 panels.
 
 **A table** of every entry sits below them, grouped by block. Values that belong
-to the block — time, programme, parameters — are printed once rather than
+to the block (time, programme, parameters) are printed once rather than
 repeated on every scale row, and a heavy rule marks each block boundary.
 
 **Scale targets** sets what "better" means per scale (minimise, maximise, or
 closest to a value). Once set, the best- and second-best-scoring configurations
-are shaded green across all four charts. Until set, nothing is ranked — see
+are shaded green across all four charts. Until set, nothing is ranked; see
 :ref:`scale-targets`.
 
 Exporting
@@ -193,8 +195,8 @@ Exporting
 formats and is remembered between exports.
 
 .. figure:: ../_static/screenshots/session_paper_size_submenu.png
-   :alt: The Export menu open — PDF and Word reports, the raw TSV, a BIDS
-         dataset — with the paper-size submenu showing A4 selected
+   :alt: The Export menu open, listing PDF and Word reports, the raw TSV and a
+         BIDS dataset, with the paper-size submenu showing A4 selected
    :width: 100%
 
    The Export menu, with the paper-size submenu open.

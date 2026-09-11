@@ -6,22 +6,22 @@ Why this exists
 
 Implanting the electrodes is the start of the treatment, not the end of it. The
 patient returns to a neurologist or psychiatrist, who moves through a series of
-stimulation configurations — contacts, amplitude, pulse width, frequency — and at
+stimulation configurations (contacts, amplitude, pulse width, frequency) and at
 each one records how the patient is doing: tremor, rigidity, mood, side effects.
 Finding a setting that works can take one visit or many, and it is revisited over
 months and years as the patient's response changes.
 
-Each of those visits is an experiment. The useful output is not the final setting
-on its own. It is the *relationship* between what was delivered and what
-happened.
+Each of those visits is an experiment, and its useful output is the
+*relationship* between what was delivered and what happened, rather than the
+setting the visit ended on.
 
 That relationship is the part that usually gets lost.
 
 Vendor programming devices record what the device needs in order to stimulate.
 They are not built to export research-usable data, and what they do export is
 neither consistent between manufacturers nor easy to pool across patients. So
-the clinical detail — the ratings, the order things were tried in, the side
-effect that appeared at 4.5 mA and went away at 3.0 — ends up on paper, or in a
+the clinical detail (the ratings, the order things were tried in, the side
+effect that appeared at 4.5 mA and went away at 3.0) ends up on paper, in a
 free-text note, or in someone's memory. None of those survive analysis.
 
 The result is that sessions get documented twice, inconsistently, and the
@@ -40,9 +40,9 @@ it happens:
    sequence is preserved.
 
 **Ratings, per configuration.**
-   Session scales rated at each block — the same scales throughout, so they are
-   comparable — plus a baseline clinical assessment taken before stimulation
-   changes begin.
+   Session scales rated at each block, the same scales throughout so that they
+   stay comparable, plus a baseline clinical assessment taken before
+   stimulation changes begin.
 
 **Observations.**
    Side effects and free-text notes attached to the block they were seen at, not
@@ -51,7 +51,7 @@ it happens:
 **Time.**
    Every entry is timestamped with its UTC offset. This is what makes it
    possible, afterwards, to tell a rating taken seconds after a parameter change
-   from one taken after several minutes — a distinction that changes how the
+   from one taken after several minutes, a distinction that changes how the
    number should be read.
 
 Design commitments
@@ -66,9 +66,9 @@ and makes no outbound connections.
 pandas, in R, in a text editor. There is no proprietary container and no export
 step that can silently lose a field.
 
-**Analysis-ready shape.** Data is written in long form — one row per (block,
-scale) — which is the shape that pivots and groups without reshaping, and which
-lets a site using a different scale set simply add rows rather than columns.
+**Analysis-ready shape.** Data is written in long form, one row per (block,
+scale). That is the shape that pivots and groups without reshaping, and it lets
+a site using a different scale set add rows rather than columns.
 
 **Say only what the data supports.** Reports state "last recorded
 configuration", not "final settings", because nothing in the record shows that a
@@ -81,5 +81,5 @@ Who it is for
 
 Neurologists, psychiatrists and researchers who run DBS programming visits and
 want each one documented once, in a form that is both readable in a patient
-record and usable in an analysis six months later — including when the question
+record and usable in an analysis six months later, including when the question
 is how this visit compares with the last four.
