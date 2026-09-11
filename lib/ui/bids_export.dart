@@ -26,6 +26,7 @@ import 'share_util.dart';
 Future<void> exportBidsDataset(
   BuildContext context, {
   required List<DatasetEntry> entries,
+  List<DatasetFile> extraFiles = const <DatasetFile>[],
   GlobalKey? anchor,
 }) async {
   if (entries.isEmpty) {
@@ -54,7 +55,12 @@ Future<void> exportBidsDataset(
         repoUrl: repoUrl,
       );
       final archive = Archive();
-      for (final file in files) {
+      // [extraFiles] carries anything that is not one recorded session — today
+      // the combined-table derivative and its own dataset_description.json.
+      // Kept OUT of buildBidsDataset deliberately: that function lays out the
+      // RAW tree, and giving it an opinion about derivatives would make the raw
+      // layout depend on what a caller happens to be deriving.
+      for (final file in [...files, ...extraFiles]) {
         archive.addFile(
           ArchiveFile.bytes(file.path, utf8.encode(file.content)),
         );

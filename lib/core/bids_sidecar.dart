@@ -90,6 +90,48 @@ String annotationSidecarJson(
   required String appVersion,
 }) => _encode(buildSidecar(contract, 'annotation_tsv', appVersion: appVersion));
 
+/// The sidecar for the combined table, pretty-printed.
+///
+/// Composed from two contract sections rather than one: `aggregate_tsv` declares
+/// only the four identity columns, because the other 19 are the session columns
+/// carried through unchanged and describing them twice would let the two copies
+/// drift. The key order matches the table's header.
+///
+/// [computedAcqTime] adds a note to `acq_time` recording that the value may be
+/// *derived* rather than recorded — true for any row that came from a
+/// pre-0.5.0 file, where `SessionRow.fromMap` composed it from `date` + `time` +
+/// `timezone`. A reader of a derivative cannot otherwise know that, and for a
+/// timestamp in a clinical dataset the difference matters.
+String aggregateSidecarJson(
+  Map<String, dynamic> contract, {
+  required String appVersion,
+  bool computedAcqTime = true,
+}) {
+  final keys = buildSidecar(contract, 'aggregate_tsv', appVersion: appVersion);
+  final session = buildSidecar(contract, 'session_tsv', appVersion: appVersion);
+  // `buildSidecar` puts the three document-level fields first; take them from
+  // the keys map and then the two column sets in header order.
+  const documentLevel = {'GeneratedBy', 'SchemaVersion', 'MissingValueCode'};
+  final merged = <String, dynamic>{
+    for (final field in documentLevel)
+      if (keys.containsKey(field)) field: keys[field],
+    for (final entry in keys.entries)
+      if (!documentLevel.contains(entry.key)) entry.key: entry.value,
+    for (final entry in session.entries)
+      if (!documentLevel.contains(entry.key)) entry.key: entry.value,
+  };
+  if (computedAcqTime && merged['acq_time'] is Map) {
+    final acq = Map<String, dynamic>.from(merged['acq_time'] as Map);
+    acq['Description'] =
+        '${acq['Description']} In this combined table the value may be '
+        'COMPUTED rather than recorded: a row from a file written before '
+        'v0.5.0 had no acq_time column, and it was composed from that file\'s '
+        'date, time and timezone cells when the file was read.';
+    merged['acq_time'] = acq;
+  }
+  return _encode(merged);
+}
+
 String _encode(Object? value) =>
     '${const JsonEncoder.withIndent('  ').convert(value)}\n';
 

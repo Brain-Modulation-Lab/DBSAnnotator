@@ -119,6 +119,30 @@
       }
     ]
   },
+  "aggregate_tsv": {
+    "columns": [
+      {
+        "name": "participant_id",
+        "type": "string",
+        "description": "Subject label as ``sub-<label>``, parsed from the source filename. The BIDS spelling and value shape deliberately, so this table joins directly onto ``participants.tsv``."
+      },
+      {
+        "name": "session_id",
+        "type": "string",
+        "description": "Session label as ``ses-<label>``, parsed from the source filename — the BIDS session, as ``sessions.tsv`` means it. Not to be confused with the per-file counter of the same name in pre-0.5.0 files, which is now ``append_id``."
+      },
+      {
+        "name": "run_id",
+        "type": "string",
+        "description": "The BIDS run index, zero-padded, without the ``run-`` prefix so it sorts numerically."
+      },
+      {
+        "name": "source_file",
+        "type": "string",
+        "description": "The session file this row came from. Not redundant with the entities above: ``run`` defaults to ``01`` and does not auto-increment, so two visits on the same day can share all three, and this is then the only thing that tells their rows apart. A block is unique across the table on ``(participant_id, session_id, run_id, block_id)``."
+      }
+    ]
+  },
   "bids": {
     "filename_template": "sub-{subject}_ses-{session}_task-{task}_run-{run}_beh.tsv",
     "sidecar_template": "sub-{subject}_ses-{session}_task-{task}_run-{run}_beh.json",

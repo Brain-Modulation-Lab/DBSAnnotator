@@ -223,7 +223,9 @@ void main() {
       // "derivatives datasets MUST include a dataset_description.json file at
       // the root level" — a report dropped into derivatives/ without one makes
       // the whole dataset invalid.
-      final file = reportsDerivativeDescription(
+      final file = derivativeDescription(
+        dir: reportsDerivativeDir,
+        name: 'DBS Annotator reports',
         appName: 'DBS Annotator',
         appVersion: '0.5.0',
         repoUrl: 'https://example.invalid',
@@ -233,6 +235,25 @@ void main() {
         (jsonDecode(file.content) as Map<String, dynamic>)['DatasetType'],
         'derivative',
       );
+    });
+
+    test('the aggregate derivative carries one too, at its own root', () {
+      // Same rule, and the reason `derivativeDescription` is parameterised
+      // rather than hard-coded to the reports directory: there are now two
+      // derivative datasets, and each needs its own description or the parent
+      // dataset is invalid.
+      final file = derivativeDescription(
+        dir: aggregateDerivativeDir,
+        name: 'DBS Annotator combined sessions',
+        appName: 'DBS Annotator',
+        appVersion: '0.5.0',
+        repoUrl: 'https://example.invalid',
+      );
+      expect(file.path, '$aggregateDerivativeDir/dataset_description.json');
+      final json = jsonDecode(file.content) as Map<String, dynamic>;
+      expect(json['DatasetType'], 'derivative');
+      expect(json['BIDSVersion'], isNotNull);
+      expect(json['GeneratedBy'], isA<List<dynamic>>());
     });
 
     test('the README says why the suffix is _beh', () {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -5,8 +6,9 @@ import 'package:flutter/material.dart';
 
 import '../app_info.dart';
 import '../core/bids.dart';
-import '../core/bids_dataset.dart' show DatasetEntry;
+import '../core/bids_dataset.dart';
 import '../core/bids_sidecar.dart';
+import '../core/session/aggregate.dart';
 import '../core/session/longitudinal.dart';
 import '../core/session/tsv_kind.dart';
 import '../core/session/session_file.dart';
@@ -196,11 +198,97 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
       _snack('No imported file carries BIDS entities in its name.');
       return;
     }
-    await exportBidsDataset(context, anchor: _exportKey, entries: entries);
+    // The same combined table the standalone export produces, placed where
+    // BIDS puts a cross-session derivation: its own directory under
+    // `derivatives/`, with its own dataset_description.json (a derivative
+    // dataset without one makes the whole dataset invalid) and a sidecar
+    // documenting all 23 columns.
+    final aggregate = buildAggregate([
+      for (final f in _files) (filename: f.name, rows: f.rows),
+    ]);
+    final extraFiles = <DatasetFile>[
+      if (aggregate.rowCount > 0) ...[
+        derivativeDescription(
+          dir: aggregateDerivativeDir,
+          name: '$appName combined sessions',
+          appName: appName,
+          appVersion: appVersion,
+          repoUrl: repoUrl,
+        ),
+        (
+          path: '$aggregateDerivativeDir/$aggregateStem.tsv',
+          content: aggregate.tsv,
+        ),
+        (
+          path: '$aggregateDerivativeDir/$aggregateStem.json',
+          content: aggregateSidecarJson(contract, appVersion: appVersion),
+        ),
+      ],
+    ];
+
+    await exportBidsDataset(
+      context,
+      anchor: _exportKey,
+      entries: entries,
+      extraFiles: extraFiles,
+    );
     if (mounted && skipped.isNotEmpty) {
       _snack(
         'Skipped (no BIDS entities in the filename): '
         '${skipped.join(', ')}',
+      );
+    }
+  }
+
+  /// The imported sessions as one long table, for sharing and analysis.
+  ///
+  /// Delivered as a standalone TSV with its sidecar beside it, because one file
+  /// is the point — a zip is a worse sharing artefact than a table you can open.
+  /// The same table also goes into the BIDS zip as a derivative; see
+  /// [_exportAggregate]'s counterpart in [_exportBids].
+  Future<void> _exportAggregate() async {
+    if (_files.isEmpty) {
+      _snack('Import at least one session first.');
+      return;
+    }
+    final out = buildAggregate([
+      for (final f in _files) (filename: f.name, rows: f.rows),
+    ]);
+    if (out.rowCount == 0) {
+      _snack(
+        out.skipped.isEmpty
+            ? 'The imported files contain no rows to combine.'
+            : 'No imported file carries BIDS entities in its name.',
+      );
+      return;
+    }
+
+    // One subject -> name it after them; several -> a study-level name. Neither
+    // carries a `ses-` entity, because the table deliberately spans sessions.
+    final stem = out.subjects.length == 1
+        ? '${out.subjects.single}_$aggregateStem'
+        : 'study_$aggregateStem';
+
+    await exportFile(
+      context,
+      filename: '$stem.tsv',
+      anchor: _exportKey,
+      failureLabel: 'Combined table export failed',
+      build: () async => (bytes: utf8.encode(out.tsv), warning: null),
+    );
+    if (!mounted) return;
+    // State the shape rather than just "done": the whole value of this file is
+    // that a reader can trust what is in it, and a silently dropped visit would
+    // be invisible in a table this size.
+    _snack(
+      '${out.rowCount} rows from ${out.fileCount} file'
+      '${out.fileCount == 1 ? '' : 's'}, '
+      '${out.subjects.length} subject${out.subjects.length == 1 ? '' : 's'}.',
+    );
+    if (out.skipped.isNotEmpty) {
+      _snack(
+        'Left out: '
+        '${out.skipped.map((s) => '${s.filename} — ${s.reason}').join('; ')}',
       );
     }
   }
@@ -306,6 +394,11 @@ class _LongitudinalScreenState extends State<LongitudinalScreen> {
                 child: const Text('Report (Word)'),
               ),
               const Divider(height: 8),
+              MenuItemButton(
+                leadingIcon: const Icon(Icons.table_chart_outlined),
+                onPressed: _exportAggregate,
+                child: const Text('Combined table (TSV)'),
+              ),
               MenuItemButton(
                 leadingIcon: const Icon(Icons.folder_zip_outlined),
                 onPressed: _exportBids,

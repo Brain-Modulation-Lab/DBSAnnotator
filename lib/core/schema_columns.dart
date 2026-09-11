@@ -6,28 +6,13 @@
 /// The JSON is committed, not generated: edit `schema/*.json` and the bundled
 /// copy under `assets/schema/` together.
 ///
-/// ## Naming
+/// All lower snake_case, which BIDS recommends for tabular column names;
+/// [legacyColumnAliases] maps every superseded spelling so an older file reads.
 ///
-/// All lower snake_case, which BIDS recommends for tabular column names.
-/// [legacyColumnAliases] maps every superseded spelling so an older file still
-/// reads.
-///
-/// ## What v0.5.0 removed, and why
-///
-/// Earlier drafts carried `date`, `time` and `timezone` beside `acq_time` — four
-/// cells for one instant. They are no longer written: four cells can disagree
-/// and nothing asserted they agreed, `timezone`'s zone-name half was not
-/// reproducible across platforms, and `acq_time` alone is what BIDS names and
-/// what `pd.to_datetime` reads in one line. See `lib/core/timestamps.dart` for
-/// the full argument, and `backfillAcqTime` for how older files still resolve to
-/// an instant on read.
-///
-/// `session_id` was also renamed to `append_id`. It counts data-entry episodes
-/// within one file — it increments each time that file is reopened to add rows —
-/// and is file-scoped, so equal values in different files are unrelated. It was
-/// never the BIDS session: BIDS uses `session_id` for the `ses-` label in
-/// `sessions.tsv`, and keeping one name for both meanings would have misled
-/// every reader of an aggregated table.
+/// v0.5.0 removed `date`, `time` and `timezone` in favour of `acq_time` alone
+/// (see `lib/core/timestamps.dart`) and renamed `session_id` to `append_id`,
+/// because BIDS uses `session_id` for the `ses-` label while this column counts
+/// data-entry episodes within one file.
 library;
 
 /// Annotations-only TSV (`task-notes`).
@@ -56,17 +41,13 @@ const List<String> sessionColumns = <String>[
   'notes',
 ];
 
-/// Superseded spellings, newest first, keyed by their current name.
+/// Superseded spellings, newest first, keyed by their current name. Readers
+/// consult these so an older file opens without a conversion step; nothing
+/// writes them.
 ///
-/// Readers consult these so a file written by an earlier version — or by the Qt
-/// desktop app, which wrote the `*_ID` forms — opens without a conversion step.
-/// Nothing writes them.
-///
-/// A **list** per column, not a single string: `append_id` has two ancestors,
-/// `session_id` from the 0.5.0 drafts and `session_ID` from 0.4.x and Qt, and
-/// both are in the wild — the committed legacy fixture uses one and files
-/// exported during 0.5.0 development use the other. Ordered newest-first so the
-/// most likely spelling is tried first.
+/// A list per column because `append_id` has two ancestors - `session_id` from
+/// the 0.5.0 drafts and `session_ID` from 0.4.x and Qt - and both exist in the
+/// wild.
 const Map<String, List<String>> legacyColumnAliases = <String, List<String>>{
   'block_id': <String>['block_ID'],
   'append_id': <String>['session_id', 'session_ID'],
@@ -86,11 +67,9 @@ String readColumn(Map<String, String> record, String column) {
 
 /// `0` or `1` for the `is_initial` cell, whatever shape the source used.
 ///
-/// Guaranteed to be one of exactly those two strings, because the alternative
-/// bites a reader immediately: `df.is_initial.astype(bool)` is **True** for the
-/// string `"0.0"`, which silently moves the baseline row into the tested set and
-/// changes every count derived from it. The Qt app and pre-0.5.0 files wrote
-/// floats, so this normalises on read as well as on write.
+/// Exactly those two strings, never `0.0`: `df.is_initial.astype(bool)` is True
+/// for the string `"0.0"`, which silently moves the baseline row into the
+/// tested set. Older files wrote floats, so this normalises both ways.
 String initialCell(bool isInitial) => isInitial ? '1' : '0';
 
 /// Whether an `is_initial` cell means "baseline", tolerating `1`, `1.0`, ` 1 `.

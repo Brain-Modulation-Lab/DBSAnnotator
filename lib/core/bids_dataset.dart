@@ -134,14 +134,16 @@ List<DatasetFile> buildBidsDataset(
 /// The `dataset_description.json` for the reports derivative, which needs its
 /// own — "derivatives datasets MUST include a dataset_description.json file at
 /// the root level".
-DatasetFile reportsDerivativeDescription({
+DatasetFile derivativeDescription({
+  required String dir,
+  required String name,
   required String appName,
   required String appVersion,
   required String repoUrl,
 }) => (
-  path: '$reportsDerivativeDir/dataset_description.json',
+  path: '$dir/dataset_description.json',
   content: _json(<String, dynamic>{
-    'Name': '$appName reports',
+    'Name': name,
     'BIDSVersion': bidsVersion,
     'DatasetType': 'derivative',
     'GeneratedBy': [
@@ -152,6 +154,23 @@ DatasetFile reportsDerivativeDescription({
 
 /// Where clinician-readable reports live inside a dataset.
 const String reportsDerivativeDir = 'derivatives/dbs-annotator-reports';
+
+/// Where the combined cross-session table lives inside a dataset.
+///
+/// A table spanning sessions — let alone subjects — cannot sit in the raw tree,
+/// which is one file per (subject, session, task, run). `derivatives/` is what
+/// the specification provides for it, and a derivative dataset must carry its
+/// own `dataset_description.json`, which [derivativeDescription] writes.
+const String aggregateDerivativeDir = 'derivatives/dbs-annotator-aggregate';
+
+/// The combined table's stem inside [aggregateDerivativeDir].
+///
+/// No `sub-` entity, because the table deliberately spans subjects; `desc-` is
+/// the entity BIDS provides for naming a derivative variant. Whether a
+/// `desc-`-only file at a derivative root satisfies the validator is the one
+/// genuinely uncertain part of this layout, which is why the CI validator job
+/// exists — see the plan's WP3b.
+const String aggregateStem = 'desc-aggregate_beh';
 
 String _json(Object? value) =>
     '${const JsonEncoder.withIndent('  ').convert(value)}\n';
