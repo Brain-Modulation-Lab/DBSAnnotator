@@ -307,15 +307,86 @@ beside the raw data, and are written there — with their own
 ``dataset_description.json`` — rather than being given invented raw-data
 filenames.
 
+.. _combined-table:
+
+The combined table
+~~~~~~~~~~~~~~~~~~
+
+One file per visit is right for recording and awkward for analysis: pooling a
+patient's visits, or several patients for a study, means concatenating a folder
+of files and losing the one thing that told their rows apart — the filename.
+
+**Export → Combined table (TSV)**, from the longitudinal screen, writes the
+imported sessions as one long table with four identity columns prepended:
+
+.. code-block:: text
+
+   participant_id  session_id     run_id  source_file                       ...
+   sub-01          ses-20260203   01      sub-01_ses-20260203_..._beh.tsv   ...
+   sub-07          ses-20260401   01      sub-07_ses-20260401_..._beh.tsv   ...
+
+The nineteen session columns follow, unchanged. So:
+
+.. code-block:: python
+
+   df = pd.read_csv(path, sep="\t", na_values=["n/a"])
+   df.groupby(["participant_id", "session_id"]).size()
+
+``participant_id`` uses the BIDS spelling and the BIDS value shape deliberately,
+so the table joins onto ``participants.tsv`` with no transformation.
+
+A block is unique across the table on
+``(participant_id, session_id, run_id, block_id)``. ``source_file`` is a key
+column rather than a convenience: ``run`` defaults to ``01`` and does not
+auto-increment, so two visits on the same day can share all three entities
+above, and the filename is then the only thing that separates their rows.
+
+.. note::
+
+   ``session_id`` here is the **BIDS session label**, as ``sessions.tsv`` means
+   it. The per-file counter that used to be called ``session_id`` is
+   ``append_id``, and it is still in the table — it counts data-entry episodes
+   within one source file, so equal values in different ``source_file`` values
+   are unrelated. That collision is why the column was renamed in v0.5.0; see
+   :ref:`bids-changes`.
+
+Inside a BIDS dataset the same table is a **derivative**, because a table
+spanning sessions cannot sit in a tree defined as one file per session:
+
+.. code-block:: text
+
+   derivatives/dbs-annotator-aggregate/
+     dataset_description.json     DatasetType: derivative
+     desc-aggregate_beh.tsv
+     desc-aggregate_beh.json      every column documented
+
+Two things it will not do, and says so rather than doing them quietly: a file
+whose name carries no ``sub-`` or ``ses-`` entity is left out and named, because
+guessing entities would put a wrong subject label on clinical data; and the same
+filename twice is refused rather than concatenated, because duplicate rows
+double every count derived from the table with nothing on the face of it to show
+why.
+
+Notes files are not combined into this table. Their two columns unioned with the
+session file's nineteen would give a frame in which every note row is mostly
+empty and ``df.groupby("block_id")`` silently drops all of them.
+
 What is still not standard
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The columns themselves. Of the twenty-two in a session file, only ``notes``
-resembles anything BIDS defines; ``block_id``, ``left_cathode``,
+The columns themselves. Of the nineteen in a session file, only ``notes`` and
+``acq_time`` resemble anything BIDS defines; ``block_id``, ``left_cathode``,
 ``left_amplitude`` and the rest are this application's own. That is permitted —
 BIDS allows additional columns and asks that they be documented in a sidecar,
 which is what the ``_beh.json`` is for — but it does mean no generic BIDS tool
 will understand what a *block* is. Read this page, or the sidecar.
+
+The placement of the combined table is the part with the least precedent: a
+``desc-``-only filename at a derivative root has no ``sub-`` entity, because the
+table deliberately spans subjects. ``desc-`` is the entity BIDS provides for
+naming a derivative variant, and dataset-level files do exist, so it is
+idiomatic — but it is checked by a validator job in CI rather than asserted
+here.
 
 Worked example
 --------------

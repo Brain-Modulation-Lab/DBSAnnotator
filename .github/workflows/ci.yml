@@ -152,6 +152,73 @@ jobs:
       - run: flutter test
 
   # ---------------------------------------------------------------------------
+  # Does the dataset this app writes actually satisfy BIDS?
+  #
+  # Every other claim of compliance in this repository is OUR READING of the
+  # specification, restated in tests we wrote. The validator is the only thing
+  # that tests the reading itself, and it is the claim the JOSS paper makes.
+  #
+  # It lives in CI because it cannot run on the maintainer's machine: the
+  # validator is Deno-based, and that machine has no Node, Deno or Docker.
+  #
+  # `continue-on-error` DELIBERATELY, for now. The first output of a validator
+  # against a bespoke `beh` dataset is a finding, not a verdict - expect
+  # legitimate complaints about our own columns and about `desc-aggregate_beh`
+  # at a derivative root, which is the one part of the layout not yet confirmed.
+  # Turning a gate red before anyone has read what it says teaches people to
+  # ignore it. Triage the output, fix the real errors, record which warnings are
+  # acceptable and why, and THEN delete this line.
+  bids-validate:
+    name: BIDS validator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: flutter pub get --enforce-lockfile
+
+      # Two sessions of one subject plus a second subject, so `scans.tsv`
+      # grouping, `participants.tsv` with more than one row, and the combined
+      # table's cross-subject path are all exercised. A plain `flutter test`
+      # writes nothing, hence the env var.
+      - name: Write a dataset tree
+        env:
+          BIDS_DATASET_DIR: build/bids-dataset
+        run: flutter test test/bids/dataset_tree_test.dart
+
+      - name: Validate it
+        run: |
+          set -uo pipefail
+          deno run -ERWN jsr:@bids/validator build/bids-dataset \
+            --json > build/bids-report.json || true
+          {
+            echo "### BIDS validator"
+            echo ''
+            echo '```'
+            deno run -ERWN jsr:@bids/validator build/bids-dataset 2>&1 | tail -60
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The JSON is the thing to triage, and it outlives the log retention of a
+      # step summary.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bids-validator-report
+          path: |
+            build/bids-report.json
+            build/bids-dataset
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
   # Build jobs. Each produces ONE correctly-named archive in `out/`, and the
   # `cp`/`test -x` that names it IS the completeness check - `upload-artifact`
   # errors only when NOTHING matches, so listing two paths under one
